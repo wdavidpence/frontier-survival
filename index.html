@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frontier Survival</title>
+  <style>
+    :root {
+      --panel: rgba(8, 12, 18, 0.72);
+      --accent: #d4a574;
+      --health: #c43c3c;
+      --hunger: #c4a035;
+      --stamina: #3c8c5a;
+      --temp: #5a9fd4;
+      --sleep: #7a6bb0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #0a0e14;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: #e8e4dc;
+      user-select: none;
+    }
+    #game {
+      display: block;
+      width: 100%; height: 100%;
+      cursor: crosshair;
+    }
+    #hud {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #crosshair {
+      position: absolute; left: 50%; top: 50%;
+      width: 14px; height: 14px;
+      margin: -7px 0 0 -7px;
+      border: 2px solid rgba(255,255,255,0.75);
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.35);
+    }
+    #crosshair.hit { border-color: var(--accent); }
+    #hurt-vignette {
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at center, transparent 40%, rgba(80,0,0,0.85) 100%);
+      opacity: 0;
+      transition: opacity 0.15s linear;
+    }
+    #meters {
+      position: absolute;
+      left: 16px; bottom: 72px;
+      width: 220px;
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 10px 12px;
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      backdrop-filter: blur(6px);
+    }
+    .meter { display: grid; grid-template-columns: 62px 1fr; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #b9b3a8; }
+    .track { height: 10px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+    .fill { height: 100%; width: 0%; border-radius: 4px; transition: width 0.08s linear; }
+    #bar-health { background: linear-gradient(90deg, #8b1e1e, var(--health)); }
+    #bar-hunger { background: linear-gradient(90deg, #8a7020, var(--hunger)); }
+    #bar-stamina { background: linear-gradient(90deg, #1f5c38, var(--stamina)); }
+    #bar-temp { background: linear-gradient(90deg, #2a6a9a, var(--temp)); }
+    #bar-sleep { background: linear-gradient(90deg, #4a3d78, var(--sleep)); }
+    #temp-label { font-size: 10px; color: #9cf; margin-left: 4px; text-transform: none; }
+    #hotbar {
+      position: absolute;
+      left: 50%; bottom: 18px;
+      transform: translateX(-50%);
+      display: flex; gap: 6px;
+      padding: 8px;
+      background: var(--panel);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .hotbar-slot {
+      width: 44px; height: 44px;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-radius: 6px;
+      position: relative;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.35);
+    }
+    .hotbar-slot.empty { background: rgba(255,255,255,0.04) !important; }
+    .hotbar-slot .hb-count {
+      position: absolute; right: 3px; bottom: 2px;
+      font-size: 11px; font-weight: 700;
+      color: #fff; text-shadow: 0 1px 2px #000;
+    }
+    .hotbar-slot.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), inset 0 0 12px rgba(212,165,116,0.25);
+    }
+    .hotbar-slot::after {
+      content: attr(data-key);
+      position: absolute; top: 2px; left: 4px;
+      font-size: 9px; color: rgba(255,255,255,0.7);
+      text-shadow: 0 1px 2px #000;
+    }
+    #inventory-screen {
+      z-index: 25;
+    }
+    #inventory-screen .inv-panel {
+      width: min(860px, 96vw);
+      max-height: 90vh;
+      overflow: auto;
+      padding: 22px 24px 28px;
+      background: linear-gradient(160deg, rgba(24,30,42,0.97), rgba(10,14,20,0.98));
+      border: 1px solid rgba(212,165,116,0.35);
+      border-radius: 14px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.55);
+      text-align: left;
+      pointer-events: auto;
+    }
+    #inventory-screen h2 {
+      font-size: 18px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #f3e6d2;
+      margin-bottom: 6px;
+    }
+    #inventory-screen .inv-sub {
+      color: #9a9388;
+      font-size: 12px;
+      margin-bottom: 14px;
+    }
+    .inv-grid-wrap { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+    @media (max-width: 720px) { .inv-grid-wrap { grid-template-columns: 1fr; } }
+    #inv-slots {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 6px;
+    }
+    .inv-slot {
+      aspect-ratio: 1;
+      min-height: 52px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      position: relative;
+      cursor: pointer;
+      background: rgba(255,255,255,0.04);
+      display: flex; align-items: flex-end; justify-content: center;
+      padding: 4px;
+    }
+    .inv-slot.active { outline: 2px solid var(--accent); }
+    .inv-slot .inv-count {
+      position: absolute; top: 3px; right: 5px;
+      font-size: 11px; font-weight: 700; color: #fff;
+      text-shadow: 0 1px 2px #000;
+    }
+    .inv-slot .inv-name {
+      font-size: 8px; line-height: 1.1; text-align: center;
+      color: #fff; text-shadow: 0 1px 2px #000;
+      max-width: 100%; overflow: hidden;
+    }
+    .inv-slot[data-hot]::before {
+      content: attr(data-hot);
+      position: absolute; top: 2px; left: 4px;
+      font-size: 9px; color: rgba(255,255,255,0.55);
+    }
+    #recipe-list {
+      display: flex; flex-direction: column; gap: 8px;
+      max-height: 420px; overflow: auto;
+    }
+    .recipe-btn {
+      pointer-events: auto;
+      cursor: pointer;
+      text-align: left;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: #b9b3a8;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .recipe-btn strong { color: #ddd5c6; font-size: 13px; }
+    .recipe-btn span { font-size: 11px; color: #8a8378; }
+    .recipe-btn.can {
+      border-color: rgba(212,165,116,0.45);
+      background: rgba(212,165,116,0.1);
+      color: #e8e0d4;
+    }
+    .recipe-btn.can strong { color: var(--accent); }
+    .recipe-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .inv-actions { margin-top: 16px; display: flex; justify-content: flex-end; gap: 10px; }
+    .inv-actions button {
+      pointer-events: auto;
+      cursor: pointer;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #e0b888, #b8894f);
+      color: #1a140c;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    #equip-slots { display: flex; flex-direction: column; gap: 6px; }
+    .equip-warmth { font-size: 12px; color: #b9b3a8; margin-bottom: 4px; }
+    .equip-warmth b { color: var(--accent); }
+    .equip-row {
+      display: flex; justify-content: space-between; gap: 10px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .equip-slot-label { text-transform: uppercase; letter-spacing: 0.06em; color: #8a8378; }
+    .equip-item { color: #e8e0d4; }
+    #status-line {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      padding: 6px 14px;
+      background: var(--panel);
+      border-radius: 20px;
+      font-size: 12px;
+      color: #cfc8bc;
+      border: 1px solid rgba(255,255,255,0.06);
+      white-space: nowrap;
+    }
+    #message {
+      position: absolute;
+      top: 22%; left: 50%; transform: translateX(-50%);
+      max-width: 560px;
+      text-align: center;
+      font-size: 15px;
+      color: #f0e6d4;
+      text-shadow: 0 2px 8px #000;
+      min-height: 1.2em;
+    }
+    #help {
+      position: absolute; right: 16px; bottom: 18px;
+      width: 230px;
+      padding: 10px 12px;
+      background: var(--panel);
+      border-radius: 8px;
+      font-size: 11px;
+      line-height: 1.45;
+      color: #a8a296;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    #help b { color: #ddd5c6; }
+    .overlay {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, rgba(20,28,40,0.88), rgba(5,8,12,0.95));
+      z-index: 20;
+      pointer-events: auto;
+    }
+    .overlay.hidden { display: none; }
+    .panel {
+      width: min(480px, 92vw);
+      padding: 32px 28px;
+      background: linear-gradient(160deg, rgba(30,38,52,0.95), rgba(14,18,26,0.98));
+      border: 1px solid rgba(212,165,116,0.35);
+      border-radius: 14px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.55);
+      text-align: center;
+    }
+    .panel h1 {
+      font-weight: 600;
+      font-size: 28px;
+      letter-spacing: 0.06em;
+      color: #f3e6d2;
+      margin-bottom: 8px;
+    }
+    .panel .tag {
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .panel p {
+      color: #b9b3a8;
+      font-size: 14px;
+      line-height: 1.55;
+      margin-bottom: 14px;
+    }
+    .panel button {
+      pointer-events: auto;
+      cursor: pointer;
+      margin-top: 10px;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #e0b888, #b8894f);
+      color: #1a140c;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+    }
+    .panel button:hover { filter: brightness(1.06); }
+    #death-screen .panel h1 { color: #e08080; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="game" tabindex="0"></canvas>
+  <div id="hud">
+    <div id="hurt-vignette"></div>
+    <div id="crosshair"></div>
+    <div id="status-line">Frontier Survival</div>
+    <div id="message"></div>
+    <div id="meters">
+      <div class="meter"><span>Health</span><div class="track"><div id="bar-health" class="fill"></div></div></div>
+      <div class="meter"><span>Hunger</span><div class="track"><div id="bar-hunger" class="fill"></div></div></div>
+      <div class="meter"><span>Stamina</span><div class="track"><div id="bar-stamina" class="fill"></div></div></div>
+      <div class="meter"><span>Temp <span id="temp-label"></span></span><div class="track"><div id="bar-temp" class="fill"></div></div></div>
+      <div class="meter"><span>Fatigue</span><div class="track"><div id="bar-sleep" class="fill"></div></div></div>
+    </div>
+    <div id="hotbar">
+      <div class="hotbar-slot active" data-key="1"></div>
+      <div class="hotbar-slot" data-key="2"></div>
+      <div class="hotbar-slot" data-key="3"></div>
+      <div class="hotbar-slot" data-key="4"></div>
+      <div class="hotbar-slot" data-key="5"></div>
+      <div class="hotbar-slot" data-key="6"></div>
+      <div class="hotbar-slot" data-key="7"></div>
+      <div class="hotbar-slot" data-key="8"></div>
+      <div class="hotbar-slot" data-key="9"></div>
+    </div>
+    <div id="help">
+      <b>WASD</b> move · <b>Mouse</b> look<br/>
+      <b>Space</b> jump · <b>Shift</b> sprint<br/>
+      <b>LMB</b> mine · <b>RMB</b> place<br/>
+      <b>1-9</b> hotbar · <b>E</b> inventory/craft<br/>
+      <b>R</b> eat · <b>F</b> cook / equip / sleep · <b>K</b> save<br/>
+      LMB hunts · clothes + bed beat the cold night
+    </div>
+  </div>
+
+  <div id="inventory-screen" class="overlay hidden">
+    <div class="inv-panel">
+      <h2>Pack & Craft</h2>
+      <p class="inv-sub">Gather resources in the world. Click a highlighted recipe when you have the ingredients. Hotbar slots 1–9 are the first row — click to select.</p>
+      <div class="inv-grid-wrap">
+        <div>
+          <p class="inv-sub" style="margin-bottom:8px">Inventory</p>
+          <div id="inv-slots"></div>
+          <p class="inv-sub" style="margin:12px 0 8px">Worn (F equip held clothes)</p>
+          <div id="equip-slots"></div>
+        </div>
+        <div>
+          <p class="inv-sub" style="margin-bottom:8px">Recipes</p>
+          <div id="recipe-list"></div>
+        </div>
+      </div>
+      <div class="inv-actions">
+        <button id="btn-save-game" type="button">Save (K)</button>
+        <button id="btn-close-inv" type="button">Close (E)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="title-screen" class="overlay">
+    <div class="panel">
+      <div class="tag">Browser survival sandbox</div>
+      <h1>Frontier Survival</h1>
+      <p>
+        Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
+        matter as much as mining. Inspired by Survivalcraft’s harsh systems —
+        original game, art, and code.
+      </p>
+      <p>PC controls: keyboard + mouse. Click Start, then click the world to capture the cursor.</p>
+      <p style="font-size:12px;color:#8a8378">Progress auto-saves. Continue resumes seed, builds, inventory, and body state.</p>
+      <button id="btn-continue" type="button" style="display:none">Continue save</button>
+      <button id="btn-start" type="button">Start surviving</button>
+      <button id="btn-new-world" type="button" style="display:none;margin-left:8px;background:linear-gradient(180deg,#8a909a,#5a6068);color:#f0f0f0">New world</button>
+    </div>
+  </div>
+
+  <div id="death-screen" class="overlay hidden">
+    <div class="panel">
+      <h1>You died</h1>
+      <p id="death-cause"></p>
+      <p>Nature does not negotiate. Build shelter. Light a fire. Eat before you explore.</p>
+      <button id="btn-respawn" type="button">Respawn</button>
+    </div>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

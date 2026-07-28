@@ -1,22 +1,28 @@
 # Session Handoff
 
-**Project:** Frontier Survival (SurvivalCraft-inspired browser PC game)  
+**Project:** Frontier Survival  
 **Path:** `/mnt/c/Users/wdavi/Projects/SurvivalCraftMobile`  
-**Directive:** Hermes sole SWE + tester — **do not** delegate to OpenCode.
+**Directive:** Hermes sole SWE + tester — no OpenCode.
 
-## Current state (2026-07-28)
-Playable SC-style loop + **greedy mesh / larger world**:
-- Greedy meshing + atlas tile shader (fract UVs)
-- World radius 5 → **121 chunks**; browser ~31k verts / 15.5k tris
-- Full survival systems (meters, craft, fauna, cook, clothes, bed, ambient audio, save)
-- `node tests/smoke.mjs` — **30/30**
+## Current state (2026-07-28) — 1.0 playable slice packaged
+- Full survival loop (see README + docs/RELEASE_NOTES_1.0.md)
+- Root `index.html` + `.nojekyll` for GitHub Pages from repo root
+- README polished with controls, deploy steps, legal note
+- Tests: `node tests/smoke.mjs` → 30/30
 
-**Play:** http://127.0.0.1:8765/public/
+**Play local:** serve repo root → http://127.0.0.1:8765/
 
-## Next
-1. Public ship: README polish + GitHub Pages (if auth available)
-2. Optional: spear/bow, biomes, difficulty modes
-3. More SC depth over time (electricity long-term)
+## Deploy status
+- `gh` CLI not installed in this environment
+- Outbound GitHub API/push was not available from the agent session
+- **User action:** create empty GitHub repo, `git remote add origin …`, `git push -u origin main`, enable Pages from `main` `/`
 
-## Honest scope
-Strong playable browser 1.0 vertical slice — not commercial Survivalcraft feature parity.
+## Next (content depth)
+1. User publishes Pages (blocked here without network/auth)
+2. Spear/bow, more biomes, difficulty modes
+3. Long-term SC parity track in docs/SCM.md
+
+## Honest completion
+**Playable 1.0 browser slice: YES.**  
+**Commercial Survivalcraft feature parity: NO.**  
+**Live public URL from this session: NOT published (auth/network).**
