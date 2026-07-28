@@ -26,8 +26,15 @@ import {
   consumeFromHotbar,
   HOTBAR_SIZE,
   hasIngredients,
+  cloneSlots,
 } from './inventory.js';
 import { visibleRecipes, craftRecipe } from './crafting.js';
+import {
+  serializeSave,
+  writeSaveToStorage,
+  readSaveFromStorage,
+  clearSaveStorage,
+} from './save.js';
 
 export class Game {
   /**
@@ -72,10 +79,14 @@ export class Game {
     this._breakSpeed = 1.6;
     this._stepAcc = 0;
     this._invNeedsPaint = true;
+    this._autosaveAcc = 0;
+    this._autosaveInterval = 40; // seconds
+    this._lastSaveStatus = '';
 
     this._onResize = () => this.resize();
     window.addEventListener('resize', this._onResize);
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    window.addEventListener('beforeunload', this._onBeforeUnload);
 
     this._bindInventoryUi();
 
@@ -83,10 +94,20 @@ export class Game {
     this._raf = 0;
   }
 
+  _onBeforeUnload = () => {
+    if (this.started && this.player && !this.survival?.dead) {
+      this.saveGame({ quiet: true });
+    }
+  };
+
   _bindInventoryUi() {
     const panel = document.getElementById('inventory-screen');
     const closeBtn = document.getElementById('btn-close-inv');
     closeBtn?.addEventListener('click', () => this.setInventoryOpen(false));
+    document.getElementById('btn-save-game')?.addEventListener('click', () => {
+      this.saveGame();
+      this._paintInventory();
+    });
 
     panel?.addEventListener('click', (e) => {
       const recipeBtn = e.target.closest('[data-recipe]');
@@ -108,24 +129,135 @@ export class Game {
 
   start(seed = this.seed) {
     this.seed = seed;
+    this._bootWorld({
+      seed,
+      freshPlayer: true,
+      notify: 'Click to lock mouse. Mine wood, press E to craft. Survive the night. (Auto-saves)',
+    });
+  }
+
+  /**
+   * @param {object} opts
+   * @param {number} opts.seed
+   * @param {boolean} [opts.freshPlayer]
+   * @param {object} [opts.saveData] parsed save
+   * @param {string} [opts.notify]
+   */
+  _bootWorld({ seed, freshPlayer = true, saveData = null, notify = '' }) {
+    this.seed = seed;
     if (this.world) {
       this.scene.remove(this.world.group);
+      // dispose old meshes lightly
+      for (const m of this.world.meshes.values()) {
+        m.geometry?.dispose();
+        m.material?.dispose?.();
+      }
     }
     this.world = new World({ seed, radiusChunks: 3 });
+    if (saveData?.edits?.length) {
+      this.world.applyEdits(saveData.edits, { replace: true });
+    }
     this.scene.add(this.world.group);
-    const spawn = this.world.findSpawn();
-    this.player = new Player(spawn);
-    this.survival = { ...DEFAULT_SURVIVAL };
-    this.prevHealth = 100;
-    this.time = new GameTime({ dayLengthSec: 420 });
+
+    if (freshPlayer || !saveData) {
+      const spawn = this.world.findSpawn();
+      this.player = new Player(spawn);
+      this.survival = { ...DEFAULT_SURVIVAL };
+      this.time = new GameTime({ dayLengthSec: 420 });
+    } else {
+      this.player = new Player({
+        x: saveData.player.x,
+        y: saveData.player.y,
+        z: saveData.player.z,
+      });
+      this.player.yaw = saveData.player.yaw || 0;
+      this.player.pitch = saveData.player.pitch || 0;
+      this.input.lookX = this.player.yaw;
+      this.input.lookY = this.player.pitch;
+      this.player.hotbarIndex = saveData.player.hotbarIndex || 0;
+      this.player.slots = cloneSlots(saveData.player.slots);
+      this.survival = { ...DEFAULT_SURVIVAL, ...saveData.survival, dead: false, causeOfDeath: null };
+      // if they died in save, respawn fresh stats but keep world/inv? For continue after death we use respawn. Load clears dead.
+      this.time = new GameTime({ dayLengthSec: saveData.time.dayLengthSec || 420 });
+      this.time.elapsed = saveData.time.elapsed || 0;
+      this.time.weather = saveData.time.weather || 'clear';
+      this.time.weatherTimer = saveData.time.weatherTimer ?? 60;
+      this.mode = saveData.mode || 'survival';
+    }
+
+    this.prevHealth = this.survival.health;
     this.started = true;
     this.paused = false;
     this.input.bind();
     this.setInventoryOpen(false);
-    this.player.notify('Click to lock mouse. Mine wood, press E to craft. Survive the night.', 7);
+    if (notify) this.player.notify(notify, 7);
     if (!this._raf) this._loop();
     this.hud.hideTitle?.();
     this._invNeedsPaint = true;
+    this._autosaveAcc = 0;
+  }
+
+  captureState() {
+    return {
+      seed: this.seed,
+      mode: this.mode,
+      survival: this.survival,
+      time: {
+        elapsed: this.time.elapsed,
+        weather: this.time.weather,
+        weatherTimer: this.time.weatherTimer,
+        dayLengthSec: this.time.dayLengthSec,
+      },
+      player: {
+        x: this.player.position.x,
+        y: this.player.position.y,
+        z: this.player.position.z,
+        yaw: this.player.yaw,
+        pitch: this.player.pitch,
+        hotbarIndex: this.player.hotbarIndex,
+        slots: this.player.slots,
+      },
+      edits: this.world.exportEdits(),
+    };
+  }
+
+  saveGame({ quiet = false } = {}) {
+    if (!this.started || !this.player || !this.world) {
+      return { ok: false, error: 'not started' };
+    }
+    if (this.survival.dead) {
+      return { ok: false, error: 'dead' };
+    }
+    const json = serializeSave(this.captureState());
+    const res = writeSaveToStorage(json);
+    if (res.ok) {
+      this._lastSaveStatus = `Saved ${new Date().toLocaleTimeString()}`;
+      if (!quiet) this.player.notify('Game saved.', 2);
+      this.audio.ui();
+      this.hud.refreshContinue?.();
+    } else if (!quiet) {
+      this.player.notify(`Save failed: ${res.error}`);
+    }
+    return res;
+  }
+
+  loadGame() {
+    const res = readSaveFromStorage();
+    if (!res.ok) return res;
+    this._bootWorld({
+      seed: res.data.seed,
+      freshPlayer: false,
+      saveData: res.data,
+      notify: 'Save loaded. Welcome back — check your fire before night.',
+    });
+    return { ok: true };
+  }
+
+  newGame() {
+    clearSaveStorage();
+    this.seed = (Math.random() * 1e6) | 0;
+    this.start(this.seed);
+    this.hud.refreshContinue?.();
   }
 
   resize() {
@@ -160,6 +292,8 @@ export class Game {
       this.audio.ui();
     } else {
       panel?.classList.add('hidden');
+      // autosave when closing pack
+      if (this.started && !this.survival.dead) this.saveGame({ quiet: true });
     }
   }
 
@@ -183,6 +317,9 @@ export class Game {
 
     if (this.input.consumeInventory()) {
       this.setInventoryOpen(!this.player.inventoryOpen);
+    }
+    if (this.input.consumeQuickSave()) {
+      this.saveGame();
     }
 
     // survival keeps ticking even in inventory (you're still cold/hungry)
@@ -252,6 +389,13 @@ export class Game {
     this._updateLighting();
     this._updateHud();
     if (this.player.inventoryOpen && this._invNeedsPaint) this._paintInventory();
+
+    // periodic autosave
+    this._autosaveAcc += dt;
+    if (this._autosaveAcc >= this._autosaveInterval) {
+      this._autosaveAcc = 0;
+      this.saveGame({ quiet: true });
+    }
   }
 
   _handleMining(dt) {
@@ -450,6 +594,7 @@ export class Game {
       const held = this.player.heldStack();
       if (held.id != null) bits.push(displayName(held.id));
       if (this.player.breaking) bits.push(`Mining ${Math.floor(this.player.breaking.progress * 100)}%`);
+      if (this._lastSaveStatus) bits.push(this._lastSaveStatus);
       status.textContent = bits.join(' · ');
     }
 

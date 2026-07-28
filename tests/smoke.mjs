@@ -24,6 +24,15 @@ import {
   craftWith,
 } from '../js/inventory.js';
 import { craftRecipe, visibleRecipes } from '../js/crafting.js';
+import {
+  buildSavePayload,
+  parseSavePayload,
+  serializeSave,
+  writeSaveToStorage,
+  readSaveFromStorage,
+  clearSaveStorage,
+  SAVE_KEY,
+} from '../js/save.js';
 
 let passed = 0;
 function test(name, fn) {
@@ -199,6 +208,70 @@ test('coal ore drops coal item', () => {
   assert.strictEqual(dropForBlock(BLOCK.COAL_ORE), ITEM.COAL);
   assert.ok(isPlaceable(BLOCK.TORCH));
   assert.ok(!isPlaceable(ITEM.STICK));
+});
+
+test('save roundtrip preserves seed inventory edits', () => {
+  const state = {
+    seed: 12345,
+    mode: 'survival',
+    survival: {
+      health: 80,
+      maxHealth: 100,
+      hunger: 55,
+      maxHunger: 100,
+      stamina: 90,
+      maxStamina: 100,
+      bodyTemp: 36.2,
+      sleep: 12,
+      wetness: 0,
+      warmthFromClothes: 0,
+      dead: false,
+      causeOfDeath: null,
+    },
+    time: { elapsed: 900, weather: 'rain', weatherTimer: 40, dayLengthSec: 420 },
+    player: {
+      x: 1.5,
+      y: 20,
+      z: -3.25,
+      yaw: 0.5,
+      pitch: -0.1,
+      hotbarIndex: 2,
+      slots: [
+        { id: ITEM.RATION, count: 2 },
+        { id: BLOCK.LOG, count: 7 },
+        { id: null, count: 0 },
+      ],
+    },
+    edits: [
+      [10, 18, 5, BLOCK.CAMPFIRE],
+      [10, 18, 6, BLOCK.TORCH],
+    ],
+  };
+  const json = serializeSave(state);
+  const parsed = parseSavePayload(json);
+  assert.ok(parsed.ok, parsed.error);
+  assert.strictEqual(parsed.data.seed, 12345);
+  assert.strictEqual(parsed.data.survival.health, 80);
+  assert.strictEqual(parsed.data.player.slots[1].count, 7);
+  assert.strictEqual(parsed.data.edits.length, 2);
+  assert.strictEqual(parsed.data.edits[0][3], BLOCK.CAMPFIRE);
+  assert.strictEqual(parsed.data.time.weather, 'rain');
+
+  const mem = {
+    _d: {},
+    setItem(k, v) { this._d[k] = String(v); },
+    getItem(k) { return this._d[k] ?? null; },
+    removeItem(k) { delete this._d[k]; },
+  };
+  assert.ok(writeSaveToStorage(json, mem, SAVE_KEY).ok);
+  const loaded = readSaveFromStorage(mem, SAVE_KEY);
+  assert.ok(loaded.ok);
+  assert.strictEqual(loaded.data.player.x, 1.5);
+  clearSaveStorage(mem, SAVE_KEY);
+  assert.ok(!readSaveFromStorage(mem, SAVE_KEY).ok);
+
+  const bad = parseSavePayload('{"v":999}');
+  assert.ok(!bad.ok);
 });
 
 console.log(`\n${passed} tests passed`);

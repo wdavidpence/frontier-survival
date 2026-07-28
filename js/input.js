@@ -11,6 +11,7 @@ export class Input {
     this.usePressed = false;
     this.eatPressed = false;
     this.inventoryPressed = false;
+    this.quickSavePressed = false;
     this.slot = -1;
     this.sensitivity = 0.0022;
     this._bound = false;
@@ -58,6 +59,7 @@ export class Input {
     if (e.code === 'KeyF') this.usePressed = true;
     if (e.code === 'KeyR') this.eatPressed = true;
     if (e.code === 'KeyE') this.inventoryPressed = true;
+    if (e.code === 'KeyK') this.quickSavePressed = true;
     if (e.code === 'Escape') {
       // pointer lock exits itself; game may also close inventory
     }
@@ -125,6 +127,12 @@ export class Input {
   consumeInventory() {
     const v = this.inventoryPressed;
     this.inventoryPressed = false;
+    return v;
+  }
+
+  consumeQuickSave() {
+    const v = this.quickSavePressed;
+    this.quickSavePressed = false;
     return v;
   }
 

@@ -321,7 +321,7 @@
       <b>Space</b> jump · <b>Shift</b> sprint<br/>
       <b>LMB</b> mine · <b>RMB</b> place<br/>
       <b>1-9</b> hotbar · <b>E</b> inventory/craft<br/>
-      <b>R</b> eat · craft <b>campfire</b> before night
+      <b>R</b> eat · <b>K</b> save · craft <b>campfire</b> before night
     </div>
   </div>
 
@@ -340,6 +340,7 @@
         </div>
       </div>
       <div class="inv-actions">
+        <button id="btn-save-game" type="button">Save (K)</button>
         <button id="btn-close-inv" type="button">Close (E)</button>
       </div>
     </div>
@@ -355,7 +356,10 @@
         original game, art, and code.
       </p>
       <p>PC controls: keyboard + mouse. Click Start, then click the world to capture the cursor.</p>
+      <p style="font-size:12px;color:#8a8378">Progress auto-saves. Continue resumes seed, builds, inventory, and body state.</p>
+      <button id="btn-continue" type="button" style="display:none">Continue save</button>
       <button id="btn-start" type="button">Start surviving</button>
+      <button id="btn-new-world" type="button" style="display:none;margin-left:8px;background:linear-gradient(180deg,#8a909a,#5a6068);color:#f0f0f0">New world</button>
     </div>
   </div>
 

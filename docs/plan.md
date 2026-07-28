@@ -42,10 +42,10 @@ Track with `[ ]` / `[x]`. Earliest unchecked item is next work.
 - [x] Mine drops into inventory; place consumes stacks
 - [x] Tool mine speed (wood/stone pick, wood axe)
 - [x] E opens Pack & Craft UI
+- [x] localStorage save/load
 - [ ] campfire cook meat
 - [ ] clothing craft
 - [ ] death drops optional by mode
-- [ ] localStorage save/load
 
 ## Phase 4 — Ecology
 - [ ] passive animals + meat

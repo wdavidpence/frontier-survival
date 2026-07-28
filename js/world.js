@@ -28,6 +28,8 @@ export class World {
     this.meshes = new Map(); // key -> THREE.Mesh
     this.group = new THREE.Group();
     this.dirty = new Set();
+    /** @type {Map<string, number>} sparse player edits "x,y,z" -> block id */
+    this.edits = new Map();
     this._genAll();
   }
 
@@ -140,8 +142,10 @@ export class World {
     return data[this._idx(lx, y, lz)];
   }
 
-  setBlock(x, y, z, id) {
+  setBlock(x, y, z, id, { recordEdit = true } = {}) {
     y = Math.floor(y);
+    x = Math.floor(x);
+    z = Math.floor(z);
     if (y < 0 || y >= WORLD_HEIGHT) return false;
     const { cx, cz, lx, lz } = this.worldToChunk(x, z);
     const data = this.chunks.get(this.key(cx, cz));
@@ -149,6 +153,9 @@ export class World {
     const i = this._idx(lx, y, lz);
     if (data[i] === BLOCK.BEDROCK) return false;
     data[i] = id;
+    if (recordEdit) {
+      this.edits.set(`${x},${y},${z}`, id);
+    }
     this.markDirty(cx, cz);
     // neighbor chunk seams
     if (lx === 0) this.markDirty(cx - 1, cz);
@@ -156,6 +163,36 @@ export class World {
     if (lz === 0) this.markDirty(cx, cz - 1);
     if (lz === CHUNK_SIZE - 1) this.markDirty(cx, cz + 1);
     return true;
+  }
+
+  /** @returns {Array<[number,number,number,number]>} */
+  exportEdits() {
+    const out = [];
+    for (const [k, id] of this.edits) {
+      const [x, y, z] = k.split(',').map(Number);
+      out.push([x, y, z, id]);
+    }
+    return out;
+  }
+
+  /**
+   * Apply sparse edits after generation. Does not clear existing edits map first unless replace.
+   * @param {Array<[number,number,number,number]>} edits
+   * @param {{ replace?: boolean }} opts
+   */
+  applyEdits(edits, { replace = true } = {}) {
+    if (replace) this.edits.clear();
+    if (!edits || !edits.length) {
+      if (replace) {
+        // rebuild all if we cleared? no need — gen is pristine
+      }
+      return;
+    }
+    for (const e of edits) {
+      const [x, y, z, id] = e;
+      this.setBlock(x, y, z, id, { recordEdit: true });
+    }
+    this.flushDirty();
   }
 
   markDirty(cx, cz) {
