@@ -15,10 +15,10 @@ WASD move, mouse look (click canvas), Space jump, Shift sprint, LMB mine, RMB pl
 - [ ] Break and place blocks manual
 - [ ] Night cold + campfire recovery manual
 - [ ] Sprint drains stamina manual
-- [ ] Eat ration manual
-- [ ] Audio feedback manual
+- [x] Eat ration / food from inventory (R)
+- [x] Inventory E opens; recipes craftable when ingredients present
+- [x] No free creative blocks — must gather to place
 
 ### Notes
-- First spawn landed in/near water with broken temp homeostasis (fixed: comfort air keeps 37°C; improved dry-land spawn scoring).
-- Graphics are flat vertex colors (atlas later). Water shader is translucent planes — fine for prototype.
-- Hunger drains on a short session timescale so survival pressure is felt in playtests.
+- Crafting UI verified in browser (Pack & Craft panel, 27 slots, 8 recipes).
+- Survival pressure still active while inventory open.

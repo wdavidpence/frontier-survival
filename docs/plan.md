@@ -9,9 +9,9 @@ Track with `[ ]` / `[x]`. Earliest unchecked item is next work.
 - [x] README.md
 - [x] public/index.html shell + HUD
 - [x] js modules: main, input, game loop, blocks, world gen, player, survival, time, audio
-- [x] tests/smoke.mjs (12 passing)
+- [x] tests/smoke.mjs
 - [x] git init + commits
-- [x] local static server + browser boot verified (no JS errors, world meshes, HUD)
+- [x] local static server + browser boot verified
 
 ## Phase 1 — Voxel world
 - [x] Block definitions + properties
@@ -19,7 +19,7 @@ Track with `[ ]` / `[x]`. Earliest unchecked item is next work.
 - [x] Chunk mesh (face culling, vertex colors)
 - [x] Raycast dig/place
 - [x] Player physics collision
-- [x] Hotbar selects placeable blocks
+- [x] Hotbar selects placeable stacks (inventory-backed)
 - [ ] Greedy meshing / larger render distance
 - [ ] Texture atlas (replace flat colors)
 - [ ] Break particles + block damage crack overlay
@@ -38,7 +38,10 @@ Track with `[ ]` / `[x]`. Earliest unchecked item is next work.
 - [ ] Difficulty modes wired to UI
 
 ## Phase 3 — Shelter & craft
-- [ ] inventory + recipes (planks, sticks, tools, campfire from logs)
+- [x] inventory + recipes (planks, sticks, torches, campfire, tools)
+- [x] Mine drops into inventory; place consumes stacks
+- [x] Tool mine speed (wood/stone pick, wood axe)
+- [x] E opens Pack & Craft UI
 - [ ] campfire cook meat
 - [ ] clothing craft
 - [ ] death drops optional by mode

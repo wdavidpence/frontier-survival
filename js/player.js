@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { isSolid, BLOCK } from './blocks.js';
 import { canSprint, moveSpeedMultiplier } from './survival.js';
+import { createStarterInventory, getHotbarStack } from './inventory.js';
 
 const PLAYER_RADIUS = 0.3;
 const PLAYER_HEIGHT = 1.7;
@@ -18,9 +19,18 @@ export class Player {
     this.pitch = 0;
     this.hotbarIndex = 0;
     this.breaking = null; // {x,y,z, progress}
-    this.inventoryFood = 3; // starter dried rations
+    this.slots = createStarterInventory();
+    this.inventoryOpen = false;
     this.message = '';
     this.messageT = 0;
+  }
+
+  heldStack() {
+    return getHotbarStack(this.slots, this.hotbarIndex);
+  }
+
+  heldId() {
+    return this.heldStack().id;
   }
 
   eyePosition(out = new THREE.Vector3()) {

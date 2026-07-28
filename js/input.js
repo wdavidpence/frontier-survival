@@ -10,9 +10,12 @@ export class Input {
     this.placePressed = false;
     this.usePressed = false;
     this.eatPressed = false;
+    this.inventoryPressed = false;
     this.slot = -1;
     this.sensitivity = 0.0022;
     this._bound = false;
+    /** When true, ignore look/break (UI has focus) */
+    this.uiMode = false;
   }
 
   bind() {
@@ -48,14 +51,15 @@ export class Input {
   _onKeyDown = (e) => {
     if (e.repeat) return;
     this.keys.add(e.code);
-    if (e.code.startsWith('Digit')) {
+    if (e.code.startsWith('Digit') && !this.uiMode) {
       const n = Number(e.code.replace('Digit', ''));
       if (n >= 1 && n <= 9) this.slot = n - 1;
     }
     if (e.code === 'KeyF') this.usePressed = true;
     if (e.code === 'KeyR') this.eatPressed = true;
-    if (e.code === 'Escape' && this.locked) {
-      // pointer lock exits itself
+    if (e.code === 'KeyE') this.inventoryPressed = true;
+    if (e.code === 'Escape') {
+      // pointer lock exits itself; game may also close inventory
     }
   };
 
@@ -64,6 +68,7 @@ export class Input {
   };
 
   _onClick = () => {
+    if (this.uiMode) return;
     if (!this.locked) this.el.requestPointerLock();
   };
 
@@ -72,7 +77,7 @@ export class Input {
   };
 
   _onMouseDown = (e) => {
-    if (!this.locked) return;
+    if (this.uiMode || !this.locked) return;
     if (e.button === 0) this.breakHeld = true;
     if (e.button === 2) {
       e.preventDefault();
@@ -85,7 +90,7 @@ export class Input {
   };
 
   _onMouseMove = (e) => {
-    if (!this.locked) return;
+    if (!this.locked || this.uiMode) return;
     this.lookX += e.movementX * this.sensitivity;
     this.lookY += e.movementY * this.sensitivity;
     const lim = Math.PI / 2 - 0.01;
@@ -114,6 +119,12 @@ export class Input {
   consumeEat() {
     const v = this.eatPressed;
     this.eatPressed = false;
+    return v;
+  }
+
+  consumeInventory() {
+    const v = this.inventoryPressed;
+    this.inventoryPressed = false;
     return v;
   }
 

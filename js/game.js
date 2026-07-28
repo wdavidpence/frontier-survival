@@ -9,7 +9,25 @@ import {
   tickSurvival,
   eatFood,
 } from './survival.js';
-import { BLOCK, BLOCK_PROPS, HOTBAR_DEFAULT, getHardness, getDrop, isSolid } from './blocks.js';
+import { BLOCK, getHardness, isSolid } from './blocks.js';
+import {
+  ITEM,
+  propsOf,
+  displayName,
+  isPlaceable,
+  placeBlockId,
+  mineMultiplier,
+  dropForBlock,
+} from './items.js';
+import {
+  addItems,
+  removeItems,
+  countItems,
+  consumeFromHotbar,
+  HOTBAR_SIZE,
+  hasIngredients,
+} from './inventory.js';
+import { visibleRecipes, craftRecipe } from './crafting.js';
 
 export class Game {
   /**
@@ -51,16 +69,41 @@ export class Game {
     this.player = null;
     this.input = new Input(canvas);
 
-    this._breakSpeed = 1.8;
+    this._breakSpeed = 1.6;
     this._stepAcc = 0;
-    this._hintShown = false;
+    this._invNeedsPaint = true;
 
     this._onResize = () => this.resize();
     window.addEventListener('resize', this._onResize);
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+    this._bindInventoryUi();
+
     this._last = performance.now();
     this._raf = 0;
+  }
+
+  _bindInventoryUi() {
+    const panel = document.getElementById('inventory-screen');
+    const closeBtn = document.getElementById('btn-close-inv');
+    closeBtn?.addEventListener('click', () => this.setInventoryOpen(false));
+
+    panel?.addEventListener('click', (e) => {
+      const recipeBtn = e.target.closest('[data-recipe]');
+      if (recipeBtn) {
+        this._tryCraft(recipeBtn.getAttribute('data-recipe'));
+        return;
+      }
+      const slotEl = e.target.closest('[data-slot]');
+      if (slotEl) {
+        const idx = Number(slotEl.getAttribute('data-slot'));
+        if (idx >= 0 && idx < HOTBAR_SIZE) {
+          this.player.hotbarIndex = idx;
+          this._invNeedsPaint = true;
+          this._paintInventory();
+        }
+      }
+    });
   }
 
   start(seed = this.seed) {
@@ -78,9 +121,11 @@ export class Game {
     this.started = true;
     this.paused = false;
     this.input.bind();
-    this.player.notify('Click to lock mouse. Survive the night — cold kills.', 6);
-    this._loop();
+    this.setInventoryOpen(false);
+    this.player.notify('Click to lock mouse. Mine wood, press E to craft. Survive the night.', 7);
+    if (!this._raf) this._loop();
     this.hud.hideTitle?.();
+    this._invNeedsPaint = true;
   }
 
   resize() {
@@ -101,11 +146,55 @@ export class Game {
     this.render();
   };
 
+  setInventoryOpen(open) {
+    if (!this.player) return;
+    this.player.inventoryOpen = open;
+    this.input.uiMode = open;
+    const panel = document.getElementById('inventory-screen');
+    if (open) {
+      panel?.classList.remove('hidden');
+      if (document.pointerLockElement) document.exitPointerLock();
+      this.input.breakHeld = false;
+      this._invNeedsPaint = true;
+      this._paintInventory();
+      this.audio.ui();
+    } else {
+      panel?.classList.add('hidden');
+    }
+  }
+
+  _tryCraft(recipeId) {
+    if (!this.player) return;
+    const res = craftRecipe(this.player.slots, recipeId);
+    if (!res.ok) {
+      this.player.notify(res.error === 'inventory full' ? 'Inventory full.' : 'Missing ingredients.');
+      this.audio.hurt();
+      return;
+    }
+    this.player.slots = res.slots;
+    this.audio.placeBlock();
+    this.player.notify(`Crafted: ${recipeId.replace(/_/g, ' ')}`);
+    this._invNeedsPaint = true;
+    this._paintInventory();
+  }
+
   update(dt) {
     this.audio.resume();
+
+    if (this.input.consumeInventory()) {
+      this.setInventoryOpen(!this.player.inventoryOpen);
+    }
+
+    // survival keeps ticking even in inventory (you're still cold/hungry)
     this.time.tick(dt);
 
-    const move = this.player.update(this.world, this.input, this.survival, dt);
+    let move = { moved: false, sprinting: false, inWater: false };
+    if (!this.player.inventoryOpen) {
+      move = this.player.update(this.world, this.input, this.survival, dt);
+    } else {
+      // still update message timer
+      if (this.player.messageT > 0) this.player.messageT -= dt;
+    }
 
     const heat = this.world.sampleHeat(
       this.player.position.x,
@@ -130,26 +219,26 @@ export class Game {
     this.prevHealth = this.survival.health;
 
     if (this.survival.dead) {
+      this.setInventoryOpen(false);
       this.hud.showDeath?.(this.survival.causeOfDeath);
       return;
     }
 
-    // footsteps
-    if (move.moved && this.player.onGround) {
-      this._stepAcc += dt * (move.sprinting ? 2.2 : 1.4);
-      if (this._stepAcc > 0.45) {
-        this._stepAcc = 0;
-        this.audio.step();
+    if (!this.player.inventoryOpen) {
+      if (move.moved && this.player.onGround) {
+        this._stepAcc += dt * (move.sprinting ? 2.2 : 1.4);
+        if (this._stepAcc > 0.45) {
+          this._stepAcc = 0;
+          this.audio.step();
+        }
       }
+      this._handleMining(dt);
+      this._handlePlace();
+      this._handleEat();
     }
-
-    this._handleMining(dt);
-    this._handlePlace();
-    this._handleEat();
 
     // camera
     const eye = this.player.eyePosition();
-    // exhaustion sway
     if (this.survival.sleep > 70) {
       eye.y += Math.sin(performance.now() / 200) * 0.02 * (this.survival.sleep / 100);
       eye.x += Math.sin(performance.now() / 330) * 0.015 * (this.survival.sleep / 100);
@@ -162,6 +251,7 @@ export class Game {
     this.world.flushDirty();
     this._updateLighting();
     this._updateHud();
+    if (this.player.inventoryOpen && this._invNeedsPaint) this._paintInventory();
   }
 
   _handleMining(dt) {
@@ -175,16 +265,24 @@ export class Game {
         this.player.breaking = { key, x: hit.x, y: hit.y, z: hit.z, progress: 0 };
       }
       const hard = getHardness(hit.id);
-      this.player.breaking.progress += (this._breakSpeed * dt) / hard;
+      const mult = mineMultiplier(this.player.heldId(), hit.id);
+      this.player.breaking.progress += (this._breakSpeed * mult * dt) / hard;
       if (this.player.breaking.progress >= 1) {
-        const drop = getDrop(hit.id);
+        let drop = dropForBlock(hit.id);
+        if (hit.id === BLOCK.LEAVES) {
+          drop = Math.random() < 0.12 ? ITEM.STICK : null;
+        }
         this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR);
         this.audio.breakBlock();
         this.player.breaking = null;
-        // auto-add food chance from leaves later; give log -> notify
-        if (drop === BLOCK.LOG) this.player.notify('Wood gathered. Craft planks later (E coming soon).');
-        if (drop && drop !== BLOCK.AIR && HOTBAR_DEFAULT.includes(drop)) {
-          // ensure hotbar has it
+        if (drop && drop !== BLOCK.AIR) {
+          const res = addItems(this.player.slots, drop, 1);
+          this.player.slots = res.slots;
+          if (res.leftover > 0) {
+            this.player.notify('Inventory full — drop lost.');
+          } else {
+            this.player.notify(`+1 ${displayName(drop)}`, 1.4);
+          }
         }
       }
     } else {
@@ -196,6 +294,11 @@ export class Game {
 
   _handlePlace() {
     if (!this.input.consumePlace()) return;
+    const held = this.player.heldId();
+    if (!isPlaceable(held)) {
+      this.player.notify('Select a placeable block (E to craft).');
+      return;
+    }
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
     const hit = this.world.raycast(origin, dir, 6);
@@ -203,7 +306,6 @@ export class Game {
     const px = hit.x + hit.nx;
     const py = hit.y + hit.ny;
     const pz = hit.z + hit.nz;
-    // don't place inside player
     const pp = this.player.position;
     if (
       px + 1 > pp.x - 0.3 && px < pp.x + 0.3 &&
@@ -211,29 +313,96 @@ export class Game {
       pz + 1 > pp.z - 0.3 && pz < pp.z + 0.3
     ) return;
 
-    const id = HOTBAR_DEFAULT[this.player.hotbarIndex] ?? BLOCK.DIRT;
-    if (!isSolid(id) && id !== BLOCK.TORCH && id !== BLOCK.CAMPFIRE) {
-      // allow torch/campfire
-    }
+    const blockId = placeBlockId(held);
     const cur = this.world.getBlock(px, py, pz);
     if (cur !== BLOCK.AIR && cur !== BLOCK.WATER) return;
-    if (this.world.setBlock(px, py, pz, id)) {
+
+    const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+    if (!cons.ok) {
+      this.player.notify('Nothing to place in this slot.');
+      return;
+    }
+    this.player.slots = cons.slots;
+
+    if (this.world.setBlock(px, py, pz, blockId)) {
       this.audio.placeBlock();
-      if (id === BLOCK.CAMPFIRE) this.player.notify('Campfire lit. Stay close — heat fights the cold.');
-      if (id === BLOCK.TORCH) this.player.notify('Torch placed. Weak heat, good light later.');
+      if (blockId === BLOCK.CAMPFIRE) this.player.notify('Campfire lit. Stay close — heat fights the cold.');
+      if (blockId === BLOCK.TORCH) this.player.notify('Torch placed.');
+    } else {
+      // refund
+      const refund = addItems(this.player.slots, held, 1);
+      this.player.slots = refund.slots;
     }
   }
 
   _handleEat() {
     if (!this.input.consumeEat()) return;
-    if (this.player.inventoryFood <= 0) {
-      this.player.notify('No rations left. Hunt or find food (coming).');
+    const held = this.player.heldStack();
+    const p = propsOf(held.id);
+    if (p?.edible && held.count > 0) {
+      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+      if (!cons.ok) return;
+      this.player.slots = cons.slots;
+      this.survival = eatFood(this.survival, p.edible, 1);
+      this.audio.eat();
+      this.player.notify(`Ate ${p.name}.`);
       return;
     }
-    this.player.inventoryFood -= 1;
-    this.survival = eatFood(this.survival, 30, 1);
-    this.audio.eat();
-    this.player.notify(`Ate ration (${this.player.inventoryFood} left).`);
+    // eat ration from anywhere in inventory
+    if (countItems(this.player.slots, ITEM.RATION) > 0) {
+      const rem = removeItems(this.player.slots, ITEM.RATION, 1);
+      if (rem.ok) {
+        this.player.slots = rem.slots;
+        this.survival = eatFood(this.survival, 28, 1);
+        this.audio.eat();
+        const left = countItems(this.player.slots, ITEM.RATION);
+        this.player.notify(`Ate ration (${left} left).`);
+        return;
+      }
+    }
+    this.player.notify('No food. Hold a ration and press R, or craft later.');
+  }
+
+  _paintInventory() {
+    this._invNeedsPaint = false;
+    if (!this.player) return;
+
+    const bag = document.getElementById('inv-slots');
+    if (bag) {
+      bag.innerHTML = '';
+      this.player.slots.forEach((s, i) => {
+        const el = document.createElement('div');
+        el.className = 'inv-slot' + (i === this.player.hotbarIndex && i < HOTBAR_SIZE ? ' active' : '');
+        el.dataset.slot = String(i);
+        if (i < HOTBAR_SIZE) el.dataset.hot = String(i + 1);
+        if (s.id != null && s.count > 0) {
+          const p = propsOf(s.id);
+          const col = p?.color || [0.5, 0.5, 0.5];
+          el.style.background = `rgb(${(col[0]*255)|0},${(col[1]*255)|0},${(col[2]*255)|0})`;
+          el.title = `${displayName(s.id)} x${s.count}`;
+          el.innerHTML = `<span class="inv-count">${s.count}</span><span class="inv-name">${displayName(s.id)}</span>`;
+        } else {
+          el.classList.add('empty');
+          el.title = i < HOTBAR_SIZE ? `Hotbar ${i + 1}` : 'Empty';
+        }
+        bag.appendChild(el);
+      });
+    }
+
+    const recipesEl = document.getElementById('recipe-list');
+    if (recipesEl) {
+      recipesEl.innerHTML = '';
+      for (const r of visibleRecipes()) {
+        const can = hasIngredients(this.player.slots, r.ingredients);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'recipe-btn' + (can ? ' can' : '');
+        btn.dataset.recipe = r.id;
+        btn.disabled = !can;
+        btn.innerHTML = `<strong>${r.name}</strong><span>${r.desc || ''}</span>`;
+        recipesEl.appendChild(btn);
+      }
+    }
   }
 
   _updateLighting() {
@@ -247,7 +416,6 @@ export class Game {
     this.scene.fog.color.copy(color);
     this.scene.fog.near = 35 + sunI * 20;
     this.scene.fog.far = 90 + sunI * 40;
-    // night moonish ambient blue
     if (this.time.isNight()) {
       this.ambient.color.set(0x223355);
       this.sun.intensity = 0.08;
@@ -278,7 +446,9 @@ export class Game {
       bits.push(this.time.isNight() ? 'Night' : 'Day');
       bits.push(this.time.weather);
       if (s._debug) bits.push(`Air ${s._debug.ambient.toFixed(0)}°C`);
-      bits.push(`Rations ${this.player.inventoryFood}`);
+      bits.push(`Food ${countItems(this.player.slots, ITEM.RATION)}`);
+      const held = this.player.heldStack();
+      if (held.id != null) bits.push(displayName(held.id));
       if (this.player.breaking) bits.push(`Mining ${Math.floor(this.player.breaking.progress * 100)}%`);
       status.textContent = bits.join(' · ');
     }
@@ -288,18 +458,33 @@ export class Game {
       msg.textContent = this.player.messageT > 0 ? this.player.message : '';
     }
 
-    // hotbar
     document.querySelectorAll('.hotbar-slot').forEach((el, i) => {
       el.classList.toggle('active', i === this.player.hotbarIndex);
-      const id = HOTBAR_DEFAULT[i];
-      const p = BLOCK_PROPS[id];
-      el.title = p?.name || '';
-      el.dataset.block = p?.name || '';
-      const col = p?.color || [0.5, 0.5, 0.5];
-      el.style.background = `rgb(${col[0]*255|0},${col[1]*255|0},${col[2]*255|0})`;
+      const stack = this.player.slots[i];
+      if (stack && stack.id != null && stack.count > 0) {
+        const p = propsOf(stack.id);
+        const col = p?.color || [0.5, 0.5, 0.5];
+        el.style.background = `rgb(${(col[0]*255)|0},${(col[1]*255)|0},${(col[2]*255)|0})`;
+        el.title = `${displayName(stack.id)} x${stack.count}`;
+        el.dataset.block = displayName(stack.id);
+        let countEl = el.querySelector('.hb-count');
+        if (!countEl) {
+          countEl = document.createElement('span');
+          countEl.className = 'hb-count';
+          el.appendChild(countEl);
+        }
+        countEl.textContent = String(stack.count);
+        el.classList.remove('empty');
+      } else {
+        el.style.background = 'rgba(255,255,255,0.04)';
+        el.title = 'Empty';
+        el.dataset.block = '';
+        const countEl = el.querySelector('.hb-count');
+        if (countEl) countEl.textContent = '';
+        el.classList.add('empty');
+      }
     });
 
-    // vignette cold/hurt
     const hurt = document.getElementById('hurt-vignette');
     if (hurt) {
       let a = 0;
@@ -310,12 +495,11 @@ export class Game {
     }
 
     const cross = document.getElementById('crosshair');
-    if (cross && this._target) cross.classList.add('hit');
+    if (cross && this._target && !this.player.inventoryOpen) cross.classList.add('hit');
     else if (cross) cross.classList.remove('hit');
   }
 
   _tempBar(bodyTemp) {
-    // map 30..42 °C to 0..100 bar centered at 37
     return Math.max(0, Math.min(100, ((bodyTemp - 30) / 12) * 100));
   }
 
@@ -330,7 +514,8 @@ export class Game {
     this.survival = { ...DEFAULT_SURVIVAL };
     this.prevHealth = 100;
     this.hud.hideDeath?.();
-    this.player.notify('You wake cold and hungry. Try again.');
+    this.setInventoryOpen(false);
+    this.player.notify('You wake cold and hungry. Mine, craft, light a fire.');
   }
 
   dispose() {
