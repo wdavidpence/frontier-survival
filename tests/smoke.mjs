@@ -33,6 +33,7 @@ import {
   canSleep,
   applySleepRest,
 } from '../js/equipment.js';
+import { ambientMix } from '../js/audio.js';
 import {
   buildSavePayload,
   parseSavePayload,
@@ -294,6 +295,20 @@ test('cloth and bed recipes', () => {
   const bed = craftRecipe(slots, 'bed');
   assert.ok(bed.ok, bed.error);
   assert.strictEqual(countItems(bed.slots, BLOCK.BED), 1);
+});
+
+test('ambient mix day vs night fire rain', () => {
+  const day = ambientMix({ isNight: false, weather: 'clear', heat: 0, dayPhase: 0.25 });
+  const night = ambientMix({ isNight: true, weather: 'clear', heat: 0, dayPhase: 0.75 });
+  const fire = ambientMix({ isNight: true, weather: 'clear', heat: 20, dayPhase: 0.75 });
+  const rain = ambientMix({ isNight: false, weather: 'rain', heat: 0, dayPhase: 0.3 });
+  assert.ok(night.night > day.night);
+  assert.ok(day.birds > night.birds);
+  assert.ok(fire.fire > 0.1);
+  assert.ok(rain.rain > day.rain);
+  assert.ok(night.howl > 0);
+  const dead = ambientMix({ dead: true, isNight: true, heat: 20 });
+  assert.strictEqual(dead.wind, 0);
 });
 
 test('save roundtrip preserves seed inventory edits', () => {

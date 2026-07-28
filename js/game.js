@@ -383,6 +383,28 @@ export class Game {
     this._lastHeat = heat;
     this.survival.warmthFromClothes = equipmentWarmth(this.player.equipment);
 
+    // Ambient soundscape (wind/night/rain/fire/water + stingers)
+    const feetBlock = this.world.getBlock(
+      this.player.position.x,
+      this.player.position.y - 0.2,
+      this.player.position.z,
+    );
+    const nearWater =
+      move.inWater ||
+      feetBlock === BLOCK.WATER ||
+      this.world.getBlock(this.player.position.x + 2, this.player.position.y, this.player.position.z) === BLOCK.WATER ||
+      this.world.getBlock(this.player.position.x - 2, this.player.position.y, this.player.position.z) === BLOCK.WATER ||
+      this.world.getBlock(this.player.position.x, this.player.position.y, this.player.position.z + 2) === BLOCK.WATER ||
+      this.world.getBlock(this.player.position.x, this.player.position.y, this.player.position.z - 2) === BLOCK.WATER;
+    this.audio.tickAmbient(dt, {
+      isNight: this.time.isNight(),
+      weather: this.time.weather,
+      heat,
+      nearWater,
+      dayPhase: this.time.dayPhase,
+      dead: this.survival.dead,
+    });
+
     this.survival = tickSurvival(this.survival, {
       dt,
       dayPhase: this.time.dayPhase,
@@ -420,9 +442,14 @@ export class Game {
 
     if (this.survival.dead) {
       this.setInventoryOpen(false);
+      if (!this._deathSfxPlayed) {
+        this.audio.death();
+        this._deathSfxPlayed = true;
+      }
       this.hud.showDeath?.(this.survival.causeOfDeath);
       return;
     }
+    this._deathSfxPlayed = false;
 
     if (!this.player.inventoryOpen) {
       if (move.moved && this.player.onGround) {
@@ -665,7 +692,7 @@ export class Game {
       }
       this.player.equipment = eq.equipment;
       this.player.slots = slots;
-      this.audio.ui();
+      this.audio.equip?.() || this.audio.ui();
       const w = equipmentWarmth(eq.equipment);
       this.player.notify(`Equipped ${p.name}. Clothing warmth ${w}.`, 3);
       this._invNeedsPaint = true;
@@ -721,7 +748,7 @@ export class Game {
     const skip = dayLen * (this.time.isNight() ? 0.42 : 0.28);
     this.time.elapsed += skip;
     this.survival = applySleepRest(this.survival, this.time.isNight() ? 8 : 5);
-    this.audio.ui();
+    this.audio.sleep?.() || this.audio.ui();
     this.player.notify('You rest. Fatigue fades. Dawn approaches…', 4);
     // Heal slight hunger check already in applySleepRest
   }
