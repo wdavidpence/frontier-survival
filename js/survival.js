@@ -61,10 +61,26 @@ export function tickSurvival(state, env) {
   const fireWarmth = Math.min(32, fire * 1.35);
   const feelsLike = ambient + clothes + fireWarmth - wetPenalty;
 
-  // Body temp eases toward a blend of core homeostasis and environment
-  const envPull = fire > 8 ? 0.55 : 0.38;
-  const target = feelsLike * envPull + 37 * (1 - envPull) + (fire > 10 ? 2.5 : 0);
-  const tempRate = 0.18 + (fire > 5 ? 0.12 : 0) + (Math.abs(feelsLike - 20) > 15 ? 0.08 : 0);
+  // Homeostasis: comfortable air keeps core ~37°C; extremes and wetness pull away
+  let target = 37;
+  if (feelsLike < 8) {
+    // freezing exposure
+    target = 37 - (8 - feelsLike) * 0.45;
+  } else if (feelsLike < 14) {
+    target = 37 - (14 - feelsLike) * 0.25;
+  } else if (feelsLike > 34) {
+    target = 37 + (feelsLike - 34) * 0.35;
+  }
+  // wet + cold is brutal
+  if (next.wetness > 40 && feelsLike < 18) {
+    target -= (next.wetness / 100) * 4;
+  }
+  // strong fire stabilizes toward warm comfort
+  if (fire > 10) {
+    target = Math.max(target, Math.min(38.2, 36.5 + fireWarmth * 0.04));
+  }
+
+  const tempRate = 0.12 + (fire > 5 ? 0.1 : 0) + (feelsLike < 5 || feelsLike > 36 ? 0.1 : 0);
   next.bodyTemp += (target - next.bodyTemp) * Math.min(1, tempRate * dt);
 
   // Hunger

@@ -347,14 +347,26 @@ export class World {
   }
 
   findSpawn() {
-    for (let i = 0; i < 200; i++) {
-      const x = Math.floor((hash2(i, this.seed) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.5);
-      const z = Math.floor((hash2(this.seed, i + 9) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.5);
+    // Prefer dry land well above sea level, near origin band
+    let best = null;
+    for (let i = 0; i < 400; i++) {
+      const x = Math.floor((hash2(i, this.seed) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.6);
+      const z = Math.floor((hash2(this.seed, i + 9) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.6);
       const h = heightAt(x, z, this.seed);
-      if (h >= SEA_LEVEL + 1 && h < WORLD_HEIGHT - 5) {
-        return { x: x + 0.5, y: h + 2, z: z + 0.5 };
-      }
+      if (h < SEA_LEVEL + 2 || h >= WORLD_HEIGHT - 6) continue;
+      // surface must be solid non-water
+      const surface = this.getBlock(x, h, z);
+      if (surface === BLOCK.WATER || surface === BLOCK.AIR) continue;
+      if (!isSolid(surface)) continue;
+      const above1 = this.getBlock(x, h + 1, z);
+      const above2 = this.getBlock(x, h + 2, z);
+      if (above1 !== BLOCK.AIR || above2 !== BLOCK.AIR) continue;
+      const candidate = { x: x + 0.5, y: h + 1.01, z: z + 0.5, h };
+      // score: higher and closer to origin is better
+      const score = h * 2 - Math.hypot(x, z) * 0.15;
+      if (!best || score > best.score) best = { ...candidate, score };
     }
-    return { x: 0.5, y: SEA_LEVEL + 10, z: 0.5 };
+    if (best) return { x: best.x, y: best.y, z: best.z };
+    return { x: 0.5, y: SEA_LEVEL + 12, z: 0.5 };
   }
 }
