@@ -20,9 +20,9 @@ Track with `[ ]` / `[x]`. Earliest unchecked item is next work.
 - [x] Raycast dig/place
 - [x] Player physics collision
 - [x] Hotbar selects placeable stacks (inventory-backed)
+- [x] Texture atlas (procedural canvas)
+- [x] Break particles + block damage crack overlay
 - [ ] Greedy meshing / larger render distance
-- [ ] Texture atlas (replace flat colors)
-- [ ] Break particles + block damage crack overlay
 
 ## Phase 2 — Survival body
 - [x] survival.js meters + drain formulas

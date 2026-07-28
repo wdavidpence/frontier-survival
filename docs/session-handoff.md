@@ -5,22 +5,21 @@
 **Directive:** Hermes sole SWE + tester — **do not** delegate to OpenCode.
 
 ## Current state (2026-07-28)
-Playable survival loop with ecology:
-- Voxel world, meters, craft, save/load
-- **Wildlife:** hares, deer (flee + meat), wolves (hunt, worse at night)
-- **Food:** raw meat (risky), cook at campfire (F or E recipe with heat)
-- LMB melee animals; spawn cleared 16m; wolves outer ring
-- `node tests/smoke.mjs` — **24/24**
-- Browser: 19 fauna, nearest 20m, hunt→cook works, wolf chase at night, no JS errors
+Playable survival with ecology + **graphics juice**:
+- Procedural texture atlas on all blocks (grass/dirt/stone/wood/etc.)
+- Break crack overlay + debris particle bursts
+- Improved break/hit SFX
+- Wildlife, craft, cook, save/load as before
+- `node tests/smoke.mjs` — **25/25**
+- Browser: atlas map + UVs on chunks, crack + particles OK, no JS errors
 
-**Play:** http://127.0.0.1:8765/public/ (serve repo root)
+**Play:** http://127.0.0.1:8765/public/
 
 ## Next
-1. Texture atlas + break/hit juice (graphics/feel)
-2. Clothing warmth + sleep/bed
-3. Deeper audio / more biomes
-4. Performance (greedy mesh) + larger world
-5. Public ship polish
+1. Clothing warmth + sleep/bed (survival depth)
+2. Deeper audio / ambient
+3. Performance (greedy mesh) + larger world
+4. Public ship polish / GitHub Pages
 
 ## Loop
-Mine wood → campfire → hunt hare/deer → F cook meat near fire → avoid wolves at night → K save.
+Mine (see cracks + chips) → craft fire → hunt → cook → survive night → save.

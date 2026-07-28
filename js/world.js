@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js';
 import { heightAt, hash2, fbm } from './gen.js';
+import { tileForBlock, tileUVs } from './atlas-core.js';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -20,8 +21,9 @@ export class World {
    * @param {object} opts
    * @param {number} opts.seed
    * @param {number} opts.radiusChunks half-extent in chunks
+   * @param {THREE.Material} [opts.material]
    */
-  constructor({ seed = 1, radiusChunks = 4 } = {}) {
+  constructor({ seed = 1, radiusChunks = 4, material = null } = {}) {
     this.seed = seed;
     this.radiusChunks = radiusChunks;
     this.chunks = new Map(); // key "cx,cz" -> Uint8Array
@@ -30,6 +32,11 @@ export class World {
     this.dirty = new Set();
     /** @type {Map<string, number>} sparse player edits "x,y,z" -> block id */
     this.edits = new Map();
+    this.material = material || new THREE.MeshLambertMaterial({
+      vertexColors: true,
+      transparent: true,
+      alphaTest: 0.1,
+    });
     this._genAll();
   }
 
@@ -216,6 +223,7 @@ export class World {
     const positions = [];
     const normals = [];
     const colors = [];
+    const uvs = [];
     const indices = [];
     let vBase = 0;
 
@@ -243,20 +251,22 @@ export class World {
               ? (nid !== BLOCK.WATER && isTransparent(nid))
               : isTransparent(nid);
             if (!show) continue;
-            // don't render water faces under solid
             if (id === BLOCK.WATER && isSolid(nid)) continue;
 
             const col = getColor(id, face.dir);
             const shade = face.shade * (id === BLOCK.WATER ? 0.85 : 1);
-            const r = col[0] * shade;
-            const g = col[1] * shade;
-            const b = col[2] * shade;
-            const alpha = id === BLOCK.WATER ? 0.55 : (props.transparent && id !== BLOCK.LEAVES ? 0.9 : 1.0);
-            // leaves slight alpha via dimmer — keep opaque for simplicity on leaves
+            const r = Math.min(1, col[0] * shade * 1.15);
+            const g = Math.min(1, col[1] * shade * 1.15);
+            const b = Math.min(1, col[2] * shade * 1.15);
+            const tile = tileForBlock(id, face.dir);
+            const faceUV = tileUVs(tile);
+            let ci = 0;
             for (const c of face.corners) {
               positions.push(wx + c[0], wy + c[1], wz + c[2]);
               normals.push(face.n[0], face.n[1], face.n[2]);
               colors.push(r, g, b, id === BLOCK.WATER ? 0.65 : 1);
+              const uv = faceUV[ci++] || faceUV[0];
+              uvs.push(uv[0], uv[1]);
             }
             indices.push(vBase, vBase + 1, vBase + 2, vBase, vBase + 2, vBase + 3);
             vBase += 4;
@@ -269,22 +279,17 @@ export class World {
     geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
     geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geo.setIndex(indices);
     geo.computeBoundingSphere();
-
-    const mat = new THREE.MeshLambertMaterial({
-      vertexColors: true,
-      transparent: true,
-      alphaTest: 0.1,
-      side: THREE.FrontSide,
-    });
 
     let mesh = this.meshes.get(k);
     if (mesh) {
       mesh.geometry.dispose();
       mesh.geometry = geo;
+      mesh.material = this.material;
     } else {
-      mesh = new THREE.Mesh(geo, mat);
+      mesh = new THREE.Mesh(geo, this.material);
       mesh.name = `chunk_${k}`;
       this.meshes.set(k, mesh);
       this.group.add(mesh);

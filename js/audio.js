@@ -38,11 +38,16 @@ export class AudioBus {
     o.stop(t + dur);
   }
 
-  breakBlock() { this.beep(120, 0.07, 'triangle', 0.25); this.beep(80, 0.1, 'square', 0.12); }
-  placeBlock() { this.beep(320, 0.05, 'sine', 0.15); }
+  breakBlock() {
+    this.beep(110, 0.05, 'triangle', 0.22);
+    this.beep(70, 0.09, 'square', 0.1);
+    this.beep(180 + Math.random() * 40, 0.03, 'sawtooth', 0.06);
+  }
+  placeBlock() { this.beep(320, 0.05, 'sine', 0.15); this.beep(420, 0.03, 'sine', 0.08); }
   hurt() { this.beep(90, 0.2, 'sawtooth', 0.2); }
   eat() { this.beep(400, 0.06, 'sine', 0.12); this.beep(300, 0.08, 'sine', 0.1); }
   step() { this.beep(60 + Math.random() * 20, 0.03, 'triangle', 0.05); }
   ui() { this.beep(660, 0.04, 'sine', 0.08); }
+  hit() { this.beep(200, 0.04, 'square', 0.12); this.beep(140, 0.06, 'triangle', 0.1); }
   death() { this.beep(100, 0.4, 'sawtooth', 0.25); this.beep(60, 0.6, 'triangle', 0.2); }
 }

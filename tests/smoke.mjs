@@ -25,6 +25,7 @@ import {
 } from '../js/inventory.js';
 import { craftRecipe, visibleRecipes } from '../js/crafting.js';
 import { meatDropCount, SPECIES } from '../js/animals.js';
+import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
 import {
   buildSavePayload,
   parseSavePayload,
@@ -235,6 +236,17 @@ test('fauna species and meat drops', () => {
   assert.ok(SPECIES.wolf.hostile);
   assert.ok(SPECIES.hare.hp < SPECIES.deer.hp);
   assert.ok(!SPECIES.deer.hostile);
+});
+
+test('atlas tiles map blocks and cracks', () => {
+  assert.ok(atlasTileCount() >= 20);
+  assert.notStrictEqual(tileForBlock(BLOCK.GRASS, 'top'), tileForBlock(BLOCK.GRASS, 'side'));
+  assert.strictEqual(tileForBlock(BLOCK.DIRT, 'top'), TILE.DIRT);
+  const uvs = tileUVs(TILE.STONE);
+  assert.strictEqual(uvs.length, 4);
+  assert.ok(uvs[0][0] >= 0 && uvs[0][0] <= 1);
+  assert.strictEqual(crackTileForProgress(0), TILE.CRACK0);
+  assert.strictEqual(crackTileForProgress(0.99), TILE.CRACK5);
 });
 
 test('save roundtrip preserves seed inventory edits', () => {

@@ -10,7 +10,7 @@ import {
   eatFood,
   applyDamage,
 } from './survival.js';
-import { BLOCK, getHardness, isSolid } from './blocks.js';
+import { BLOCK, getHardness, isSolid, getColor } from './blocks.js';
 import {
   ITEM,
   propsOf,
@@ -31,6 +31,8 @@ import {
 } from './inventory.js';
 import { visibleRecipes, craftRecipe } from './crafting.js';
 import { FaunaSystem, SPECIES } from './animals.js';
+import { createBlockAtlas } from './atlas.js';
+import { BreakFX } from './fx.js';
 import {
   serializeSave,
   writeSaveToStorage,
@@ -81,6 +83,8 @@ export class Game {
     this.input = new Input(canvas);
     this._meleeCd = 0;
     this._lastHeat = 0;
+    this.atlas = createBlockAtlas();
+    this.fx = new BreakFX(this.scene, this.atlas);
 
     this._breakSpeed = 1.6;
     this._stepAcc = 0;
@@ -159,7 +163,7 @@ export class Game {
         m.material?.dispose?.();
       }
     }
-    this.world = new World({ seed, radiusChunks: 3 });
+    this.world = new World({ seed, radiusChunks: 3, material: this.atlas.material });
     if (saveData?.edits?.length) {
       this.world.applyEdits(saveData.edits, { replace: true });
     }
@@ -433,6 +437,7 @@ export class Game {
     this.camera.rotation.x = this.player.pitch;
 
     this.world.flushDirty();
+    this.fx.tick(dt);
     this._updateLighting();
     this._updateHud();
     if (this.player.inventoryOpen && this._invNeedsPaint) this._paintInventory();
@@ -457,8 +462,9 @@ export class Game {
         const held = propsOf(this.player.heldId());
         const dmg = held?.melee || 4;
         const res = this.fauna.damageAnimal(ah.animal, dmg);
-        this._meleeCd = 0.35;
         this.audio.breakBlock();
+        this._meleeCd = 0.35;
+        this.audio.hit?.();
         if (res?.killed) {
           if (res.meat > 0) {
             const add = addItems(this.player.slots, ITEM.RAW_MEAT, res.meat);
@@ -486,11 +492,15 @@ export class Game {
       const hard = getHardness(hit.id);
       const mult = mineMultiplier(this.player.heldId(), hit.id);
       this.player.breaking.progress += (this._breakSpeed * mult * dt) / hard;
+      this.fx.setCrack(hit, this.player.breaking.progress);
       if (this.player.breaking.progress >= 1) {
         let drop = dropForBlock(hit.id);
         if (hit.id === BLOCK.LEAVES) {
           drop = Math.random() < 0.12 ? ITEM.STICK : null;
         }
+        const col = getColor(hit.id, 'side');
+        this.fx.burst(hit.x, hit.y, hit.z, col, 12);
+        this.fx.hideCrack();
         this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR);
         this.audio.breakBlock();
         this.player.breaking = null;
@@ -506,6 +516,9 @@ export class Game {
       }
     } else if (!this.input.breakHeld) {
       this.player.breaking = null;
+      this.fx.hideCrack();
+    } else {
+      this.fx.hideCrack();
     }
 
     this._target = hit;
