@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { isSolid, BLOCK } from './blocks.js';
 import { canSprint, moveSpeedMultiplier } from './survival.js';
 import { createStarterInventory, getHotbarStack } from './inventory.js';
+import { emptyEquipment } from './equipment.js';
 
 const PLAYER_RADIUS = 0.3;
 const PLAYER_HEIGHT = 1.7;
@@ -20,6 +21,7 @@ export class Player {
     this.hotbarIndex = 0;
     this.breaking = null; // {x,y,z, progress}
     this.slots = createStarterInventory();
+    this.equipment = emptyEquipment();
     this.inventoryOpen = false;
     this.message = '';
     this.messageT = 0;

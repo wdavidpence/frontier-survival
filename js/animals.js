@@ -301,20 +301,22 @@ export class FaunaSystem {
   }
 
   /**
-   * @returns {{ killed: boolean, meat: number, name: string } | null}
+   * @returns {{ killed: boolean, meat: number, hide: number, name: string, type?: string } | null}
    */
   damageAnimal(animal, amount) {
     if (!animal || animal.dead) return null;
     animal.hp -= amount;
     animal.state = this.getSpec(animal.type).hostile ? 'chase' : 'flee';
-    if (animal.hp > 0) return { killed: false, meat: 0, name: this.getSpec(animal.type).name };
+    if (animal.hp > 0) return { killed: false, meat: 0, hide: 0, name: this.getSpec(animal.type).name };
     animal.dead = true;
-    animal._corpseT = 0.05;
+    animal._corpseT = 0;
     const spec = this.getSpec(animal.type);
     const meat = meatDropCount(spec);
-    // remove immediately after loot
-    animal._corpseT = 0;
-    return { killed: true, meat, name: spec.name, type: animal.type };
+    let hide = 0;
+    if (animal.type === 'deer') hide = 1 + (Math.random() < 0.5 ? 1 : 0);
+    else if (animal.type === 'hare') hide = Math.random() < 0.65 ? 1 : 0;
+    else if (animal.type === 'wolf') hide = Math.random() < 0.4 ? 1 : 0;
+    return { killed: true, meat, hide, name: spec.name, type: animal.type };
   }
 
   exportState() {

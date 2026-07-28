@@ -17,6 +17,7 @@ export const BLOCK = {
   TORCH: 14,
   CAMPFIRE: 15,
   BEDROCK: 16,
+  BED: 17,
 };
 
 /** @type {Record<number, {
@@ -50,6 +51,7 @@ export const BLOCK_PROPS = {
   [BLOCK.TORCH]: { name: 'Torch', solid: false, transparent: true, hardness: 0.1, color: [1.0, 0.75, 0.25], light: 12, heat: 2, drops: BLOCK.TORCH },
   [BLOCK.CAMPFIRE]: { name: 'Campfire', solid: true, transparent: true, hardness: 0.5, color: [0.55, 0.25, 0.1], light: 14, heat: 18, drops: BLOCK.CAMPFIRE },
   [BLOCK.BEDROCK]: { name: 'Bedrock', solid: true, transparent: false, hardness: 999, color: [0.15, 0.15, 0.18] },
+  [BLOCK.BED]: { name: 'Bed', solid: true, transparent: true, hardness: 0.4, color: [0.55, 0.2, 0.25], topColor: [0.7, 0.35, 0.4], drops: BLOCK.BED },
 };
 
 export function isSolid(id) {

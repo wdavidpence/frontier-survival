@@ -26,6 +26,7 @@ export const TILE = {
   TORCH: 15,
   CAMPFIRE: 16,
   BEDROCK: 17,
+  BED: 18,
   CRACK0: 24,
   CRACK1: 25,
   CRACK2: 26,
@@ -86,6 +87,8 @@ export function tileForBlock(blockId, faceDir) {
       return TILE.CAMPFIRE;
     case BLOCK.BEDROCK:
       return TILE.BEDROCK;
+    case BLOCK.BED:
+      return TILE.BED;
     default:
       return TILE.STONE;
   }

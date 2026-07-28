@@ -91,6 +91,53 @@ export const RECIPES = [
     results: [{ id: ITEM.COOKED_MEAT, count: 1 }],
     requiresHeat: 8,
   },
+  {
+    id: 'cloth',
+    name: 'Cloth',
+    desc: '2 Hide → 2 Cloth',
+    ingredients: [{ id: ITEM.HIDE, count: 2 }],
+    results: [{ id: ITEM.CLOTH, count: 2 }],
+  },
+  {
+    id: 'fur_hat',
+    name: 'Fur Hat',
+    desc: 'Head warmth +4. 2 Cloth + 1 Hide',
+    ingredients: [
+      { id: ITEM.CLOTH, count: 2 },
+      { id: ITEM.HIDE, count: 1 },
+    ],
+    results: [{ id: ITEM.FUR_HAT, count: 1 }],
+  },
+  {
+    id: 'wool_coat',
+    name: 'Wool Coat',
+    desc: 'Chest warmth +8. 4 Cloth + 2 Hide',
+    ingredients: [
+      { id: ITEM.CLOTH, count: 4 },
+      { id: ITEM.HIDE, count: 2 },
+    ],
+    results: [{ id: ITEM.WOOL_COAT, count: 1 }],
+  },
+  {
+    id: 'fur_boots',
+    name: 'Fur Boots',
+    desc: 'Feet warmth +3. 2 Cloth + 1 Hide',
+    ingredients: [
+      { id: ITEM.CLOTH, count: 2 },
+      { id: ITEM.HIDE, count: 1 },
+    ],
+    results: [{ id: ITEM.FUR_BOOTS, count: 1 }],
+  },
+  {
+    id: 'bed',
+    name: 'Bed',
+    desc: 'Sleep at night (F on bed). 3 Planks + 3 Cloth',
+    ingredients: [
+      { id: BLOCK.PLANKS, count: 3 },
+      { id: ITEM.CLOTH, count: 3 },
+    ],
+    results: [{ id: BLOCK.BED, count: 1 }],
+  },
 ];
 
 export function visibleRecipes() {

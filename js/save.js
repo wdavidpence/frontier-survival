@@ -52,6 +52,7 @@ export function buildSavePayload(state) {
         id: s.id,
         count: s.count,
       })),
+      equipment: state.player.equipment || { head: null, chest: null, feet: null },
     },
     edits: state.edits || [],
     animals: Array.isArray(state.animals) ? state.animals : [],
@@ -81,6 +82,9 @@ export function parseSavePayload(raw) {
   if (!Array.isArray(data.edits)) data.edits = [];
   if (!Array.isArray(data.animals)) data.animals = [];
   if (!Array.isArray(data.player.slots)) return { ok: false, error: 'missing slots' };
+  if (!data.player.equipment || typeof data.player.equipment !== 'object') {
+    data.player.equipment = { head: null, chest: null, feet: null };
+  }
   // sanitize edits
   data.edits = data.edits.filter(
     (e) =>

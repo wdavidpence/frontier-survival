@@ -33,8 +33,8 @@ Track with `[ ]` / `[x]`. Earliest unchecked item is next work.
 - [x] cold damage without warmth; campfire heat helps
 - [x] HUD meters live
 - [x] Homeostasis fix (mild weather no longer freezes you)
-- [ ] Sleep action / pass-out recovery at bed or camp
-- [ ] Clothing warmth slots
+- [x] Sleep action / pass-out recovery at bed or camp
+- [x] Clothing warmth slots
 - [ ] Difficulty modes wired to UI
 
 ## Phase 3 — Shelter & craft
@@ -44,7 +44,8 @@ Track with `[ ]` / `[x]`. Earliest unchecked item is next work.
 - [x] E opens Pack & Craft UI
 - [x] localStorage save/load
 - [x] campfire cook meat
-- [ ] clothing craft
+- [x] clothing craft
+- [x] bed craft + sleep
 - [ ] death drops optional by mode
 
 ## Phase 4 — Ecology

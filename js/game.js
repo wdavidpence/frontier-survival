@@ -34,6 +34,14 @@ import { FaunaSystem, SPECIES } from './animals.js';
 import { createBlockAtlas } from './atlas.js';
 import { BreakFX } from './fx.js';
 import {
+  equipmentWarmth,
+  equipItem,
+  emptyEquipment,
+  canSleep,
+  applySleepRest,
+  EQUIP_SLOTS,
+} from './equipment.js';
+import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
@@ -192,6 +200,9 @@ export class Game {
       this.input.lookY = this.player.pitch;
       this.player.hotbarIndex = saveData.player.hotbarIndex || 0;
       this.player.slots = cloneSlots(saveData.player.slots);
+      this.player.equipment = saveData.player.equipment
+        ? { ...emptyEquipment(), ...saveData.player.equipment }
+        : emptyEquipment();
       this.survival = { ...DEFAULT_SURVIVAL, ...saveData.survival, dead: false, causeOfDeath: null };
       this.time = new GameTime({ dayLengthSec: saveData.time.dayLengthSec || 420 });
       this.time.elapsed = saveData.time.elapsed || 0;
@@ -240,6 +251,7 @@ export class Game {
         pitch: this.player.pitch,
         hotbarIndex: this.player.hotbarIndex,
         slots: this.player.slots,
+        equipment: this.player.equipment || emptyEquipment(),
       },
       edits: this.world.exportEdits(),
       animals: this.fauna ? this.fauna.exportState() : [],
@@ -369,6 +381,7 @@ export class Game {
       7,
     );
     this._lastHeat = heat;
+    this.survival.warmthFromClothes = equipmentWarmth(this.player.equipment);
 
     this.survival = tickSurvival(this.survival, {
       dt,
@@ -469,10 +482,18 @@ export class Game {
           if (res.meat > 0) {
             const add = addItems(this.player.slots, ITEM.RAW_MEAT, res.meat);
             this.player.slots = add.slots;
-            this.player.notify(`${res.name} down. +${res.meat} raw meat. Cook it!`, 3.5);
-          } else {
-            this.player.notify(`${res.name} slain.`);
           }
+          if (res.hide > 0) {
+            const addH = addItems(this.player.slots, ITEM.HIDE, res.hide);
+            this.player.slots = addH.slots;
+          }
+          const bits = [];
+          if (res.meat) bits.push(`+${res.meat} meat`);
+          if (res.hide) bits.push(`+${res.hide} hide`);
+          this.player.notify(
+            `${res.name} down. ${bits.join(', ') || 'nothing'}. Craft clothes & cook!`,
+            3.5,
+          );
           this._syncAnimalMeshes();
         } else if (res) {
           this.player.notify(`${res.name} wounded (${Math.max(0, ah.animal.hp)|0} hp)`, 1.2);
@@ -560,6 +581,7 @@ export class Game {
       this.audio.placeBlock();
       if (blockId === BLOCK.CAMPFIRE) this.player.notify('Campfire lit. Stay close — heat fights the cold.');
       if (blockId === BLOCK.TORCH) this.player.notify('Torch placed.');
+      if (blockId === BLOCK.BED) this.player.notify('Bed placed. Look at it and press F at night to sleep.');
     } else {
       // refund
       const refund = addItems(this.player.slots, held, 1);
@@ -610,11 +632,47 @@ export class Game {
     this.player.notify('No safe food. Hunt, cook at fire (E), or eat rations (R).');
   }
 
-  /** F: cook held raw meat when near campfire heat */
+  /** F: cook meat / equip clothes / sleep on bed */
   _handleCookUse() {
     if (!this.input.consumeUse()) return;
+    const origin = this.player.eyePosition();
+    const dir = this.player.lookDir();
+    const hit = this.world.raycast(origin, dir, 5);
+
+    // Sleep on bed
+    if (hit && hit.id === BLOCK.BED) {
+      this._trySleep();
+      return;
+    }
+
     const held = this.player.heldStack();
     const p = propsOf(held.id);
+
+    // Equip clothing
+    if (p?.equipSlot && held.count > 0) {
+      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+      if (!cons.ok) return;
+      let slots = cons.slots;
+      const eq = equipItem(this.player.equipment, held.id);
+      if (!eq.ok) {
+        // refund
+        this.player.slots = addItems(slots, held.id, 1).slots;
+        this.player.notify('Cannot equip.');
+        return;
+      }
+      if (eq.previousId != null) {
+        slots = addItems(slots, eq.previousId, 1).slots;
+      }
+      this.player.equipment = eq.equipment;
+      this.player.slots = slots;
+      this.audio.ui();
+      const w = equipmentWarmth(eq.equipment);
+      this.player.notify(`Equipped ${p.name}. Clothing warmth ${w}.`, 3);
+      this._invNeedsPaint = true;
+      return;
+    }
+
+    // Cook raw meat
     if (p?.cookable && held.count > 0) {
       if ((this._lastHeat || 0) < 8) {
         this.player.notify('Need campfire heat to cook. Place & stand close.');
@@ -628,7 +686,44 @@ export class Game {
       this.player.notify(`Cooked → ${displayName(p.cookable)}.`, 2.5);
       return;
     }
-    this.player.notify('Hold raw meat near a fire and press F to cook.');
+
+    this.player.notify('F: equip clothes, cook meat at fire, or sleep on bed.');
+  }
+
+  _trySleep() {
+    const check = canSleep(this.survival, {
+      atBed: true,
+      inWater: this.world.getBlock(
+        this.player.position.x,
+        this.player.position.y,
+        this.player.position.z,
+      ) === BLOCK.WATER,
+      isNight: this.time.isNight(),
+    });
+    if (!check.ok) {
+      this.player.notify(
+        check.error === 'need a bed'
+          ? 'Need a bed.'
+          : check.error === 'not tired enough (wait for night)'
+            ? 'Not tired enough — try at night or when exhausted.'
+            : check.error === 'too cold — warm up first'
+              ? 'Too cold to sleep. Fire or warmer clothes.'
+              : check.error === 'too hungry'
+                ? 'Too hungry to sleep. Eat first.'
+                : `Cannot sleep: ${check.error}`,
+        3.5,
+      );
+      return;
+    }
+
+    // Skip ~8 hours of game time
+    const dayLen = this.time.dayLengthSec || 420;
+    const skip = dayLen * (this.time.isNight() ? 0.42 : 0.28);
+    this.time.elapsed += skip;
+    this.survival = applySleepRest(this.survival, this.time.isNight() ? 8 : 5);
+    this.audio.ui();
+    this.player.notify('You rest. Fatigue fades. Dawn approaches…', 4);
+    // Heal slight hunger check already in applySleepRest
   }
 
   _clearAnimalMeshes() {
@@ -750,6 +845,21 @@ export class Game {
         recipesEl.appendChild(btn);
       }
     }
+
+    const eqEl = document.getElementById('equip-slots');
+    if (eqEl) {
+      const w = equipmentWarmth(this.player.equipment);
+      eqEl.innerHTML = `<div class="equip-warmth">Clothing warmth: <b>${w}</b> (F to equip held clothes)</div>`;
+      for (const slot of EQUIP_SLOTS) {
+        const id = this.player.equipment?.[slot];
+        const row = document.createElement('div');
+        row.className = 'equip-row';
+        const name = id != null ? displayName(id) : '— empty —';
+        const p = id != null ? propsOf(id) : null;
+        row.innerHTML = `<span class="equip-slot-label">${slot}</span><span class="equip-item">${name}${p?.warmth ? ` (+${p.warmth})` : ''}</span>`;
+        eqEl.appendChild(row);
+      }
+    }
   }
 
   _updateLighting() {
@@ -793,6 +903,8 @@ export class Game {
       bits.push(this.time.isNight() ? 'Night' : 'Day');
       bits.push(this.time.weather);
       if (s._debug) bits.push(`Air ${s._debug.ambient.toFixed(0)}°C`);
+      const cw = equipmentWarmth(this.player.equipment);
+      if (cw > 0) bits.push(`Warmth +${cw}`);
       bits.push(`Food ${countItems(this.player.slots, ITEM.RATION)}`);
       const held = this.player.heldStack();
       if (held.id != null) bits.push(displayName(held.id));

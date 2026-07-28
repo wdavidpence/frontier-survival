@@ -13,6 +13,11 @@ export const ITEM = {
   COAL: 105,
   RAW_MEAT: 106,
   COOKED_MEAT: 107,
+  HIDE: 108,
+  CLOTH: 109,
+  FUR_HAT: 110,
+  WOOL_COAT: 111,
+  FUR_BOOTS: 112,
 };
 
 /** @type {Record<number, {
@@ -26,7 +31,9 @@ export const ITEM = {
  *  tool?: 'pick'|'axe'|'hand'|'weapon',
  *  mineMult?: number,
  *  melee?: number,
- *  maxStack?: number
+ *  maxStack?: number,
+ *  equipSlot?: 'head'|'chest'|'feet',
+ *  warmth?: number
  * }>} */
 export const ITEM_PROPS = {
   [ITEM.STICK]: { name: 'Stick', color: [0.55, 0.4, 0.22], maxStack: 64, melee: 3 },
@@ -48,6 +55,29 @@ export const ITEM_PROPS = {
     color: [0.55, 0.32, 0.18],
     edible: 38,
     maxStack: 16,
+  },
+  [ITEM.HIDE]: { name: 'Hide', color: [0.55, 0.4, 0.28], maxStack: 32 },
+  [ITEM.CLOTH]: { name: 'Cloth', color: [0.85, 0.82, 0.75], maxStack: 32 },
+  [ITEM.FUR_HAT]: {
+    name: 'Fur Hat',
+    color: [0.65, 0.45, 0.3],
+    maxStack: 1,
+    equipSlot: 'head',
+    warmth: 4,
+  },
+  [ITEM.WOOL_COAT]: {
+    name: 'Wool Coat',
+    color: [0.45, 0.5, 0.62],
+    maxStack: 1,
+    equipSlot: 'chest',
+    warmth: 8,
+  },
+  [ITEM.FUR_BOOTS]: {
+    name: 'Fur Boots',
+    color: [0.4, 0.28, 0.18],
+    maxStack: 1,
+    equipSlot: 'feet',
+    warmth: 3,
   },
 };
 

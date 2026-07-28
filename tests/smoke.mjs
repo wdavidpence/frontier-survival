@@ -27,6 +27,13 @@ import { craftRecipe, visibleRecipes } from '../js/crafting.js';
 import { meatDropCount, SPECIES } from '../js/animals.js';
 import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
 import {
+  equipmentWarmth,
+  equipItem,
+  emptyEquipment,
+  canSleep,
+  applySleepRest,
+} from '../js/equipment.js';
+import {
   buildSavePayload,
   parseSavePayload,
   serializeSave,
@@ -242,11 +249,51 @@ test('atlas tiles map blocks and cracks', () => {
   assert.ok(atlasTileCount() >= 20);
   assert.notStrictEqual(tileForBlock(BLOCK.GRASS, 'top'), tileForBlock(BLOCK.GRASS, 'side'));
   assert.strictEqual(tileForBlock(BLOCK.DIRT, 'top'), TILE.DIRT);
+  assert.strictEqual(tileForBlock(BLOCK.BED, 'top'), TILE.BED);
   const uvs = tileUVs(TILE.STONE);
   assert.strictEqual(uvs.length, 4);
   assert.ok(uvs[0][0] >= 0 && uvs[0][0] <= 1);
   assert.strictEqual(crackTileForProgress(0), TILE.CRACK0);
   assert.strictEqual(crackTileForProgress(0.99), TILE.CRACK5);
+});
+
+test('equipment warmth and equip', () => {
+  let eq = emptyEquipment();
+  assert.strictEqual(equipmentWarmth(eq), 0);
+  const r = equipItem(eq, ITEM.WOOL_COAT);
+  assert.ok(r.ok);
+  eq = r.equipment;
+  assert.strictEqual(equipmentWarmth(eq), 8);
+  const hat = equipItem(eq, ITEM.FUR_HAT);
+  assert.ok(hat.ok);
+  assert.strictEqual(equipmentWarmth(hat.equipment), 12);
+});
+
+test('sleep gates and rest', () => {
+  const base = { ...DEFAULT_SURVIVAL, sleep: 70, hunger: 50, bodyTemp: 36.5 };
+  assert.ok(!canSleep(base, { atBed: false, isNight: true }).ok);
+  assert.ok(canSleep(base, { atBed: true, isNight: true }).ok);
+  assert.ok(!canSleep({ ...base, sleep: 10 }, { atBed: true, isNight: false }).ok);
+  assert.ok(!canSleep({ ...base, hunger: 5 }, { atBed: true, isNight: true }).ok);
+  const rested = applySleepRest({ ...base, sleep: 90, stamina: 10 }, 8);
+  assert.ok(rested.sleep < 90);
+  assert.strictEqual(rested.stamina, 100);
+});
+
+test('cloth and bed recipes', () => {
+  let slots = createStarterInventory();
+  slots = addItems(slots, ITEM.HIDE, 4).slots;
+  slots = craftRecipe(slots, 'cloth').slots;
+  assert.strictEqual(countItems(slots, ITEM.CLOTH), 2);
+  slots = addItems(slots, ITEM.HIDE, 2).slots;
+  slots = addItems(slots, ITEM.CLOTH, 4).slots;
+  slots = craftRecipe(slots, 'wool_coat').slots;
+  assert.strictEqual(countItems(slots, ITEM.WOOL_COAT), 1);
+  slots = addItems(slots, BLOCK.PLANKS, 3).slots;
+  slots = addItems(slots, ITEM.CLOTH, 3).slots;
+  const bed = craftRecipe(slots, 'bed');
+  assert.ok(bed.ok, bed.error);
+  assert.strictEqual(countItems(bed.slots, BLOCK.BED), 1);
 });
 
 test('save roundtrip preserves seed inventory edits', () => {

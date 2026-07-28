@@ -223,6 +223,16 @@ function drawBedrock(ctx, x0, y0) {
   fillNoise(ctx, x0, y0, [40, 40, 48], 0.4, 2);
 }
 
+function drawBed(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [90, 55, 35], 0.15, 14);
+  ctx.fillStyle = '#a04050';
+  ctx.fillRect(x0 + 2, y0 + 8, TILE_PX - 4, 16);
+  ctx.fillStyle = '#d0c8b0';
+  ctx.fillRect(x0 + 4, y0 + 6, 10, 8);
+  ctx.fillStyle = '#703040';
+  ctx.fillRect(x0 + 2, y0 + 22, TILE_PX - 4, 4);
+}
+
 function drawCrack(ctx, x0, y0, stage) {
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
   ctx.strokeStyle = `rgba(20,15,10,${0.35 + stage * 0.1})`;
@@ -274,6 +284,7 @@ export function createBlockAtlas() {
   paint(TILE.TORCH, drawTorch);
   paint(TILE.CAMPFIRE, drawCampfire);
   paint(TILE.BEDROCK, drawBedrock);
+  paint(TILE.BED, drawBed);
   paint(TILE.CRACK0, (c, x, y) => drawCrack(c, x, y, 0));
   paint(TILE.CRACK1, (c, x, y) => drawCrack(c, x, y, 1));
   paint(TILE.CRACK2, (c, x, y) => drawCrack(c, x, y, 2));

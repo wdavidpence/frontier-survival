@@ -197,6 +197,19 @@
       font-weight: 700;
       font-size: 13px;
     }
+    #equip-slots { display: flex; flex-direction: column; gap: 6px; }
+    .equip-warmth { font-size: 12px; color: #b9b3a8; margin-bottom: 4px; }
+    .equip-warmth b { color: var(--accent); }
+    .equip-row {
+      display: flex; justify-content: space-between; gap: 10px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .equip-slot-label { text-transform: uppercase; letter-spacing: 0.06em; color: #8a8378; }
+    .equip-item { color: #e8e0d4; }
     #status-line {
       position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
       padding: 6px 14px;
@@ -321,8 +334,8 @@
       <b>Space</b> jump · <b>Shift</b> sprint<br/>
       <b>LMB</b> mine · <b>RMB</b> place<br/>
       <b>1-9</b> hotbar · <b>E</b> inventory/craft<br/>
-      <b>R</b> eat · <b>F</b> cook meat at fire · <b>K</b> save<br/>
-      LMB also <b>hunts</b> animals · wolves at night
+      <b>R</b> eat · <b>F</b> cook / equip / sleep · <b>K</b> save<br/>
+      LMB hunts · clothes + bed beat the cold night
     </div>
   </div>
 
@@ -334,6 +347,8 @@
         <div>
           <p class="inv-sub" style="margin-bottom:8px">Inventory</p>
           <div id="inv-slots"></div>
+          <p class="inv-sub" style="margin:12px 0 8px">Worn (F equip held clothes)</p>
+          <div id="equip-slots"></div>
         </div>
         <div>
           <p class="inv-sub" style="margin-bottom:8px">Recipes</p>
