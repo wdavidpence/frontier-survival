@@ -43,14 +43,16 @@ Track with `[ ]` / `[x]`. Earliest unchecked item is next work.
 - [x] Tool mine speed (wood/stone pick, wood axe)
 - [x] E opens Pack & Craft UI
 - [x] localStorage save/load
-- [ ] campfire cook meat
+- [x] campfire cook meat
 - [ ] clothing craft
 - [ ] death drops optional by mode
 
 ## Phase 4 — Ecology
-- [ ] passive animals + meat
-- [ ] predators
-- [ ] hunting tools
+- [x] passive animals + meat (hare, deer)
+- [x] predators (wolves, night aggro)
+- [x] hunting via melee (LMB)
+- [ ] hunting tools (spear/bow)
+- [ ] breeding / herds depth
 
 ## Phase 5+
 See docs/SCM.md

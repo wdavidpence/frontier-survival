@@ -54,6 +54,7 @@ export function buildSavePayload(state) {
       })),
     },
     edits: state.edits || [],
+    animals: Array.isArray(state.animals) ? state.animals : [],
   };
 }
 
@@ -78,6 +79,7 @@ export function parseSavePayload(raw) {
   if (!data.survival) return { ok: false, error: 'missing survival' };
   if (!data.time) return { ok: false, error: 'missing time' };
   if (!Array.isArray(data.edits)) data.edits = [];
+  if (!Array.isArray(data.animals)) data.animals = [];
   if (!Array.isArray(data.player.slots)) return { ok: false, error: 'missing slots' };
   // sanitize edits
   data.edits = data.edits.filter(

@@ -8,6 +8,7 @@ import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
+  applyDamage,
 } from './survival.js';
 import { BLOCK, getHardness, isSolid } from './blocks.js';
 import {
@@ -29,6 +30,7 @@ import {
   cloneSlots,
 } from './inventory.js';
 import { visibleRecipes, craftRecipe } from './crafting.js';
+import { FaunaSystem, SPECIES } from './animals.js';
 import {
   serializeSave,
   writeSaveToStorage,
@@ -74,7 +76,11 @@ export class Game {
 
     this.world = null;
     this.player = null;
+    this.fauna = null;
+    this._animalMeshes = new Map();
     this.input = new Input(canvas);
+    this._meleeCd = 0;
+    this._lastHeat = 0;
 
     this._breakSpeed = 1.6;
     this._stepAcc = 0;
@@ -132,7 +138,7 @@ export class Game {
     this._bootWorld({
       seed,
       freshPlayer: true,
-      notify: 'Click to lock mouse. Mine wood, press E to craft. Survive the night. (Auto-saves)',
+      notify: 'Hunt wildlife for meat, cook at campfires, watch for wolves at night. E craft · F cook · K save',
     });
   }
 
@@ -159,6 +165,12 @@ export class Game {
     }
     this.scene.add(this.world.group);
 
+    this._clearAnimalMeshes();
+    this.fauna = new FaunaSystem(this.world, seed);
+    if (saveData?.animals?.length) {
+      this.fauna.importState(saveData.animals);
+    }
+
     if (freshPlayer || !saveData) {
       const spawn = this.world.findSpawn();
       this.player = new Player(spawn);
@@ -177,7 +189,6 @@ export class Game {
       this.player.hotbarIndex = saveData.player.hotbarIndex || 0;
       this.player.slots = cloneSlots(saveData.player.slots);
       this.survival = { ...DEFAULT_SURVIVAL, ...saveData.survival, dead: false, causeOfDeath: null };
-      // if they died in save, respawn fresh stats but keep world/inv? For continue after death we use respawn. Load clears dead.
       this.time = new GameTime({ dayLengthSec: saveData.time.dayLengthSec || 420 });
       this.time.elapsed = saveData.time.elapsed || 0;
       this.time.weather = saveData.time.weather || 'clear';
@@ -186,15 +197,24 @@ export class Game {
     }
 
     this.prevHealth = this.survival.health;
+    // keep spawn safe from wolves/hares packed on face
+    if (this.fauna && this.player) {
+      this.fauna.clearNear(this.player.position.x, this.player.position.z, 16);
+    }
     this.started = true;
     this.paused = false;
     this.input.bind();
     this.setInventoryOpen(false);
-    if (notify) this.player.notify(notify, 7);
+    if (notify) {
+      this.player.notify(notify, 7);
+    } else if (freshPlayer) {
+      this.player.notify('Hunt hares & deer for meat. Cook at a campfire. Wolves hunt you at night.', 8);
+    }
     if (!this._raf) this._loop();
     this.hud.hideTitle?.();
     this._invNeedsPaint = true;
     this._autosaveAcc = 0;
+    this._syncAnimalMeshes();
   }
 
   captureState() {
@@ -218,6 +238,7 @@ export class Game {
         slots: this.player.slots,
       },
       edits: this.world.exportEdits(),
+      animals: this.fauna ? this.fauna.exportState() : [],
     };
   }
 
@@ -299,9 +320,13 @@ export class Game {
 
   _tryCraft(recipeId) {
     if (!this.player) return;
-    const res = craftRecipe(this.player.slots, recipeId);
+    const res = craftRecipe(this.player.slots, recipeId, { heat: this._lastHeat || 0 });
     if (!res.ok) {
-      this.player.notify(res.error === 'inventory full' ? 'Inventory full.' : 'Missing ingredients.');
+      if (res.error === 'need campfire heat') {
+        this.player.notify('Stand near a campfire to cook.');
+      } else {
+        this.player.notify(res.error === 'inventory full' ? 'Inventory full.' : 'Missing ingredients.');
+      }
       this.audio.hurt();
       return;
     }
@@ -339,6 +364,7 @@ export class Game {
       this.player.position.z,
       7,
     );
+    this._lastHeat = heat;
 
     this.survival = tickSurvival(this.survival, {
       dt,
@@ -351,6 +377,26 @@ export class Game {
       sleeping: false,
       hungerMult: this.mode === 'harmless' ? 0.15 : 1,
     });
+
+    // fauna
+    this._meleeCd = Math.max(0, this._meleeCd - dt);
+    if (this.fauna && !this.player.inventoryOpen) {
+      const fa = this.fauna.tick(
+        dt,
+        {
+          x: this.player.position.x,
+          y: this.player.position.y,
+          z: this.player.position.z,
+        },
+        this.time.isNight(),
+      );
+      if (fa.playerDamage > 0) {
+        this.survival = applyDamage(this.survival, fa.playerDamage, 'wolf');
+        this.audio.hurt();
+        this.player.notify('A wolf mauls you!');
+      }
+      this._syncAnimalMeshes();
+    }
 
     if (this.survival.health < this.prevHealth - 0.5) this.audio.hurt();
     this.prevHealth = this.survival.health;
@@ -372,6 +418,7 @@ export class Game {
       this._handleMining(dt);
       this._handlePlace();
       this._handleEat();
+      this._handleCookUse();
     }
 
     // camera
@@ -401,6 +448,34 @@ export class Game {
   _handleMining(dt) {
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
+
+    // Melee animals on click-hold with cooldown
+    if (this.input.breakHeld && this.fauna && this._meleeCd <= 0) {
+      const ah = this.fauna.rayHit(origin, dir, 3.6);
+      if (ah) {
+        this.player.breaking = null;
+        const held = propsOf(this.player.heldId());
+        const dmg = held?.melee || 4;
+        const res = this.fauna.damageAnimal(ah.animal, dmg);
+        this._meleeCd = 0.35;
+        this.audio.breakBlock();
+        if (res?.killed) {
+          if (res.meat > 0) {
+            const add = addItems(this.player.slots, ITEM.RAW_MEAT, res.meat);
+            this.player.slots = add.slots;
+            this.player.notify(`${res.name} down. +${res.meat} raw meat. Cook it!`, 3.5);
+          } else {
+            this.player.notify(`${res.name} slain.`);
+          }
+          this._syncAnimalMeshes();
+        } else if (res) {
+          this.player.notify(`${res.name} wounded (${Math.max(0, ah.animal.hp)|0} hp)`, 1.2);
+        }
+        this._target = null;
+        return;
+      }
+    }
+
     const hit = this.world.raycast(origin, dir, 6);
 
     if (this.input.breakHeld && hit && hit.id !== BLOCK.BEDROCK) {
@@ -429,7 +504,7 @@ export class Game {
           }
         }
       }
-    } else {
+    } else if (!this.input.breakHeld) {
       this.player.breaking = null;
     }
 
@@ -487,12 +562,27 @@ export class Game {
       const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
       if (!cons.ok) return;
       this.player.slots = cons.slots;
-      this.survival = eatFood(this.survival, p.edible, 1);
+      this.survival = eatFood(this.survival, p.edible, p.edible > 20 ? 2 : 0);
+      if (p.eatDamage) {
+        this.survival = applyDamage(this.survival, p.eatDamage, 'food_poisoning');
+        this.player.notify(`Ate ${p.name} — stomach turns. Cook meat next time!`, 3);
+      } else {
+        this.player.notify(`Ate ${p.name}.`);
+      }
       this.audio.eat();
-      this.player.notify(`Ate ${p.name}.`);
       return;
     }
-    // eat ration from anywhere in inventory
+    // prefer cooked meat anywhere
+    if (countItems(this.player.slots, ITEM.COOKED_MEAT) > 0) {
+      const rem = removeItems(this.player.slots, ITEM.COOKED_MEAT, 1);
+      if (rem.ok) {
+        this.player.slots = rem.slots;
+        this.survival = eatFood(this.survival, 38, 2);
+        this.audio.eat();
+        this.player.notify('Ate cooked meat.');
+        return;
+      }
+    }
     if (countItems(this.player.slots, ITEM.RATION) > 0) {
       const rem = removeItems(this.player.slots, ITEM.RATION, 1);
       if (rem.ok) {
@@ -504,7 +594,103 @@ export class Game {
         return;
       }
     }
-    this.player.notify('No food. Hold a ration and press R, or craft later.');
+    this.player.notify('No safe food. Hunt, cook at fire (E), or eat rations (R).');
+  }
+
+  /** F: cook held raw meat when near campfire heat */
+  _handleCookUse() {
+    if (!this.input.consumeUse()) return;
+    const held = this.player.heldStack();
+    const p = propsOf(held.id);
+    if (p?.cookable && held.count > 0) {
+      if ((this._lastHeat || 0) < 8) {
+        this.player.notify('Need campfire heat to cook. Place & stand close.');
+        return;
+      }
+      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+      if (!cons.ok) return;
+      const add = addItems(cons.slots, p.cookable, 1);
+      this.player.slots = add.slots;
+      this.audio.eat();
+      this.player.notify(`Cooked → ${displayName(p.cookable)}.`, 2.5);
+      return;
+    }
+    this.player.notify('Hold raw meat near a fire and press F to cook.');
+  }
+
+  _clearAnimalMeshes() {
+    for (const mesh of this._animalMeshes.values()) {
+      this.scene.remove(mesh);
+      mesh.traverse?.((c) => {
+        c.geometry?.dispose?.();
+        if (c.material) {
+          if (Array.isArray(c.material)) c.material.forEach((m) => m.dispose?.());
+          else c.material.dispose?.();
+        }
+      });
+    }
+    this._animalMeshes.clear();
+  }
+
+  _makeAnimalMesh(type) {
+    const spec = SPECIES[type] || SPECIES.hare;
+    const g = new THREE.Group();
+    const col = new THREE.Color(spec.color[0], spec.color[1], spec.color[2]);
+    const mat = new THREE.MeshLambertMaterial({ color: col });
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(spec.scale[0], spec.scale[1] * 0.55, spec.scale[2]),
+      mat,
+    );
+    body.position.y = spec.scale[1] * 0.35;
+    const head = new THREE.Mesh(
+      new THREE.BoxGeometry(spec.scale[0] * 0.55, spec.scale[1] * 0.4, spec.scale[0] * 0.55),
+      mat,
+    );
+    head.position.set(0, spec.scale[1] * 0.7, spec.scale[2] * 0.35);
+    g.add(body, head);
+    if (type === 'wolf') {
+      const ear = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.18, 0.08), mat);
+      ear.position.set(0.12, spec.scale[1] * 0.95, spec.scale[2] * 0.3);
+      g.add(ear);
+    }
+    g.userData.type = type;
+    return g;
+  }
+
+  _syncAnimalMeshes() {
+    if (!this.fauna) return;
+    const living = this.fauna.living();
+    const seen = new Set();
+    for (const a of living) {
+      seen.add(a.id);
+      let mesh = this._animalMeshes.get(a.id);
+      if (!mesh) {
+        mesh = this._makeAnimalMesh(a.type);
+        this._animalMeshes.set(a.id, mesh);
+        this.scene.add(mesh);
+      }
+      mesh.position.set(a.x, a.y, a.z);
+      mesh.rotation.y = a.yaw || 0;
+      // hurt flash
+      const hurt = a.hp < a.maxHp * 0.5;
+      mesh.traverse((c) => {
+        if (c.isMesh && c.material?.color) {
+          const spec = SPECIES[a.type];
+          const base = spec?.color || [0.5, 0.5, 0.5];
+          c.material.color.setRGB(
+            hurt ? Math.min(1, base[0] + 0.25) : base[0],
+            hurt ? base[1] * 0.7 : base[1],
+            hurt ? base[2] * 0.7 : base[2],
+          );
+        }
+      });
+    }
+    for (const [id, mesh] of this._animalMeshes) {
+      if (!seen.has(id)) {
+        this.scene.remove(mesh);
+        this._animalMeshes.delete(id);
+      }
+    }
   }
 
   _paintInventory() {
@@ -537,13 +723,17 @@ export class Game {
     if (recipesEl) {
       recipesEl.innerHTML = '';
       for (const r of visibleRecipes()) {
-        const can = hasIngredients(this.player.slots, r.ingredients);
+        const has = hasIngredients(this.player.slots, r.ingredients);
+        const heatOk = !r.requiresHeat || (this._lastHeat || 0) >= r.requiresHeat;
+        const can = has && heatOk;
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'recipe-btn' + (can ? ' can' : '');
         btn.dataset.recipe = r.id;
         btn.disabled = !can;
-        btn.innerHTML = `<strong>${r.name}</strong><span>${r.desc || ''}</span>`;
+        let desc = r.desc || '';
+        if (r.requiresHeat && !heatOk) desc += ' — stand by fire';
+        btn.innerHTML = `<strong>${r.name}</strong><span>${desc}</span>`;
         recipesEl.appendChild(btn);
       }
     }
@@ -594,6 +784,7 @@ export class Game {
       const held = this.player.heldStack();
       if (held.id != null) bits.push(displayName(held.id));
       if (this.player.breaking) bits.push(`Mining ${Math.floor(this.player.breaking.progress * 100)}%`);
+      if (this.fauna) bits.push(`Wildlife ${this.fauna.living().length}`);
       if (this._lastSaveStatus) bits.push(this._lastSaveStatus);
       status.textContent = bits.join(' · ');
     }

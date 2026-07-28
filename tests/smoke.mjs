@@ -14,7 +14,7 @@ import {
 } from '../js/survival.js';
 import { heightAt, fbm, hash2 } from '../js/gen.js';
 import { BLOCK, BLOCK_PROPS, isSolid, getDrop, getHardness } from '../js/blocks.js';
-import { ITEM, mineMultiplier, dropForBlock, isPlaceable } from '../js/items.js';
+import { ITEM, mineMultiplier, dropForBlock, isPlaceable, propsOf } from '../js/items.js';
 import {
   createStarterInventory,
   addItems,
@@ -24,6 +24,7 @@ import {
   craftWith,
 } from '../js/inventory.js';
 import { craftRecipe, visibleRecipes } from '../js/crafting.js';
+import { meatDropCount, SPECIES } from '../js/animals.js';
 import {
   buildSavePayload,
   parseSavePayload,
@@ -208,6 +209,32 @@ test('coal ore drops coal item', () => {
   assert.strictEqual(dropForBlock(BLOCK.COAL_ORE), ITEM.COAL);
   assert.ok(isPlaceable(BLOCK.TORCH));
   assert.ok(!isPlaceable(ITEM.STICK));
+});
+
+test('raw meat cookable and risky', () => {
+  const raw = propsOf(ITEM.RAW_MEAT);
+  assert.ok(raw.edible > 0);
+  assert.ok(raw.eatDamage > 0);
+  assert.strictEqual(raw.cookable, ITEM.COOKED_MEAT);
+  assert.ok(propsOf(ITEM.COOKED_MEAT).edible > raw.edible);
+});
+
+test('cook meat recipe needs heat context', () => {
+  let slots = createStarterInventory();
+  slots = addItems(slots, ITEM.RAW_MEAT, 1).slots;
+  const cold = craftRecipe(slots, 'cook_meat', { heat: 0 });
+  assert.ok(!cold.ok);
+  const hot = craftRecipe(slots, 'cook_meat', { heat: 12 });
+  assert.ok(hot.ok, hot.error);
+  assert.strictEqual(countItems(hot.slots, ITEM.COOKED_MEAT), 1);
+  assert.strictEqual(countItems(hot.slots, ITEM.RAW_MEAT), 0);
+});
+
+test('fauna species and meat drops', () => {
+  assert.ok(meatDropCount(SPECIES.deer, () => 0) >= 2);
+  assert.ok(SPECIES.wolf.hostile);
+  assert.ok(SPECIES.hare.hp < SPECIES.deer.hp);
+  assert.ok(!SPECIES.deer.hostile);
 });
 
 test('save roundtrip preserves seed inventory edits', () => {

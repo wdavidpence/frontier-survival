@@ -83,14 +83,25 @@ export const RECIPES = [
     ],
     results: [{ id: ITEM.STONE_PICK, count: 1 }],
   },
-  ];
+  {
+    id: 'cook_meat',
+    name: 'Cook Meat',
+    desc: '1 Raw Meat → Cooked Meat (need campfire heat nearby)',
+    ingredients: [{ id: ITEM.RAW_MEAT, count: 1 }],
+    results: [{ id: ITEM.COOKED_MEAT, count: 1 }],
+    requiresHeat: 8,
+  },
+];
 
 export function visibleRecipes() {
   return RECIPES.filter((r) => !r.hidden);
 }
 
-export function craftRecipe(slots, recipeId) {
+export function craftRecipe(slots, recipeId, ctx = {}) {
   const recipe = RECIPES.find((r) => r.id === recipeId);
   if (!recipe) return { ok: false, slots, error: 'unknown recipe' };
+  if (recipe.requiresHeat && (ctx.heat || 0) < recipe.requiresHeat) {
+    return { ok: false, slots, error: 'need campfire heat' };
+  }
   return craftWith(slots, recipe.ingredients, recipe.results);
 }
