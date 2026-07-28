@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frontier Survival</title>
+  <style>
+    :root {
+      --panel: rgba(8, 12, 18, 0.72);
+      --accent: #d4a574;
+      --health: #c43c3c;
+      --hunger: #c4a035;
+      --stamina: #3c8c5a;
+      --temp: #5a9fd4;
+      --sleep: #7a6bb0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%; overflow: hidden;
+      background: #0a0e14;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: #e8e4dc;
+      user-select: none;
+    }
+    #game {
+      display: block;
+      width: 100%; height: 100%;
+      cursor: crosshair;
+    }
+    #hud {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #crosshair {
+      position: absolute; left: 50%; top: 50%;
+      width: 14px; height: 14px;
+      margin: -7px 0 0 -7px;
+      border: 2px solid rgba(255,255,255,0.75);
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.35);
+    }
+    #crosshair.hit { border-color: var(--accent); }
+    #hurt-vignette {
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at center, transparent 40%, rgba(80,0,0,0.85) 100%);
+      opacity: 0;
+      transition: opacity 0.15s linear;
+    }
+    #meters {
+      position: absolute;
+      left: 16px; bottom: 72px;
+      width: 220px;
+      display: flex; flex-direction: column; gap: 6px;
+      padding: 10px 12px;
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      backdrop-filter: blur(6px);
+    }
+    .meter { display: grid; grid-template-columns: 62px 1fr; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #b9b3a8; }
+    .track { height: 10px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+    .fill { height: 100%; width: 0%; border-radius: 4px; transition: width 0.08s linear; }
+    #bar-health { background: linear-gradient(90deg, #8b1e1e, var(--health)); }
+    #bar-hunger { background: linear-gradient(90deg, #8a7020, var(--hunger)); }
+    #bar-stamina { background: linear-gradient(90deg, #1f5c38, var(--stamina)); }
+    #bar-temp { background: linear-gradient(90deg, #2a6a9a, var(--temp)); }
+    #bar-sleep { background: linear-gradient(90deg, #4a3d78, var(--sleep)); }
+    #temp-label { font-size: 10px; color: #9cf; margin-left: 4px; text-transform: none; }
+    #hotbar {
+      position: absolute;
+      left: 50%; bottom: 18px;
+      transform: translateX(-50%);
+      display: flex; gap: 6px;
+      padding: 8px;
+      background: var(--panel);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .hotbar-slot {
+      width: 44px; height: 44px;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-radius: 6px;
+      position: relative;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.35);
+    }
+    .hotbar-slot.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), inset 0 0 12px rgba(212,165,116,0.25);
+    }
+    .hotbar-slot::after {
+      content: attr(data-key);
+      position: absolute; top: 2px; left: 4px;
+      font-size: 9px; color: rgba(255,255,255,0.7);
+      text-shadow: 0 1px 2px #000;
+    }
+    #status-line {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      padding: 6px 14px;
+      background: var(--panel);
+      border-radius: 20px;
+      font-size: 12px;
+      color: #cfc8bc;
+      border: 1px solid rgba(255,255,255,0.06);
+      white-space: nowrap;
+    }
+    #message {
+      position: absolute;
+      top: 22%; left: 50%; transform: translateX(-50%);
+      max-width: 560px;
+      text-align: center;
+      font-size: 15px;
+      color: #f0e6d4;
+      text-shadow: 0 2px 8px #000;
+      min-height: 1.2em;
+    }
+    #help {
+      position: absolute; right: 16px; bottom: 18px;
+      width: 230px;
+      padding: 10px 12px;
+      background: var(--panel);
+      border-radius: 8px;
+      font-size: 11px;
+      line-height: 1.45;
+      color: #a8a296;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    #help b { color: #ddd5c6; }
+    .overlay {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, rgba(20,28,40,0.88), rgba(5,8,12,0.95));
+      z-index: 20;
+      pointer-events: auto;
+    }
+    .overlay.hidden { display: none; }
+    .panel {
+      width: min(480px, 92vw);
+      padding: 32px 28px;
+      background: linear-gradient(160deg, rgba(30,38,52,0.95), rgba(14,18,26,0.98));
+      border: 1px solid rgba(212,165,116,0.35);
+      border-radius: 14px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.55);
+      text-align: center;
+    }
+    .panel h1 {
+      font-weight: 600;
+      font-size: 28px;
+      letter-spacing: 0.06em;
+      color: #f3e6d2;
+      margin-bottom: 8px;
+    }
+    .panel .tag {
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    .panel p {
+      color: #b9b3a8;
+      font-size: 14px;
+      line-height: 1.55;
+      margin-bottom: 14px;
+    }
+    .panel button {
+      pointer-events: auto;
+      cursor: pointer;
+      margin-top: 10px;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(180deg, #e0b888, #b8894f);
+      color: #1a140c;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+    }
+    .panel button:hover { filter: brightness(1.06); }
+    #death-screen .panel h1 { color: #e08080; }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="game" tabindex="0"></canvas>
+  <div id="hud">
+    <div id="hurt-vignette"></div>
+    <div id="crosshair"></div>
+    <div id="status-line">Frontier Survival</div>
+    <div id="message"></div>
+    <div id="meters">
+      <div class="meter"><span>Health</span><div class="track"><div id="bar-health" class="fill"></div></div></div>
+      <div class="meter"><span>Hunger</span><div class="track"><div id="bar-hunger" class="fill"></div></div></div>
+      <div class="meter"><span>Stamina</span><div class="track"><div id="bar-stamina" class="fill"></div></div></div>
+      <div class="meter"><span>Temp <span id="temp-label"></span></span><div class="track"><div id="bar-temp" class="fill"></div></div></div>
+      <div class="meter"><span>Fatigue</span><div class="track"><div id="bar-sleep" class="fill"></div></div></div>
+    </div>
+    <div id="hotbar">
+      <div class="hotbar-slot active" data-key="1"></div>
+      <div class="hotbar-slot" data-key="2"></div>
+      <div class="hotbar-slot" data-key="3"></div>
+      <div class="hotbar-slot" data-key="4"></div>
+      <div class="hotbar-slot" data-key="5"></div>
+      <div class="hotbar-slot" data-key="6"></div>
+      <div class="hotbar-slot" data-key="7"></div>
+      <div class="hotbar-slot" data-key="8"></div>
+      <div class="hotbar-slot" data-key="9"></div>
+    </div>
+    <div id="help">
+      <b>WASD</b> move · <b>Mouse</b> look<br/>
+      <b>Space</b> jump · <b>Shift</b> sprint<br/>
+      <b>LMB</b> mine · <b>RMB</b> place<br/>
+      <b>1-9</b> hotbar · <b>R</b> eat ration<br/>
+      Survive cold nights with <b>campfires</b>.
+    </div>
+  </div>
+
+  <div id="title-screen" class="overlay">
+    <div class="panel">
+      <div class="tag">Browser survival sandbox</div>
+      <h1>Frontier Survival</h1>
+      <p>
+        Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
+        matter as much as mining. Inspired by Survivalcraft’s harsh systems —
+        original game, art, and code.
+      </p>
+      <p>PC controls: keyboard + mouse. Click Start, then click the world to capture the cursor.</p>
+      <button id="btn-start" type="button">Start surviving</button>
+    </div>
+  </div>
+
+  <div id="death-screen" class="overlay hidden">
+    <div class="panel">
+      <h1>You died</h1>
+      <p id="death-cause"></p>
+      <p>Nature does not negotiate. Build shelter. Light a fire. Eat before you explore.</p>
+      <button id="btn-respawn" type="button">Respawn</button>
+    </div>
+  </div>
+
+  <script type="module" src="../js/main.js"></script>
+</body>
+</html>
