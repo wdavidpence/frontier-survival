@@ -306,6 +306,61 @@ export function createBlockAtlas() {
     side: THREE.FrontSide,
   });
 
+  // Greedy-mesh material: UV in tile units, tile index attribute
+  const greedyMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      atlas: { value: texture },
+      atlasN: { value: ATLAS_N },
+      sunIntensity: { value: 1.0 },
+      ambientColor: { value: new THREE.Color(0.4, 0.45, 0.55) },
+      sunColor: { value: new THREE.Color(1.0, 0.95, 0.85) },
+      sunDir: { value: new THREE.Vector3(0.4, 1.0, 0.2).normalize() },
+    },
+    vertexShader: `
+      attribute float tile;
+      varying vec2 vUv;
+      varying vec4 vColor;
+      varying float vTile;
+      varying vec3 vNormal;
+      void main() {
+        vUv = uv;
+        vColor = color;
+        vTile = tile;
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D atlas;
+      uniform float atlasN;
+      uniform float sunIntensity;
+      uniform vec3 ambientColor;
+      uniform vec3 sunColor;
+      uniform vec3 sunDir;
+      varying vec2 vUv;
+      varying vec4 vColor;
+      varying float vTile;
+      varying vec3 vNormal;
+      void main() {
+        float tx = mod(vTile, atlasN);
+        float ty = floor(vTile / atlasN);
+        vec2 tUv = fract(vUv);
+        // tiny inset to reduce bleeding
+        tUv = clamp(tUv, 0.02, 0.98);
+        vec2 auv = vec2((tx + tUv.x) / atlasN, 1.0 - (ty + 1.0 - tUv.y) / atlasN);
+        vec4 tex = texture2D(atlas, auv);
+        if (tex.a < 0.12) discard;
+        float ndl = max(0.0, dot(normalize(vNormal), normalize(sunDir)));
+        vec3 light = ambientColor + sunColor * ndl * sunIntensity;
+        vec3 rgb = tex.rgb * vColor.rgb * light;
+        gl_FragColor = vec4(rgb, tex.a * vColor.a);
+      }
+    `,
+    transparent: true,
+    vertexColors: true,
+    side: THREE.FrontSide,
+  });
+
   const crackMaterial = new THREE.MeshBasicMaterial({
     map: texture,
     transparent: true,
@@ -314,5 +369,5 @@ export function createBlockAtlas() {
     alphaTest: 0.05,
   });
 
-  return { canvas, texture, material, crackMaterial, uvsForTile: tileUVs };
+  return { canvas, texture, material, greedyMaterial, crackMaterial, uvsForTile: tileUVs };
 }

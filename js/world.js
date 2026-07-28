@@ -1,20 +1,12 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js';
 import { heightAt, hash2, fbm } from './gen.js';
-import { tileForBlock, tileUVs } from './atlas-core.js';
+import { tileForBlock } from './atlas-core.js';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
 export const SEA_LEVEL = 16;
-
-const FACES = [
-  { n: [0, 1, 0], dir: 'top', corners: [[0,1,0],[1,1,0],[1,1,1],[0,1,1]], shade: 1.0 },
-  { n: [0,-1,0], dir: 'bottom', corners: [[0,0,1],[1,0,1],[1,0,0],[0,0,0]], shade: 0.55 },
-  { n: [0,0,1], dir: 'south', corners: [[0,0,1],[0,1,1],[1,1,1],[1,0,1]], shade: 0.8 },
-  { n: [0,0,-1], dir: 'north', corners: [[1,0,0],[1,1,0],[0,1,0],[0,0,0]], shade: 0.75 },
-  { n: [1,0,0], dir: 'east', corners: [[1,0,1],[1,1,1],[1,1,0],[1,0,0]], shade: 0.7 },
-  { n: [-1,0,0], dir: 'west', corners: [[0,0,0],[0,1,0],[0,1,1],[0,0,1]], shade: 0.85 },
-];
 
 export class World {
   /**
@@ -26,17 +18,17 @@ export class World {
   constructor({ seed = 1, radiusChunks = 4, material = null } = {}) {
     this.seed = seed;
     this.radiusChunks = radiusChunks;
-    this.chunks = new Map(); // key "cx,cz" -> Uint8Array
-    this.meshes = new Map(); // key -> THREE.Mesh
+    this.chunks = new Map();
+    this.meshes = new Map();
     this.group = new THREE.Group();
     this.dirty = new Set();
-    /** @type {Map<string, number>} sparse player edits "x,y,z" -> block id */
     this.edits = new Map();
     this.material = material || new THREE.MeshLambertMaterial({
       vertexColors: true,
       transparent: true,
       alphaTest: 0.1,
     });
+    this._stats = { quads: 0, naiveFaces: 0 };
     this._genAll();
   }
 
@@ -220,67 +212,34 @@ export class World {
     const data = this.chunks.get(k);
     if (!data) return;
 
-    const positions = [];
-    const normals = [];
-    const colors = [];
-    const uvs = [];
-    const indices = [];
-    let vBase = 0;
-
     const baseX = cx * CHUNK_SIZE;
     const baseZ = cz * CHUNK_SIZE;
 
-    for (let lz = 0; lz < CHUNK_SIZE; lz++) {
-      for (let y = 0; y < WORLD_HEIGHT; y++) {
-        for (let lx = 0; lx < CHUNK_SIZE; lx++) {
-          const id = data[this._idx(lx, y, lz)];
-          if (id === BLOCK.AIR) continue;
-          const props = BLOCK_PROPS[id];
-          if (!props || id === BLOCK.AIR) continue;
-
-          const wx = baseX + lx;
-          const wy = y;
-          const wz = baseZ + lz;
-
-          for (const face of FACES) {
-            const nx = wx + face.n[0];
-            const ny = wy + face.n[1];
-            const nz = wz + face.n[2];
-            const nid = this.getBlock(nx, ny, nz);
-            const show = id === BLOCK.WATER
-              ? (nid !== BLOCK.WATER && isTransparent(nid))
-              : isTransparent(nid);
-            if (!show) continue;
-            if (id === BLOCK.WATER && isSolid(nid)) continue;
-
-            const col = getColor(id, face.dir);
-            const shade = face.shade * (id === BLOCK.WATER ? 0.85 : 1);
-            const r = Math.min(1, col[0] * shade * 1.15);
-            const g = Math.min(1, col[1] * shade * 1.15);
-            const b = Math.min(1, col[2] * shade * 1.15);
-            const tile = tileForBlock(id, face.dir);
-            const faceUV = tileUVs(tile);
-            let ci = 0;
-            for (const c of face.corners) {
-              positions.push(wx + c[0], wy + c[1], wz + c[2]);
-              normals.push(face.n[0], face.n[1], face.n[2]);
-              colors.push(r, g, b, id === BLOCK.WATER ? 0.65 : 1);
-              const uv = faceUV[ci++] || faceUV[0];
-              uvs.push(uv[0], uv[1]);
-            }
-            indices.push(vBase, vBase + 1, vBase + 2, vBase, vBase + 2, vBase + 3);
-            vBase += 4;
-          }
-        }
-      }
-    }
+    const getBlock = (x, y, z) => this.getBlock(x, y, z);
+    const quads = greedyMeshChunk({
+      getBlock,
+      tileFor: tileForBlock,
+      colorFor: getColor,
+      isTransparent,
+      isSolid,
+      baseX,
+      baseY: 0,
+      baseZ,
+      sizeX: CHUNK_SIZE,
+      sizeY: WORLD_HEIGHT,
+      sizeZ: CHUNK_SIZE,
+      waterId: BLOCK.WATER,
+    });
+    const arrays = quadsToArrays(quads);
+    this._stats.quads = (this._stats.quads || 0) + arrays.quadCount;
 
     const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
-    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-    geo.setIndex(indices);
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(arrays.positions, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(arrays.normals, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(arrays.colors, 4));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(arrays.uvs, 2));
+    geo.setAttribute('tile', new THREE.Float32BufferAttribute(arrays.tiles, 1));
+    geo.setIndex(arrays.indices);
     geo.computeBoundingSphere();
 
     let mesh = this.meshes.get(k);
@@ -294,6 +253,18 @@ export class World {
       this.meshes.set(k, mesh);
       this.group.add(mesh);
     }
+  }
+
+  meshStats() {
+    let verts = 0;
+    let tris = 0;
+    for (const m of this.meshes.values()) {
+      const pos = m.geometry?.getAttribute('position');
+      const idx = m.geometry?.index;
+      if (pos) verts += pos.count;
+      if (idx) tris += idx.count / 3;
+    }
+    return { chunks: this.meshes.size, verts, tris };
   }
 
   /**

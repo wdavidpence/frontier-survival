@@ -22,7 +22,7 @@ Track with `[ ]` / `[x]`. Earliest unchecked item is next work.
 - [x] Hotbar selects placeable stacks (inventory-backed)
 - [x] Texture atlas (procedural canvas)
 - [x] Break particles + block damage crack overlay
-- [ ] Greedy meshing / larger render distance
+- [x] Greedy meshing / larger render distance (radius 5)
 
 ## Phase 2 — Survival body
 - [x] survival.js meters + drain formulas

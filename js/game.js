@@ -93,6 +93,7 @@ export class Game {
     this._lastHeat = 0;
     this.atlas = createBlockAtlas();
     this.fx = new BreakFX(this.scene, this.atlas);
+    this.worldRadius = 5;
 
     this._breakSpeed = 1.6;
     this._stepAcc = 0;
@@ -171,7 +172,11 @@ export class Game {
         m.material?.dispose?.();
       }
     }
-    this.world = new World({ seed, radiusChunks: 3, material: this.atlas.material });
+    this.world = new World({
+      seed,
+      radiusChunks: this.worldRadius || 5,
+      material: this.atlas.greedyMaterial || this.atlas.material,
+    });
     if (saveData?.edits?.length) {
       this.world.applyEdits(saveData.edits, { replace: true });
     }
@@ -898,13 +903,23 @@ export class Game {
     const color = new THREE.Color(sky.r, sky.g, sky.b);
     this.scene.background = color;
     this.scene.fog.color.copy(color);
-    this.scene.fog.near = 35 + sunI * 20;
-    this.scene.fog.far = 90 + sunI * 40;
+    this.scene.fog.near = 45 + sunI * 25;
+    this.scene.fog.far = 110 + sunI * 50;
     if (this.time.isNight()) {
       this.ambient.color.set(0x223355);
       this.sun.intensity = 0.08;
     } else {
       this.ambient.color.set(0x6688aa);
+    }
+    // Drive greedy shader lighting
+    const mat = this.atlas?.greedyMaterial;
+    if (mat?.uniforms) {
+      mat.uniforms.sunIntensity.value = this.time.isNight() ? 0.15 : 0.55 + sunI * 0.7;
+      mat.uniforms.ambientColor.value.set(
+        this.time.isNight() ? 0.12 : 0.35,
+        this.time.isNight() ? 0.14 : 0.4,
+        this.time.isNight() ? 0.22 : 0.5,
+      );
     }
   }
 

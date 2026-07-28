@@ -13,7 +13,7 @@ import {
   applyDamage,
 } from '../js/survival.js';
 import { heightAt, fbm, hash2 } from '../js/gen.js';
-import { BLOCK, BLOCK_PROPS, isSolid, getDrop, getHardness } from '../js/blocks.js';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js';
 import { ITEM, mineMultiplier, dropForBlock, isPlaceable, propsOf } from '../js/items.js';
 import {
   createStarterInventory,
@@ -34,6 +34,7 @@ import {
   applySleepRest,
 } from '../js/equipment.js';
 import { ambientMix } from '../js/audio.js';
+import { greedyMeshChunk, quadsToArrays, countNaiveFaces } from '../js/mesh-greedy.js';
 import {
   buildSavePayload,
   parseSavePayload,
@@ -309,6 +310,40 @@ test('ambient mix day vs night fire rain', () => {
   assert.ok(night.howl > 0);
   const dead = ambientMix({ dead: true, isNight: true, heat: 20 });
   assert.strictEqual(dead.wind, 0);
+});
+
+test('greedy mesh merges flat top faces', () => {
+  // 8x1x8 solid dirt slab at y=0, air above
+  const W = 8;
+  const H = 2;
+  const getBlock = (x, y, z) => {
+    if (x < 0 || z < 0 || x >= W || z >= W || y < 0 || y >= H) return 0;
+    return y === 0 ? BLOCK.DIRT : 0;
+  };
+  const opts = {
+    getBlock,
+    tileFor: tileForBlock,
+    colorFor: getColor,
+    isTransparent,
+    isSolid,
+    baseX: 0,
+    baseY: 0,
+    baseZ: 0,
+    sizeX: W,
+    sizeY: H,
+    sizeZ: W,
+    waterId: BLOCK.WATER,
+  };
+  const naive = countNaiveFaces(opts);
+  const quads = greedyMeshChunk(opts);
+  const arrays = quadsToArrays(quads);
+  // Top of slab alone is 64 naive faces → 1 greedy quad
+  const topQuads = quads.filter((q) => q.faceDir === 'top');
+  assert.strictEqual(topQuads.length, 1, `top quads ${topQuads.length}`);
+  assert.strictEqual(topQuads[0].w * topQuads[0].h, W * W);
+  assert.ok(quads.length < naive, `greedy ${quads.length} < naive ${naive}`);
+  assert.ok(arrays.positions.length > 0);
+  assert.strictEqual(arrays.tiles.length, arrays.positions.length / 3);
 });
 
 test('save roundtrip preserves seed inventory edits', () => {
