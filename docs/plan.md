@@ -60,3 +60,6 @@ See docs/SCM.md
 
 ## Phase polish — v1.1 (docs/improvements-20.md)
 - [x] 20 QoL / mode / combat / HUD polishes shipped
+
+## Phase polish — v1.2 (docs/improvements-v1.2.md)
+- [x] 20 content / systems polishes (farm, iron, bow, spoilage, FX)

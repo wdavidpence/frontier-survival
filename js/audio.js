@@ -304,8 +304,27 @@ export class AudioBus {
     this.beep(400, 0.06, 'sine', 0.12);
     this.beep(300, 0.08, 'sine', 0.1);
   }
-  step() {
-    this.beep(60 + Math.random() * 20, 0.03, 'triangle', 0.05);
+  step(surface = 'dirt') {
+    let base = 60;
+    if (surface === 'stone' || surface === 'cobble') base = 90;
+    else if (surface === 'sand') base = 50;
+    else if (surface === 'wood' || surface === 'planks' || surface === 'log') base = 70;
+    else if (surface === 'snow' || surface === 'water') base = 45;
+    else if (surface === 'grass') base = 55;
+    this.beep(base + Math.random() * 20, 0.03, 'triangle', 0.05);
+  }
+  splash() {
+    this.beep(180, 0.06, 'sine', 0.1);
+    this.beep(90, 0.1, 'triangle', 0.08);
+    this.beep(240 + Math.random() * 40, 0.04, 'sine', 0.05);
+  }
+  shoot() {
+    this.beep(500, 0.04, 'triangle', 0.1);
+    this.beep(220, 0.08, 'sine', 0.07);
+  }
+  toast() {
+    this.beep(720, 0.05, 'sine', 0.09);
+    this.beep(960, 0.08, 'sine', 0.07);
   }
   ui() {
     this.beep(660, 0.04, 'sine', 0.08);

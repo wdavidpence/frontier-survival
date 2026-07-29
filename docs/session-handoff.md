@@ -7,15 +7,16 @@
 ## Live
 - Repo: https://github.com/wdavidpence/frontier-survival  
 - Pages: https://wdavidpence.github.io/frontier-survival/  
-- Verified 200: `/`, `/js/main.js`, `/js/game.js`, `.nojekyll` (Pages status built)
 
 ## Local
 Serve repo root → http://127.0.0.1:8765/  
-Tests: `node tests/smoke.mjs` (36)
+Tests: `node tests/smoke.mjs` (37)
 
 ## Latest
-**v1.1 polish pack (20 items)** — see `docs/improvements-20.md`  
-Difficulty modes, spear/stone axe, Q drop, wheel hotbar, prompts, block outline, fall damage, torch lights, pause/sens, death drops/permadeath, HUD polish.
+**v1.2 content polish pack (20 items)** — `docs/improvements-v1.2.md`  
+Berries/farming, iron tools, bow+arrows, meat spoilage, wetness/drown, weather FX, seed input, F3 debug, achievements, death stats, audio/HUD juice.
+
+Prior: v1.1 QoL pack — `docs/improvements-20.md`
 
 ## Next content
-Biomes, bow, more SC depth (docs/SCM.md). Boat / farming later.
+Biomes depth, boat, breeding, electricity (docs/SCM.md).

@@ -295,6 +295,50 @@
     .panel button:hover { filter: brightness(1.06); }
     #death-screen .panel h1 { color: #e08080; }
 
+    #bar-wet { background: linear-gradient(90deg, #1a4a6a, #4aa0d4); }
+    #meter-wet { transition: opacity 0.2s; }
+    #hotbar-name {
+      position: absolute; left: 50%; bottom: 72px; transform: translateX(-50%);
+      font-size: 12px; color: #e8e0d4; text-shadow: 0 1px 3px #000;
+      min-height: 1em; pointer-events: none;
+    }
+    #ach-toast {
+      position: absolute; top: 18%; right: 18px;
+      width: min(280px, 70vw);
+      padding: 12px 14px;
+      background: linear-gradient(160deg, rgba(30,38,52,0.95), rgba(14,18,26,0.98));
+      border: 1px solid rgba(212,165,116,0.5);
+      border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      pointer-events: none;
+    }
+    #ach-toast.hidden { display: none; }
+    #ach-toast strong { display:block; color: var(--accent); font-size: 13px; margin-bottom: 4px; }
+    #ach-toast span { font-size: 12px; color: #b9b3a8; }
+    #debug-overlay {
+      position: absolute; top: 48px; left: 12px;
+      padding: 8px 10px;
+      background: rgba(0,0,0,0.55);
+      border-radius: 6px;
+      font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: #cfe8cf;
+      white-space: pre;
+      pointer-events: none;
+      max-width: 46vw;
+    }
+    #debug-overlay.hidden { display: none; }
+    #seed-row { margin: 10px 0; font-size: 12px; color: #b9b3a8; }
+    #seed-row input {
+      pointer-events: auto;
+      width: min(200px, 60vw);
+      margin-left: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(0,0,0,0.35);
+      color: #e8e4dc;
+    }
+
     #crosshair.strike { border-color: #ff6b4a; box-shadow: 0 0 12px rgba(255,80,40,0.8); transform: scale(1.15); }
     #prompt {
       position: absolute; top: 54%; left: 50%; transform: translateX(-50%);
@@ -364,7 +408,7 @@
     <div id="status-line">Frontier Survival</div>
     <div id="message"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.1</div>
+    <div id="version-badge">v1.2</div>
     <div id="meters">
       <div class="meter"><span>Health</span><div class="track"><div id="bar-health" class="fill"></div></div></div>
       <div class="meter"><span>Hunger</span><div class="track"><div id="bar-hunger" class="fill"></div></div></div>
@@ -384,12 +428,11 @@
       <div class="hotbar-slot" data-key="9"></div>
     </div>
     <div id="help">
-      <b>WASD</b> move · <b>Mouse</b> look · wheel hotbar<br/>
-      <b>Space</b> jump · <b>Shift</b> sprint<br/>
-      <b>LMB</b> mine/hunt · <b>RMB</b> place · <b>Q</b> drop<br/>
-      <b>1-9</b> hotbar · <b>E</b> inventory/craft<br/>
-      <b>R</b> eat · <b>F</b> cook/equip/sleep · <b>K</b> save<br/>
-      <b>Esc</b> pause · <b>H</b> help · spear reaches farther
+      <b>WASD</b> move · wheel hotbar · <b>Q</b> drop<br/>
+      <b>LMB</b> mine/hunt/bow · <b>RMB</b> place/plant<br/>
+      <b>E</b> craft · <b>F</b> cook/equip/sleep · <b>R</b> eat<br/>
+      <b>K</b> save · <b>Esc</b> pause · <b>H</b> help · <b>F3</b> debug<br/>
+      Berries, farms, iron, bow — cook meat before it spoils
     </div>
   </div>
 
@@ -418,7 +461,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.1</div>
+      <div class="tag">Browser survival sandbox · v1.2</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -428,6 +471,7 @@
       <p>PC controls: keyboard + mouse. Click Start, then click the world to capture the cursor.</p>
       <div class="mode-row" id="mode-row"></div>
       <p id="mode-blurb"></p>
+      <div id="seed-row">World seed <input id="seed-input" type="text" placeholder="random" maxlength="12" /></div>
       <div class="sens-row">Mouse sensitivity <span id="title-sens-label">5</span>
         <br/><input id="title-sens-slider" type="range" min="1" max="10" step="1" value="5" />
       </div>
@@ -442,6 +486,7 @@
     <div class="panel">
       <h1>You died</h1>
       <p id="death-cause"></p>
+      <p id="death-stats" style="font-size:12px;color:#8a8378"></p>
       <p id="death-extra">Nature does not negotiate. Build shelter. Light a fire. Eat before you explore.</p>
       <button id="btn-respawn" type="button">Respawn</button>
     </div>

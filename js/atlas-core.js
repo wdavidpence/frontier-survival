@@ -27,6 +27,10 @@ export const TILE = {
   CAMPFIRE: 16,
   BEDROCK: 17,
   BED: 18,
+  IRON_ORE: 19,
+  BUSH: 20,
+  FARMLAND: 21,
+  CROP: 22,
   CRACK0: 24,
   CRACK1: 25,
   CRACK2: 26,
@@ -89,6 +93,14 @@ export function tileForBlock(blockId, faceDir) {
       return TILE.BEDROCK;
     case BLOCK.BED:
       return TILE.BED;
+    case BLOCK.IRON_ORE:
+      return TILE.IRON_ORE;
+    case BLOCK.BUSH:
+      return TILE.BUSH;
+    case BLOCK.FARMLAND:
+      return faceDir === 'top' ? TILE.FARMLAND : TILE.DIRT;
+    case BLOCK.CROP:
+      return TILE.CROP;
     default:
       return TILE.STONE;
   }

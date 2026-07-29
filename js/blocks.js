@@ -18,6 +18,10 @@ export const BLOCK = {
   CAMPFIRE: 15,
   BEDROCK: 16,
   BED: 17,
+  IRON_ORE: 18,
+  BUSH: 19,
+  FARMLAND: 20,
+  CROP: 21,
 };
 
 /** @type {Record<number, {
@@ -52,6 +56,10 @@ export const BLOCK_PROPS = {
   [BLOCK.CAMPFIRE]: { name: 'Campfire', solid: true, transparent: true, hardness: 0.5, color: [0.55, 0.25, 0.1], light: 14, heat: 18, drops: BLOCK.CAMPFIRE },
   [BLOCK.BEDROCK]: { name: 'Bedrock', solid: true, transparent: false, hardness: 999, color: [0.15, 0.15, 0.18] },
   [BLOCK.BED]: { name: 'Bed', solid: true, transparent: true, hardness: 0.4, color: [0.55, 0.2, 0.25], topColor: [0.7, 0.35, 0.4], drops: BLOCK.BED },
+  [BLOCK.IRON_ORE]: { name: 'Iron Ore', solid: true, transparent: false, hardness: 2.4, color: [0.55, 0.48, 0.42], drops: BLOCK.IRON_ORE },
+  [BLOCK.BUSH]: { name: 'Berry Bush', solid: false, transparent: true, hardness: 0.15, color: [0.22, 0.48, 0.18], topColor: [0.55, 0.15, 0.2], drops: BLOCK.BUSH },
+  [BLOCK.FARMLAND]: { name: 'Farmland', solid: true, transparent: false, hardness: 0.45, color: [0.4, 0.28, 0.16], topColor: [0.35, 0.24, 0.12], drops: BLOCK.DIRT },
+  [BLOCK.CROP]: { name: 'Crop', solid: false, transparent: true, hardness: 0.1, color: [0.45, 0.7, 0.25], drops: BLOCK.CROP },
 };
 
 export function isSolid(id) {

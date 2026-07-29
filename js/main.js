@@ -1,8 +1,7 @@
 import { Game } from './game.js';
-import { hasSave } from './save.js';
+import { hasSave, clearSaveStorage } from './save.js';
 import { MODES, MODE_ORDER, getMode } from './modes.js';
 import {
-  readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
@@ -35,6 +34,20 @@ function refreshContinue() {
   }
 }
 
+function causeFlavor(cause) {
+  const map = {
+    hypothermia: 'The cold took you.',
+    starvation: 'Hunger hollowed you out.',
+    exhaustion: 'You collapsed from fatigue.',
+    wolf: 'A wolf’s jaws closed.',
+    fall: 'The ground was unforgiving.',
+    drowning: 'The water kept you.',
+    food_poisoning: 'Bad meat finished you.',
+    heatstroke: 'The heat cooked you from within.',
+  };
+  return map[cause] || 'Nature does not negotiate.';
+}
+
 const hud = {
   hideTitle() {
     title?.classList.add('hidden');
@@ -43,7 +56,20 @@ const hud = {
     if (!death) return;
     death.classList.remove('hidden');
     const el = document.getElementById('death-cause');
-    if (el) el.textContent = cause ? `Cause: ${cause}` : '';
+    if (el) {
+      el.textContent = cause
+        ? `Cause: ${cause} — ${causeFlavor(cause)}`
+        : causeFlavor(cause);
+    }
+    const stats = document.getElementById('death-stats');
+    if (stats) {
+      const day = meta.day ?? '?';
+      const kills = meta.kills ?? 0;
+      const wolves = meta.wolfKills ?? 0;
+      stats.textContent =
+        `Survived to day ${day} · Wildlife taken ${kills}` +
+        (wolves ? ` (wolves ${wolves})` : '');
+    }
     const extra = document.getElementById('death-extra');
     const respawnBtn = document.getElementById('btn-respawn');
     if (meta.permadeath) {
@@ -61,7 +87,7 @@ const hud = {
     } else {
       if (extra) {
         extra.textContent =
-          'Nature does not negotiate. Build shelter. Light a fire. Eat before you explore.';
+          'Build shelter. Light a fire. Cook meat before it spoils. Eat before you explore.';
       }
       if (respawnBtn) respawnBtn.textContent = 'Respawn';
     }
@@ -97,7 +123,29 @@ function paintModeRow() {
   if (blurb) blurb.textContent = getMode(game.mode).blurb;
 }
 
-// Title sensitivity
+function readSeedInput() {
+  const el = document.getElementById('seed-input');
+  if (!el) return null;
+  const raw = String(el.value || '').trim();
+  if (!raw) return null;
+  if (/^\d+$/.test(raw)) return Number(raw) >>> 0;
+  let h = 2166136261;
+  for (let i = 0; i < raw.length; i++) {
+    h ^= raw.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function startNewWorld() {
+  const seed = readSeedInput();
+  clearSaveStorage();
+  game.mode = getMode(game.settings.mode).id;
+  game.seed = seed != null ? seed : ((Math.random() * 1e6) | 0);
+  game.start(game.seed);
+  refreshContinue();
+}
+
 const titleSens = document.getElementById('title-sens-slider');
 const titleSensLab = document.getElementById('title-sens-label');
 if (titleSens) {
@@ -114,7 +162,7 @@ if (titleSens) {
 
 btnStart?.addEventListener('click', (e) => {
   e.stopPropagation();
-  game.newGame();
+  startNewWorld();
 });
 
 btnContinue?.addEventListener('click', (e) => {
@@ -129,7 +177,7 @@ btnContinue?.addEventListener('click', (e) => {
 btnNew?.addEventListener('click', (e) => {
   e.stopPropagation();
   if (hasSave() && !confirm('Start a new world? This clears your saved game.')) return;
-  game.newGame();
+  startNewWorld();
 });
 
 btnRespawn?.addEventListener('click', (e) => {
@@ -143,7 +191,6 @@ btnRespawn?.addEventListener('click', (e) => {
 paintModeRow();
 refreshContinue();
 
-// Expose for debug
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.1');
+console.info('Frontier Survival boot OK · v1.2');

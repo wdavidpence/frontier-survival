@@ -51,6 +51,7 @@ export function buildSavePayload(state) {
       slots: (state.player.slots || []).map((s) => ({
         id: s.id,
         count: s.count,
+        ...(s.age != null ? { age: s.age } : {}),
       })),
       equipment: state.player.equipment || { head: null, chest: null, feet: null },
     },

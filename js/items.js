@@ -20,6 +20,16 @@ export const ITEM = {
   FUR_BOOTS: 112,
   WOOD_SPEAR: 113,
   STONE_AXE: 114,
+  BERRIES: 115,
+  SEEDS: 116,
+  WHEAT: 117,
+  BREAD: 118,
+  IRON_INGOT: 119,
+  IRON_PICK: 120,
+  IRON_AXE: 121,
+  BOW: 122,
+  ARROW: 123,
+  ROTTEN_MEAT: 124,
 };
 
 /** @type {Record<number, {
@@ -30,13 +40,15 @@ export const ITEM = {
  *  edible?: number,
  *  eatDamage?: number,
  *  cookable?: number,
- *  tool?: 'pick'|'axe'|'hand'|'weapon',
+ *  smeltable?: number,
+ *  tool?: 'pick'|'axe'|'hand'|'weapon'|'bow',
  *  mineMult?: number,
  *  melee?: number,
  *  meleeRange?: number,
  *  maxStack?: number,
  *  equipSlot?: 'head'|'chest'|'feet',
- *  warmth?: number
+ *  warmth?: number,
+ *  plantable?: boolean
  * }>} */
 export const ITEM_PROPS = {
   [ITEM.STICK]: { name: 'Stick', color: [0.55, 0.4, 0.22], maxStack: 64, melee: 3, meleeRange: 3.2 },
@@ -99,6 +111,45 @@ export const ITEM_PROPS = {
     melee: 9,
     meleeRange: 3.6,
   },
+  [ITEM.BERRIES]: { name: 'Berries', color: [0.7, 0.15, 0.25], edible: 12, maxStack: 32 },
+  [ITEM.SEEDS]: { name: 'Seeds', color: [0.7, 0.65, 0.3], maxStack: 64, plantable: true },
+  [ITEM.WHEAT]: { name: 'Wheat', color: [0.85, 0.75, 0.3], maxStack: 64 },
+  [ITEM.BREAD]: { name: 'Bread', color: [0.78, 0.58, 0.32], edible: 32, maxStack: 16 },
+  [ITEM.IRON_INGOT]: { name: 'Iron Ingot', color: [0.7, 0.72, 0.78], maxStack: 64 },
+  [ITEM.IRON_PICK]: {
+    name: 'Iron Pick',
+    color: [0.72, 0.74, 0.8],
+    tool: 'pick',
+    mineMult: 5.0,
+    maxStack: 1,
+    melee: 8,
+    meleeRange: 3.5,
+  },
+  [ITEM.IRON_AXE]: {
+    name: 'Iron Axe',
+    color: [0.68, 0.7, 0.76],
+    tool: 'axe',
+    mineMult: 5.2,
+    maxStack: 1,
+    melee: 11,
+    meleeRange: 3.6,
+  },
+  [ITEM.BOW]: {
+    name: 'Bow',
+    color: [0.55, 0.4, 0.22],
+    tool: 'bow',
+    maxStack: 1,
+    melee: 2,
+    meleeRange: 2.5,
+  },
+  [ITEM.ARROW]: { name: 'Arrow', color: [0.75, 0.75, 0.7], maxStack: 64 },
+  [ITEM.ROTTEN_MEAT]: {
+    name: 'Rotten Meat',
+    color: [0.4, 0.45, 0.25],
+    edible: 6,
+    eatDamage: 12,
+    maxStack: 16,
+  },
 };
 
 export function propsOf(id) {
@@ -109,7 +160,12 @@ export function propsOf(id) {
     return {
       name: b.name,
       color: b.color,
-      placeable: id !== BLOCK.AIR && id !== BLOCK.WATER && id !== BLOCK.BEDROCK,
+      placeable:
+        id !== BLOCK.AIR &&
+        id !== BLOCK.WATER &&
+        id !== BLOCK.BEDROCK &&
+        id !== BLOCK.CROP &&
+        id !== BLOCK.BUSH,
       placeAs: id,
       maxStack: 64,
     };
@@ -138,13 +194,16 @@ export function placeBlockId(id) {
 
 /** Preferred tool type for a block */
 export function preferredTool(blockId) {
-  if (blockId === BLOCK.LOG || blockId === BLOCK.PLANKS || blockId === BLOCK.LEAVES) return 'axe';
+  if (blockId === BLOCK.LOG || blockId === BLOCK.PLANKS || blockId === BLOCK.LEAVES || blockId === BLOCK.BUSH)
+    return 'axe';
   if (
     blockId === BLOCK.STONE ||
     blockId === BLOCK.COBBLE ||
     blockId === BLOCK.COAL_ORE ||
+    blockId === BLOCK.IRON_ORE ||
     blockId === BLOCK.SANDSTONE
-  ) return 'pick';
+  )
+    return 'pick';
   return 'hand';
 }
 
@@ -165,8 +224,10 @@ export function mineMultiplier(heldId, blockId) {
 /** Drop id when breaking a world block (may be item). */
 export function dropForBlock(blockId) {
   if (blockId === BLOCK.COAL_ORE) return ITEM.COAL;
+  if (blockId === BLOCK.IRON_ORE) return BLOCK.IRON_ORE;
+  if (blockId === BLOCK.BUSH) return ITEM.BERRIES;
+  if (blockId === BLOCK.CROP) return ITEM.WHEAT;
   if (blockId === BLOCK.LEAVES) {
-    // rare stick from leaves
     return null; // handled with rng externally
   }
   const d = BLOCK_PROPS[blockId]?.drops;

@@ -233,6 +233,61 @@ function drawBed(ctx, x0, y0) {
   ctx.fillRect(x0 + 2, y0 + 22, TILE_PX - 4, 4);
 }
 
+function drawIronOre(ctx, x0, y0) {
+  drawStone(ctx, x0, y0);
+  const r = rnd(71);
+  for (let i = 0; i < 9; i++) {
+    ctx.fillStyle = 'rgba(180,160,140,0.9)';
+    ctx.beginPath();
+    ctx.arc(x0 + 5 + r() * 22, y0 + 5 + r() * 22, 1.5 + r() * 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawBush(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.fillStyle = '#2f6b28';
+  ctx.beginPath();
+  ctx.arc(x0 + 16, y0 + 18, 11, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#3a8a32';
+  ctx.beginPath();
+  ctx.arc(x0 + 11, y0 + 14, 7, 0, Math.PI * 2);
+  ctx.fill();
+  const r = rnd(12);
+  for (let i = 0; i < 8; i++) {
+    ctx.fillStyle = '#b02030';
+    ctx.beginPath();
+    ctx.arc(x0 + 8 + r() * 16, y0 + 10 + r() * 14, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawFarmland(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [90, 60, 35], 0.35, 15);
+  ctx.strokeStyle = 'rgba(40,25,15,0.45)';
+  for (let y = 4; y < TILE_PX; y += 6) {
+    ctx.beginPath();
+    ctx.moveTo(x0, y0 + y);
+    ctx.lineTo(x0 + TILE_PX, y0 + y);
+    ctx.stroke();
+  }
+}
+
+function drawCrop(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.fillStyle = '#6aaa3a';
+  for (let i = 0; i < 5; i++) {
+    const x = x0 + 6 + i * 5;
+    ctx.fillRect(x, y0 + 10, 2, 18);
+  }
+  ctx.fillStyle = '#d4b84a';
+  for (let i = 0; i < 5; i++) {
+    const x = x0 + 5 + i * 5;
+    ctx.fillRect(x, y0 + 6, 4, 5);
+  }
+}
+
 function drawCrack(ctx, x0, y0, stage) {
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
   ctx.strokeStyle = `rgba(20,15,10,${0.35 + stage * 0.1})`;
@@ -285,6 +340,10 @@ export function createBlockAtlas() {
   paint(TILE.CAMPFIRE, drawCampfire);
   paint(TILE.BEDROCK, drawBedrock);
   paint(TILE.BED, drawBed);
+  paint(TILE.IRON_ORE, drawIronOre);
+  paint(TILE.BUSH, drawBush);
+  paint(TILE.FARMLAND, drawFarmland);
+  paint(TILE.CROP, drawCrop);
   paint(TILE.CRACK0, (c, x, y) => drawCrack(c, x, y, 0));
   paint(TILE.CRACK1, (c, x, y) => drawCrack(c, x, y, 1));
   paint(TILE.CRACK2, (c, x, y) => drawCrack(c, x, y, 2));

@@ -116,7 +116,11 @@ export function craftWith(slots, ingredients, results) {
 }
 
 export function cloneSlots(slots) {
-  return slots.map((s) => ({ id: s.id, count: s.count }));
+  return slots.map((s) => {
+    const out = { id: s.id, count: s.count };
+    if (s.age != null) out.age = s.age;
+    return out;
+  });
 }
 
 export function getHotbarStack(slots, index) {

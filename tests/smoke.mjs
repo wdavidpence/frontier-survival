@@ -511,5 +511,48 @@ test('starter inventory respects ration count', () => {
   assert.strictEqual(countItems(b, ITEM.RATION), 0);
 });
 
+
+import { spawnArrow, stepProjectile, hitAnimal } from '../js/projectiles.js';
+import { tickSpoilage, isSpoilable, SPOIL_SECONDS } from '../js/spoilage.js';
+import { unlockAchievement, emptyAchievements, ACHIEVEMENTS } from '../js/achievements.js';
+
+test('v1.2 bow and spoilage', () => {
+  assert.ok(propsOf(ITEM.BOW).tool === 'bow');
+  assert.ok(propsOf(ITEM.ARROW));
+  assert.ok(propsOf(ITEM.BERRIES).edible > 0);
+  assert.ok(propsOf(ITEM.BREAD).edible > 0);
+  assert.ok(propsOf(ITEM.IRON_PICK).mineMult > propsOf(ITEM.STONE_PICK).mineMult);
+  assert.ok(isSpoilable(ITEM.RAW_MEAT));
+  let slots = createStarterInventory(0);
+  slots = addItems(slots, ITEM.RAW_MEAT, 2).slots;
+  slots[0].age = SPOIL_SECONDS - 1;
+  const mid = tickSpoilage(slots, 0.5);
+  assert.strictEqual(mid.slots[0].id, ITEM.RAW_MEAT);
+  const done = tickSpoilage(mid.slots, 2);
+  assert.ok(done.spoiled >= 1);
+  assert.strictEqual(done.slots[0].id, ITEM.ROTTEN_MEAT);
+
+  const origin = { x: 0, y: 1.5, z: 0 };
+  const dir = { x: 0, y: 0, z: -1 };
+  let arrow = spawnArrow(origin, dir, { speed: 20, life: 2 });
+  const step = stepProjectile(arrow, 0.05);
+  assert.ok(step.proj);
+  assert.ok(step.proj.z < 0);
+  assert.ok(hitAnimal({ x: 1, y: 1.5, z: 1 }, { x: 1, y: 1, z: 1, dead: false }));
+
+  let ach = emptyAchievements();
+  ach = unlockAchievement(ach, 'first_fire');
+  assert.ok(ach.changed);
+  assert.ok(ach.unlocked.first_fire);
+  assert.ok(ACHIEVEMENTS.length >= 10);
+
+  assert.ok(BLOCK.IRON_ORE);
+  assert.ok(BLOCK.BUSH);
+  assert.ok(BLOCK.CROP);
+  assert.ok(RECIPES.find((r) => r.id === 'bow'));
+  assert.ok(RECIPES.find((r) => r.id === 'smelt_iron'));
+  assert.ok(RECIPES.find((r) => r.id === 'bread'));
+});
+
 console.log(`\n${passed} tests passed`);
 if (process.exitCode) process.exit(1);

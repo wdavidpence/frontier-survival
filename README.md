@@ -6,9 +6,9 @@ Inspired by the *systems* of Survivalcraft (harsh nature, clothing, sleep, preda
 
 You wash up in a blocky wilderness where **cold, hunger, fatigue, and wolves** matter as much as mining.
 
-![Status](https://img.shields.io/badge/status-playable%201.1%20polish-brightgreen)
+![Status](https://img.shields.io/badge/status-playable%201.2%20content-brightgreen)
 ![Stack](https://img.shields.io/badge/stack-Three.js%20ESM-blue)
-![Tests](https://img.shields.io/badge/tests-36%20smoke-lightgrey)
+![Tests](https://img.shields.io/badge/tests-37%20smoke-lightgrey)
 
 ---
 
@@ -26,12 +26,12 @@ Open: **http://127.0.0.1:8765/**
 Legacy path still works if you open `/public/` (uses `../js`).
 
 ```bash
-node tests/smoke.mjs   # 36 pure-logic tests
+node tests/smoke.mjs   # 37 pure-logic tests
 ```
 
 ---
 
-## Controls (PC 1.1)
+## Controls (PC 1.2)
 
 | Input | Action |
 |-------|--------|
@@ -41,19 +41,19 @@ node tests/smoke.mjs   # 36 pure-logic tests
 | Mouse wheel | Cycle hotbar |
 | Space | Jump |
 | Shift | Sprint (stamina) |
-| LMB | Mine blocks / attack animals |
-| RMB | Place selected hotbar block |
+| LMB | Mine / melee / **shoot bow** |
+| RMB | Place block / **plant seeds** |
 | 1–9 | Hotbar |
 | Q | Drop one from selected slot |
 | E | Inventory & crafting |
-| F | Cook meat (by fire) · equip clothes · sleep (look at bed) |
+| F | Cook · equip clothes · sleep on bed |
 | R | Eat |
 | K | Quick save |
 | Esc | Pause (sensitivity) |
 | H | Toggle help |
-| Esc (pointer unlock) | Release mouse |
+| F3 | Debug overlay |
 
-Progress **auto-saves** (also on inventory close / tab close). Title screen: **Continue** / **New world** + difficulty picker.
+Progress **auto-saves**. Title: difficulty, **world seed**, Continue / New world.
 
 ---
 
@@ -63,10 +63,12 @@ Progress **auto-saves** (also on inventory close / tab close). Title screen: **C
 - **Cold nights** hurt without fire and/or warm clothes  
 - **Hunt** hares/deer (meat + hide); **wolves** hunt you (worse at night)  
 - **Cook** raw meat at campfire heat (raw food can poison)  
-- **Craft** tools, spear, stone axe, torches, campfires, cloth, coat/hat/boots, bed  
+- **Craft** tools, spear, **bow/arrows**, iron gear, torches, campfires, cloth, clothes, bed, **bread**  
+- **Forage** berry bushes; **farm** seeds → wheat  
+- **Raw meat spoils** if left uncooked too long  
 - **Sleep** in a bed at night to clear fatigue and skip time  
 - **Difficulty modes:** Harmless → Survival → Challenging (death drops) → Cruel (permadeath)  
-- **Greedy-meshed** voxel world with procedural texture atlas + ambient soundscape + torch lights  
+- **Greedy-meshed** world + atlas, ambient audio, torch lights, rain/snow FX 
 
 ---
 
@@ -122,5 +124,5 @@ See `docs/SCM.md`: more biomes, bow, electricity/logic, boats, multiplayer later
 
 ## Status
 
-**Playable browser 1.1 polish pack** — survival pressure + QoL (modes, spear, pause, lights, prompts).  
+**Playable browser 1.2 content pack** — farming, iron, bow hunting, spoilage, weather FX, achievements.  
 Not commercial Survivalcraft feature parity; depth continues from the plan checklist.

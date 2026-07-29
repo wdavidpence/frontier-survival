@@ -158,6 +158,61 @@ export const RECIPES = [
     ],
     results: [{ id: BLOCK.BED, count: 1 }],
   },
+  {
+    id: 'smelt_iron',
+    name: 'Smelt Iron',
+    desc: '1 Iron Ore → Iron Ingot (need campfire heat)',
+    ingredients: [{ id: BLOCK.IRON_ORE, count: 1 }],
+    results: [{ id: ITEM.IRON_INGOT, count: 1 }],
+    requiresHeat: 10,
+  },
+  {
+    id: 'iron_pick',
+    name: 'Iron Pickaxe',
+    desc: 'Fast mining. 3 Iron + 2 Sticks',
+    ingredients: [
+      { id: ITEM.IRON_INGOT, count: 3 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: ITEM.IRON_PICK, count: 1 }],
+  },
+  {
+    id: 'iron_axe',
+    name: 'Iron Axe',
+    desc: 'Fast wood + hard melee. 3 Iron + 2 Sticks',
+    ingredients: [
+      { id: ITEM.IRON_INGOT, count: 3 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: ITEM.IRON_AXE, count: 1 }],
+  },
+  {
+    id: 'bow',
+    name: 'Bow',
+    desc: 'Ranged hunt. 3 Sticks + 2 Hide',
+    ingredients: [
+      { id: ITEM.STICK, count: 3 },
+      { id: ITEM.HIDE, count: 2 },
+    ],
+    results: [{ id: ITEM.BOW, count: 1 }],
+  },
+  {
+    id: 'arrows',
+    name: 'Arrows',
+    desc: '4 Arrows. 2 Sticks + 1 Stone cobble',
+    ingredients: [
+      { id: ITEM.STICK, count: 2 },
+      { id: BLOCK.COBBLE, count: 1 },
+    ],
+    results: [{ id: ITEM.ARROW, count: 4 }],
+  },
+  {
+    id: 'bread',
+    name: 'Bread',
+    desc: '3 Wheat → Bread',
+    ingredients: [{ id: ITEM.WHEAT, count: 3 }],
+    results: [{ id: ITEM.BREAD, count: 1 }],
+  },
 ];
 
 export function visibleRecipes() {

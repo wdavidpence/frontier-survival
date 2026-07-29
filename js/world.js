@@ -80,6 +80,8 @@ export class World {
             id = BLOCK.STONE;
             // coal veins
             if (y < h - 6 && hash2(x + y * 3, z + this.seed) > 0.97) id = BLOCK.COAL_ORE;
+            // iron deeper
+            if (y < h - 10 && y > 4 && hash2(x * 2 + y, z + this.seed * 5) > 0.985) id = BLOCK.IRON_ORE;
           }
           data[this._idx(lx, y, lz)] = id;
         }
@@ -87,6 +89,17 @@ export class World {
         // trees
         if (h > SEA_LEVEL + 1 && !sandy && !cold && hash2(x + this.seed * 3, z) > 0.985) {
           this._placeTree(data, lx, h + 1, lz, baseX, baseZ);
+        }
+        // berry bushes on grass surface
+        if (
+          h > SEA_LEVEL + 1 &&
+          !sandy &&
+          !cold &&
+          data[this._idx(lx, h, lz)] === BLOCK.GRASS &&
+          data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
+          hash2(x + 91, z + this.seed * 2) > 0.978
+        ) {
+          data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
         }
       }
     }

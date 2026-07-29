@@ -15,6 +15,7 @@ export class Input {
     this.dropPressed = false;
     this.pausePressed = false;
     this.helpPressed = false;
+    this.debugPressed = false;
     this.slot = -1;
     this.hotbarScroll = 0;
     this.sensitivity = 0.0022;
@@ -69,6 +70,10 @@ export class Input {
     if (e.code === 'KeyQ' && !this.uiMode) this.dropPressed = true;
     if (e.code === 'KeyH') this.helpPressed = true;
     if (e.code === 'Escape') this.pausePressed = true;
+    if (e.code === 'F3') {
+      e.preventDefault();
+      this.debugPressed = true;
+    }
   };
 
   _onKeyUp = (e) => {
@@ -164,6 +169,12 @@ export class Input {
   consumeHelp() {
     const v = this.helpPressed;
     this.helpPressed = false;
+    return v;
+  }
+
+  consumeDebug() {
+    const v = this.debugPressed;
+    this.debugPressed = false;
     return v;
   }
 

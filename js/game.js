@@ -57,6 +57,15 @@ import {
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
 } from './settings.js';
+import {
+  emptyAchievements,
+  unlockAchievement,
+  popAchievementToast,
+  achievementTitle,
+  achievementDesc,
+} from './achievements.js';
+import { tickSpoilage } from './spoilage.js';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js';
 
 export class Game {
   /**
@@ -120,6 +129,20 @@ export class Game {
     this._deathHandled = false;
     this._lightPool = [];
     this._lightScanAcc = 0;
+    this._projectiles = [];
+    this._arrowMeshes = [];
+    this._crops = new Map(); // "x,y,z" -> growth 0..1
+    this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0 };
+    this._achievements = emptyAchievements();
+    this._toastId = null;
+    this._toastT = 0;
+    this._debugOpen = false;
+    this._fps = 0;
+    this._fpsAcc = 0;
+    this._fpsFrames = 0;
+    this._wasInWater = false;
+    this._rain = null;
+    this._bowCd = 0;
 
     // Block selection outline
     const edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002, 1.002, 1.002));
@@ -277,6 +300,9 @@ export class Game {
       this.player = new Player(spawn, { starterRations: this.modeDef().starterRations });
       this.survival = { ...DEFAULT_SURVIVAL };
       this.time = new GameTime({ dayLengthSec: 420 });
+      this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0 };
+      this._achievements = emptyAchievements();
+      this._crops = new Map();
     } else {
       this.player = new Player({
         x: saveData.player.x,
@@ -298,6 +324,12 @@ export class Game {
       this.time.weather = saveData.time.weather || 'clear';
       this.time.weatherTimer = saveData.time.weatherTimer ?? 60;
       this.mode = saveData.mode || this.mode || 'survival';
+      this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0, ...(saveData.stats || {}) };
+      this._achievements = emptyAchievements();
+      if (saveData.achievements) {
+        this._achievements.unlocked = { ...saveData.achievements };
+      }
+      this._crops = new Map(Array.isArray(saveData.crops) ? saveData.crops : []);
     }
 
     this.prevHealth = this.survival.health;
@@ -326,6 +358,194 @@ export class Game {
     this._scanLights(true);
   }
 
+
+  _unlock(id) {
+    const res = unlockAchievement(this._achievements, id);
+    if (res.changed) {
+      this._achievements = { unlocked: res.unlocked, queue: res.queue };
+      if (!this._toastId && res.queue.length) {
+        const popped = popAchievementToast(this._achievements);
+        this._achievements = popped.state;
+        this._toastId = popped.id;
+        this._toastT = 3.5;
+        this.audio.toast?.() || this.audio.ui();
+      }
+    }
+  }
+
+  _surfaceName(blockId) {
+    if (blockId === BLOCK.GRASS) return 'grass';
+    if (blockId === BLOCK.SAND) return 'sand';
+    if (blockId === BLOCK.STONE || blockId === BLOCK.COBBLE || blockId === BLOCK.COAL_ORE || blockId === BLOCK.IRON_ORE) return 'stone';
+    if (blockId === BLOCK.LOG || blockId === BLOCK.PLANKS) return 'wood';
+    if (blockId === BLOCK.SNOW || blockId === BLOCK.ICE) return 'snow';
+    if (blockId === BLOCK.WATER) return 'water';
+    return 'dirt';
+  }
+
+  _ensureRain() {
+    if (this._rain) return;
+    const geo = new THREE.BufferGeometry();
+    const N = 900;
+    const pos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 40;
+      pos[i * 3 + 1] = Math.random() * 30;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 40;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({
+      color: 0xaaccff,
+      size: 0.08,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+    });
+    this._rain = new THREE.Points(geo, mat);
+    this._rain.visible = false;
+    this.scene.add(this._rain);
+  }
+
+  _tickWeatherFX(dt) {
+    this._ensureRain();
+    const w = this.time.weather;
+    const show = w === 'rain' || w === 'snow';
+    this._rain.visible = show && this.started && !this.survival.dead;
+    if (!show) return;
+    const pos = this._rain.geometry.attributes.position.array;
+    const speed = w === 'snow' ? 4 : 14;
+    const px = this.player.position.x;
+    const py = this.player.position.y;
+    const pz = this.player.position.z;
+    for (let i = 0; i < pos.length; i += 3) {
+      pos[i + 1] -= speed * dt * (0.6 + (i % 7) * 0.05);
+      if (pos[i + 1] < -2) {
+        pos[i] = (Math.random() - 0.5) * 40;
+        pos[i + 1] = 18 + Math.random() * 12;
+        pos[i + 2] = (Math.random() - 0.5) * 40;
+      }
+    }
+    this._rain.position.set(px, py, pz);
+    this._rain.geometry.attributes.position.needsUpdate = true;
+    this._rain.material.color.setHex(w === 'snow' ? 0xffffff : 0x88aadd);
+    this._rain.material.size = w === 'snow' ? 0.12 : 0.07;
+  }
+
+  _tickCrops(dt) {
+    if (!this._crops.size) return;
+    const grow = [];
+    for (const [key, g] of this._crops) {
+      const ng = Math.min(1, g + dt / 90); // ~90s to mature
+      if (ng >= 1) grow.push(key);
+      else this._crops.set(key, ng);
+    }
+    for (const key of grow) {
+      this._crops.delete(key);
+      // already CROP block; ripe flagged by absence from map + name via progress complete
+      // mark ripe by setting crop growth map value 1 then remove — harvest checks growth missing as ripe if block is crop older
+      this._crops.set(key, 1);
+    }
+  }
+
+  _cropKey(x, y, z) {
+    return `${x|0},${y|0},${z|0}`;
+  }
+
+  _tickProjectiles(dt) {
+    if (!this._projectiles.length) return;
+    const next = [];
+    for (let i = 0; i < this._projectiles.length; i++) {
+      const p = this._projectiles[i];
+      const { proj, hitPos } = stepProjectile(p, dt);
+      let mesh = this._arrowMeshes[i];
+      if (!mesh) {
+        mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(0.08, 0.08, 0.55),
+          new THREE.MeshBasicMaterial({ color: 0xc8b090 }),
+        );
+        this.scene.add(mesh);
+        this._arrowMeshes[i] = mesh;
+      }
+      if (!proj) {
+        this.scene.remove(mesh);
+        continue;
+      }
+      // block collision
+      const bid = this.world.getBlock(proj.x, proj.y, proj.z);
+      if (bid !== BLOCK.AIR && bid !== BLOCK.WATER && bid !== BLOCK.BUSH && bid !== BLOCK.CROP && bid !== BLOCK.TORCH) {
+        this.scene.remove(mesh);
+        continue;
+      }
+      // animal hit
+      let hit = false;
+      if (this.fauna) {
+        for (const a of this.fauna.living()) {
+          if (hitAnimal(proj, a, 0.85)) {
+            const res = this.fauna.damageAnimal(a, proj.damage);
+            this.audio.hit();
+            this._crossHitT = 0.25;
+            if (res?.killed) {
+              this._stats.kills = (this._stats.kills || 0) + 1;
+              if (a.type === 'wolf') {
+                this._stats.wolfKills = (this._stats.wolfKills || 0) + 1;
+                this._unlock('first_wolf');
+              }
+              this._unlock('first_kill');
+              if (res.meat > 0) this.player.slots = addItems(this.player.slots, ITEM.RAW_MEAT, res.meat).slots;
+              if (res.hide > 0) this.player.slots = addItems(this.player.slots, ITEM.HIDE, res.hide).slots;
+              const bits = [];
+              if (res.meat) bits.push(`+${res.meat} meat`);
+              if (res.hide) bits.push(`+${res.hide} hide`);
+              this.player.notify(`${res.name} down (arrow). ${bits.join(', ')}`, 3);
+              this._syncAnimalMeshes();
+            } else if (res) {
+              this.player.notify(`${res.name} hit (${Math.max(0, a.hp)|0} hp)`, 1.2);
+            }
+            hit = true;
+            break;
+          }
+        }
+      }
+      if (hit) {
+        this.scene.remove(mesh);
+        continue;
+      }
+      mesh.position.set(proj.x, proj.y, proj.z);
+      mesh.lookAt(proj.x + proj.vx, proj.y + proj.vy, proj.z + proj.vz);
+      next.push(proj);
+    }
+    // cleanup extra meshes
+    while (this._arrowMeshes.length > next.length) {
+      const m = this._arrowMeshes.pop();
+      this.scene.remove(m);
+    }
+    this._projectiles = next;
+  }
+
+  _tryShootBow() {
+    if (this._bowCd > 0) return false;
+    const held = propsOf(this.player.heldId());
+    if (held?.tool !== 'bow') return false;
+    if (countItems(this.player.slots, ITEM.ARROW) <= 0) {
+      this.player.notify('No arrows. Craft sticks + cobble.');
+      return true;
+    }
+    const rem = removeItems(this.player.slots, ITEM.ARROW, 1);
+    if (!rem.ok) return true;
+    this.player.slots = rem.slots;
+    const origin = this.player.eyePosition();
+    const dir = this.player.lookDir();
+    // spawn slightly forward
+    origin.x += dir.x * 0.6;
+    origin.y += dir.y * 0.6;
+    origin.z += dir.z * 0.6;
+    this._projectiles.push(spawnArrow(origin, dir, { damage: 15, speed: 32 }));
+    this._bowCd = 0.55;
+    this._stats.arrowsFired = (this._stats.arrowsFired || 0) + 1;
+    this.audio.shoot?.() || this.audio.hit();
+    return true;
+  }
+
   captureState() {
     return {
       seed: this.seed,
@@ -349,6 +569,9 @@ export class Game {
       },
       edits: this.world.exportEdits(),
       animals: this.fauna ? this.fauna.exportState() : [],
+      stats: this._stats || { kills: 0, wolfKills: 0, arrowsFired: 0 },
+      achievements: this._achievements?.unlocked || {},
+      crops: [...(this._crops || new Map()).entries()],
     };
   }
 
@@ -465,6 +688,10 @@ export class Game {
     this.player.slots = res.slots;
     this.audio.placeBlock();
     this.player.notify(`Crafted: ${recipeId.replace(/_/g, ' ')}`);
+    if (recipeId === 'bow') this._unlock('first_bow');
+    if (recipeId === 'smelt_iron') this._unlock('first_iron');
+    if (recipeId === 'bread') this._unlock('first_bread');
+    if (recipeId === 'cook_meat') this._unlock('first_cook');
     this._invNeedsPaint = true;
     this._paintInventory();
   }
@@ -482,6 +709,30 @@ export class Game {
     // survival keeps ticking even in inventory (you're still cold/hungry)
     this.time.tick(dt);
     this._crossHitT = Math.max(0, this._crossHitT - dt);
+    this._bowCd = Math.max(0, this._bowCd - dt);
+    this._fpsFrames++;
+    this._fpsAcc += dt;
+    if (this._fpsAcc >= 0.5) {
+      this._fps = this._fpsFrames / this._fpsAcc;
+      this._fpsFrames = 0;
+      this._fpsAcc = 0;
+    }
+    if (this.input.consumeDebug()) this._debugOpen = !this._debugOpen;
+
+    // achievement toast timer
+    if (this._toastT > 0) {
+      this._toastT -= dt;
+      if (this._toastT <= 0) {
+        this._toastId = null;
+        if (this._achievements.queue.length) {
+          const popped = popAchievementToast(this._achievements);
+          this._achievements = popped.state;
+          this._toastId = popped.id;
+          this._toastT = 3.2;
+          this.audio.toast?.() || this.audio.ui();
+        }
+      }
+    }
 
     const mode = this.modeDef();
 
@@ -494,6 +745,12 @@ export class Game {
         this.survival = applyDamage(this.survival, dmg, 'fall');
         this.audio.hurt();
         this.player.notify(dmg > 20 ? 'Hard landing!' : 'Oof — rough landing.', 1.6);
+      }
+      if (move.inWater && !this._wasInWater) this.audio.splash?.() || this.audio.step('water');
+      this._wasInWater = move.inWater;
+      // drown when exhausted in water
+      if (move.inWater && this.survival.stamina < 2) {
+        this.survival = applyDamage(this.survival, 8 * dt, 'drowning');
       }
     } else {
       // still update message timer
@@ -544,6 +801,16 @@ export class Game {
       coldDamageMult: mode.coldDamageMult,
     });
 
+    // meat spoilage
+    {
+      const sp = tickSpoilage(this.player.slots, dt);
+      this.player.slots = sp.slots;
+      if (sp.spoiled > 0) this.player.notify(`Some meat spoiled (${sp.spoiled}).`, 2.5);
+    }
+
+    // day 2 achievement
+    if (this.time.dayNumber >= 2) this._unlock('first_night');
+
     // fauna
     this._meleeCd = Math.max(0, this._meleeCd - dt);
     if (this.fauna && !this.player.inventoryOpen) {
@@ -585,6 +852,9 @@ export class Game {
         mode: this.mode,
         permadeath: mode.permadeath,
         dropped: mode.deathDrops,
+        day: this.time.dayNumber,
+        kills: this._stats?.kills || 0,
+        wolfKills: this._stats?.wolfKills || 0,
       });
       this._updateHud();
       return;
@@ -597,15 +867,30 @@ export class Game {
         this._stepAcc += dt * (move.sprinting ? 2.2 : 1.4);
         if (this._stepAcc > 0.45) {
           this._stepAcc = 0;
-          this.audio.step();
+          const under = this.world.getBlock(
+            this.player.position.x,
+            this.player.position.y - 0.2,
+            this.player.position.z,
+          );
+          this.audio.step(this._surfaceName(under));
         }
       }
-      this._handleMining(dt);
+      // bow shot steals LMB when holding bow
+      if (this.input.breakHeld && propsOf(this.player.heldId())?.tool === 'bow') {
+        this._tryShootBow();
+        this.player.breaking = null;
+        this.fx.hideCrack();
+      } else {
+        this._handleMining(dt);
+      }
       this._handlePlace();
       this._handleEat();
       this._handleCookUse();
       this._handleDrop();
       this._updateOutlineAndPrompt();
+      this._tickProjectiles(dt);
+      this._tickCrops(dt);
+      this._tickWeatherFX(dt);
     } else if (this._outline) {
       this._outline.visible = false;
     }
@@ -709,6 +994,8 @@ export class Game {
     if (!text && p?.equipSlot) text = `F — Equip ${p.name}`;
     if (!text && p?.cookable && (this._lastHeat || 0) >= 8) text = `F — Cook ${p.name}`;
     if (!text && p?.cookable) text = 'F — Cook (need campfire heat)';
+    if (!text && p?.tool === 'bow') text = 'LMB — Shoot arrow';
+    if (!text && p?.plantable) text = 'RMB on soil — Plant seeds';
 
     // animal under crosshair
     const range = p?.meleeRange || 3.6;
@@ -760,13 +1047,15 @@ export class Game {
         const b = keep[i];
         L.visible = true;
         L.position.set(b.x + 0.5, b.y + 0.85, b.z + 0.5);
+        const flick = 0.88 + Math.sin(performance.now() / 90 + i * 1.7) * 0.12
+          + Math.sin(performance.now() / 37 + i) * 0.05;
         if (b.id === BLOCK.CAMPFIRE) {
           L.color.setHex(0xff8844);
-          L.intensity = this.time.isNight() ? 1.55 : 0.9;
+          L.intensity = (this.time.isNight() ? 1.55 : 0.9) * flick;
           L.distance = 16;
         } else {
           L.color.setHex(0xffcc77);
-          L.intensity = this.time.isNight() ? 1.1 : 0.55;
+          L.intensity = (this.time.isNight() ? 1.1 : 0.55) * flick;
           L.distance = 11;
         }
       } else {
@@ -794,6 +1083,12 @@ export class Game {
         this._crossHitT = 0.22;
         this.audio.hit?.();
         if (res?.killed) {
+          this._stats.kills = (this._stats.kills || 0) + 1;
+          if (ah.animal.type === 'wolf') {
+            this._stats.wolfKills = (this._stats.wolfKills || 0) + 1;
+            this._unlock('first_wolf');
+          }
+          this._unlock('first_kill');
           if (res.meat > 0) {
             const add = addItems(this.player.slots, ITEM.RAW_MEAT, res.meat);
             this.player.slots = add.slots;
@@ -831,9 +1126,38 @@ export class Game {
       this.fx.setCrack(hit, this.player.breaking.progress);
       if (this.player.breaking.progress >= 1) {
         let drop = dropForBlock(hit.id);
+        let dropCount = 1;
         if (hit.id === BLOCK.LEAVES) {
-          drop = Math.random() < 0.18 ? ITEM.STICK : null;
+          drop = Math.random() < 0.18 ? ITEM.STICK : (Math.random() < 0.08 ? ITEM.SEEDS : null);
         }
+        if (hit.id === BLOCK.GRASS && Math.random() < 0.12) {
+          // bonus seeds when ripping grass
+          const bonus = addItems(this.player.slots, ITEM.SEEDS, 1);
+          this.player.slots = bonus.slots;
+        }
+        if (hit.id === BLOCK.BUSH) {
+          drop = ITEM.BERRIES;
+          dropCount = 1 + (Math.random() < 0.4 ? 1 : 0);
+          if (Math.random() < 0.35) {
+            const s = addItems(this.player.slots, ITEM.SEEDS, 1);
+            this.player.slots = s.slots;
+          }
+        }
+        if (hit.id === BLOCK.CROP) {
+          const key = this._cropKey(hit.x, hit.y, hit.z);
+          const g = this._crops.get(key) ?? 1;
+          this._crops.delete(key);
+          if (g >= 1) {
+            drop = ITEM.WHEAT;
+            dropCount = 1 + (Math.random() < 0.5 ? 1 : 0);
+            const s = addItems(this.player.slots, ITEM.SEEDS, 1 + (Math.random() < 0.4 ? 1 : 0));
+            this.player.slots = s.slots;
+          } else {
+            drop = ITEM.SEEDS;
+            dropCount = 1;
+          }
+        }
+        if (hit.id === BLOCK.LOG) this._unlock('first_log');
         const col = getColor(hit.id, 'side');
         this.fx.burst(hit.x, hit.y, hit.z, col, 12);
         this.fx.hideCrack();
@@ -841,12 +1165,12 @@ export class Game {
         this.audio.breakBlock();
         this.player.breaking = null;
         if (drop && drop !== BLOCK.AIR) {
-          const res = addItems(this.player.slots, drop, 1);
+          const res = addItems(this.player.slots, drop, dropCount);
           this.player.slots = res.slots;
           if (res.leftover > 0) {
             this.player.notify('Inventory full — drop lost.');
           } else {
-            this.player.notify(`+1 ${displayName(drop)}`, 1.4);
+            this.player.notify(`+${dropCount} ${displayName(drop)}`, 1.4);
           }
         }
       }
@@ -881,6 +1205,33 @@ export class Game {
       pz + 1 > pp.z - 0.3 && pz < pp.z + 0.3
     ) return;
 
+    // Plant seeds on dirt/grass/farmland
+    const heldProps = propsOf(held);
+    if (heldProps?.plantable) {
+      const under = this.world.getBlock(hit.x, hit.y, hit.z);
+      if (under !== BLOCK.DIRT && under !== BLOCK.GRASS && under !== BLOCK.FARMLAND) {
+        this.player.notify('Plant seeds on dirt, grass, or farmland.');
+        return;
+      }
+      const top = this.world.getBlock(hit.x, hit.y + 1, hit.z);
+      if (top !== BLOCK.AIR) {
+        this.player.notify('Need empty space above soil.');
+        return;
+      }
+      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+      if (!cons.ok) return;
+      this.player.slots = cons.slots;
+      if (under === BLOCK.GRASS || under === BLOCK.DIRT) {
+        this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.FARMLAND);
+      }
+      this.world.setBlock(hit.x, hit.y + 1, hit.z, BLOCK.CROP);
+      this._crops.set(this._cropKey(hit.x, hit.y + 1, hit.z), 0);
+      this.audio.placeBlock();
+      this.player.notify('Seeds planted. Wait for wheat to ripen.', 2.5);
+      this._unlock('first_farm');
+      return;
+    }
+
     const blockId = placeBlockId(held);
     const cur = this.world.getBlock(px, py, pz);
     if (cur !== BLOCK.AIR && cur !== BLOCK.WATER) return;
@@ -897,6 +1248,7 @@ export class Game {
       if (blockId === BLOCK.CAMPFIRE) {
         this.player.notify('Campfire lit. Stay close — heat fights the cold.');
         this._scanLights(true);
+        this._unlock('first_fire');
       }
       if (blockId === BLOCK.TORCH) {
         this.player.notify('Torch placed.');
@@ -989,6 +1341,7 @@ export class Game {
       this.audio.equip?.() || this.audio.ui();
       const w = equipmentWarmth(eq.equipment);
       this.player.notify(`Equipped ${p.name}. Clothing warmth ${w}.`, 3);
+      this._unlock('first_clothes');
       this._invNeedsPaint = true;
       return;
     }
@@ -1005,6 +1358,7 @@ export class Game {
       this.player.slots = add.slots;
       this.audio.eat();
       this.player.notify(`Cooked → ${displayName(p.cookable)}.`, 2.5);
+      this._unlock('first_cook');
       return;
     }
 
@@ -1044,6 +1398,7 @@ export class Game {
     this.survival = applySleepRest(this.survival, this.time.isNight() ? 8 : 5);
     this.audio.sleep?.() || this.audio.ui();
     this.player.notify('You rest. Fatigue fades. Dawn approaches…', 4);
+    this._unlock('first_sleep');
     // Heal slight hunger check already in applySleepRest
   }
 
@@ -1303,6 +1658,46 @@ export class Game {
       const blockAim = !!(this._target && !this.player.inventoryOpen);
       cross.classList.toggle('hit', blockAim || animalAim);
       cross.classList.toggle('strike', animalAim);
+    }
+
+    setBar('bar-wet', s.wetness || 0, 100);
+    const wetRow = document.getElementById('meter-wet');
+    if (wetRow) wetRow.style.opacity = (s.wetness || 0) > 2 ? '1' : '0.35';
+
+    const hbName = document.getElementById('hotbar-name');
+    if (hbName && this.player) {
+      const h = this.player.heldStack();
+      hbName.textContent = h?.id != null ? displayName(h.id) : '';
+    }
+
+    const toast = document.getElementById('ach-toast');
+    if (toast) {
+      if (this._toastId && this._toastT > 0) {
+        toast.classList.remove('hidden');
+        toast.innerHTML = `<strong>${achievementTitle(this._toastId)}</strong><span>${achievementDesc(this._toastId)}</span>`;
+      } else {
+        toast.classList.add('hidden');
+      }
+    }
+
+    const dbg = document.getElementById('debug-overlay');
+    if (dbg) {
+      if (this._debugOpen && this.player) {
+        dbg.classList.remove('hidden');
+        const ms = this.world.meshStats?.() || {};
+        dbg.textContent = [
+          `FPS ${this._fps.toFixed(0)}`,
+          `pos ${this.player.position.x.toFixed(1)} ${this.player.position.y.toFixed(1)} ${this.player.position.z.toFixed(1)}`,
+          `seed ${this.seed} mode ${this.mode}`,
+          `day ${this.time.dayNumber} phase ${this.time.dayPhase.toFixed(2)} ${this.time.weather}`,
+          `heat ${this._lastHeat|0} wet ${s.wetness|0}`,
+          `mesh v=${ms.verts ?? '?'} t=${ms.tris ?? '?'}`,
+          `kills ${this._stats?.kills || 0} arrows ${this._stats?.arrowsFired || 0}`,
+          `crops ${this._crops?.size || 0} proj ${this._projectiles?.length || 0}`,
+        ].join('\n');
+      } else {
+        dbg.classList.add('hidden');
+      }
     }
   }
 
