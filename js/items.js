@@ -39,6 +39,12 @@ export const ITEM = {
   COMPASS: 131,
   SHIELD: 132,
   SALVE: 133,
+  EGG: 134,
+  FEATHER: 135,
+  LEATHER_VEST: 136,
+  PUMPKIN: 137,
+  PUMPKIN_SOUP: 138,
+  CHARCOAL: 139,
 };
 
 /** @type {Record<number, {
@@ -95,6 +101,7 @@ export const ITEM_PROPS = {
     maxStack: 1,
     equipSlot: 'chest',
     warmth: 8,
+    armor: 2,
   },
   [ITEM.FUR_BOOTS]: {
     name: 'Fur Boots',
@@ -183,6 +190,26 @@ export const ITEM_PROPS = {
     meleeRange: 2.2,
   },
   [ITEM.SALVE]: { name: 'Healing Salve', color: [0.7, 0.85, 0.55], maxStack: 8, heal: 25 },
+  [ITEM.EGG]: { name: 'Egg', color: [0.92, 0.9, 0.82], edible: 14, maxStack: 16 },
+  [ITEM.FEATHER]: { name: 'Feather', color: [0.9, 0.9, 0.92], maxStack: 64 },
+  [ITEM.LEATHER_VEST]: {
+    name: 'Leather Vest',
+    color: [0.5, 0.35, 0.22],
+    maxStack: 1,
+    equipSlot: 'chest',
+    warmth: 5,
+    armor: 6,
+  },
+  [ITEM.PUMPKIN]: {
+    name: 'Pumpkin',
+    color: [0.9, 0.55, 0.12],
+    edible: 18,
+    placeable: true,
+    placeAs: BLOCK.PUMPKIN,
+    maxStack: 16,
+  },
+  [ITEM.PUMPKIN_SOUP]: { name: 'Pumpkin Soup', color: [0.95, 0.7, 0.3], edible: 40, maxStack: 8 },
+  [ITEM.CHARCOAL]: { name: 'Charcoal', color: [0.22, 0.22, 0.24], maxStack: 64 },
 };
 
 export function propsOf(id) {
@@ -266,6 +293,8 @@ export function dropForBlock(blockId) {
   if (blockId === BLOCK.CHEST) return BLOCK.CHEST;
   if (blockId === BLOCK.LADDER) return BLOCK.LADDER;
   if (blockId === BLOCK.FENCE) return BLOCK.FENCE;
+  if (blockId === BLOCK.SNARE) return BLOCK.SNARE;
+  if (blockId === BLOCK.PUMPKIN) return ITEM.PUMPKIN;
   const d = BLOCK_PROPS[blockId]?.drops;
   if (d === undefined) return blockId;
   return d;

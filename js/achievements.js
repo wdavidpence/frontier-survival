@@ -22,6 +22,8 @@ export const ACHIEVEMENTS = [
   { id: 'first_boat', title: 'Cast Off', desc: 'Craft a boat.' },
   { id: 'first_fish', title: 'Angler', desc: 'Catch a fish.' },
   { id: 'first_shield', title: 'Hold the Line', desc: 'Craft a shield.' },
+  { id: 'first_armor', title: 'Hardened Hide', desc: 'Equip leather armor.' },
+  { id: 'first_snare', title: 'Trapper', desc: 'Place a snare.' },
 ];
 
 export function emptyAchievements() {

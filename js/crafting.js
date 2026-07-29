@@ -302,6 +302,65 @@ export const RECIPES = [
     ],
     results: [{ id: ITEM.SALVE, count: 1 }],
   },
+  {
+    id: 'leather_vest',
+    name: 'Leather Vest',
+    desc: 'Chest armor +6. 5 Hide + 2 Cloth',
+    ingredients: [
+      { id: ITEM.HIDE, count: 5 },
+      { id: ITEM.CLOTH, count: 2 },
+    ],
+    results: [{ id: ITEM.LEATHER_VEST, count: 1 }],
+  },
+  {
+    id: 'snare',
+    name: 'Snare Trap',
+    desc: 'Place to wound wildlife. 4 Sticks + 1 Hide',
+    ingredients: [
+      { id: ITEM.STICK, count: 4 },
+      { id: ITEM.HIDE, count: 1 },
+    ],
+    results: [{ id: BLOCK.SNARE, count: 2 }],
+  },
+  {
+    id: 'arrows_feather',
+    name: 'Fletched Arrows',
+    desc: '4 Arrows. 2 Sticks + 2 Feathers',
+    ingredients: [
+      { id: ITEM.STICK, count: 2 },
+      { id: ITEM.FEATHER, count: 2 },
+    ],
+    results: [{ id: ITEM.ARROW, count: 4 }],
+  },
+  {
+    id: 'charcoal',
+    name: 'Charcoal',
+    desc: '1 Log → Charcoal (campfire heat)',
+    ingredients: [{ id: BLOCK.LOG, count: 1 }],
+    results: [{ id: ITEM.CHARCOAL, count: 2 }],
+    requiresHeat: 10,
+  },
+  {
+    id: 'torch_charcoal',
+    name: 'Charcoal Torches',
+    desc: '1 Stick + 1 Charcoal → 4 Torches',
+    ingredients: [
+      { id: ITEM.STICK, count: 1 },
+      { id: ITEM.CHARCOAL, count: 1 },
+    ],
+    results: [{ id: BLOCK.TORCH, count: 4 }],
+  },
+  {
+    id: 'pumpkin_soup',
+    name: 'Pumpkin Soup',
+    desc: 'Hearty meal. 1 Pumpkin + 1 Berries',
+    ingredients: [
+      { id: ITEM.PUMPKIN, count: 1 },
+      { id: ITEM.BERRIES, count: 1 },
+    ],
+    results: [{ id: ITEM.PUMPKIN_SOUP, count: 1 }],
+    requiresHeat: 6,
+  },
 ];
 
 export function visibleRecipes() {

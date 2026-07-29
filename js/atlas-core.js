@@ -34,6 +34,8 @@ export const TILE = {
   CHEST: 23,
   LADDER: 24,
   FENCE: 25,
+  SNARE: 26,
+  PUMPKIN: 27,
   CRACK0: 40,
   CRACK1: 41,
   CRACK2: 42,
@@ -110,6 +112,10 @@ export function tileForBlock(blockId, faceDir) {
       return TILE.LADDER;
     case BLOCK.FENCE:
       return TILE.FENCE;
+    case BLOCK.SNARE:
+      return TILE.SNARE;
+    case BLOCK.PUMPKIN:
+      return faceDir === 'top' ? TILE.PUMPKIN : TILE.PUMPKIN;
     default:
       return TILE.STONE;
   }

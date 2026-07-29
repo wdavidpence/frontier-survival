@@ -591,5 +591,32 @@ test('v1.3 chest boat fishing', () => {
   assert.ok(tileForBlock(BLOCK.CHEST, 'side') !== undefined);
 });
 
+
+import { hasRoofAbove, wetnessGainRate, exposureColdMult, stormBlocksSleep } from '../js/exposure.js';
+import { equipmentArmor, mitigatePhysicalDamage } from '../js/equipment.js';
+test('v1.4 exposure armor spoil fish', () => {
+  assert.ok(isSpoilable(ITEM.RAW_FISH));
+  let slots = createStarterInventory(0);
+  slots = addItems(slots, ITEM.RAW_FISH, 1).slots;
+  slots[0].age = SPOIL_SECONDS - 0.5;
+  const mid = tickSpoilage(slots, 1);
+  assert.ok(mid.spoiled >= 1);
+  assert.ok(wetnessGainRate({ inWater: false, weather: 'rain', roofed: false }) > 0);
+  assert.strictEqual(wetnessGainRate({ inWater: false, weather: 'rain', roofed: true }), 0);
+  assert.ok(exposureColdMult({ weather: 'rain', roofed: false, wetness: 80, isNight: true }) >
+    exposureColdMult({ weather: 'clear', roofed: true, wetness: 0, isNight: false }));
+  const roof = hasRoofAbove((x,y,z)=> (y===5?3:0), 0, 0, 0, (id)=>id===3, (id)=>false, 8);
+  assert.ok(roof);
+  assert.ok(mitigatePhysicalDamage(10, 10) < 10);
+  assert.ok(equipmentArmor({ head: null, chest: ITEM.LEATHER_VEST, feet: null }) >= 6);
+  const storm = stormBlocksSleep({ weather: 'rain', roofed: false, atBed: true });
+  assert.ok(!storm.ok);
+  assert.ok(SPECIES.bird);
+  assert.ok(BLOCK.SNARE && BLOCK.PUMPKIN);
+  assert.ok(RECIPES.find((r)=>r.id==='pumpkin_soup'));
+  assert.ok(RECIPES.find((r)=>r.id==='charcoal'));
+  assert.ok(propsOf(ITEM.EGG).edible > 0);
+});
+
 console.log(`\n${passed} tests passed`);
 if (process.exitCode) process.exit(1);

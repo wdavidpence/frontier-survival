@@ -23,6 +23,30 @@ export function equipmentWarmth(equipment) {
   return w;
 }
 
+/** Total armor from equipped items (reduces physical damage). */
+export function equipmentArmor(equipment) {
+  if (!equipment) return 0;
+  let a = 0;
+  for (const slot of EQUIP_SLOTS) {
+    const id = equipment[slot];
+    if (id == null) continue;
+    const p = propsOf(id);
+    a += p?.armor || 0;
+  }
+  return a;
+}
+
+/**
+ * Reduce incoming physical damage by armor points (soft cap).
+ * 1 armor ≈ 4% reduction, max 60%.
+ */
+export function mitigatePhysicalDamage(amount, armor) {
+  if (!(amount > 0)) return 0;
+  const a = Math.max(0, armor || 0);
+  const factor = Math.max(0.4, 1 - Math.min(0.6, a * 0.04));
+  return amount * factor;
+}
+
 /**
  * Equip item into its slot. Returns { ok, equipment, previousId }
  * Unequip if same item type already in slot and id matches held? 
@@ -57,6 +81,7 @@ export function canSleep(state, opts = {}) {
   if (opts.inWater) return { ok: false, error: 'too wet' };
   if (state.hunger < 12) return { ok: false, error: 'too hungry' };
   if (state.bodyTemp < 33) return { ok: false, error: 'too cold — warm up first' };
+  if (opts.stormNoRoof) return { ok: false, error: 'storm — need a roof over the bed' };
   // allow day nap if exhausted, else prefer night
   const night = opts.isNight;
   if (!night && state.sleep < 55) return { ok: false, error: 'not tired enough (wait for night)' };

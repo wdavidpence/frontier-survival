@@ -193,4 +193,4 @@ refreshContinue();
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.3');
+console.info('Frontier Survival boot OK · v1.4');

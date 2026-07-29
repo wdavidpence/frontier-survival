@@ -58,6 +58,25 @@ export const SPECIES = {
     scale: [0.55, 0.55, 0.95],
     count: 3,
   },
+  bird: {
+    id: 'bird',
+    name: 'Bird',
+    hp: 4,
+    speed: 6.5,
+    hostile: false,
+    fleeRange: 10,
+    senseRange: 12,
+    damage: 0,
+    attackRange: 0,
+    attackCd: 99,
+    meatMin: 0,
+    meatMax: 0,
+    egg: true,
+    feather: true,
+    color: [0.35, 0.45, 0.75],
+    scale: [0.28, 0.22, 0.35],
+    count: 8,
+  },
 };
 
 function groundY(world, x, z) {
@@ -97,6 +116,7 @@ export class FaunaSystem {
     /** @type {Array<object>} */
     this.animals = [];
     this._nextId = 1;
+    this._respawnAcc = 0;
     this._spawnInitial();
   }
 
@@ -304,7 +324,7 @@ export class FaunaSystem {
   }
 
   /**
-   * @returns {{ killed: boolean, meat: number, hide: number, name: string, type?: string } | null}
+   * @returns {{ killed: boolean, meat: number, hide: number, egg?: number, feather?: number, name: string, type?: string } | null}
    */
   damageAnimal(animal, amount) {
     if (!animal || animal.dead) return null;
@@ -319,7 +339,69 @@ export class FaunaSystem {
     if (animal.type === 'deer') hide = 1 + (Math.random() < 0.5 ? 1 : 0);
     else if (animal.type === 'hare') hide = Math.random() < 0.65 ? 1 : 0;
     else if (animal.type === 'wolf') hide = Math.random() < 0.4 ? 1 : 0;
-    return { killed: true, meat, hide, name: spec.name, type: animal.type };
+    let egg = 0;
+    let feather = 0;
+    if (spec.egg) egg = Math.random() < 0.75 ? 1 : 0;
+    if (spec.feather) feather = 1 + (Math.random() < 0.5 ? 1 : 0);
+    return { killed: true, meat, hide, egg, feather, name: spec.name, type: animal.type };
+  }
+
+  /** Count living of type */
+  countLiving(type) {
+    return this.animals.filter((a) => !a.dead && (!type || a.type === type)).length;
+  }
+
+  /**
+   * Slow prey respawn (SC ecology pressure fix).
+   * @param {number} dt
+   * @param {{x:number,z:number}} player
+   */
+  tickRespawn(dt, player) {
+    this._respawnAcc += dt;
+    if (this._respawnAcc < 25) return;
+    this._respawnAcc = 0;
+    const r = this.world.radiusChunks * 16 - 6;
+    for (const spec of Object.values(SPECIES)) {
+      if (spec.hostile) continue;
+      const living = this.countLiving(spec.id);
+      if (living >= spec.count) continue;
+      // spawn far from player
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const ang = Math.random() * Math.PI * 2;
+        const rad = 18 + Math.random() * Math.max(6, r - 18);
+        const x = Math.cos(ang) * rad;
+        const z = Math.sin(ang) * rad;
+        if (dist2(x, z, player.x, player.z) < 14 * 14) continue;
+        const y = groundY(this.world, x, z);
+        if (this.world.getBlock(x, y - 1, z) === BLOCK.WATER) continue;
+        this.animals.push(this._make(spec, x, y, z));
+        break;
+      }
+    }
+  }
+
+  /** Snare trap damage when animal stands on SNARE block */
+  applySnares(dt) {
+    let hits = 0;
+    for (const a of this.animals) {
+      if (a.dead) continue;
+      const id = this.world.getBlock(a.x, a.y, a.z);
+      const idFeet = this.world.getBlock(a.x, a.y - 0.1, a.z);
+      if (id === BLOCK.SNARE || idFeet === BLOCK.SNARE) {
+        a._snareT = (a._snareT || 0) + dt;
+        if (a._snareT >= 0.7) {
+          a._snareT = 0;
+          a.hp -= 6;
+          a.state = this.getSpec(a.type).hostile ? 'chase' : 'flee';
+          hits++;
+          if (a.hp <= 0) {
+            a.dead = true;
+            a._corpseT = 0;
+          }
+        }
+      }
+    }
+    return hits;
   }
 
   exportState() {

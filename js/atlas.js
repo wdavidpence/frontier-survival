@@ -314,6 +314,31 @@ function drawFence(ctx, x0, y0) {
   ctx.fillRect(x0 + 6, y0 + 18, 20, 3);
 }
 
+function drawSnare(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.strokeStyle = '#c8b090';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x0 + 6, y0 + 10, 20, 14);
+  ctx.beginPath();
+  ctx.moveTo(x0 + 10, y0 + 10);
+  ctx.lineTo(x0 + 16, y0 + 22);
+  ctx.lineTo(x0 + 22, y0 + 10);
+  ctx.stroke();
+}
+
+function drawPumpkin(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [220, 130, 30], 0.25, 33);
+  ctx.fillStyle = '#3d6b28';
+  ctx.fillRect(x0 + 14, y0 + 4, 4, 6);
+  ctx.strokeStyle = 'rgba(120,60,10,0.4)';
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x0 + 8 + i * 5, y0 + 8);
+    ctx.lineTo(x0 + 8 + i * 5, y0 + 28);
+    ctx.stroke();
+  }
+}
+
 function drawCrack(ctx, x0, y0, stage) {
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
   ctx.strokeStyle = `rgba(20,15,10,${0.35 + stage * 0.1})`;
@@ -373,6 +398,8 @@ export function createBlockAtlas() {
   paint(TILE.CHEST, drawChest);
   paint(TILE.LADDER, drawLadder);
   paint(TILE.FENCE, drawFence);
+  paint(TILE.SNARE, drawSnare);
+  paint(TILE.PUMPKIN, drawPumpkin);
   paint(TILE.CRACK0, (c, x, y) => drawCrack(c, x, y, 0));
   paint(TILE.CRACK1, (c, x, y) => drawCrack(c, x, y, 1));
   paint(TILE.CRACK2, (c, x, y) => drawCrack(c, x, y, 2));

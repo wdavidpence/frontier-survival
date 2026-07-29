@@ -10,13 +10,13 @@
 
 ## Local
 Serve repo root → http://127.0.0.1:8765/  
-Tests: `node tests/smoke.mjs` (38)
+Tests: `node tests/smoke.mjs` (39)
 
 ## Latest
-**v1.3** — `docs/improvements-v1.3.md`  
-Chest/ladder/fence, boat, fishing, apples, fertilizer, compass, shield, tool durability, crouch, salve, recipe filter, save export/import, torch night vision.
+**v1.4** — `docs/improvements-v1.4.md`  
+SC-inspired: rain drench + roof shelter, exposure cold, fish spoil, prey respawn, birds/eggs/feathers, pumpkin/soup, charcoal, snares, leather armor, campfire fuel, storm sleep gate.
 
-Prior: v1.2 content · v1.1 QoL
+Prior: v1.3 depth · v1.2 content · v1.1 QoL
 
 ## Next
-Biomes, breeding, electricity (docs/SCM.md).
+Biomes, electricity/logic, breeding (docs/SCM.md).

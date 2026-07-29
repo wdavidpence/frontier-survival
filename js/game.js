@@ -10,7 +10,7 @@ import {
   eatFood,
   applyDamage,
 } from './survival.js';
-import { BLOCK, getHardness, isSolid, getColor } from './blocks.js';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor } from './blocks.js';
 import {
   ITEM,
   propsOf,
@@ -37,12 +37,15 @@ import { createBlockAtlas } from './atlas.js';
 import { BreakFX } from './fx.js';
 import {
   equipmentWarmth,
+  equipmentArmor,
+  mitigatePhysicalDamage,
   equipItem,
   emptyEquipment,
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
 } from './equipment.js';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js';
 import {
   serializeSave,
   writeSaveToStorage,
@@ -159,6 +162,9 @@ export class Game {
     this._chestOpenKey = null;
     this._recipeFilter = '';
     this._fishCd = 0;
+    this._campFuel = new Map(); // "x,y,z" -> fuel 0..100
+    this._lastWeather = 'clear';
+    this._roofed = false;
 
     // Block selection outline
     const edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002, 1.002, 1.002));
@@ -571,9 +577,13 @@ export class Game {
               this._unlock('first_kill');
               if (res.meat > 0) this.player.slots = addItems(this.player.slots, ITEM.RAW_MEAT, res.meat).slots;
               if (res.hide > 0) this.player.slots = addItems(this.player.slots, ITEM.HIDE, res.hide).slots;
+              if (res.egg > 0) this.player.slots = addItems(this.player.slots, ITEM.EGG, res.egg).slots;
+              if (res.feather > 0) this.player.slots = addItems(this.player.slots, ITEM.FEATHER, res.feather).slots;
               const bits = [];
               if (res.meat) bits.push(`+${res.meat} meat`);
               if (res.hide) bits.push(`+${res.hide} hide`);
+              if (res.egg) bits.push(`+${res.egg} egg`);
+              if (res.feather) bits.push(`+${res.feather} feather`);
               this.player.notify(`${res.name} down (arrow). ${bits.join(', ')}`, 3);
               this._syncAnimalMeshes();
             } else if (res) {
@@ -881,6 +891,8 @@ export class Game {
     if (recipeId === 'bread') this._unlock('first_bread');
     if (recipeId === 'boat') this._unlock('first_boat');
     if (recipeId === 'shield') this._unlock('first_shield');
+    if (recipeId === 'leather_vest') this._unlock('first_armor');
+    if (recipeId === 'snare') this._unlock('first_snare');
     if (recipeId === 'chest') this._unlock('first_chest');
     if (recipeId === 'cook_meat') this._unlock('first_cook');
     this._invNeedsPaint = true;
@@ -950,14 +962,45 @@ export class Game {
       if (this.player.messageT > 0) this.player.messageT -= dt;
     }
 
-    const heat = this.world.sampleHeat(
+    let heat = this.world.sampleHeat(
       this.player.position.x,
       this.player.position.y + 1,
       this.player.position.z,
       7,
     );
+    // campfire fuel decay nearby
+    heat = this._tickCampfires(dt, heat);
     this._lastHeat = heat;
     this.survival.warmthFromClothes = equipmentWarmth(this.player.equipment);
+
+    // roof + rain drench (SC wetness)
+    this._roofed = hasRoofAbove(
+      (x, y, z) => this.world.getBlock(x, y, z),
+      this.player.position.x,
+      this.player.position.y,
+      this.player.position.z,
+      isSolid,
+      isTransparent,
+    );
+    const wGain = wetnessGainRate({
+      inWater: move.inWater,
+      weather: this.time.weather,
+      roofed: this._roofed,
+    });
+    // storm warning
+    if (this.time.weather !== this._lastWeather) {
+      if (this.time.weather === 'rain') {
+        this.player.notify(
+          this._roofed
+            ? 'Rain falls — you stay dry under cover.'
+            : 'Storm! Seek a roof or fire — wet cold kills.',
+          4,
+        );
+      } else if (this.time.weather === 'snow') {
+        this.player.notify('Snow is falling. Shelter and clothes matter.', 3.5);
+      }
+      this._lastWeather = this.time.weather;
+    }
 
     // Ambient soundscape (wind/night/rain/fire/water + stingers)
     const feetBlock = this.world.getBlock(
@@ -981,6 +1024,12 @@ export class Game {
       dead: this.survival.dead,
     });
 
+    const expMult = exposureColdMult({
+      weather: this.time.weather,
+      roofed: this._roofed,
+      wetness: this.survival.wetness || 0,
+      isNight: this.time.isNight(),
+    });
     this.survival = tickSurvival(this.survival, {
       dt,
       dayPhase: this.time.dayPhase,
@@ -991,7 +1040,8 @@ export class Game {
       inWater: move.inWater,
       sleeping: false,
       hungerMult: mode.hungerMult,
-      coldDamageMult: mode.coldDamageMult,
+      coldDamageMult: mode.coldDamageMult * expMult,
+      wetnessGain: move.inWater ? 0 : wGain,
     });
 
     // meat spoilage
@@ -1032,9 +1082,15 @@ export class Game {
         } else {
           this.player.notify('A wolf mauls you!');
         }
+        dmg = mitigatePhysicalDamage(dmg, equipmentArmor(this.player.equipment));
         this.survival = applyDamage(this.survival, dmg, 'wolf');
         this.audio.hurt();
       }
+      this.fauna.tickRespawn(dt, {
+        x: this.player.position.x,
+        z: this.player.position.z,
+      });
+      this.fauna.applySnares(dt);
       this._syncAnimalMeshes();
     }
 
@@ -1304,9 +1360,13 @@ export class Game {
             const addH = addItems(this.player.slots, ITEM.HIDE, res.hide);
             this.player.slots = addH.slots;
           }
+          if (res.egg > 0) this.player.slots = addItems(this.player.slots, ITEM.EGG, res.egg).slots;
+          if (res.feather > 0) this.player.slots = addItems(this.player.slots, ITEM.FEATHER, res.feather).slots;
           const bits = [];
           if (res.meat) bits.push(`+${res.meat} meat`);
           if (res.hide) bits.push(`+${res.hide} hide`);
+          if (res.egg) bits.push(`+${res.egg} egg`);
+          if (res.feather) bits.push(`+${res.feather} feather`);
           this.player.notify(
             `${res.name} down. ${bits.join(', ') || 'nothing'}. Craft clothes & cook!`,
             3.5,
@@ -1359,8 +1419,13 @@ export class Game {
           const g = this._crops.get(key) ?? 1;
           this._crops.delete(key);
           if (g >= 1) {
-            drop = ITEM.WHEAT;
-            dropCount = 1 + (Math.random() < 0.5 ? 1 : 0);
+            if (Math.random() < 0.22) {
+              drop = ITEM.PUMPKIN;
+              dropCount = 1;
+            } else {
+              drop = ITEM.WHEAT;
+              dropCount = 1 + (Math.random() < 0.5 ? 1 : 0);
+            }
             const s = addItems(this.player.slots, ITEM.SEEDS, 1 + (Math.random() < 0.4 ? 1 : 0));
             this.player.slots = s.slots;
           } else {
@@ -1462,9 +1527,10 @@ export class Game {
     if (this.world.setBlock(px, py, pz, blockId)) {
       this.audio.placeBlock();
       if (blockId === BLOCK.CAMPFIRE) {
-        this.player.notify('Campfire lit. Stay close — heat fights the cold.');
+        this.player.notify('Campfire lit. Feed sticks/coal/charcoal (F) or it dies out.');
         this._scanLights(true);
         this._unlock('first_fire');
+        this._campFuel.set(`${px|0},${py|0},${pz|0}`, 80);
       }
       if (blockId === BLOCK.TORCH) {
         this.player.notify('Torch placed.');
@@ -1478,6 +1544,10 @@ export class Game {
         if (!this._chests.has(k)) this._chests.set(k, emptyChestSlots());
       }
       if (blockId === BLOCK.LADDER) this.player.notify('Ladder placed. Walk into it to climb.');
+      if (blockId === BLOCK.SNARE) {
+        this.player.notify('Snare set. Wildlife may wander in.');
+        this._unlock('first_snare');
+      }
     } else {
       // refund
       const refund = addItems(this.player.slots, held, 1);
@@ -1582,6 +1652,25 @@ export class Game {
     const held = this.player.heldStack();
     const p = propsOf(held.id);
 
+    // Feed campfire fuel
+    if (hit && hit.id === BLOCK.CAMPFIRE) {
+      const fuelIds = new Set([ITEM.STICK, ITEM.COAL, ITEM.CHARCOAL, BLOCK.LOG]);
+      if (held.id != null && fuelIds.has(held.id)) {
+        const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+        if (cons.ok) {
+          this.player.slots = cons.slots;
+          const k = `${hit.x|0},${hit.y|0},${hit.z|0}`;
+          let f = this._campFuel.get(k) ?? 40;
+          f += held.id === BLOCK.LOG ? 45 : held.id === ITEM.STICK ? 12 : 28;
+          this._campFuel.set(k, Math.min(120, f));
+          this.audio.placeBlock();
+          this.player.notify('You feed the fire.', 1.8);
+          this._scanLights(true);
+          return;
+        }
+      }
+    }
+
     // Equip clothing
     if (p?.equipSlot && held.count > 0) {
       const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
@@ -1603,6 +1692,7 @@ export class Game {
       const w = equipmentWarmth(eq.equipment);
       this.player.notify(`Equipped ${p.name}. Clothing warmth ${w}.`, 3);
       this._unlock('first_clothes');
+      if (held.id === ITEM.LEATHER_VEST) this._unlock('first_armor');
       this._invNeedsPaint = true;
       return;
     }
@@ -1627,6 +1717,14 @@ export class Game {
   }
 
   _trySleep() {
+    const roofed = hasRoofAbove(
+      (x, y, z) => this.world.getBlock(x, y, z),
+      this.player.position.x,
+      this.player.position.y,
+      this.player.position.z,
+      isSolid,
+      isTransparent,
+    );
     const check = canSleep(this.survival, {
       atBed: true,
       inWater: this.world.getBlock(
@@ -1635,6 +1733,8 @@ export class Game {
         this.player.position.z,
       ) === BLOCK.WATER,
       isNight: this.time.isNight(),
+      stormNoRoof:
+        (this.time.weather === 'rain' || this.time.weather === 'snow') && !roofed,
     });
     if (!check.ok) {
       this.player.notify(
@@ -1646,6 +1746,8 @@ export class Game {
               ? 'Too cold to sleep. Fire or warmer clothes.'
               : check.error === 'too hungry'
                 ? 'Too hungry to sleep. Eat first.'
+                : check.error === 'storm — need a roof over the bed'
+                  ? 'Storm overhead — build a roof over the bed first.'
                 : `Cannot sleep: ${check.error}`,
         3.5,
       );
@@ -1754,8 +1856,10 @@ export class Game {
           const p = propsOf(s.id);
           const col = p?.color || [0.5, 0.5, 0.5];
           el.style.background = `rgb(${(col[0]*255)|0},${(col[1]*255)|0},${(col[2]*255)|0})`;
-          el.title = `${displayName(s.id)} x${s.count}`;
-          el.innerHTML = `<span class="inv-count">${s.count}</span><span class="inv-name">${displayName(s.id)}</span>`;
+          const dr = durabilityRatio(s);
+          el.title = `${displayName(s.id)} x${s.count}` + (dr < 1 ? ` · ${Math.ceil(dr*100)}%` : '');
+          el.innerHTML = `<span class="inv-count">${s.count}</span><span class="inv-name">${displayName(s.id)}</span>` +
+            (dr < 1 ? `<span class="dur-bar" style="width:${Math.ceil(dr*100)}%"></span>` : '');
         } else {
           el.classList.add('empty');
           el.title = i < HOTBAR_SIZE ? `Hotbar ${i + 1}` : 'Empty';
@@ -1868,6 +1972,9 @@ export class Game {
       if (this.player.heldId() === ITEM.COMPASS) {
         bits.push(`xyz ${this.player.position.x.toFixed(0)},${this.player.position.y.toFixed(0)},${this.player.position.z.toFixed(0)}`);
       }
+      if (this._roofed) bits.push('Sheltered');
+      const arm = equipmentArmor(this.player.equipment);
+      if (arm > 0) bits.push(`Armor ${arm}`);
       bits.push(`Day ${this.time.dayNumber}`);
       bits.push(this.time.isNight() ? 'Night' : 'Day');
       bits.push(this.time.weather);

@@ -25,6 +25,8 @@ export const BLOCK = {
   CHEST: 22,
   LADDER: 23,
   FENCE: 24,
+  SNARE: 25,
+  PUMPKIN: 26,
 };
 
 /** @type {Record<number, {
@@ -66,6 +68,8 @@ export const BLOCK_PROPS = {
   [BLOCK.CHEST]: { name: 'Chest', solid: true, transparent: true, hardness: 1.0, color: [0.55, 0.35, 0.15], topColor: [0.6, 0.4, 0.18], drops: BLOCK.CHEST },
   [BLOCK.LADDER]: { name: 'Ladder', solid: false, transparent: true, hardness: 0.3, color: [0.55, 0.4, 0.2], drops: BLOCK.LADDER, climbable: true },
   [BLOCK.FENCE]: { name: 'Fence', solid: true, transparent: true, hardness: 0.7, color: [0.6, 0.45, 0.25], drops: BLOCK.FENCE },
+  [BLOCK.SNARE]: { name: 'Snare', solid: false, transparent: true, hardness: 0.2, color: [0.5, 0.45, 0.3], drops: BLOCK.SNARE },
+  [BLOCK.PUMPKIN]: { name: 'Pumpkin', solid: true, transparent: false, hardness: 0.5, color: [0.9, 0.55, 0.12], topColor: [0.35, 0.55, 0.15], drops: BLOCK.PUMPKIN },
 };
 
 export function isSolid(id) {

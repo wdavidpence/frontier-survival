@@ -66,3 +66,6 @@ See docs/SCM.md
 
 ## Phase polish — v1.3 (docs/improvements-v1.3.md)
 - [x] 20 storage/travel/combat depth polishes
+
+## Phase polish — v1.4 (docs/improvements-v1.4.md)
+- [x] 20 SC-research survival depth + bugfixes

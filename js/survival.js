@@ -56,7 +56,9 @@ export function tickSurvival(state, env) {
 
   // Wetness
   if (env.inWater) next.wetness = Math.min(100, next.wetness + 40 * dt);
-  else next.wetness = Math.max(0, next.wetness - 8 * dt);
+  else if ((env.wetnessGain || 0) > 0) {
+    next.wetness = Math.min(100, next.wetness + env.wetnessGain * dt);
+  } else next.wetness = Math.max(0, next.wetness - 8 * dt);
 
   const wetPenalty = (next.wetness / 100) * 8;
   // Campfires are a primary survival tool — strong local heat must beat night air
