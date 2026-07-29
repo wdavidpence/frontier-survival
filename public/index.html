@@ -294,6 +294,58 @@
     }
     .panel button:hover { filter: brightness(1.06); }
     #death-screen .panel h1 { color: #e08080; }
+
+    #crosshair.strike { border-color: #ff6b4a; box-shadow: 0 0 12px rgba(255,80,40,0.8); transform: scale(1.15); }
+    #prompt {
+      position: absolute; top: 54%; left: 50%; transform: translateX(-50%);
+      padding: 6px 14px; border-radius: 8px;
+      background: rgba(8,12,18,0.55);
+      border: 1px solid rgba(212,165,116,0.35);
+      font-size: 13px; color: #f0e6d4;
+      text-shadow: 0 1px 4px #000;
+      min-height: 1.2em; pointer-events: none;
+    }
+    #version-badge {
+      position: absolute; top: 12px; left: 16px;
+      font-size: 11px; letter-spacing: 0.08em;
+      color: rgba(212,165,116,0.85);
+      background: var(--panel);
+      padding: 4px 10px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    #help.hidden { display: none; }
+    #help.faded { opacity: 0.28; transition: opacity 1.2s ease; }
+    #meters.crit-health #bar-health { animation: pulse-bar 0.7s ease-in-out infinite; }
+    #meters.crit-hunger #bar-hunger { animation: pulse-bar 0.85s ease-in-out infinite; }
+    #meters.crit-cold #bar-temp { animation: pulse-bar 0.9s ease-in-out infinite; }
+    @keyframes pulse-bar {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.45); }
+    }
+    .mode-row {
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+      margin: 12px 0 6px;
+    }
+    .mode-btn {
+      pointer-events: auto; cursor: pointer;
+      padding: 8px 12px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: #cfc8bc; font-size: 12px;
+    }
+    .mode-btn.active {
+      border-color: rgba(212,165,116,0.65);
+      background: rgba(212,165,116,0.15);
+      color: var(--accent);
+    }
+    #mode-blurb { font-size: 12px; color: #8a8378; min-height: 2.4em; margin-bottom: 8px; }
+    .sens-row { margin: 12px 0; font-size: 12px; color: #b9b3a8; }
+    .sens-row input[type=range] { width: min(240px, 70vw); vertical-align: middle; }
+    #pause-screen .panel { width: min(420px, 92vw); }
+    .panel .secondary {
+      background: linear-gradient(180deg,#8a909a,#5a6068);
+      color: #f0f0f0;
+    }
   </style>
   <script type="importmap">
   {
@@ -311,6 +363,8 @@
     <div id="crosshair"></div>
     <div id="status-line">Frontier Survival</div>
     <div id="message"></div>
+    <div id="prompt"></div>
+    <div id="version-badge">v1.1</div>
     <div id="meters">
       <div class="meter"><span>Health</span><div class="track"><div id="bar-health" class="fill"></div></div></div>
       <div class="meter"><span>Hunger</span><div class="track"><div id="bar-hunger" class="fill"></div></div></div>
@@ -330,12 +384,12 @@
       <div class="hotbar-slot" data-key="9"></div>
     </div>
     <div id="help">
-      <b>WASD</b> move · <b>Mouse</b> look<br/>
+      <b>WASD</b> move · <b>Mouse</b> look · wheel hotbar<br/>
       <b>Space</b> jump · <b>Shift</b> sprint<br/>
-      <b>LMB</b> mine · <b>RMB</b> place<br/>
+      <b>LMB</b> mine/hunt · <b>RMB</b> place · <b>Q</b> drop<br/>
       <b>1-9</b> hotbar · <b>E</b> inventory/craft<br/>
-      <b>R</b> eat · <b>F</b> cook / equip / sleep · <b>K</b> save<br/>
-      LMB hunts · clothes + bed beat the cold night
+      <b>R</b> eat · <b>F</b> cook/equip/sleep · <b>K</b> save<br/>
+      <b>Esc</b> pause · <b>H</b> help · spear reaches farther
     </div>
   </div>
 
@@ -364,7 +418,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox</div>
+      <div class="tag">Browser survival sandbox · v1.1</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -372,6 +426,11 @@
         original game, art, and code.
       </p>
       <p>PC controls: keyboard + mouse. Click Start, then click the world to capture the cursor.</p>
+      <div class="mode-row" id="mode-row"></div>
+      <p id="mode-blurb"></p>
+      <div class="sens-row">Mouse sensitivity <span id="title-sens-label">5</span>
+        <br/><input id="title-sens-slider" type="range" min="1" max="10" step="1" value="5" />
+      </div>
       <p style="font-size:12px;color:#8a8378">Progress auto-saves. Continue resumes seed, builds, inventory, and body state.</p>
       <button id="btn-continue" type="button" style="display:none">Continue save</button>
       <button id="btn-start" type="button">Start surviving</button>
@@ -383,8 +442,21 @@
     <div class="panel">
       <h1>You died</h1>
       <p id="death-cause"></p>
-      <p>Nature does not negotiate. Build shelter. Light a fire. Eat before you explore.</p>
+      <p id="death-extra">Nature does not negotiate. Build shelter. Light a fire. Eat before you explore.</p>
       <button id="btn-respawn" type="button">Respawn</button>
+    </div>
+  </div>
+
+  <div id="pause-screen" class="overlay hidden">
+    <div class="panel">
+      <div class="tag">Paused</div>
+      <h1>Take a breath</h1>
+      <p>Mode: <span id="pause-mode">Survival</span></p>
+      <div class="sens-row">Mouse sensitivity <span id="sens-label">5</span>
+        <br/><input id="sens-slider" type="range" min="1" max="10" step="1" value="5" />
+      </div>
+      <button id="btn-resume" type="button">Resume</button>
+      <button id="btn-pause-save" type="button" class="secondary">Save now</button>
     </div>
   </div>
 

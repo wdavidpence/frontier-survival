@@ -162,13 +162,16 @@ export class FaunaSystem {
    * @param {number} dt
    * @param {{x:number,y:number,z:number}} player
    * @param {boolean} isNight
+   * @param {{ senseMult?: number, damageMult?: number }} [opts]
    * @returns {{ playerDamage: number, kills: object[] }}
    */
-  tick(dt, player, isNight) {
+  tick(dt, player, isNight, opts = {}) {
     let playerDamage = 0;
     const kills = [];
     const px = player.x;
     const pz = player.z;
+    const senseMult = opts.senseMult ?? 1;
+    const damageMult = opts.damageMult ?? 1;
 
     for (const a of this.animals) {
       if (a.dead) continue;
@@ -177,7 +180,7 @@ export class FaunaSystem {
 
       const d2 = dist2(a.x, a.z, px, pz);
       const dist = Math.sqrt(d2);
-      const sense = isNight && spec.nightSense ? spec.nightSense : spec.senseRange;
+      const sense = (isNight && spec.nightSense ? spec.nightSense : spec.senseRange) * senseMult;
 
       if (spec.hostile) {
         if (dist < sense) {
@@ -209,7 +212,7 @@ export class FaunaSystem {
         wishZ = dz / len;
         if (isNight) speed *= 1.12;
         if (dist < spec.attackRange && a.attackTimer <= 0) {
-          playerDamage += spec.damage;
+          playerDamage += spec.damage * damageMult;
           a.attackTimer = spec.attackCd;
         }
       } else {

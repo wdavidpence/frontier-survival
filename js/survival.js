@@ -42,6 +42,7 @@ export function ambientTempC(dayPhase, weather = 'clear') {
  * @param {boolean} env.inWater
  * @param {boolean} env.sleeping
  * @param {number} [env.hungerMult]
+ * @param {number} [env.coldDamageMult]
  */
 export function tickSurvival(state, env) {
   if (state.dead) return state;
@@ -51,6 +52,7 @@ export function tickSurvival(state, env) {
   const ambient = ambientTempC(env.dayPhase, env.weather);
   const clothes = next.warmthFromClothes || 0;
   const fire = env.blockHeat || 0;
+  const coldMult = env.coldDamageMult ?? 1;
 
   // Wetness
   if (env.inWater) next.wetness = Math.min(100, next.wetness + 40 * dt);
@@ -124,13 +126,13 @@ export function tickSurvival(state, env) {
   }
 
   if (next.bodyTemp < 32) {
-    dps += 6;
+    dps += 6 * coldMult;
     cause = 'hypothermia';
   } else if (next.bodyTemp < 34.5) {
-    dps += 2;
+    dps += 2 * coldMult;
     cause = 'hypothermia';
   } else if (next.bodyTemp > 41) {
-    dps += 5;
+    dps += 5 * coldMult;
     cause = 'heatstroke';
   }
 
@@ -190,4 +192,10 @@ export function applyDamage(state, amount, cause = 'injury') {
     dead: health <= 0,
     causeOfDeath: health <= 0 ? cause : state.causeOfDeath,
   };
+}
+
+/** Pure fall damage from impact speed (downward positive). */
+export function fallDamageFromSpeed(downSpeed) {
+  if (!(downSpeed > 11)) return 0;
+  return Math.min(80, (downSpeed - 11) * 4.2);
 }

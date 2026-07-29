@@ -6,9 +6,9 @@ Inspired by the *systems* of Survivalcraft (harsh nature, clothing, sleep, preda
 
 You wash up in a blocky wilderness where **cold, hunger, fatigue, and wolves** matter as much as mining.
 
-![Status](https://img.shields.io/badge/status-playable%201.0%20slice-brightgreen)
+![Status](https://img.shields.io/badge/status-playable%201.1%20polish-brightgreen)
 ![Stack](https://img.shields.io/badge/stack-Three.js%20ESM-blue)
-![Tests](https://img.shields.io/badge/tests-30%20smoke-lightgrey)
+![Tests](https://img.shields.io/badge/tests-36%20smoke-lightgrey)
 
 ---
 
@@ -26,30 +26,34 @@ Open: **http://127.0.0.1:8765/**
 Legacy path still works if you open `/public/` (uses `../js`).
 
 ```bash
-node tests/smoke.mjs   # 30 pure-logic tests
+node tests/smoke.mjs   # 36 pure-logic tests
 ```
 
 ---
 
-## Controls (PC 1.0)
+## Controls (PC 1.1)
 
 | Input | Action |
 |-------|--------|
 | Click canvas | Lock mouse |
 | WASD | Move |
 | Mouse | Look |
+| Mouse wheel | Cycle hotbar |
 | Space | Jump |
 | Shift | Sprint (stamina) |
 | LMB | Mine blocks / attack animals |
 | RMB | Place selected hotbar block |
 | 1–9 | Hotbar |
+| Q | Drop one from selected slot |
 | E | Inventory & crafting |
 | F | Cook meat (by fire) · equip clothes · sleep (look at bed) |
 | R | Eat |
 | K | Quick save |
-| Esc | Release mouse |
+| Esc | Pause (sensitivity) |
+| H | Toggle help |
+| Esc (pointer unlock) | Release mouse |
 
-Progress **auto-saves** (also on inventory close / tab close). Title screen: **Continue** / **New world**.
+Progress **auto-saves** (also on inventory close / tab close). Title screen: **Continue** / **New world** + difficulty picker.
 
 ---
 
@@ -59,9 +63,10 @@ Progress **auto-saves** (also on inventory close / tab close). Title screen: **C
 - **Cold nights** hurt without fire and/or warm clothes  
 - **Hunt** hares/deer (meat + hide); **wolves** hunt you (worse at night)  
 - **Cook** raw meat at campfire heat (raw food can poison)  
-- **Craft** tools, torches, campfires, cloth, coat/hat/boots, bed  
+- **Craft** tools, spear, stone axe, torches, campfires, cloth, coat/hat/boots, bed  
 - **Sleep** in a bed at night to clear fatigue and skip time  
-- **Greedy-meshed** voxel world with procedural texture atlas + ambient soundscape  
+- **Difficulty modes:** Harmless → Survival → Challenging (death drops) → Cruel (permadeath)  
+- **Greedy-meshed** voxel world with procedural texture atlas + ambient soundscape + torch lights  
 
 ---
 
@@ -73,6 +78,7 @@ public/index.html   # same UI; script path ../js for /public/ serving
 js/                 # game modules (Three.js ESM via import map CDN)
 docs/SCM.md         # design pillars + long roadmap
 docs/plan.md        # checklist
+docs/improvements-20.md  # v1.1 polish tracker
 docs/session-handoff.md
 tests/smoke.mjs
 ```
@@ -110,11 +116,11 @@ A `.nojekyll` file is included so GitHub won’t break ES module paths.
 
 ## Roadmap (beyond this slice)
 
-See `docs/SCM.md`: more biomes, spear/bow, electricity/logic, boats, difficulty modes, multiplayer later.
+See `docs/SCM.md`: more biomes, bow, electricity/logic, boats, multiplayer later.
 
 ---
 
 ## Status
 
-**Playable browser 1.0 vertical slice** — fun session loop with survival pressure.  
+**Playable browser 1.1 polish pack** — survival pressure + QoL (modes, spear, pause, lights, prompts).  
 Not commercial Survivalcraft feature parity; depth continues from the plan checklist.

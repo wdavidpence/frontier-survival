@@ -84,6 +84,26 @@ export const RECIPES = [
     results: [{ id: ITEM.STONE_PICK, count: 1 }],
   },
   {
+    id: 'wood_spear',
+    name: 'Wood Spear',
+    desc: 'Hunt at reach. 2 Sticks + 1 Plank',
+    ingredients: [
+      { id: ITEM.STICK, count: 2 },
+      { id: BLOCK.PLANKS, count: 1 },
+    ],
+    results: [{ id: ITEM.WOOD_SPEAR, count: 1 }],
+  },
+  {
+    id: 'stone_axe',
+    name: 'Stone Axe',
+    desc: 'Faster wood + stronger melee. 3 Cobble + 2 Sticks',
+    ingredients: [
+      { id: BLOCK.COBBLE, count: 3 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: ITEM.STONE_AXE, count: 1 }],
+  },
+  {
     id: 'cook_meat',
     name: 'Cook Meat',
     desc: '1 Raw Meat → Cooked Meat (need campfire heat nearby)',

@@ -18,6 +18,8 @@ export const ITEM = {
   FUR_HAT: 110,
   WOOL_COAT: 111,
   FUR_BOOTS: 112,
+  WOOD_SPEAR: 113,
+  STONE_AXE: 114,
 };
 
 /** @type {Record<number, {
@@ -31,16 +33,17 @@ export const ITEM = {
  *  tool?: 'pick'|'axe'|'hand'|'weapon',
  *  mineMult?: number,
  *  melee?: number,
+ *  meleeRange?: number,
  *  maxStack?: number,
  *  equipSlot?: 'head'|'chest'|'feet',
  *  warmth?: number
  * }>} */
 export const ITEM_PROPS = {
-  [ITEM.STICK]: { name: 'Stick', color: [0.55, 0.4, 0.22], maxStack: 64, melee: 3 },
+  [ITEM.STICK]: { name: 'Stick', color: [0.55, 0.4, 0.22], maxStack: 64, melee: 3, meleeRange: 3.2 },
   [ITEM.RATION]: { name: 'Dried Ration', color: [0.72, 0.55, 0.3], edible: 28, maxStack: 16 },
-  [ITEM.WOOD_PICK]: { name: 'Wood Pick', color: [0.65, 0.5, 0.28], tool: 'pick', mineMult: 2.2, maxStack: 1, melee: 5 },
-  [ITEM.WOOD_AXE]: { name: 'Wood Axe', color: [0.6, 0.42, 0.2], tool: 'axe', mineMult: 2.4, maxStack: 1, melee: 7 },
-  [ITEM.STONE_PICK]: { name: 'Stone Pick', color: [0.55, 0.55, 0.58], tool: 'pick', mineMult: 3.4, maxStack: 1, melee: 6 },
+  [ITEM.WOOD_PICK]: { name: 'Wood Pick', color: [0.65, 0.5, 0.28], tool: 'pick', mineMult: 2.2, maxStack: 1, melee: 5, meleeRange: 3.4 },
+  [ITEM.WOOD_AXE]: { name: 'Wood Axe', color: [0.6, 0.42, 0.2], tool: 'axe', mineMult: 2.4, maxStack: 1, melee: 7, meleeRange: 3.5 },
+  [ITEM.STONE_PICK]: { name: 'Stone Pick', color: [0.55, 0.55, 0.58], tool: 'pick', mineMult: 3.4, maxStack: 1, melee: 6, meleeRange: 3.4 },
   [ITEM.COAL]: { name: 'Coal', color: [0.18, 0.18, 0.2], maxStack: 64 },
   [ITEM.RAW_MEAT]: {
     name: 'Raw Meat',
@@ -78,6 +81,23 @@ export const ITEM_PROPS = {
     maxStack: 1,
     equipSlot: 'feet',
     warmth: 3,
+  },
+  [ITEM.WOOD_SPEAR]: {
+    name: 'Wood Spear',
+    color: [0.7, 0.55, 0.32],
+    tool: 'weapon',
+    maxStack: 1,
+    melee: 11,
+    meleeRange: 5.2,
+  },
+  [ITEM.STONE_AXE]: {
+    name: 'Stone Axe',
+    color: [0.5, 0.5, 0.52],
+    tool: 'axe',
+    mineMult: 3.5,
+    maxStack: 1,
+    melee: 9,
+    meleeRange: 3.6,
   },
 };
 

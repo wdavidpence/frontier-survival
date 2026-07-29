@@ -1,5 +1,12 @@
 import { Game } from './game.js';
 import { hasSave } from './save.js';
+import { MODES, MODE_ORDER, getMode } from './modes.js';
+import {
+  readSettings,
+  writeSettings,
+  sensitivityFromSlider,
+  sliderFromSensitivity,
+} from './settings.js';
 
 const canvas = document.getElementById('game');
 const title = document.getElementById('title-screen');
@@ -19,10 +26,12 @@ function refreshContinue() {
     btnNew.style.display = exists ? '' : 'none';
   }
   if (btnStart) {
-    btnStart.textContent = exists ? 'New world (same as below)' : 'Start surviving';
-    // Keep Start as new game always for clarity when no continue
-    if (!exists) btnStart.textContent = 'Start surviving';
-    else btnStart.style.display = 'none';
+    if (!exists) {
+      btnStart.style.display = '';
+      btnStart.textContent = 'Start surviving';
+    } else {
+      btnStart.style.display = 'none';
+    }
   }
 }
 
@@ -30,11 +39,32 @@ const hud = {
   hideTitle() {
     title?.classList.add('hidden');
   },
-  showDeath(cause) {
+  showDeath(cause, meta = {}) {
     if (!death) return;
     death.classList.remove('hidden');
     const el = document.getElementById('death-cause');
     if (el) el.textContent = cause ? `Cause: ${cause}` : '';
+    const extra = document.getElementById('death-extra');
+    const respawnBtn = document.getElementById('btn-respawn');
+    if (meta.permadeath) {
+      if (extra) {
+        extra.textContent =
+          'Cruel mode: your save is wiped. Respawn starts a new frontier.';
+      }
+      if (respawnBtn) respawnBtn.textContent = 'New world';
+    } else if (meta.dropped) {
+      if (extra) {
+        extra.textContent =
+          'Challenging: your pack was lost. Shelter and fire still matter.';
+      }
+      if (respawnBtn) respawnBtn.textContent = 'Respawn';
+    } else {
+      if (extra) {
+        extra.textContent =
+          'Nature does not negotiate. Build shelter. Light a fire. Eat before you explore.';
+      }
+      if (respawnBtn) respawnBtn.textContent = 'Respawn';
+    }
   },
   hideDeath() {
     death?.classList.add('hidden');
@@ -43,6 +73,44 @@ const hud = {
 };
 
 const game = new Game(canvas, hud);
+
+function paintModeRow() {
+  const row = document.getElementById('mode-row');
+  const blurb = document.getElementById('mode-blurb');
+  if (!row) return;
+  row.innerHTML = '';
+  const current = getMode(game.mode).id;
+  for (const id of MODE_ORDER) {
+    const m = MODES[id];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mode-btn' + (id === current ? ' active' : '');
+    btn.textContent = m.name;
+    btn.dataset.mode = id;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      game.setMode(id);
+      paintModeRow();
+    });
+    row.appendChild(btn);
+  }
+  if (blurb) blurb.textContent = getMode(game.mode).blurb;
+}
+
+// Title sensitivity
+const titleSens = document.getElementById('title-sens-slider');
+const titleSensLab = document.getElementById('title-sens-label');
+if (titleSens) {
+  titleSens.value = String(sliderFromSensitivity(game.input.sensitivity));
+  if (titleSensLab) titleSensLab.textContent = titleSens.value;
+  titleSens.addEventListener('input', () => {
+    const v = sensitivityFromSlider(titleSens.value);
+    game.input.sensitivity = v;
+    game.settings.sensitivity = v;
+    writeSettings(game.settings);
+    if (titleSensLab) titleSensLab.textContent = titleSens.value;
+  });
+}
 
 btnStart?.addEventListener('click', (e) => {
   e.stopPropagation();
@@ -67,12 +135,15 @@ btnNew?.addEventListener('click', (e) => {
 btnRespawn?.addEventListener('click', (e) => {
   e.stopPropagation();
   game.respawn();
-  game.saveGame({ quiet: true });
+  if (!getMode(game.mode).permadeath) {
+    game.saveGame({ quiet: true });
+  }
 });
 
+paintModeRow();
 refreshContinue();
 
 // Expose for debug
 window.__FS = game;
 
-console.info('Frontier Survival boot OK');
+console.info('Frontier Survival boot OK · v1.1');

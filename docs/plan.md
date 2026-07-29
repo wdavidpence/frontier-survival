@@ -35,7 +35,7 @@ Track with `[ ]` / `[x]`. Earliest unchecked item is next work.
 - [x] Homeostasis fix (mild weather no longer freezes you)
 - [x] Sleep action / pass-out recovery at bed or camp
 - [x] Clothing warmth slots
-- [ ] Difficulty modes wired to UI
+- [x] Difficulty modes wired to UI
 
 ## Phase 3 — Shelter & craft
 - [x] inventory + recipes (planks, sticks, torches, campfire, tools)
@@ -46,14 +46,17 @@ Track with `[ ]` / `[x]`. Earliest unchecked item is next work.
 - [x] campfire cook meat
 - [x] clothing craft
 - [x] bed craft + sleep
-- [ ] death drops optional by mode
+- [x] death drops optional by mode
 
 ## Phase 4 — Ecology
 - [x] passive animals + meat (hare, deer)
 - [x] predators (wolves, night aggro)
 - [x] hunting via melee (LMB)
-- [ ] hunting tools (spear/bow)
+- [x] hunting tools (spear; bow later)
 - [ ] breeding / herds depth
 
 ## Phase 5+
 See docs/SCM.md
+
+## Phase polish — v1.1 (docs/improvements-20.md)
+- [x] 20 QoL / mode / combat / HUD polishes shipped

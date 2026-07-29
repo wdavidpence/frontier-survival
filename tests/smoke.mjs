@@ -410,5 +410,106 @@ test('save roundtrip preserves seed inventory edits', () => {
   assert.ok(!bad.ok);
 });
 
+import { MODES, getMode, scalePredatorDamage, isValidMode } from '../js/modes.js';
+import {
+  parseSettings,
+  serializeSettings,
+  sensitivityFromSlider,
+  sliderFromSensitivity,
+  writeSettings,
+  readSettings,
+  SETTINGS_KEY,
+} from '../js/settings.js';
+import { fallDamageFromSpeed } from '../js/survival.js';
+import { RECIPES } from '../js/crafting.js';
+
+test('difficulty modes defined', () => {
+  assert.ok(isValidMode('survival'));
+  assert.ok(isValidMode('cruel'));
+  assert.ok(!isValidMode('creative-x'));
+  assert.ok(getMode('challenging').deathDrops);
+  assert.ok(getMode('cruel').permadeath);
+  assert.ok(getMode('harmless').hungerMult < getMode('survival').hungerMult);
+  assert.ok(scalePredatorDamage(10, 'harmless') < 10);
+  assert.ok(scalePredatorDamage(10, 'cruel') > 10);
+  assert.strictEqual(MODES.survival.id, 'survival');
+});
+
+test('settings roundtrip + sensitivity map', () => {
+  const s = parseSettings(serializeSettings({ mode: 'challenging', sensitivity: 0.003, helpVisible: false }));
+  assert.ok(s.ok);
+  assert.strictEqual(s.data.mode, 'challenging');
+  assert.ok(Math.abs(s.data.sensitivity - 0.003) < 1e-9);
+  assert.strictEqual(s.data.helpVisible, false);
+  const mid = sensitivityFromSlider(5);
+  assert.ok(mid > 0.001 && mid < 0.004);
+  assert.strictEqual(sliderFromSensitivity(mid), 5);
+  const mem = {
+    _d: {},
+    setItem(k, v) { this._d[k] = String(v); },
+    getItem(k) { return this._d[k] ?? null; },
+    removeItem(k) { delete this._d[k]; },
+  };
+  assert.ok(writeSettings({ mode: 'cruel', sensitivity: 0.0022, helpVisible: true }, mem).ok);
+  const loaded = readSettings(mem, SETTINGS_KEY);
+  assert.ok(loaded.ok);
+  assert.strictEqual(loaded.data.mode, 'cruel');
+});
+
+test('fall damage thresholds', () => {
+  assert.strictEqual(fallDamageFromSpeed(5), 0);
+  assert.strictEqual(fallDamageFromSpeed(11), 0);
+  assert.ok(fallDamageFromSpeed(15) > 10);
+  assert.ok(fallDamageFromSpeed(40) <= 80);
+});
+
+test('spear and stone axe craftable', () => {
+  const spear = RECIPES.find((r) => r.id === 'wood_spear');
+  const axe = RECIPES.find((r) => r.id === 'stone_axe');
+  assert.ok(spear);
+  assert.ok(axe);
+  assert.strictEqual(propsOf(ITEM.WOOD_SPEAR).melee, 11);
+  assert.ok(propsOf(ITEM.WOOD_SPEAR).meleeRange > 4);
+  assert.strictEqual(propsOf(ITEM.STONE_AXE).tool, 'axe');
+  let slots = createStarterInventory(0);
+  slots = addItems(slots, ITEM.STICK, 4).slots;
+  slots = addItems(slots, BLOCK.PLANKS, 2).slots;
+  const c1 = craftRecipe(slots, 'wood_spear');
+  assert.ok(c1.ok, c1.error);
+  assert.ok(countItems(c1.slots, ITEM.WOOD_SPEAR) >= 1);
+  slots = addItems(c1.slots, BLOCK.COBBLE, 3).slots;
+  slots = addItems(slots, ITEM.STICK, 2).slots;
+  const c2 = craftRecipe(slots, 'stone_axe');
+  assert.ok(c2.ok, c2.error);
+});
+
+test('cold damage mult slows harmless hypothermia', () => {
+  let harsh = { ...DEFAULT_SURVIVAL, bodyTemp: 31, hunger: 80 };
+  let mild = { ...DEFAULT_SURVIVAL, bodyTemp: 31, hunger: 80 };
+  const envBase = {
+    dt: 1,
+    dayPhase: 0.75,
+    weather: 'snow',
+    blockHeat: 0,
+    sprinting: false,
+    moving: false,
+    inWater: false,
+    sleeping: false,
+    hungerMult: 1,
+  };
+  for (let i = 0; i < 5; i++) {
+    harsh = tickSurvival(harsh, { ...envBase, coldDamageMult: 1.6 });
+    mild = tickSurvival(mild, { ...envBase, coldDamageMult: 0.25 });
+  }
+  assert.ok(harsh.health < mild.health, `${harsh.health} vs ${mild.health}`);
+});
+
+test('starter inventory respects ration count', () => {
+  const a = createStarterInventory(6);
+  assert.strictEqual(countItems(a, ITEM.RATION), 6);
+  const b = createStarterInventory(0);
+  assert.strictEqual(countItems(b, ITEM.RATION), 0);
+});
+
 console.log(`\n${passed} tests passed`);
 if (process.exitCode) process.exit(1);

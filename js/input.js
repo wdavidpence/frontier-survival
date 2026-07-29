@@ -12,7 +12,11 @@ export class Input {
     this.eatPressed = false;
     this.inventoryPressed = false;
     this.quickSavePressed = false;
+    this.dropPressed = false;
+    this.pausePressed = false;
+    this.helpPressed = false;
     this.slot = -1;
+    this.hotbarScroll = 0;
     this.sensitivity = 0.0022;
     this._bound = false;
     /** When true, ignore look/break (UI has focus) */
@@ -28,6 +32,7 @@ export class Input {
     this.el.addEventListener('click', this._onClick);
     this.el.addEventListener('mousedown', this._onMouseDown);
     this.el.addEventListener('mouseup', this._onMouseUp);
+    this.el.addEventListener('wheel', this._onWheel, { passive: false });
     document.addEventListener('mousemove', this._onMouseMove);
     window.addEventListener('blur', this._onBlur);
   }
@@ -39,6 +44,7 @@ export class Input {
     this.el.removeEventListener('click', this._onClick);
     this.el.removeEventListener('mousedown', this._onMouseDown);
     this.el.removeEventListener('mouseup', this._onMouseUp);
+    this.el.removeEventListener('wheel', this._onWheel);
     document.removeEventListener('mousemove', this._onMouseMove);
     window.removeEventListener('blur', this._onBlur);
     this._bound = false;
@@ -56,13 +62,13 @@ export class Input {
       const n = Number(e.code.replace('Digit', ''));
       if (n >= 1 && n <= 9) this.slot = n - 1;
     }
-    if (e.code === 'KeyF') this.usePressed = true;
-    if (e.code === 'KeyR') this.eatPressed = true;
+    if (e.code === 'KeyF' && !this.uiMode) this.usePressed = true;
+    if (e.code === 'KeyR' && !this.uiMode) this.eatPressed = true;
     if (e.code === 'KeyE') this.inventoryPressed = true;
-    if (e.code === 'KeyK') this.quickSavePressed = true;
-    if (e.code === 'Escape') {
-      // pointer lock exits itself; game may also close inventory
-    }
+    if (e.code === 'KeyK' && !this.uiMode) this.quickSavePressed = true;
+    if (e.code === 'KeyQ' && !this.uiMode) this.dropPressed = true;
+    if (e.code === 'KeyH') this.helpPressed = true;
+    if (e.code === 'Escape') this.pausePressed = true;
   };
 
   _onKeyUp = (e) => {
@@ -89,6 +95,13 @@ export class Input {
 
   _onMouseUp = (e) => {
     if (e.button === 0) this.breakHeld = false;
+  };
+
+  _onWheel = (e) => {
+    if (this.uiMode || !this.locked) return;
+    e.preventDefault();
+    if (e.deltaY > 0) this.hotbarScroll += 1;
+    else if (e.deltaY < 0) this.hotbarScroll -= 1;
   };
 
   _onMouseMove = (e) => {
@@ -133,6 +146,30 @@ export class Input {
   consumeQuickSave() {
     const v = this.quickSavePressed;
     this.quickSavePressed = false;
+    return v;
+  }
+
+  consumeDrop() {
+    const v = this.dropPressed;
+    this.dropPressed = false;
+    return v;
+  }
+
+  consumePause() {
+    const v = this.pausePressed;
+    this.pausePressed = false;
+    return v;
+  }
+
+  consumeHelp() {
+    const v = this.helpPressed;
+    this.helpPressed = false;
+    return v;
+  }
+
+  consumeHotbarScroll() {
+    const v = this.hotbarScroll;
+    this.hotbarScroll = 0;
     return v;
   }
 

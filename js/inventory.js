@@ -12,9 +12,10 @@ export function emptySlots(n = INV_SIZE) {
   return Array.from({ length: n }, () => ({ id: null, count: 0 }));
 }
 
-export function createStarterInventory() {
+export function createStarterInventory(rationCount = 3) {
   const slots = emptySlots();
-  slots[0] = { id: ITEM.RATION, count: 3 };
+  const n = Math.max(0, rationCount | 0);
+  if (n > 0) slots[0] = { id: ITEM.RATION, count: n };
   return slots;
 }
 

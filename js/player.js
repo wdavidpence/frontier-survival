@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { isSolid, BLOCK } from './blocks.js';
-import { canSprint, moveSpeedMultiplier } from './survival.js';
+import { canSprint, moveSpeedMultiplier, fallDamageFromSpeed } from './survival.js';
 import { createStarterInventory, getHotbarStack } from './inventory.js';
 import { emptyEquipment } from './equipment.js';
 
@@ -12,7 +12,11 @@ const JUMP_V = 8.2;
 const BASE_SPEED = 5.2;
 
 export class Player {
-  constructor(spawn) {
+  /**
+   * @param {{x:number,y:number,z:number}} spawn
+   * @param {{ starterRations?: number }} [opts]
+   */
+  constructor(spawn, opts = {}) {
     this.position = new THREE.Vector3(spawn.x, spawn.y, spawn.z);
     this.velocity = new THREE.Vector3();
     this.onGround = false;
@@ -20,11 +24,14 @@ export class Player {
     this.pitch = 0;
     this.hotbarIndex = 0;
     this.breaking = null; // {x,y,z, progress}
-    this.slots = createStarterInventory();
+    this.slots = createStarterInventory(opts.starterRations ?? 3);
     this.equipment = emptyEquipment();
     this.inventoryOpen = false;
     this.message = '';
     this.messageT = 0;
+    this._fallVy = 0;
+    /** @type {number} last fall damage this frame (consumed by game) */
+    this.pendingFallDamage = 0;
   }
 
   heldStack() {
@@ -68,6 +75,7 @@ export class Player {
   update(world, input, survival, dt) {
     this.yaw = input.lookX;
     this.pitch = input.lookY;
+    this.pendingFallDamage = 0;
 
     if (this.messageT > 0) this.messageT -= dt;
 
@@ -78,6 +86,11 @@ export class Player {
 
     const slot = input.consumeSlot();
     if (slot >= 0) this.hotbarIndex = slot;
+
+    const scroll = input.consumeHotbarScroll();
+    if (scroll !== 0) {
+      this.hotbarIndex = (this.hotbarIndex + scroll + 9) % 9;
+    }
 
     const forward = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
     const right = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
@@ -103,22 +116,35 @@ export class Player {
     if (inWater) {
       this.velocity.y += (input.wantsJump() ? 12 : -6) * dt;
       this.velocity.y *= (1 - Math.min(1, 4 * dt));
+      this._fallVy = 0;
     } else {
       this.velocity.y -= GRAVITY * dt;
       if (this.onGround && input.wantsJump()) {
         this.velocity.y = JUMP_V;
         this.onGround = false;
       }
+      if (this.velocity.y < 0) this._fallVy = Math.max(this._fallVy, -this.velocity.y);
     }
 
+    const wasGround = this.onGround;
     this._moveAxis(world, dt, 'x');
     this._moveAxis(world, dt, 'y');
     this._moveAxis(world, dt, 'z');
+
+    // landing fall damage
+    if (!inWater && !wasGround && this.onGround && this._fallVy > 0) {
+      const dmg = fallDamageFromSpeed(this._fallVy);
+      if (dmg > 0) this.pendingFallDamage = dmg;
+      this._fallVy = 0;
+    }
+    if (this.onGround || inWater) this._fallVy = 0;
 
     // fall reset if void
     if (this.position.y < -20) {
       this.position.y = 40;
       this.velocity.y = 0;
+      this._fallVy = 0;
+      this.pendingFallDamage = 25;
       this.notify('You scramble back from the void...');
     }
 

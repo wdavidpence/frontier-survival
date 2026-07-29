@@ -28,6 +28,8 @@ import {
   HOTBAR_SIZE,
   hasIngredients,
   cloneSlots,
+  createStarterInventory,
+  emptySlots,
 } from './inventory.js';
 import { visibleRecipes, craftRecipe } from './crafting.js';
 import { FaunaSystem, SPECIES } from './animals.js';
@@ -47,6 +49,14 @@ import {
   readSaveFromStorage,
   clearSaveStorage,
 } from './save.js';
+import { getMode } from './modes.js';
+import {
+  readSettings,
+  writeSettings,
+  sensitivityFromSlider,
+  sliderFromSensitivity,
+  DEFAULT_SETTINGS,
+} from './settings.js';
 
 export class Game {
   /**
@@ -62,7 +72,9 @@ export class Game {
     this.prevHealth = this.survival.health;
     this.paused = false;
     this.started = false;
-    this.mode = 'survival';
+    const settingsRes = readSettings();
+    this.settings = settingsRes.ok ? settingsRes.data : { ...DEFAULT_SETTINGS };
+    this.mode = getMode(this.settings.mode).id;
     this.seed = (Math.random() * 1e6) | 0;
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -89,6 +101,7 @@ export class Game {
     this.fauna = null;
     this._animalMeshes = new Map();
     this.input = new Input(canvas);
+    this.input.sensitivity = this.settings.sensitivity ?? DEFAULT_SETTINGS.sensitivity;
     this._meleeCd = 0;
     this._lastHeat = 0;
     this.atlas = createBlockAtlas();
@@ -101,6 +114,21 @@ export class Game {
     this._autosaveAcc = 0;
     this._autosaveInterval = 40; // seconds
     this._lastSaveStatus = '';
+    this._helpVisible = this.settings.helpVisible !== false;
+    this._helpFadeAcc = 0;
+    this._crossHitT = 0;
+    this._deathHandled = false;
+    this._lightPool = [];
+    this._lightScanAcc = 0;
+
+    // Block selection outline
+    const edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002, 1.002, 1.002));
+    this._outline = new THREE.LineSegments(
+      edgeGeo,
+      new THREE.LineBasicMaterial({ color: 0xf0e0c0, transparent: true, opacity: 0.85 }),
+    );
+    this._outline.visible = false;
+    this.scene.add(this._outline);
 
     this._onResize = () => this.resize();
     window.addEventListener('resize', this._onResize);
@@ -108,6 +136,7 @@ export class Game {
     window.addEventListener('beforeunload', this._onBeforeUnload);
 
     this._bindInventoryUi();
+    this._bindPauseUi();
 
     this._last = performance.now();
     this._raf = 0;
@@ -146,12 +175,67 @@ export class Game {
     });
   }
 
+  _bindPauseUi() {
+    document.getElementById('btn-resume')?.addEventListener('click', () => this.setPaused(false));
+    document.getElementById('btn-pause-save')?.addEventListener('click', () => {
+      this.saveGame();
+    });
+    const sens = document.getElementById('sens-slider');
+    if (sens) {
+      sens.value = String(sliderFromSensitivity(this.input.sensitivity));
+      sens.addEventListener('input', () => {
+        const v = sensitivityFromSlider(sens.value);
+        this.input.sensitivity = v;
+        this.settings.sensitivity = v;
+        writeSettings(this.settings);
+        const lab = document.getElementById('sens-label');
+        if (lab) lab.textContent = String(sens.value);
+      });
+    }
+  }
+
+  modeDef() {
+    return getMode(this.mode);
+  }
+
+  setMode(id) {
+    const m = getMode(id);
+    this.mode = m.id;
+    this.settings.mode = m.id;
+    writeSettings(this.settings);
+  }
+
+  setPaused(p) {
+    if (!this.started || this.survival?.dead) return;
+    this.paused = !!p;
+    const panel = document.getElementById('pause-screen');
+    if (this.paused) {
+      this.setInventoryOpen(false);
+      if (document.pointerLockElement) document.exitPointerLock();
+      this.input.uiMode = true;
+      this.input.breakHeld = false;
+      panel?.classList.remove('hidden');
+      const sens = document.getElementById('sens-slider');
+      if (sens) {
+        sens.value = String(sliderFromSensitivity(this.input.sensitivity));
+        const lab = document.getElementById('sens-label');
+        if (lab) lab.textContent = String(sens.value);
+      }
+      const modeEl = document.getElementById('pause-mode');
+      if (modeEl) modeEl.textContent = this.modeDef().name;
+    } else {
+      panel?.classList.add('hidden');
+      if (!this.player?.inventoryOpen) this.input.uiMode = false;
+      this.audio.ui();
+    }
+  }
+
   start(seed = this.seed) {
     this.seed = seed;
     this._bootWorld({
       seed,
       freshPlayer: true,
-      notify: 'Hunt wildlife for meat, cook at campfires, watch for wolves at night. E craft · F cook · K save',
+      notify: 'Hunt wildlife · craft a spear · cook at campfires · watch wolves. E craft · F use · K save · Esc pause',
     });
   }
 
@@ -190,7 +274,7 @@ export class Game {
 
     if (freshPlayer || !saveData) {
       const spawn = this.world.findSpawn();
-      this.player = new Player(spawn);
+      this.player = new Player(spawn, { starterRations: this.modeDef().starterRations });
       this.survival = { ...DEFAULT_SURVIVAL };
       this.time = new GameTime({ dayLengthSec: 420 });
     } else {
@@ -213,28 +297,33 @@ export class Game {
       this.time.elapsed = saveData.time.elapsed || 0;
       this.time.weather = saveData.time.weather || 'clear';
       this.time.weatherTimer = saveData.time.weatherTimer ?? 60;
-      this.mode = saveData.mode || 'survival';
+      this.mode = saveData.mode || this.mode || 'survival';
     }
 
     this.prevHealth = this.survival.health;
+    this._deathHandled = false;
     // keep spawn safe from wolves/hares packed on face
     if (this.fauna && this.player) {
       this.fauna.clearNear(this.player.position.x, this.player.position.z, 16);
     }
     this.started = true;
     this.paused = false;
+    this.setPaused(false);
     this.input.bind();
     this.setInventoryOpen(false);
+    this._applyHelpVisibility();
+    this._helpFadeAcc = 0;
     if (notify) {
       this.player.notify(notify, 7);
     } else if (freshPlayer) {
-      this.player.notify('Hunt hares & deer for meat. Cook at a campfire. Wolves hunt you at night.', 8);
+      this.player.notify(`${this.modeDef().name} mode. Hunt hares & deer. Craft a spear. Wolves hunt at night.`, 8);
     }
     if (!this._raf) this._loop();
     this.hud.hideTitle?.();
     this._invNeedsPaint = true;
     this._autosaveAcc = 0;
     this._syncAnimalMeshes();
+    this._scanLights(true);
   }
 
   captureState() {
@@ -263,11 +352,11 @@ export class Game {
     };
   }
 
-  saveGame({ quiet = false } = {}) {
+  saveGame({ quiet = false, allowDead = false } = {}) {
     if (!this.started || !this.player || !this.world) {
       return { ok: false, error: 'not started' };
     }
-    if (this.survival.dead) {
+    if (this.survival.dead && !allowDead) {
       return { ok: false, error: 'dead' };
     }
     const json = serializeSave(this.captureState());
@@ -298,6 +387,8 @@ export class Game {
   newGame() {
     clearSaveStorage();
     this.seed = (Math.random() * 1e6) | 0;
+    // keep selected mode from settings / title UI
+    this.mode = getMode(this.settings.mode).id;
     this.start(this.seed);
     this.hud.refreshContinue?.();
   }
@@ -316,14 +407,34 @@ export class Game {
     let dt = (now - this._last) / 1000;
     this._last = now;
     dt = Math.min(0.05, dt);
+    // Always process pause / help keys
+    if (this.started && this.input.consumePause()) {
+      if (this.player?.inventoryOpen) this.setInventoryOpen(false);
+      else if (!this.survival.dead) this.setPaused(!this.paused);
+    }
+    if (this.input.consumeHelp()) {
+      this._helpVisible = !this._helpVisible;
+      this.settings.helpVisible = this._helpVisible;
+      writeSettings(this.settings);
+      this._applyHelpVisibility();
+    }
     if (!this.paused && this.started) this.update(dt);
-    this.render();
+    else if (this.started) this.render();
+    else this.render();
   };
+
+  _applyHelpVisibility() {
+    const help = document.getElementById('help');
+    if (!help) return;
+    help.classList.toggle('hidden', !this._helpVisible);
+    help.classList.toggle('faded', false);
+  }
 
   setInventoryOpen(open) {
     if (!this.player) return;
+    if (open) this.setPaused(false);
     this.player.inventoryOpen = open;
-    this.input.uiMode = open;
+    this.input.uiMode = open || this.paused;
     const panel = document.getElementById('inventory-screen');
     if (open) {
       panel?.classList.remove('hidden');
@@ -335,7 +446,7 @@ export class Game {
     } else {
       panel?.classList.add('hidden');
       // autosave when closing pack
-      if (this.started && !this.survival.dead) this.saveGame({ quiet: true });
+      if (this.started && !this.survival.dead && !this.paused) this.saveGame({ quiet: true });
     }
   }
 
@@ -370,10 +481,20 @@ export class Game {
 
     // survival keeps ticking even in inventory (you're still cold/hungry)
     this.time.tick(dt);
+    this._crossHitT = Math.max(0, this._crossHitT - dt);
+
+    const mode = this.modeDef();
 
     let move = { moved: false, sprinting: false, inWater: false };
     if (!this.player.inventoryOpen) {
       move = this.player.update(this.world, this.input, this.survival, dt);
+      if (this.player.pendingFallDamage > 0) {
+        const dmg = this.player.pendingFallDamage;
+        this.player.pendingFallDamage = 0;
+        this.survival = applyDamage(this.survival, dmg, 'fall');
+        this.audio.hurt();
+        this.player.notify(dmg > 20 ? 'Hard landing!' : 'Oof — rough landing.', 1.6);
+      }
     } else {
       // still update message timer
       if (this.player.messageT > 0) this.player.messageT -= dt;
@@ -419,7 +540,8 @@ export class Game {
       moving: move.moved,
       inWater: move.inWater,
       sleeping: false,
-      hungerMult: this.mode === 'harmless' ? 0.15 : 1,
+      hungerMult: mode.hungerMult,
+      coldDamageMult: mode.coldDamageMult,
     });
 
     // fauna
@@ -433,6 +555,10 @@ export class Game {
           z: this.player.position.z,
         },
         this.time.isNight(),
+        {
+          senseMult: mode.predatorSenseMult,
+          damageMult: mode.predatorDamageMult,
+        },
       );
       if (fa.playerDamage > 0) {
         this.survival = applyDamage(this.survival, fa.playerDamage, 'wolf');
@@ -451,10 +577,20 @@ export class Game {
         this.audio.death();
         this._deathSfxPlayed = true;
       }
-      this.hud.showDeath?.(this.survival.causeOfDeath);
+      if (!this._deathHandled) {
+        this._deathHandled = true;
+        this._onDeath();
+      }
+      this.hud.showDeath?.(this.survival.causeOfDeath, {
+        mode: this.mode,
+        permadeath: mode.permadeath,
+        dropped: mode.deathDrops,
+      });
+      this._updateHud();
       return;
     }
     this._deathSfxPlayed = false;
+    this._deathHandled = false;
 
     if (!this.player.inventoryOpen) {
       if (move.moved && this.player.onGround) {
@@ -468,6 +604,19 @@ export class Game {
       this._handlePlace();
       this._handleEat();
       this._handleCookUse();
+      this._handleDrop();
+      this._updateOutlineAndPrompt();
+    } else if (this._outline) {
+      this._outline.visible = false;
+    }
+
+    // auto-fade help after a while
+    if (this._helpVisible && this.input.locked) {
+      this._helpFadeAcc += dt;
+      if (this._helpFadeAcc > 45) {
+        const help = document.getElementById('help');
+        help?.classList.add('faded');
+      }
     }
 
     // camera
@@ -483,6 +632,11 @@ export class Game {
 
     this.world.flushDirty();
     this.fx.tick(dt);
+    this._lightScanAcc += dt;
+    if (this._lightScanAcc > 0.5) {
+      this._lightScanAcc = 0;
+      this._scanLights(false);
+    }
     this._updateLighting();
     this._updateHud();
     if (this.player.inventoryOpen && this._invNeedsPaint) this._paintInventory();
@@ -495,20 +649,149 @@ export class Game {
     }
   }
 
+  _onDeath() {
+    const mode = this.modeDef();
+    if (mode.deathDrops && this.player) {
+      this.player.slots = emptySlots();
+      this.player.equipment = emptyEquipment();
+      this.player.notify('Your pack spilled into the wild.', 4);
+    }
+    if (mode.permadeath) {
+      clearSaveStorage();
+      this.hud.refreshContinue?.();
+    } else {
+      // keep world edits on death; survival restored on respawn
+      this.saveGame({ quiet: true, allowDead: true });
+    }
+  }
+
+  _handleDrop() {
+    if (!this.input.consumeDrop()) return;
+    const held = this.player.heldStack();
+    if (!held || held.id == null || held.count <= 0) {
+      this.player.notify('Nothing to drop.');
+      return;
+    }
+    const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+    if (!cons.ok) return;
+    this.player.slots = cons.slots;
+    this.audio.ui();
+    this.player.notify(`Dropped 1 ${displayName(cons.id)}.`, 1.4);
+  }
+
+  _compassHeading() {
+    // yaw 0 looks -Z (north-ish); map to N/E/S/W
+    let deg = ((-this.player.yaw) * 180) / Math.PI;
+    deg = ((deg % 360) + 360) % 360;
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const idx = Math.round(deg / 45) % 8;
+    return dirs[idx];
+  }
+
+  _updateOutlineAndPrompt() {
+    const origin = this.player.eyePosition();
+    const dir = this.player.lookDir();
+    const hit = this.world.raycast(origin, dir, 6);
+    const prompt = document.getElementById('prompt');
+    let text = '';
+
+    if (hit && hit.id !== BLOCK.BEDROCK) {
+      this._outline.visible = true;
+      this._outline.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
+      if (hit.id === BLOCK.BED) text = 'F — Sleep (if warm & fed)';
+      else if (hit.id === BLOCK.CAMPFIRE) text = 'Hold meat · F cook near heat';
+    } else {
+      this._outline.visible = false;
+    }
+
+    const held = this.player.heldStack();
+    const p = propsOf(held.id);
+    if (!text && p?.equipSlot) text = `F — Equip ${p.name}`;
+    if (!text && p?.cookable && (this._lastHeat || 0) >= 8) text = `F — Cook ${p.name}`;
+    if (!text && p?.cookable) text = 'F — Cook (need campfire heat)';
+
+    // animal under crosshair
+    const range = p?.meleeRange || 3.6;
+    const ah = this.fauna?.rayHit(origin, dir, range);
+    if (ah) {
+      const spec = SPECIES[ah.animal.type];
+      text = `LMB — Attack ${spec?.name || 'animal'} (${Math.ceil(ah.animal.hp)} hp)`;
+      this._outline.visible = false;
+    }
+
+    if (prompt) prompt.textContent = this.player.inventoryOpen ? '' : text;
+  }
+
+  /**
+   * Place/update PointLights near player for torches & campfires.
+   */
+  _scanLights(force) {
+    if (!this.world || !this.player) return;
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const found = [];
+    const R = 14;
+    for (let y = py - 6; y <= py + 8; y++) {
+      for (let z = pz - R; z <= pz + R; z++) {
+        for (let x = px - R; x <= px + R; x++) {
+          const id = this.world.getBlock(x, y, z);
+          if (id === BLOCK.TORCH || id === BLOCK.CAMPFIRE) {
+            found.push({ x, y, z, id });
+          }
+        }
+      }
+    }
+    // sort by distance, keep nearest 8
+    found.sort((a, b) => {
+      const da = (a.x - px) ** 2 + (a.y - py) ** 2 + (a.z - pz) ** 2;
+      const db = (b.x - px) ** 2 + (b.y - py) ** 2 + (b.z - pz) ** 2;
+      return da - db;
+    });
+    const keep = found.slice(0, 8);
+    while (this._lightPool.length < keep.length) {
+      const L = new THREE.PointLight(0xffaa55, 1, 14, 2);
+      this.scene.add(L);
+      this._lightPool.push(L);
+    }
+    for (let i = 0; i < this._lightPool.length; i++) {
+      const L = this._lightPool[i];
+      if (i < keep.length) {
+        const b = keep[i];
+        L.visible = true;
+        L.position.set(b.x + 0.5, b.y + 0.85, b.z + 0.5);
+        if (b.id === BLOCK.CAMPFIRE) {
+          L.color.setHex(0xff8844);
+          L.intensity = this.time.isNight() ? 1.55 : 0.9;
+          L.distance = 16;
+        } else {
+          L.color.setHex(0xffcc77);
+          L.intensity = this.time.isNight() ? 1.1 : 0.55;
+          L.distance = 11;
+        }
+      } else {
+        L.visible = false;
+      }
+    }
+  }
+
   _handleMining(dt) {
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
 
     // Melee animals on click-hold with cooldown
     if (this.input.breakHeld && this.fauna && this._meleeCd <= 0) {
-      const ah = this.fauna.rayHit(origin, dir, 3.6);
+      const heldP = propsOf(this.player.heldId());
+      const reach = heldP?.meleeRange || 3.6;
+      const ah = this.fauna.rayHit(origin, dir, reach);
       if (ah) {
         this.player.breaking = null;
-        const held = propsOf(this.player.heldId());
+        const held = heldP;
         const dmg = held?.melee || 4;
         const res = this.fauna.damageAnimal(ah.animal, dmg);
         this.audio.breakBlock();
-        this._meleeCd = 0.35;
+        this._meleeCd = held?.tool === 'weapon' ? 0.42 : 0.35;
+        this._crossHitT = 0.22;
         this.audio.hit?.();
         if (res?.killed) {
           if (res.meat > 0) {
@@ -549,7 +832,7 @@ export class Game {
       if (this.player.breaking.progress >= 1) {
         let drop = dropForBlock(hit.id);
         if (hit.id === BLOCK.LEAVES) {
-          drop = Math.random() < 0.12 ? ITEM.STICK : null;
+          drop = Math.random() < 0.18 ? ITEM.STICK : null;
         }
         const col = getColor(hit.id, 'side');
         this.fx.burst(hit.x, hit.y, hit.z, col, 12);
@@ -611,8 +894,14 @@ export class Game {
 
     if (this.world.setBlock(px, py, pz, blockId)) {
       this.audio.placeBlock();
-      if (blockId === BLOCK.CAMPFIRE) this.player.notify('Campfire lit. Stay close — heat fights the cold.');
-      if (blockId === BLOCK.TORCH) this.player.notify('Torch placed.');
+      if (blockId === BLOCK.CAMPFIRE) {
+        this.player.notify('Campfire lit. Stay close — heat fights the cold.');
+        this._scanLights(true);
+      }
+      if (blockId === BLOCK.TORCH) {
+        this.player.notify('Torch placed.');
+        this._scanLights(true);
+      }
       if (blockId === BLOCK.BED) this.player.notify('Bed placed. Look at it and press F at night to sleep.');
     } else {
       // refund
@@ -938,9 +1227,20 @@ export class Game {
     const tempLabel = document.getElementById('temp-label');
     if (tempLabel) tempLabel.textContent = `${s.bodyTemp.toFixed(1)}°C`;
 
+    // critical pulses
+    const meters = document.getElementById('meters');
+    if (meters) {
+      meters.classList.toggle('crit-health', s.health < 28);
+      meters.classList.toggle('crit-hunger', s.hunger < 18);
+      meters.classList.toggle('crit-cold', s.bodyTemp < 34.2);
+    }
+
     const status = document.getElementById('status-line');
-    if (status) {
+    if (status && this.player) {
       const bits = [];
+      bits.push(this.modeDef().name);
+      bits.push(`Seed ${this.seed}`);
+      bits.push(this._compassHeading());
       bits.push(`Day ${this.time.dayNumber}`);
       bits.push(this.time.isNight() ? 'Night' : 'Day');
       bits.push(this.time.weather);
@@ -998,8 +1298,12 @@ export class Game {
     }
 
     const cross = document.getElementById('crosshair');
-    if (cross && this._target && !this.player.inventoryOpen) cross.classList.add('hit');
-    else if (cross) cross.classList.remove('hit');
+    if (cross) {
+      const animalAim = this._crossHitT > 0;
+      const blockAim = !!(this._target && !this.player.inventoryOpen);
+      cross.classList.toggle('hit', blockAim || animalAim);
+      cross.classList.toggle('strike', animalAim);
+    }
   }
 
   _tempBar(bodyTemp) {
@@ -1012,13 +1316,39 @@ export class Game {
 
   respawn() {
     if (!this.world) return;
+    const mode = this.modeDef();
+    if (mode.permadeath) {
+      // full new world
+      this.hud.hideDeath?.();
+      this.newGame();
+      return;
+    }
     const spawn = this.world.findSpawn();
-    this.player = new Player(spawn);
+    // keep inventory if not death-drop mode; death already cleared slots if needed
+    const keepSlots = this.player?.slots;
+    const keepEq = this.player?.equipment;
+    this.player = new Player(spawn, { starterRations: 0 });
+    if (keepSlots) this.player.slots = cloneSlots(keepSlots);
+    if (keepEq) this.player.equipment = { ...emptyEquipment(), ...keepEq };
+    // if inventory empty after death drops, give a single ration on survival modes
+    if (countItems(this.player.slots, ITEM.RATION) === 0 && !mode.deathDrops) {
+      this.player.slots = createStarterInventory(mode.starterRations);
+    } else if (mode.deathDrops && countItems(this.player.slots, ITEM.RATION) === 0) {
+      this.player.slots = createStarterInventory(1);
+    }
     this.survival = { ...DEFAULT_SURVIVAL };
     this.prevHealth = 100;
+    this._deathHandled = false;
+    this.fauna?.clearNear(spawn.x, spawn.z, 14);
     this.hud.hideDeath?.();
     this.setInventoryOpen(false);
-    this.player.notify('You wake cold and hungry. Mine, craft, light a fire.');
+    this.player.notify(
+      mode.deathDrops
+        ? 'You wake with almost nothing. Rebuild your pack.'
+        : 'You wake cold and hungry. Mine, craft, light a fire.',
+    );
+    this.saveGame({ quiet: true });
+    this._scanLights(true);
   }
 
   dispose() {
