@@ -66,6 +66,18 @@ import {
 } from './achievements.js';
 import { tickSpoilage } from './spoilage.js';
 import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js';
+import { wearTool, durabilityRatio } from './durability.js';
+import {
+  chestKey,
+  getChestSlots,
+  setChestSlots,
+  exportChests,
+  importChests,
+  depositOne,
+  withdrawOne,
+  emptyChestSlots,
+  CHEST_SIZE,
+} from './chests.js';
 
 export class Game {
   /**
@@ -143,6 +155,10 @@ export class Game {
     this._wasInWater = false;
     this._rain = null;
     this._bowCd = 0;
+    this._chests = new Map();
+    this._chestOpenKey = null;
+    this._recipeFilter = '';
+    this._fishCd = 0;
 
     // Block selection outline
     const edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002, 1.002, 1.002));
@@ -179,8 +195,69 @@ export class Game {
       this.saveGame();
       this._paintInventory();
     });
-
+    document.getElementById('btn-export-save')?.addEventListener('click', () => this.exportSaveFile());
+    document.getElementById('btn-import-save')?.addEventListener('click', () => {
+      document.getElementById('import-save-file')?.click();
+    });
+    document.getElementById('import-save-file')?.addEventListener('change', (e) => {
+      const f = e.target.files?.[0];
+      if (f) this.importSaveFile(f);
+      e.target.value = '';
+    });
+    document.getElementById('recipe-filter')?.addEventListener('input', (e) => {
+      this._recipeFilter = e.target.value || '';
+      this._invNeedsPaint = true;
+      this._paintInventory();
+    });
+    document.getElementById('btn-close-chest')?.addEventListener('click', () => this._closeChest());
+    document.getElementById('btn-chest-deposit')?.addEventListener('click', () => {
+      if (!this._chestOpenKey || !this.player) return;
+      const slots = getChestSlots(this._chests, this._chestOpenKey);
+      const res = depositOne(this.player.slots, this.player.hotbarIndex, slots);
+      if (!res.ok) {
+        this.player.notify(res.error === 'chest full' ? 'Chest full.' : 'Nothing in selected slot.');
+        return;
+      }
+      this.player.slots = res.playerSlots;
+      setChestSlots(this._chests, this._chestOpenKey, res.chestSlots);
+      this._paintChest();
+      this.audio.ui();
+    });
+    document.getElementById('chest-screen')?.addEventListener('click', (e) => {
+      const c = e.target.closest('[data-chest]');
+      if (!c || !this._chestOpenKey) return;
+      const idx = Number(c.getAttribute('data-chest'));
+      const slots = getChestSlots(this._chests, this._chestOpenKey);
+      const res = withdrawOne(this.player.slots, slots, idx);
+      if (!res.ok) {
+        this.player.notify(res.error === 'inventory full' ? 'Inventory full.' : 'Empty.');
+        return;
+      }
+      this.player.slots = res.playerSlots;
+      setChestSlots(this._chests, this._chestOpenKey, res.chestSlots);
+      this._paintChest();
+      this.audio.ui();
+    });
+    // deposit: click inv slot while chest open — also on inventory
     panel?.addEventListener('click', (e) => {
+      if (this._chestOpenKey) {
+        const slotEl = e.target.closest('[data-slot]');
+        if (slotEl) {
+          const idx = Number(slotEl.getAttribute('data-slot'));
+          const slots = getChestSlots(this._chests, this._chestOpenKey);
+          const res = depositOne(this.player.slots, idx, slots);
+          if (!res.ok) {
+            this.player.notify(res.error === 'chest full' ? 'Chest full.' : 'Nothing.');
+            return;
+          }
+          this.player.slots = res.playerSlots;
+          setChestSlots(this._chests, this._chestOpenKey, res.chestSlots);
+          this._paintChest();
+          this._paintInventory();
+          this.audio.ui();
+          return;
+        }
+      }
       const recipeBtn = e.target.closest('[data-recipe]');
       if (recipeBtn) {
         this._tryCraft(recipeBtn.getAttribute('data-recipe'));
@@ -330,6 +407,7 @@ export class Game {
         this._achievements.unlocked = { ...saveData.achievements };
       }
       this._crops = new Map(Array.isArray(saveData.crops) ? saveData.crops : []);
+      this._chests = importChests(saveData.chests || []);
     }
 
     this.prevHealth = this.survival.health;
@@ -546,6 +624,112 @@ export class Game {
     return true;
   }
 
+
+  _tryFish() {
+    if (this._fishCd > 0) {
+      this.player.notify('Wait to cast again…');
+      return;
+    }
+    const p = this.player.position;
+    let near = false;
+    for (let dx = -2; dx <= 2 && !near; dx++) {
+      for (let dz = -2; dz <= 2 && !near; dz++) {
+        if (this.world.getBlock(p.x + dx, p.y, p.z + dz) === BLOCK.WATER) near = true;
+        if (this.world.getBlock(p.x + dx, p.y - 1, p.z + dz) === BLOCK.WATER) near = true;
+      }
+    }
+    if (!near) {
+      this.player.notify('Stand next to water to fish.');
+      return;
+    }
+    this._fishCd = 2.2;
+    const w = wearTool(this.player.slots, this.player.hotbarIndex, 1);
+    this.player.slots = w.slots;
+    if (w.broken) this.player.notify('Fishing rod snapped!');
+    if (Math.random() < 0.55) {
+      const add = addItems(this.player.slots, ITEM.RAW_FISH, 1);
+      this.player.slots = add.slots;
+      this.audio.splash?.() || this.audio.eat();
+      this.player.notify('Caught a fish! Cook it at a fire.', 3);
+      this._unlock('first_fish');
+    } else {
+      this.audio.ui();
+      this.player.notify('Nothing bites…', 1.5);
+    }
+  }
+
+  _openChest(key) {
+    this._chestOpenKey = key;
+    if (!this._chests.has(key)) this._chests.set(key, emptyChestSlots());
+    this.setInventoryOpen(false);
+    const panel = document.getElementById('chest-screen');
+    panel?.classList.remove('hidden');
+    this.input.uiMode = true;
+    if (document.pointerLockElement) document.exitPointerLock();
+    this._paintChest();
+    this.audio.ui();
+  }
+
+  _closeChest() {
+    if (!this._chestOpenKey) return;
+    this._chestOpenKey = null;
+    document.getElementById('chest-screen')?.classList.add('hidden');
+    if (!this.player?.inventoryOpen && !this.paused) this.input.uiMode = false;
+    this.saveGame({ quiet: true });
+  }
+
+  _paintChest() {
+    const bag = document.getElementById('chest-slots');
+    if (!bag || !this._chestOpenKey) return;
+    const slots = getChestSlots(this._chests, this._chestOpenKey);
+    bag.innerHTML = '';
+    slots.forEach((s, i) => {
+      const el = document.createElement('div');
+      el.className = 'inv-slot';
+      el.dataset.chest = String(i);
+      if (s.id != null && s.count > 0) {
+        const pr = propsOf(s.id);
+        const col = pr?.color || [0.5, 0.5, 0.5];
+        el.style.background = `rgb(${(col[0]*255)|0},${(col[1]*255)|0},${(col[2]*255)|0})`;
+        el.innerHTML = `<span class="inv-count">${s.count}</span><span class="inv-name">${displayName(s.id)}</span>`;
+      } else el.classList.add('empty');
+      bag.appendChild(el);
+    });
+  }
+
+  exportSaveFile() {
+    if (!this.started || !this.player) {
+      this.player?.notify?.('Nothing to export.');
+      return;
+    }
+    const json = serializeSave(this.captureState());
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `frontier-survival-seed-${this.seed}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    this.player.notify('Save exported.', 2);
+    this.audio.ui();
+  }
+
+  importSaveFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      import('./save.js').then(({ parseSavePayload, writeSaveToStorage }) => {
+        const parsed = parseSavePayload(String(reader.result || ''));
+        if (!parsed.ok) {
+          alert('Invalid save: ' + parsed.error);
+          return;
+        }
+        writeSaveToStorage(JSON.stringify(parsed.data));
+        this.loadGame();
+        this.player?.notify('Save imported.', 3);
+      });
+    };
+    reader.readAsText(file);
+  }
+
   captureState() {
     return {
       seed: this.seed,
@@ -572,6 +756,7 @@ export class Game {
       stats: this._stats || { kills: 0, wolfKills: 0, arrowsFired: 0 },
       achievements: this._achievements?.unlocked || {},
       crops: [...(this._crops || new Map()).entries()],
+      chests: exportChests(this._chests),
     };
   }
 
@@ -655,7 +840,10 @@ export class Game {
 
   setInventoryOpen(open) {
     if (!this.player) return;
-    if (open) this.setPaused(false);
+    if (open) {
+      this.setPaused(false);
+      this._closeChest();
+    }
     this.player.inventoryOpen = open;
     this.input.uiMode = open || this.paused;
     const panel = document.getElementById('inventory-screen');
@@ -691,6 +879,9 @@ export class Game {
     if (recipeId === 'bow') this._unlock('first_bow');
     if (recipeId === 'smelt_iron') this._unlock('first_iron');
     if (recipeId === 'bread') this._unlock('first_bread');
+    if (recipeId === 'boat') this._unlock('first_boat');
+    if (recipeId === 'shield') this._unlock('first_shield');
+    if (recipeId === 'chest') this._unlock('first_chest');
     if (recipeId === 'cook_meat') this._unlock('first_cook');
     this._invNeedsPaint = true;
     this._paintInventory();
@@ -700,7 +891,8 @@ export class Game {
     this.audio.resume();
 
     if (this.input.consumeInventory()) {
-      this.setInventoryOpen(!this.player.inventoryOpen);
+      if (this._chestOpenKey) this._closeChest();
+      else this.setInventoryOpen(!this.player.inventoryOpen);
     }
     if (this.input.consumeQuickSave()) {
       this.saveGame();
@@ -710,6 +902,7 @@ export class Game {
     this.time.tick(dt);
     this._crossHitT = Math.max(0, this._crossHitT - dt);
     this._bowCd = Math.max(0, this._bowCd - dt);
+    this._fishCd = Math.max(0, this._fishCd - dt);
     this._fpsFrames++;
     this._fpsAcc += dt;
     if (this._fpsAcc >= 0.5) {
@@ -823,14 +1016,24 @@ export class Game {
         },
         this.time.isNight(),
         {
-          senseMult: mode.predatorSenseMult,
+          senseMult: mode.predatorSenseMult * (move.crouching ? 0.55 : 1),
           damageMult: mode.predatorDamageMult,
         },
       );
       if (fa.playerDamage > 0) {
-        this.survival = applyDamage(this.survival, fa.playerDamage, 'wolf');
+        let dmg = fa.playerDamage;
+        const held = propsOf(this.player.heldId());
+        if (held?.tool === 'shield') {
+          dmg *= 0.35;
+          const w = wearTool(this.player.slots, this.player.hotbarIndex, 2);
+          this.player.slots = w.slots;
+          if (w.broken) this.player.notify('Your shield shattered!');
+          else this.player.notify('Shield blocks the bite!');
+        } else {
+          this.player.notify('A wolf mauls you!');
+        }
+        this.survival = applyDamage(this.survival, dmg, 'wolf');
         this.audio.hurt();
-        this.player.notify('A wolf mauls you!');
       }
       this._syncAnimalMeshes();
     }
@@ -996,6 +1199,10 @@ export class Game {
     if (!text && p?.cookable) text = 'F — Cook (need campfire heat)';
     if (!text && p?.tool === 'bow') text = 'LMB — Shoot arrow';
     if (!text && p?.plantable) text = 'RMB on soil — Plant seeds';
+    if (!text && p?.tool === 'rod') text = 'F near water — Fish';
+    if (!text && p?.tool === 'shield') text = 'Hold to block wolf bites';
+    if (!text && held?.id === ITEM.FERTILIZER) text = 'F on crop — Fertilize';
+    if (hit && hit.id === BLOCK.CHEST) text = 'F — Open chest';
 
     // animal under crosshair
     const range = p?.meleeRange || 3.6;
@@ -1128,7 +1335,11 @@ export class Game {
         let drop = dropForBlock(hit.id);
         let dropCount = 1;
         if (hit.id === BLOCK.LEAVES) {
-          drop = Math.random() < 0.18 ? ITEM.STICK : (Math.random() < 0.08 ? ITEM.SEEDS : null);
+          const r = Math.random();
+          if (r < 0.06) drop = ITEM.APPLE;
+          else if (r < 0.24) drop = ITEM.STICK;
+          else if (r < 0.32) drop = ITEM.SEEDS;
+          else drop = null;
         }
         if (hit.id === BLOCK.GRASS && Math.random() < 0.12) {
           // bonus seeds when ripping grass
@@ -1164,6 +1375,11 @@ export class Game {
         this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR);
         this.audio.breakBlock();
         this.player.breaking = null;
+        {
+          const w = wearTool(this.player.slots, this.player.hotbarIndex, 1);
+          this.player.slots = w.slots;
+          if (w.broken) this.player.notify('Tool broke!');
+        }
         if (drop && drop !== BLOCK.AIR) {
           const res = addItems(this.player.slots, drop, dropCount);
           this.player.slots = res.slots;
@@ -1255,6 +1471,13 @@ export class Game {
         this._scanLights(true);
       }
       if (blockId === BLOCK.BED) this.player.notify('Bed placed. Look at it and press F at night to sleep.');
+      if (blockId === BLOCK.CHEST) {
+        this.player.notify('Chest placed. Look and press F to open.');
+        this._unlock('first_chest');
+        const k = chestKey(px, py, pz);
+        if (!this._chests.has(k)) this._chests.set(k, emptyChestSlots());
+      }
+      if (blockId === BLOCK.LADDER) this.player.notify('Ladder placed. Walk into it to climb.');
     } else {
       // refund
       const refund = addItems(this.player.slots, held, 1);
@@ -1266,6 +1489,18 @@ export class Game {
     if (!this.input.consumeEat()) return;
     const held = this.player.heldStack();
     const p = propsOf(held.id);
+    if (p?.heal && held.count > 0) {
+      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+      if (!cons.ok) return;
+      this.player.slots = cons.slots;
+      this.survival = {
+        ...this.survival,
+        health: Math.min(this.survival.maxHealth, this.survival.health + p.heal),
+      };
+      this.audio.eat();
+      this.player.notify(`Applied ${p.name}. +${p.heal} health.`, 2.5);
+      return;
+    }
     if (p?.edible && held.count > 0) {
       const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
       if (!cons.ok) return;
@@ -1305,12 +1540,38 @@ export class Game {
     this.player.notify('No safe food. Hunt, cook at fire (E), or eat rations (R).');
   }
 
-  /** F: cook meat / equip clothes / sleep on bed */
+  /** F: cook meat / equip clothes / sleep on bed / chest / fish / fertilize */
   _handleCookUse() {
     if (!this.input.consumeUse()) return;
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
     const hit = this.world.raycast(origin, dir, 5);
+
+    // Open chest
+    if (hit && hit.id === BLOCK.CHEST) {
+      this._openChest(chestKey(hit.x, hit.y, hit.z));
+      return;
+    }
+
+    // Fertilizer on crop
+    const held0 = this.player.heldStack();
+    if (hit && hit.id === BLOCK.CROP && held0.id === ITEM.FERTILIZER) {
+      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+      if (!cons.ok) return;
+      this.player.slots = cons.slots;
+      const key = this._cropKey(hit.x, hit.y, hit.z);
+      const g = Math.min(1, (this._crops.get(key) || 0) + 0.45);
+      this._crops.set(key, g);
+      this.audio.placeBlock();
+      this.player.notify(g >= 1 ? 'Crop fully fertilized!' : 'Crop grows faster.', 2);
+      return;
+    }
+
+    // Fishing
+    if (propsOf(held0.id)?.tool === 'rod') {
+      this._tryFish();
+      return;
+    }
 
     // Sleep on bed
     if (hit && hit.id === BLOCK.BED) {
@@ -1506,7 +1767,9 @@ export class Game {
     const recipesEl = document.getElementById('recipe-list');
     if (recipesEl) {
       recipesEl.innerHTML = '';
+      const filter = (this._recipeFilter || '').toLowerCase().trim();
       for (const r of visibleRecipes()) {
+        if (filter && !(`${r.name} ${r.desc || ''} ${r.id}`.toLowerCase().includes(filter))) continue;
         const has = hasIngredients(this.player.slots, r.ingredients);
         const heatOk = !r.requiresHeat || (this._lastHeat || 0) >= r.requiresHeat;
         const can = has && heatOk;
@@ -1552,6 +1815,12 @@ export class Game {
     if (this.time.isNight()) {
       this.ambient.color.set(0x223355);
       this.sun.intensity = 0.08;
+      const held = this.player ? propsOf(this.player.heldId()) : null;
+      // held torch slight night vision
+      if (held && this.player.heldId() === BLOCK.TORCH) {
+        this.ambient.intensity = Math.max(this.ambient.intensity, 0.28);
+        this.sun.intensity = 0.16;
+      }
     } else {
       this.ambient.color.set(0x6688aa);
     }
@@ -1596,6 +1865,9 @@ export class Game {
       bits.push(this.modeDef().name);
       bits.push(`Seed ${this.seed}`);
       bits.push(this._compassHeading());
+      if (this.player.heldId() === ITEM.COMPASS) {
+        bits.push(`xyz ${this.player.position.x.toFixed(0)},${this.player.position.y.toFixed(0)},${this.player.position.z.toFixed(0)}`);
+      }
       bits.push(`Day ${this.time.dayNumber}`);
       bits.push(this.time.isNight() ? 'Night' : 'Day');
       bits.push(this.time.weather);
@@ -1623,8 +1895,11 @@ export class Game {
         const p = propsOf(stack.id);
         const col = p?.color || [0.5, 0.5, 0.5];
         el.style.background = `rgb(${(col[0]*255)|0},${(col[1]*255)|0},${(col[2]*255)|0})`;
-        el.title = `${displayName(stack.id)} x${stack.count}`;
+        const dr = durabilityRatio(stack);
+        el.title = `${displayName(stack.id)} x${stack.count}` + (dr < 1 ? ` · ${Math.ceil(dr*100)}%` : '');
         el.dataset.block = displayName(stack.id);
+        el.style.setProperty('--dur', String(dr));
+        el.classList.toggle('damaged', dr < 0.35);
         let countEl = el.querySelector('.hb-count');
         if (!countEl) {
           countEl = document.createElement('span');

@@ -18,6 +18,10 @@ export const ACHIEVEMENTS = [
   { id: 'first_iron', title: 'Iron Age', desc: 'Smelt an iron ingot.' },
   { id: 'first_farm', title: 'Planter', desc: 'Plant crop seeds.' },
   { id: 'first_bread', title: 'Baker', desc: 'Bake bread from wheat.' },
+  { id: 'first_chest', title: 'Stockpile', desc: 'Place a chest.' },
+  { id: 'first_boat', title: 'Cast Off', desc: 'Craft a boat.' },
+  { id: 'first_fish', title: 'Angler', desc: 'Catch a fish.' },
+  { id: 'first_shield', title: 'Hold the Line', desc: 'Craft a shield.' },
 ];
 
 export function emptyAchievements() {

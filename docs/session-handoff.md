@@ -10,13 +10,13 @@
 
 ## Local
 Serve repo root → http://127.0.0.1:8765/  
-Tests: `node tests/smoke.mjs` (37)
+Tests: `node tests/smoke.mjs` (38)
 
 ## Latest
-**v1.2 content polish pack (20 items)** — `docs/improvements-v1.2.md`  
-Berries/farming, iron tools, bow+arrows, meat spoilage, wetness/drown, weather FX, seed input, F3 debug, achievements, death stats, audio/HUD juice.
+**v1.3** — `docs/improvements-v1.3.md`  
+Chest/ladder/fence, boat, fishing, apples, fertilizer, compass, shield, tool durability, crouch, salve, recipe filter, save export/import, torch night vision.
 
-Prior: v1.1 QoL pack — `docs/improvements-20.md`
+Prior: v1.2 content · v1.1 QoL
 
-## Next content
-Biomes depth, boat, breeding, electricity (docs/SCM.md).
+## Next
+Biomes, breeding, electricity (docs/SCM.md).

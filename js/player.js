@@ -3,6 +3,7 @@ import { isSolid, BLOCK } from './blocks.js';
 import { canSprint, moveSpeedMultiplier, fallDamageFromSpeed } from './survival.js';
 import { createStarterInventory, getHotbarStack } from './inventory.js';
 import { emptyEquipment } from './equipment.js';
+import { ITEM } from './items.js';
 
 const PLAYER_RADIUS = 0.3;
 const PLAYER_HEIGHT = 1.7;
@@ -81,7 +82,7 @@ export class Player {
 
     if (survival.dead) {
       this.velocity.set(0, 0, 0);
-      return { moved: false, sprinting: false, inWater: false };
+      return { moved: false, sprinting: false, inWater: false, crouching: false, onLadder: false, boat: false };
     }
 
     const slot = input.consumeSlot();
@@ -102,25 +103,47 @@ export class Player {
     const moving = wish.lengthSq() > 0;
     if (moving) wish.normalize();
 
-    const sprinting = input.wantsSprint() && moving && canSprint(survival);
-    const speed = BASE_SPEED * moveSpeedMultiplier(survival, sprinting);
+    const crouching = !!(input.wantsCrouch && input.wantsCrouch());
+    const sprinting = !crouching && input.wantsSprint() && moving && canSprint(survival);
+    let speed = BASE_SPEED * moveSpeedMultiplier(survival, sprinting);
+    if (crouching) speed *= 0.42;
 
     // water
     const feetY = this.position.y + 0.1;
     const inWater = world.getBlock(this.position.x, feetY, this.position.z) === BLOCK.WATER
       || world.getBlock(this.position.x, this.position.y + 1.0, this.position.z) === BLOCK.WATER;
 
-    this.velocity.x = wish.x * speed * (inWater ? 0.55 : 1);
-    this.velocity.z = wish.z * speed * (inWater ? 0.55 : 1);
+    // boat boost
+    const held = this.heldId();
+    const boat = held === ITEM.BOAT;
+    const waterMul = inWater ? (boat ? 1.35 : 0.55) : 1;
 
-    if (inWater) {
-      this.velocity.y += (input.wantsJump() ? 12 : -6) * dt;
+    // ladder climb
+    const bx = Math.floor(this.position.x);
+    const by = Math.floor(this.position.y + 0.5);
+    const bz = Math.floor(this.position.z);
+    const onLadder =
+      world.getBlock(bx, by, bz) === BLOCK.LADDER ||
+      world.getBlock(bx, by + 1, bz) === BLOCK.LADDER ||
+      world.getBlock(bx, Math.floor(this.position.y), bz) === BLOCK.LADDER;
+
+    this.velocity.x = wish.x * speed * waterMul;
+    this.velocity.z = wish.z * speed * waterMul;
+
+    if (onLadder) {
+      this.velocity.y = 0;
+      if (input.wantsJump() || input.wantsForward()) this.velocity.y = 4.2;
+      if (crouching || input.wantsBack()) this.velocity.y = -3.5;
+      this._fallVy = 0;
+      this.onGround = true;
+    } else if (inWater) {
+      this.velocity.y += (input.wantsJump() ? (boat ? 14 : 12) : -6) * dt;
       this.velocity.y *= (1 - Math.min(1, 4 * dt));
       this._fallVy = 0;
     } else {
       this.velocity.y -= GRAVITY * dt;
       if (this.onGround && input.wantsJump()) {
-        this.velocity.y = JUMP_V;
+        this.velocity.y = JUMP_V * (crouching ? 0.7 : 1);
         this.onGround = false;
       }
       if (this.velocity.y < 0) this._fallVy = Math.max(this._fallVy, -this.velocity.y);
@@ -148,7 +171,7 @@ export class Player {
       this.notify('You scramble back from the void...');
     }
 
-    return { moved: moving, sprinting, inWater };
+    return { moved: moving, sprinting, inWater, crouching, onLadder, boat };
   }
 
   _moveAxis(world, dt, axis) {

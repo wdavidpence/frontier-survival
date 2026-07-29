@@ -30,6 +30,15 @@ export const ITEM = {
   BOW: 122,
   ARROW: 123,
   ROTTEN_MEAT: 124,
+  BOAT: 125,
+  FISHING_ROD: 126,
+  RAW_FISH: 127,
+  COOKED_FISH: 128,
+  APPLE: 129,
+  FERTILIZER: 130,
+  COMPASS: 131,
+  SHIELD: 132,
+  SALVE: 133,
 };
 
 /** @type {Record<number, {
@@ -41,7 +50,7 @@ export const ITEM = {
  *  eatDamage?: number,
  *  cookable?: number,
  *  smeltable?: number,
- *  tool?: 'pick'|'axe'|'hand'|'weapon'|'bow',
+ *  tool?: 'pick'|'axe'|'hand'|'weapon'|'bow'|'shield'|'rod',
  *  mineMult?: number,
  *  melee?: number,
  *  meleeRange?: number,
@@ -150,6 +159,30 @@ export const ITEM_PROPS = {
     eatDamage: 12,
     maxStack: 16,
   },
+  [ITEM.BOAT]: { name: 'Boat', color: [0.55, 0.4, 0.22], maxStack: 1 },
+  [ITEM.FISHING_ROD]: { name: 'Fishing Rod', color: [0.5, 0.4, 0.25], tool: 'rod', maxStack: 1, durability: 80 },
+  [ITEM.RAW_FISH]: {
+    name: 'Raw Fish',
+    color: [0.55, 0.7, 0.85],
+    edible: 12,
+    eatDamage: 2,
+    cookable: ITEM.COOKED_FISH,
+    maxStack: 16,
+  },
+  [ITEM.COOKED_FISH]: { name: 'Cooked Fish', color: [0.85, 0.65, 0.4], edible: 30, maxStack: 16 },
+  [ITEM.APPLE]: { name: 'Apple', color: [0.85, 0.2, 0.15], edible: 16, maxStack: 16 },
+  [ITEM.FERTILIZER]: { name: 'Fertilizer', color: [0.45, 0.35, 0.2], maxStack: 32 },
+  [ITEM.COMPASS]: { name: 'Compass', color: [0.7, 0.7, 0.75], maxStack: 1 },
+  [ITEM.SHIELD]: {
+    name: 'Shield',
+    color: [0.55, 0.45, 0.35],
+    tool: 'shield',
+    maxStack: 1,
+    durability: 120,
+    melee: 2,
+    meleeRange: 2.2,
+  },
+  [ITEM.SALVE]: { name: 'Healing Salve', color: [0.7, 0.85, 0.55], maxStack: 8, heal: 25 },
 };
 
 export function propsOf(id) {
@@ -230,6 +263,9 @@ export function dropForBlock(blockId) {
   if (blockId === BLOCK.LEAVES) {
     return null; // handled with rng externally
   }
+  if (blockId === BLOCK.CHEST) return BLOCK.CHEST;
+  if (blockId === BLOCK.LADDER) return BLOCK.LADDER;
+  if (blockId === BLOCK.FENCE) return BLOCK.FENCE;
   const d = BLOCK_PROPS[blockId]?.drops;
   if (d === undefined) return blockId;
   return d;

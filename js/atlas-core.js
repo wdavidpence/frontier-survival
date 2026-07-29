@@ -31,12 +31,15 @@ export const TILE = {
   BUSH: 20,
   FARMLAND: 21,
   CROP: 22,
-  CRACK0: 24,
-  CRACK1: 25,
-  CRACK2: 26,
-  CRACK3: 27,
-  CRACK4: 28,
-  CRACK5: 29,
+  CHEST: 23,
+  LADDER: 24,
+  FENCE: 25,
+  CRACK0: 40,
+  CRACK1: 41,
+  CRACK2: 42,
+  CRACK3: 43,
+  CRACK4: 44,
+  CRACK5: 45,
 };
 
 /** UV corners: bl, tl, tr, br in atlas space */
@@ -101,6 +104,12 @@ export function tileForBlock(blockId, faceDir) {
       return faceDir === 'top' ? TILE.FARMLAND : TILE.DIRT;
     case BLOCK.CROP:
       return TILE.CROP;
+    case BLOCK.CHEST:
+      return TILE.CHEST;
+    case BLOCK.LADDER:
+      return TILE.LADDER;
+    case BLOCK.FENCE:
+      return TILE.FENCE;
     default:
       return TILE.STONE;
   }

@@ -52,6 +52,7 @@ export function buildSavePayload(state) {
         id: s.id,
         count: s.count,
         ...(s.age != null ? { age: s.age } : {}),
+        ...(s.dur != null ? { dur: s.dur } : {}),
       })),
       equipment: state.player.equipment || { head: null, chest: null, feet: null },
     },

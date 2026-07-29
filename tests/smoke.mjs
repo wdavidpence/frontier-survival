@@ -554,5 +554,42 @@ test('v1.2 bow and spoilage', () => {
   assert.ok(RECIPES.find((r) => r.id === 'bread'));
 });
 
+
+import { wearTool, maxDurability, durabilityRatio } from '../js/durability.js';
+import { depositOne, withdrawOne, emptyChestSlots, chestKey, importChests, exportChests } from '../js/chests.js';
+
+test('v1.3 chest boat fishing', () => {
+  assert.ok(BLOCK.CHEST && BLOCK.LADDER && BLOCK.FENCE);
+  assert.ok(propsOf(ITEM.BOAT));
+  assert.ok(propsOf(ITEM.FISHING_ROD)?.tool === 'rod');
+  assert.ok(propsOf(ITEM.SHIELD)?.tool === 'shield');
+  assert.ok(propsOf(ITEM.SALVE)?.heal > 0);
+  assert.ok(propsOf(ITEM.COOKED_FISH)?.edible > 0);
+  assert.ok(RECIPES.find((r) => r.id === 'chest'));
+  assert.ok(RECIPES.find((r) => r.id === 'boat'));
+  assert.ok(RECIPES.find((r) => r.id === 'fishing_rod'));
+  assert.ok(RECIPES.find((r) => r.id === 'shield'));
+  assert.ok(maxDurability(ITEM.WOOD_PICK) > 0);
+  let slots = createStarterInventory(0);
+  slots = addItems(slots, ITEM.WOOD_PICK, 1).slots;
+  const max = maxDurability(ITEM.WOOD_PICK);
+  slots[0].dur = 2;
+  const w = wearTool(slots, 0, 1);
+  assert.strictEqual(w.remaining, 1);
+  const w2 = wearTool(w.slots, 0, 5);
+  assert.ok(w2.broken);
+  let chest = emptyChestSlots();
+  slots = addItems(createStarterInventory(0), ITEM.STICK, 3).slots;
+  const d = depositOne(slots, 0, chest);
+  assert.ok(d.ok);
+  assert.strictEqual(countItems(d.playerSlots, ITEM.STICK), 2);
+  const wth = withdrawOne(d.playerSlots, d.chestSlots, 0);
+  assert.ok(wth.ok);
+  assert.strictEqual(countItems(wth.playerSlots, ITEM.STICK), 3);
+  const m = importChests([[chestKey(1,2,3), emptyChestSlots()]]);
+  assert.ok(exportChests(m).length === 1);
+  assert.ok(tileForBlock(BLOCK.CHEST, 'side') !== undefined);
+});
+
 console.log(`\n${passed} tests passed`);
 if (process.exitCode) process.exit(1);

@@ -6,9 +6,9 @@ Inspired by the *systems* of Survivalcraft (harsh nature, clothing, sleep, preda
 
 You wash up in a blocky wilderness where **cold, hunger, fatigue, and wolves** matter as much as mining.
 
-![Status](https://img.shields.io/badge/status-playable%201.2%20content-brightgreen)
+![Status](https://img.shields.io/badge/status-playable%201.3%20depth-brightgreen)
 ![Stack](https://img.shields.io/badge/stack-Three.js%20ESM-blue)
-![Tests](https://img.shields.io/badge/tests-37%20smoke-lightgrey)
+![Tests](https://img.shields.io/badge/tests-38%20smoke-lightgrey)
 
 ---
 
@@ -26,7 +26,7 @@ Open: **http://127.0.0.1:8765/**
 Legacy path still works if you open `/public/` (uses `../js`).
 
 ```bash
-node tests/smoke.mjs   # 37 pure-logic tests
+node tests/smoke.mjs   # 38 pure-logic tests
 ```
 
 ---
@@ -124,5 +124,5 @@ See `docs/SCM.md`: more biomes, bow, electricity/logic, boats, multiplayer later
 
 ## Status
 
-**Playable browser 1.2 content pack** — farming, iron, bow hunting, spoilage, weather FX, achievements.  
+**Playable browser 1.3 depth pack** — farming, iron, bow hunting, spoilage, weather FX, achievements.  
 Not commercial Survivalcraft feature parity; depth continues from the plan checklist.

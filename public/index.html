@@ -295,6 +295,18 @@
     .panel button:hover { filter: brightness(1.06); }
     #death-screen .panel h1 { color: #e08080; }
 
+    #chest-screen .inv-panel { width: min(420px, 94vw); }
+    #chest-slots {
+      display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin: 12px 0;
+    }
+    .hotbar-slot.damaged { box-shadow: inset 0 -3px 0 #c43c3c; }
+    #recipe-filter {
+      width: 100%; margin-bottom: 8px; padding: 8px 10px;
+      border-radius: 6px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.35); color: #e8e4dc; font-size: 12px;
+      pointer-events: auto;
+    }
+
     #bar-wet { background: linear-gradient(90deg, #1a4a6a, #4aa0d4); }
     #meter-wet { transition: opacity 0.2s; }
     #hotbar-name {
@@ -408,7 +420,7 @@
     <div id="status-line">Frontier Survival</div>
     <div id="message"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.2</div>
+    <div id="version-badge">v1.3</div>
     <div id="meters">
       <div class="meter"><span>Health</span><div class="track"><div id="bar-health" class="fill"></div></div></div>
       <div class="meter"><span>Hunger</span><div class="track"><div id="bar-hunger" class="fill"></div></div></div>
@@ -428,11 +440,11 @@
       <div class="hotbar-slot" data-key="9"></div>
     </div>
     <div id="help">
-      <b>WASD</b> move · wheel hotbar · <b>Q</b> drop<br/>
-      <b>LMB</b> mine/hunt/bow · <b>RMB</b> place/plant<br/>
-      <b>E</b> craft · <b>F</b> cook/equip/sleep · <b>R</b> eat<br/>
-      <b>K</b> save · <b>Esc</b> pause · <b>H</b> help · <b>F3</b> debug<br/>
-      Berries, farms, iron, bow — cook meat before it spoils
+      <b>WASD</b> · <b>Ctrl/C</b> crouch · wheel hotbar<br/>
+      <b>LMB</b> mine/bow · <b>RMB</b> place/plant · <b>Q</b> drop<br/>
+      <b>F</b> chest/fish/fertilize/cook/sleep · <b>R</b> eat/salve<br/>
+      <b>E</b> craft · <b>K</b> save · <b>Esc</b> pause · <b>F3</b> debug<br/>
+      Boat in water · ladder climb · shield vs wolves
     </div>
   </div>
 
@@ -453,6 +465,9 @@
         </div>
       </div>
       <div class="inv-actions">
+        <button id="btn-export-save" type="button" style="background:linear-gradient(180deg,#8a909a,#5a6068);color:#f0f0f0">Export</button>
+        <button id="btn-import-save" type="button" style="background:linear-gradient(180deg,#8a909a,#5a6068);color:#f0f0f0">Import</button>
+        <input id="import-save-file" type="file" accept="application/json,.json" style="display:none" />
         <button id="btn-save-game" type="button">Save (K)</button>
         <button id="btn-close-inv" type="button">Close (E)</button>
       </div>
@@ -461,7 +476,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.2</div>
+      <div class="tag">Browser survival sandbox · v1.3</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -479,6 +494,19 @@
       <button id="btn-continue" type="button" style="display:none">Continue save</button>
       <button id="btn-start" type="button">Start surviving</button>
       <button id="btn-new-world" type="button" style="display:none;margin-left:8px;background:linear-gradient(180deg,#8a909a,#5a6068);color:#f0f0f0">New world</button>
+    </div>
+  </div>
+
+  
+  <div id="chest-screen" class="overlay hidden">
+    <div class="inv-panel">
+      <h2>Chest</h2>
+      <p class="inv-sub">Click a chest slot to take items. Open inventory (E) and click your items to deposit. Close when done.</p>
+      <div id="chest-slots"></div>
+      <div class="inv-actions">
+        <button id="btn-chest-deposit" type="button">Deposit hotbar slot</button>
+        <button id="btn-close-chest" type="button">Close</button>
+      </div>
     </div>
   </div>
 

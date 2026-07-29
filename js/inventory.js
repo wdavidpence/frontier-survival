@@ -119,6 +119,7 @@ export function cloneSlots(slots) {
   return slots.map((s) => {
     const out = { id: s.id, count: s.count };
     if (s.age != null) out.age = s.age;
+    if (s.dur != null) out.dur = s.dur;
     return out;
   });
 }

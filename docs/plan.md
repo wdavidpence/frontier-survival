@@ -63,3 +63,6 @@ See docs/SCM.md
 
 ## Phase polish — v1.2 (docs/improvements-v1.2.md)
 - [x] 20 content / systems polishes (farm, iron, bow, spoilage, FX)
+
+## Phase polish — v1.3 (docs/improvements-v1.3.md)
+- [x] 20 storage/travel/combat depth polishes

@@ -123,6 +123,9 @@ export class Input {
   wantsRight() { return this.keys.has('KeyD') || this.keys.has('ArrowRight'); }
   wantsJump() { return this.keys.has('Space'); }
   wantsSprint() { return this.keys.has('ShiftLeft') || this.keys.has('ShiftRight'); }
+  wantsCrouch() {
+    return this.keys.has('ControlLeft') || this.keys.has('ControlRight') || this.keys.has('KeyC');
+  }
 
   consumePlace() {
     const v = this.placePressed;

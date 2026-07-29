@@ -213,6 +213,95 @@ export const RECIPES = [
     ingredients: [{ id: ITEM.WHEAT, count: 3 }],
     results: [{ id: ITEM.BREAD, count: 1 }],
   },
+  {
+    id: 'chest',
+    name: 'Chest',
+    desc: 'Storage box. 8 Planks',
+    ingredients: [{ id: BLOCK.PLANKS, count: 8 }],
+    results: [{ id: BLOCK.CHEST, count: 1 }],
+  },
+  {
+    id: 'ladder',
+    name: 'Ladders',
+    desc: 'Climb walls. 3 Sticks + 2 Planks → 4',
+    ingredients: [
+      { id: ITEM.STICK, count: 3 },
+      { id: BLOCK.PLANKS, count: 2 },
+    ],
+    results: [{ id: BLOCK.LADDER, count: 4 }],
+  },
+  {
+    id: 'fence',
+    name: 'Fence',
+    desc: 'Shelter posts. 4 Planks + 2 Sticks → 4',
+    ingredients: [
+      { id: BLOCK.PLANKS, count: 4 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: BLOCK.FENCE, count: 4 }],
+  },
+  {
+    id: 'boat',
+    name: 'Boat',
+    desc: 'Hold in water to swim fast. 5 Planks',
+    ingredients: [{ id: BLOCK.PLANKS, count: 5 }],
+    results: [{ id: ITEM.BOAT, count: 1 }],
+  },
+  {
+    id: 'fishing_rod',
+    name: 'Fishing Rod',
+    desc: 'F near water to fish. 3 Sticks + 2 Hide',
+    ingredients: [
+      { id: ITEM.STICK, count: 3 },
+      { id: ITEM.HIDE, count: 2 },
+    ],
+    results: [{ id: ITEM.FISHING_ROD, count: 1 }],
+  },
+  {
+    id: 'cook_fish',
+    name: 'Cook Fish',
+    desc: 'Raw Fish → Cooked (campfire heat)',
+    ingredients: [{ id: ITEM.RAW_FISH, count: 1 }],
+    results: [{ id: ITEM.COOKED_FISH, count: 1 }],
+    requiresHeat: 8,
+  },
+  {
+    id: 'fertilizer',
+    name: 'Fertilizer',
+    desc: '2 Rotten Meat → 2 Fertilizer (F on crop)',
+    ingredients: [{ id: ITEM.ROTTEN_MEAT, count: 2 }],
+    results: [{ id: ITEM.FERTILIZER, count: 2 }],
+  },
+  {
+    id: 'compass',
+    name: 'Compass',
+    desc: 'Shows exact coords when held. 4 Iron + 1 Coal',
+    ingredients: [
+      { id: ITEM.IRON_INGOT, count: 4 },
+      { id: ITEM.COAL, count: 1 },
+    ],
+    results: [{ id: ITEM.COMPASS, count: 1 }],
+  },
+  {
+    id: 'shield',
+    name: 'Shield',
+    desc: 'Hold to blunt wolf bites. 6 Planks + 1 Iron',
+    ingredients: [
+      { id: BLOCK.PLANKS, count: 6 },
+      { id: ITEM.IRON_INGOT, count: 1 },
+    ],
+    results: [{ id: ITEM.SHIELD, count: 1 }],
+  },
+  {
+    id: 'salve',
+    name: 'Healing Salve',
+    desc: 'R to heal. 3 Berries + 1 Cloth',
+    ingredients: [
+      { id: ITEM.BERRIES, count: 3 },
+      { id: ITEM.CLOTH, count: 1 },
+    ],
+    results: [{ id: ITEM.SALVE, count: 1 }],
+  },
 ];
 
 export function visibleRecipes() {

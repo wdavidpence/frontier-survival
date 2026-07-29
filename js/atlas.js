@@ -288,6 +288,32 @@ function drawCrop(ctx, x0, y0) {
   }
 }
 
+function drawChest(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [140, 90, 40], 0.2, 18);
+  ctx.strokeStyle = '#5a3a15';
+  ctx.strokeRect(x0 + 3, y0 + 6, TILE_PX - 6, TILE_PX - 10);
+  ctx.fillStyle = '#c9a227';
+  ctx.fillRect(x0 + 14, y0 + 14, 4, 6);
+}
+
+function drawLadder(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.fillStyle = '#6b4423';
+  ctx.fillRect(x0 + 6, y0 + 2, 3, 28);
+  ctx.fillRect(x0 + 23, y0 + 2, 3, 28);
+  for (let y = 6; y < 28; y += 6) ctx.fillRect(x0 + 6, y0 + y, 20, 2);
+}
+
+function drawFence(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [0,0,0], 0, 1, 0);
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.fillStyle = '#8a6230';
+  ctx.fillRect(x0 + 6, y0 + 4, 4, 24);
+  ctx.fillRect(x0 + 22, y0 + 4, 4, 24);
+  ctx.fillRect(x0 + 6, y0 + 10, 20, 3);
+  ctx.fillRect(x0 + 6, y0 + 18, 20, 3);
+}
+
 function drawCrack(ctx, x0, y0, stage) {
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
   ctx.strokeStyle = `rgba(20,15,10,${0.35 + stage * 0.1})`;
@@ -344,6 +370,9 @@ export function createBlockAtlas() {
   paint(TILE.BUSH, drawBush);
   paint(TILE.FARMLAND, drawFarmland);
   paint(TILE.CROP, drawCrop);
+  paint(TILE.CHEST, drawChest);
+  paint(TILE.LADDER, drawLadder);
+  paint(TILE.FENCE, drawFence);
   paint(TILE.CRACK0, (c, x, y) => drawCrack(c, x, y, 0));
   paint(TILE.CRACK1, (c, x, y) => drawCrack(c, x, y, 1));
   paint(TILE.CRACK2, (c, x, y) => drawCrack(c, x, y, 2));

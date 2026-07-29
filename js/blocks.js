@@ -22,6 +22,9 @@ export const BLOCK = {
   BUSH: 19,
   FARMLAND: 20,
   CROP: 21,
+  CHEST: 22,
+  LADDER: 23,
+  FENCE: 24,
 };
 
 /** @type {Record<number, {
@@ -60,6 +63,9 @@ export const BLOCK_PROPS = {
   [BLOCK.BUSH]: { name: 'Berry Bush', solid: false, transparent: true, hardness: 0.15, color: [0.22, 0.48, 0.18], topColor: [0.55, 0.15, 0.2], drops: BLOCK.BUSH },
   [BLOCK.FARMLAND]: { name: 'Farmland', solid: true, transparent: false, hardness: 0.45, color: [0.4, 0.28, 0.16], topColor: [0.35, 0.24, 0.12], drops: BLOCK.DIRT },
   [BLOCK.CROP]: { name: 'Crop', solid: false, transparent: true, hardness: 0.1, color: [0.45, 0.7, 0.25], drops: BLOCK.CROP },
+  [BLOCK.CHEST]: { name: 'Chest', solid: true, transparent: true, hardness: 1.0, color: [0.55, 0.35, 0.15], topColor: [0.6, 0.4, 0.18], drops: BLOCK.CHEST },
+  [BLOCK.LADDER]: { name: 'Ladder', solid: false, transparent: true, hardness: 0.3, color: [0.55, 0.4, 0.2], drops: BLOCK.LADDER, climbable: true },
+  [BLOCK.FENCE]: { name: 'Fence', solid: true, transparent: true, hardness: 0.7, color: [0.6, 0.45, 0.25], drops: BLOCK.FENCE },
 };
 
 export function isSolid(id) {
