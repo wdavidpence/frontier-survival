@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=184';
-import { heightAt, hash2, fbm } from './gen.js?v=184';
-import { biomeAt, BIOME } from './biomes.js?v=184';
-import { tileForBlock } from './atlas-core.js?v=184';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=184';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=186';
+import { heightAt, hash2, fbm } from './gen.js?v=186';
+import { biomeAt, BIOME } from './biomes.js?v=186';
+import { tileForBlock } from './atlas-core.js?v=186';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=186';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -24,11 +24,20 @@ export class World {
     this.group = new THREE.Group();
     this.dirty = new Set();
     this.edits = new Map();
-    this.material = material || new THREE.MeshLambertMaterial({
-      vertexColors: true,
-      transparent: true,
-      alphaTest: 0.1,
-    });
+    // Prefer atlas greedyMaterial (passed in). Fallback is fully opaque DoubleSide solids.
+    this.material =
+      material ||
+      new THREE.MeshLambertMaterial({
+        vertexColors: true,
+        transparent: false,
+        depthWrite: true,
+        side: THREE.DoubleSide,
+      });
+    if (this.material) {
+      this.material.transparent = false;
+      this.material.depthWrite = true;
+      this.material.side = THREE.DoubleSide;
+    }
     this._stats = { quads: 0, naiveFaces: 0 };
     this._genAll();
   }

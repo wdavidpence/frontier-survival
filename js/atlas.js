@@ -11,7 +11,7 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=184';
+} from './atlas-core.js?v=186';
 
 export {
   TILE,
@@ -22,7 +22,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=184';
+} from './atlas-core.js?v=186';
 
 function rnd(seed) {
   let s = seed | 0;
@@ -103,8 +103,9 @@ function drawSand(ctx, x0, y0) {
 }
 
 function drawWater(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [40, 90, 190], 0.3, 66, 160);
-  ctx.fillStyle = 'rgba(180,220,255,0.2)';
+  // Keep alpha high enough that opaque-pass alphaTest/discard does not punch holes
+  fillNoise(ctx, x0, y0, [40, 90, 190], 0.3, 66, 220);
+  ctx.fillStyle = 'rgba(180,220,255,0.25)';
   ctx.fillRect(x0 + 4, y0 + 8, 20, 3);
 }
 
@@ -474,6 +475,12 @@ export function createBlockAtlas() {
     fn(ctx, x, y);
   };
 
+  // Fill entire atlas opaque first so unused tiles never sample as holes
+  for (let i = 0; i < ATLAS_N * ATLAS_N; i++) {
+    const { x, y } = tileOrigin(i);
+    fillNoise(ctx, x, y, [90, 90, 95], 0.1, 900 + i, 255);
+  }
+
   paint(TILE.GRASS_SIDE, drawGrassSide);
   paint(TILE.GRASS_TOP, drawGrassTop);
   paint(TILE.DIRT, drawDirt);
@@ -529,9 +536,12 @@ paint(TILE.WALL, drawWall);
   const material = new THREE.MeshLambertMaterial({
     map: texture,
     vertexColors: true,
-    transparent: true,
-    alphaTest: 0.15,
-    side: THREE.FrontSide,
+    // Opaque solid world — transparent:true caused dirt/stone side sorting holes
+    transparent: false,
+    alphaTest: 0.35,
+    depthWrite: true,
+    // DoubleSide: bad greedy winding was making dirt/stone side faces vanish (see-through hillsides)
+    side: THREE.DoubleSide,
   });
 
   // Greedy-mesh material: UV in tile units, tile index attribute
@@ -540,7 +550,7 @@ paint(TILE.WALL, drawWall);
       atlas: { value: texture },
       atlasN: { value: ATLAS_N },
       sunIntensity: { value: 1.0 },
-      ambientColor: { value: new THREE.Color(0.4, 0.45, 0.55) },
+      ambientColor: { value: new THREE.Color(0.48, 0.5, 0.58) },
       sunColor: { value: new THREE.Color(1.0, 0.95, 0.85) },
       sunDir: { value: new THREE.Vector3(0.4, 1.0, 0.2).normalize() },
     },
@@ -577,16 +587,18 @@ paint(TILE.WALL, drawWall);
         tUv = clamp(tUv, 0.02, 0.98);
         vec2 auv = vec2((tx + tUv.x) / atlasN, 1.0 - (ty + 1.0 - tUv.y) / atlasN);
         vec4 tex = texture2D(atlas, auv);
-        if (tex.a < 0.12) discard;
-        float ndl = max(0.0, dot(normalize(vNormal), normalize(sunDir)));
+        // Soft cutout for leaves/plants only. Force opaque write so solids never see-through.
+        if (tex.a < 0.35) discard;
+        float ndl = max(0.0, abs(dot(normalize(vNormal), normalize(sunDir))));
         vec3 light = ambientColor + sunColor * ndl * sunIntensity;
-        vec3 rgb = tex.rgb * vColor.rgb * light;
-        gl_FragColor = vec4(rgb, tex.a * vColor.a);
+        vec3 rgb = tex.rgb * max(vColor.rgb, vec3(0.15)) * light;
+        gl_FragColor = vec4(rgb, 1.0);
       }
     `,
-    transparent: true,
+    transparent: false,
+    depthWrite: true,
     vertexColors: true,
-    side: THREE.FrontSide,
+    side: THREE.DoubleSide,
   });
 
   const crackMaterial = new THREE.MeshBasicMaterial({

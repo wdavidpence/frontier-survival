@@ -151,7 +151,8 @@ export class Input {
   setVirtualJump(v) { this._vJump = !!v; }
   setVirtualCrouch(v) { this._vCrouch = !!v; }
   nudgeLook(dx, dy) {
-    this.lookX += dx * this.sensitivity * 2.5;
+    // Screen-right drag should look right (negated yaw vs Three YXZ)
+    this.lookX -= dx * this.sensitivity * 2.5;
     this.lookY += dy * this.sensitivity * 2.5;
     const lim = Math.PI / 2 - 0.01;
     this.lookY = Math.max(-lim, Math.min(lim, this.lookY));
@@ -341,7 +342,8 @@ export class Input {
     // Without pointer lock, require softLook (don't spin camera when just moving OS cursor over page)
     if (!this.locked && !this.softLook) return;
 
-    this.lookX += dx * this.sensitivity;
+    // Mouse right → look right (Three.js YXZ yaw is opposite of screen X)
+    this.lookX -= dx * this.sensitivity;
     this.lookY += dy * this.sensitivity;
     const lim = Math.PI / 2 - 0.01;
     this.lookY = Math.max(-lim, Math.min(lim, this.lookY));
