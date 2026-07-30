@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { isSolid, BLOCK } from './blocks.js';
-import { canSprint, moveSpeedMultiplier, fallDamageFromSpeed } from './survival.js';
-import { createStarterInventory, getHotbarStack } from './inventory.js';
-import { emptyEquipment } from './equipment.js';
-import { ITEM } from './items.js';
+import { isSolid, BLOCK } from './blocks.js?v=181';
+import { canSprint, moveSpeedMultiplier, fallDamageFromSpeed } from './survival.js?v=181';
+import { createStarterInventory, getHotbarStack } from './inventory.js?v=181';
+import { emptyEquipment } from './equipment.js?v=181';
+import { ITEM } from './items.js?v=181';
 
 const PLAYER_RADIUS = 0.3;
 const PLAYER_HEIGHT = 1.7;

@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js';
-import { Player } from './player.js';
-import { Input } from './input.js';
-import { GameTime } from './time.js';
-import { AudioBus } from './audio.js';
+import { World } from './world.js?v=181';
+import { Player } from './player.js?v=181';
+import { Input } from './input.js?v=181';
+import { GameTime } from './time.js?v=181';
+import { AudioBus } from './audio.js?v=181';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js';
+} from './survival.js?v=181';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=181';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js';
+} from './items.js?v=181';
 import {
   addItems,
   removeItems,
@@ -31,11 +31,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js';
-import { visibleRecipes, craftRecipe } from './crafting.js';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js';
-import { createBlockAtlas } from './atlas.js';
-import { BreakFX } from './fx.js';
+} from './inventory.js?v=181';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=181';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=181';
+import { createBlockAtlas } from './atlas.js?v=181';
+import { BreakFX } from './fx.js?v=181';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -45,35 +45,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js';
+} from './equipment.js?v=181';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=181';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js';
-import { getMode } from './modes.js';
+} from './save.js?v=181';
+import { getMode } from './modes.js?v=181';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js';
+} from './settings.js?v=181';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js';
-import { tickSpoilage } from './spoilage.js';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js';
-import { wearTool, durabilityRatio } from './durability.js';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js';
-import { tickLogic, COMPONENT } from './logic.js';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js';
+} from './achievements.js?v=181';
+import { tickSpoilage } from './spoilage.js?v=181';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=181';
+import { wearTool, durabilityRatio } from './durability.js?v=181';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=181';
+import { tickLogic, COMPONENT } from './logic.js?v=181';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=181';
 import {
   chestKey,
   getChestSlots,
@@ -84,7 +84,7 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js';
+} from './chests.js?v=181';
 
 export class Game {
   /**
@@ -348,6 +348,7 @@ export class Game {
       this.setInventoryOpen(false);
       if (document.pointerLockElement) document.exitPointerLock();
       this.input.uiMode = true;
+      this.input.setCaptureEnabled?.(false);
       this.input.breakHeld = false;
       panel?.classList.remove('hidden');
       const sens = document.getElementById('sens-slider');
@@ -361,8 +362,12 @@ export class Game {
     } else {
       panel?.classList.add('hidden');
       if (!this.player?.inventoryOpen) this.input.uiMode = false;
+      this.input.setCaptureEnabled?.(true);
       this.audio.ui();
+      this.canvas?.focus?.();
+      this.input.requestLock?.();
     }
+    this._updateClickToPlay?.();
   }
 
   start(seed = this.seed) {
@@ -455,13 +460,15 @@ export class Game {
     this.paused = false;
     this.setPaused(false);
     this.input.bind();
+    this.input.setCaptureEnabled?.(true);
     this.setInventoryOpen(false);
-    this.input.clearTransient?.();
+    this.input.clearTransient?.({ keepMove: false });
     this.input.uiMode = false;
     this.paused = false;
     this._ignorePauseT = 2.5;
     this.canvas?.focus?.();
     this.input.requestLock?.();
+    this._updateClickToPlay?.();
     this._applyHelpVisibility();
     this._helpFadeAcc = 0;
     if (notify) {
@@ -920,6 +927,25 @@ export class Game {
       writeSettings(this.settings);
       this._applyHelpVisibility();
     }
+    // Heal stuck control state: pause flag without pause UI, or uiMode without inventory
+    if (this.started && !this.survival?.dead) {
+      const pauseEl = document.getElementById('pause-screen');
+      const pauseUi = pauseEl && !pauseEl.classList.contains('hidden');
+      if (this.paused && !pauseUi) {
+        this.paused = false;
+        this.input.uiMode = !!(this.player?.inventoryOpen);
+        this.input.setCaptureEnabled?.(true);
+      }
+      if (!this.paused && !this.player?.inventoryOpen && this.input.uiMode) {
+        this.input.uiMode = false;
+        this.input.setCaptureEnabled?.(true);
+      }
+      // Keep capture on while playing
+      if (!this.paused && !this.player?.inventoryOpen) {
+        this.input.setCaptureEnabled?.(true);
+      }
+    }
+    this._updateClickToPlay?.();
     if (!this.paused && this.started) this.update(dt);
     else if (this.started) this.render();
     else this.render();
@@ -940,6 +966,7 @@ export class Game {
     }
     this.player.inventoryOpen = open;
     this.input.uiMode = open || this.paused;
+    this.input.setCaptureEnabled?.(!(open || this.paused) && this.started);
     const panel = document.getElementById('inventory-screen');
     if (open) {
       panel?.classList.remove('hidden');
@@ -952,7 +979,12 @@ export class Game {
       panel?.classList.add('hidden');
       // autosave when closing pack
       if (this.started && !this.survival.dead && !this.paused) this.saveGame({ quiet: true });
+      if (this.started && !this.paused) {
+        this.input.setCaptureEnabled?.(true);
+        this.canvas?.focus?.();
+      }
     }
+    this._updateClickToPlay?.();
   }
 
   _tryCraft(recipeId) {

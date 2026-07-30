@@ -11,7 +11,7 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js';
+} from './atlas-core.js?v=181';
 
 export {
   TILE,
@@ -22,7 +22,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js';
+} from './atlas-core.js?v=181';
 
 function rnd(seed) {
   let s = seed | 0;

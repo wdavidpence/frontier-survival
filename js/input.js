@@ -1,4 +1,16 @@
-/** Keyboard + mouse pointer-lock input */
+/** Keyboard + mouse pointer-lock input (Minecraft-style). */
+
+const GAME_CODES = new Set([
+  'KeyW', 'KeyA', 'KeyS', 'KeyD',
+  'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+  'Space', 'ShiftLeft', 'ShiftRight',
+  'ControlLeft', 'ControlRight', 'KeyC',
+  'KeyE', 'KeyF', 'KeyR', 'KeyQ', 'KeyK', 'KeyH',
+  'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5',
+  'Digit6', 'Digit7', 'Digit8', 'Digit9',
+  'Escape', 'F3',
+]);
+
 export class Input {
   constructor(domElement) {
     this.el = domElement;
@@ -22,11 +34,13 @@ export class Input {
     this._bound = false;
     /** When true, ignore look/break (UI has focus) */
     this.uiMode = false;
+    /** Gameplay session active — enables document capture */
+    this.captureEnabled = false;
   }
 
-  /** Drop one-shot keys (Esc from confirm dialogs, etc.) */
-  clearTransient() {
-    this.keys.clear();
+  /** Drop one-shot keys (Esc from confirm dialogs, etc.) — does not clear held movement if keepMove. */
+  clearTransient({ keepMove = false } = {}) {
+    if (!keepMove) this.keys.clear();
     this.breakHeld = false;
     this.placePressed = false;
     this.usePressed = false;
@@ -41,43 +55,80 @@ export class Input {
     this.slot = -1;
   }
 
-  /** Call from a user gesture (Start/New World click) so mouse look engages immediately. */
+  /** Call from a user gesture so mouse look engages. */
   requestLock() {
-    if (this.uiMode) return;
-    if (document.pointerLockElement !== this.el) {
+    if (this.uiMode) return Promise.resolve(false);
+    if (document.pointerLockElement === this.el) {
+      this.locked = true;
+      return Promise.resolve(true);
+    }
+    try {
+      const p = this.el.requestPointerLock?.({ unadjustedMovement: true });
+      if (p && typeof p.then === 'function') {
+        return p.then(() => {
+          this.locked = document.pointerLockElement === this.el;
+          return this.locked;
+        }).catch(() => {
+          try {
+            this.el.requestPointerLock?.();
+          } catch (_) { /* ignore */ }
+          this.locked = document.pointerLockElement === this.el;
+          return this.locked;
+        });
+      }
+      this.el.requestPointerLock?.();
+      this.locked = document.pointerLockElement === this.el;
+      return Promise.resolve(this.locked);
+    } catch (_) {
       try {
         this.el.requestPointerLock?.();
-      } catch (_) {
-        /* browser may require a later canvas click */
-      }
+      } catch (__){ /* ignore */ }
+      this.locked = document.pointerLockElement === this.el;
+      return Promise.resolve(this.locked);
     }
+  }
+
+  setCaptureEnabled(on) {
+    this.captureEnabled = !!on;
   }
 
   bind() {
     if (this._bound) return;
     this._bound = true;
-    window.addEventListener('keydown', this._onKeyDown);
-    window.addEventListener('keyup', this._onKeyUp);
+    window.addEventListener('keydown', this._onKeyDown, true);
+    window.addEventListener('keyup', this._onKeyUp, true);
     document.addEventListener('pointerlockchange', this._onLockChange);
+    document.addEventListener('pointerlockerror', this._onLockError);
+    // Document click so HUD (pointer-events:none) still delivers a gesture target
+    document.addEventListener('click', this._onDocClick, true);
     this.el.addEventListener('click', this._onClick);
     this.el.addEventListener('mousedown', this._onMouseDown);
     this.el.addEventListener('mouseup', this._onMouseUp);
     this.el.addEventListener('wheel', this._onWheel, { passive: false });
     document.addEventListener('mousemove', this._onMouseMove);
     window.addEventListener('blur', this._onBlur);
+    document.addEventListener('visibilitychange', this._onVisibility);
   }
 
   unbind() {
-    window.removeEventListener('keydown', this._onKeyDown);
-    window.removeEventListener('keyup', this._onKeyUp);
+    window.removeEventListener('keydown', this._onKeyDown, true);
+    window.removeEventListener('keyup', this._onKeyUp, true);
     document.removeEventListener('pointerlockchange', this._onLockChange);
+    document.removeEventListener('pointerlockerror', this._onLockError);
+    document.removeEventListener('click', this._onDocClick, true);
     this.el.removeEventListener('click', this._onClick);
     this.el.removeEventListener('mousedown', this._onMouseDown);
     this.el.removeEventListener('mouseup', this._onMouseUp);
     this.el.removeEventListener('wheel', this._onWheel);
     document.removeEventListener('mousemove', this._onMouseMove);
     window.removeEventListener('blur', this._onBlur);
+    document.removeEventListener('visibilitychange', this._onVisibility);
     this._bound = false;
+    this.captureEnabled = false;
+  }
+
+  _playing() {
+    return this.captureEnabled && !this.uiMode;
   }
 
   _onBlur = () => {
@@ -85,9 +136,27 @@ export class Input {
     this.breakHeld = false;
   };
 
+  _onVisibility = () => {
+    if (document.hidden) {
+      this.keys.clear();
+      this.breakHeld = false;
+    }
+  };
+
   _onKeyDown = (e) => {
+    // Always track codes while capture is enabled so movement works even if uiMode glitches for a frame
+    if (this.captureEnabled) {
+      this.keys.add(e.code);
+      if (GAME_CODES.has(e.code) && !this.uiMode) {
+        // Stop browser scroll / shortcuts while playing
+        e.preventDefault();
+      }
+    } else if (!e.repeat) {
+      this.keys.add(e.code);
+    }
+
     if (e.repeat) return;
-    this.keys.add(e.code);
+
     if (e.code.startsWith('Digit') && !this.uiMode) {
       const n = Number(e.code.replace('Digit', ''));
       if (n >= 1 && n <= 9) this.slot = n - 1;
@@ -109,17 +178,37 @@ export class Input {
     this.keys.delete(e.code);
   };
 
+  _onDocClick = (e) => {
+    if (!this._playing()) return;
+    // Ignore clicks on real UI panels
+    const t = e.target;
+    if (t && t.closest && t.closest('.overlay:not(.hidden), button, input, select, textarea, a, .inv-panel')) {
+      return;
+    }
+    if (!this.locked) this.requestLock();
+  };
+
   _onClick = () => {
     if (this.uiMode) return;
-    if (!this.locked) this.el.requestPointerLock();
+    if (!this.locked) this.requestLock();
   };
 
   _onLockChange = () => {
     this.locked = document.pointerLockElement === this.el;
+    if (this.el) {
+      this.el.style.cursor = this.locked ? 'none' : 'crosshair';
+    }
+  };
+
+  _onLockError = () => {
+    this.locked = false;
   };
 
   _onMouseDown = (e) => {
-    if (this.uiMode || !this.locked) return;
+    if (this.uiMode) return;
+    // Allow dig/place once session is active even before lock succeeds (trackpad users)
+    if (!this.captureEnabled) return;
+    if (!this.locked) this.requestLock();
     if (e.button === 0) this.breakHeld = true;
     if (e.button === 2) {
       e.preventDefault();
@@ -132,16 +221,21 @@ export class Input {
   };
 
   _onWheel = (e) => {
-    if (this.uiMode || !this.locked) return;
+    if (this.uiMode || !this.captureEnabled) return;
     e.preventDefault();
     if (e.deltaY > 0) this.hotbarScroll += 1;
     else if (e.deltaY < 0) this.hotbarScroll -= 1;
   };
 
   _onMouseMove = (e) => {
-    if (!this.locked || this.uiMode) return;
-    this.lookX += e.movementX * this.sensitivity;
-    this.lookY += e.movementY * this.sensitivity;
+    if (this.uiMode || !this.captureEnabled) return;
+    // Prefer pointer lock; also allow look while LMB held if lock denied (fallback)
+    if (!this.locked && !this.breakHeld) return;
+    const dx = e.movementX || 0;
+    const dy = e.movementY || 0;
+    if (!dx && !dy) return;
+    this.lookX += dx * this.sensitivity;
+    this.lookY += dy * this.sensitivity;
     const lim = Math.PI / 2 - 0.01;
     this.lookY = Math.max(-lim, Math.min(lim, this.lookY));
   };

@@ -1,11 +1,11 @@
-import { Game } from './game.js';
-import { hasSave, clearSaveStorage } from './save.js';
-import { MODES, MODE_ORDER, getMode } from './modes.js';
+import { Game } from './game.js?v=181';
+import { hasSave, clearSaveStorage } from './save.js?v=181';
+import { MODES, MODE_ORDER, getMode } from './modes.js?v=181';
 import {
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
-} from './settings.js';
+} from './settings.js?v=181';
 
 const canvas = document.getElementById('game');
 const title = document.getElementById('title-screen');
@@ -146,26 +146,38 @@ function engageControls() {
     game.input.uiMode = false;
     game.paused = false;
     game._ignorePauseT = 2.5;
+    game.input?.setCaptureEnabled?.(true);
     game.canvas?.focus?.();
     game.input?.requestLock?.();
+    game._updateClickToPlay?.();
     // Drop Esc from confirm()/alert after the call stack clears
-    setTimeout(() => {
+    const reengage = () => {
       try {
-        game.input?.clearTransient?.();
+        game.input?.clearTransient?.({ keepMove: true });
+        game.input.pausePressed = false;
         game.input.uiMode = false;
-        if (game.paused && game.started && !game.survival?.dead) game.setPaused(false);
-        game._ignorePauseT = Math.max(game._ignorePauseT || 0, 1.0);
+        game.paused = false;
+        const pause = document.getElementById('pause-screen');
+        pause?.classList.add('hidden');
+        game.input?.setCaptureEnabled?.(true);
+        game._ignorePauseT = Math.max(game._ignorePauseT || 0, 1.5);
+        game.canvas?.focus?.();
         game.input?.requestLock?.();
+        game._updateClickToPlay?.();
       } catch (_) {}
-    }, 0);
-    setTimeout(() => {
-      try {
-        game.input?.pausePressed && (game.input.pausePressed = false);
-        if (game.paused && game.started) game.setPaused(false);
-      } catch (_) {}
-    }, 100);
+    };
+    setTimeout(reengage, 0);
+    setTimeout(reengage, 50);
+    setTimeout(reengage, 200);
   } catch (_) {}
 }
+
+// Click-to-play banner
+document.getElementById('click-to-play')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  engageControls();
+});
 
 function startNewWorld() {
   const seed = readSeedInput();
@@ -226,4 +238,4 @@ refreshContinue();
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.8');
+console.info('Frontier Survival boot OK · v1.8.1');

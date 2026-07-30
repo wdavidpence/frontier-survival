@@ -1,20 +1,24 @@
 # Session Handoff
 
 **Project:** Frontier Survival  
-**Path:** `/mnt/c/Users/wdavi/Projects/SurvivalCraftMobile`
-
-## Live
-https://wdavidpence.github.io/frontier-survival/
-
-## Local
-http://127.0.0.1:8765/ (repo root)
+**Live:** https://wdavidpence.github.io/frontier-survival/
 
 ## Latest
-**v1.8** — bucket/water, live electricity (generator→wire→lamp), ice box spoilage, map, wall, achievements, biome audio.  
-Prior: v1.7.1 controls freeze fix, v1.7 black canvas, v1.6 biomes/tame/logic.
+**v1.8.1** — controls fix: Minecraft-style capture
+- Click-to-play overlay until pointer lock
+- Document-level key capture + preventDefault for WASD/Ctrl
+- setCaptureEnabled session flag (WASD works without lock)
+- Mouse look via pointer lock; LMB-drag fallback
+- Module cache-bust `?v=181` on imports
+- Heal stuck paused/uiMode each frame
 
-## Controls tip
-After New World, click the game view once if look fails. WASD moves. Esc pause.
+## Prior
+v1.8 content (bucket, electricity, ice box, map, walls)  
+v1.7 black canvas / v1.7.1 Esc-pause freeze
+
+## Play tip
+Hard refresh. Start/New world. If mouse free, click **Click to play**.
+WASD move, mouse look, Space jump, Ctrl/C crouch, Esc pause.
 
 ## Tests
-`node tests/smoke.mjs`
+`node tests/smoke.mjs` → 83
