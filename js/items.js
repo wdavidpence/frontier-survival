@@ -2,7 +2,7 @@
  * Unified item/block IDs for inventory stacks.
  * Blocks: 0–99 (see blocks.js). Items: 100+.
  */
-import { BLOCK, BLOCK_PROPS } from './blocks.js?v=186';
+import { BLOCK, BLOCK_PROPS } from './blocks.js?v=187';
 
 export const ITEM = {
   STICK: 100,
@@ -314,6 +314,7 @@ export function dropForBlock(blockId) {
   if (blockId === BLOCK.SNARE) return BLOCK.SNARE;
   if (blockId === BLOCK.PUMPKIN) return ITEM.PUMPKIN;
   if (blockId === BLOCK.CLAY) return ITEM.CLAY_BALL;
+  if (blockId === BLOCK.CLAY_DEEP_ORE) return ITEM.CLAY_BALL;
   if (blockId === BLOCK.DOOR_CLOSED || blockId === BLOCK.DOOR_OPEN) return BLOCK.DOOR_CLOSED;
   if (blockId === BLOCK.GLASS) return BLOCK.GLASS;
   if (blockId === BLOCK.BRICKS) return BLOCK.BRICKS;

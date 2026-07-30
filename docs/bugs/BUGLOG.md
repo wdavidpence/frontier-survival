@@ -31,5 +31,5 @@
 - **Symptom:** Dirt/stone side faces looked transparent / world see-through; tops looked solid.
 - **Root causes:** (1) greedy FrontSide + inverted winding hid side faces; (2) unused atlas tiles alpha=0 punched holes via discard; (3) historical transparent:true sorting.
 - **Fix:** DoubleSide opaque materials; fill atlas unused tiles opaque; water alpha raised; force gl_FragColor.a=1; abs(N·L) lighting so backfaces lit.
-- **Verify:** smoke PASS; hard-refresh live with ?v=186
+- **Verify:** smoke PASS; hard-refresh live with ?v=187
 

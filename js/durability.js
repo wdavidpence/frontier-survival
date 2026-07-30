@@ -1,8 +1,8 @@
 /**
  * Tool durability helpers — pure.
  */
-import { propsOf } from './items.js?v=186';
-import { cloneSlots } from './inventory.js?v=186';
+import { propsOf } from './items.js?v=187';
+import { cloneSlots } from './inventory.js?v=187';
 
 export function maxDurability(id) {
   const p = propsOf(id);

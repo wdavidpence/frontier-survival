@@ -139,12 +139,12 @@ export function tickSurvival(state, env) {
     if (grace > 0.3) next.sleep = Math.min(next.sleep, 55);
   }
 
-  // Damage conditions — suppressed during early-game grace
+  // Damage conditions — fully suppressed during grace, ramp only after grace < 0.5
   let dps = 0;
   let cause = null;
 
-  if (grace < 0.95) {
-    const dmgScale = 1 - grace; // ramp damage in as grace fades
+  if (grace < 0.5) {
+    const dmgScale = (1 - grace * 2); // 0 at full grace → 1 when grace=0
 
     if (next.hunger <= 0) {
       dps += 4 * dmgScale;

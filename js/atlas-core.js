@@ -1,10 +1,10 @@
 /**
  * Pure atlas tile math — no DOM/Three (unit-testable).
  */
-import { BLOCK } from './blocks.js?v=186';
+import { BLOCK } from './blocks.js?v=187';
 
 export const TILE_PX = 32;
-export const ATLAS_N = 8;
+export const ATLAS_N = 7;
 export const ATLAS_PX = TILE_PX * ATLAS_N;
 
 export const TILE = {
@@ -47,6 +47,7 @@ export const TILE = {
   GENERATOR: 36,
   ICE_BOX: 37,
   WALL: 38,
+  LAVA: 39,
   CRACK0: 40,
   CRACK1: 41,
   CRACK2: 42,
@@ -149,6 +150,8 @@ export function tileForBlock(blockId, faceDir) {
       return TILE.ICE_BOX;
     case BLOCK.WALL:
       return TILE.WALL;
+    case BLOCK.LAVA:
+      return TILE.LAVA;
     default:
       return TILE.STONE;
   }

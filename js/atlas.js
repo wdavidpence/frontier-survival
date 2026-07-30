@@ -11,7 +11,7 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=186';
+} from './atlas-core.js?v=187';
 
 export {
   TILE,
@@ -22,7 +22,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=186';
+} from './atlas-core.js?v=187';
 
 function rnd(seed) {
   let s = seed | 0;
@@ -442,6 +442,13 @@ function drawWall(ctx, x0, y0) {
   }
 }
 
+function drawLava(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [210, 80, 15], 0.3, 94);
+  ctx.fillStyle = 'rgba(255,180,30,0.4)';
+  ctx.fillRect(x0 + 6, y0 + 8, 12, 4);
+  ctx.fillRect(x0 + 18, y0 + 16, 10, 3);
+}
+
 function drawCrack(ctx, x0, y0, stage) {
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
   ctx.strokeStyle = `rgba(20,15,10,${0.35 + stage * 0.1})`;
@@ -520,6 +527,7 @@ export function createBlockAtlas() {
 paint(TILE.GENERATOR, drawGenerator);
 paint(TILE.ICE_BOX, drawIceBox);
 paint(TILE.WALL, drawWall);
+  paint(TILE.LAVA, drawLava);
   paint(TILE.CRACK0, (c, x, y) => drawCrack(c, x, y, 0));
   paint(TILE.CRACK1, (c, x, y) => drawCrack(c, x, y, 1));
   paint(TILE.CRACK2, (c, x, y) => drawCrack(c, x, y, 2));
@@ -548,7 +556,6 @@ paint(TILE.WALL, drawWall);
   const greedyMaterial = new THREE.ShaderMaterial({
     uniforms: {
       atlas: { value: texture },
-      atlasN: { value: ATLAS_N },
       sunIntensity: { value: 1.0 },
       ambientColor: { value: new THREE.Color(0.48, 0.5, 0.58) },
       sunColor: { value: new THREE.Color(1.0, 0.95, 0.85) },
@@ -558,34 +565,34 @@ paint(TILE.WALL, drawWall);
       attribute float tile;
       varying vec2 vUv;
       varying vec4 vColor;
-      varying float vTile;
+      varying vec2 vAuvBase;
       varying vec3 vNormal;
       void main() {
         vUv = uv;
         vColor = color;
-        vTile = tile;
+        // Pre-compute atlas UV base in vertex shader (avoids mod/floor per fragment)
+        float tx = mod(tile, ${ATLAS_N}.0);
+        float ty = floor(tile / ${ATLAS_N}.0);
+        vAuvBase = vec2(tx / ${ATLAS_N}.0, 1.0 - (ty + 1.0) / ${ATLAS_N}.0);
         vNormal = normalize(normalMatrix * normal);
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
     `,
     fragmentShader: `
       uniform sampler2D atlas;
-      uniform float atlasN;
       uniform float sunIntensity;
       uniform vec3 ambientColor;
       uniform vec3 sunColor;
       uniform vec3 sunDir;
       varying vec2 vUv;
       varying vec4 vColor;
-      varying float vTile;
+      varying vec2 vAuvBase;
       varying vec3 vNormal;
       void main() {
-        float tx = mod(vTile, atlasN);
-        float ty = floor(vTile / atlasN);
         vec2 tUv = fract(vUv);
         // tiny inset to reduce bleeding
         tUv = clamp(tUv, 0.02, 0.98);
-        vec2 auv = vec2((tx + tUv.x) / atlasN, 1.0 - (ty + 1.0 - tUv.y) / atlasN);
+        vec2 auv = vAuvBase + vec2(tUv.x / ${ATLAS_N}.0, tUv.y / ${ATLAS_N}.0);
         vec4 tex = texture2D(atlas, auv);
         // Soft cutout for leaves/plants only. Force opaque write so solids never see-through.
         if (tex.a < 0.35) discard;

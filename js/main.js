@@ -1,11 +1,11 @@
-import { Game } from './game.js?v=186';
-import { hasSave, clearSaveStorage } from './save.js?v=186';
-import { MODES, MODE_ORDER, getMode } from './modes.js?v=186';
+import { Game } from './game.js?v=187';
+import { hasSave, clearSaveStorage } from './save.js?v=187';
+import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=187';
 import {
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
-} from './settings.js?v=186';
+} from './settings.js?v=187';
 
 const canvas = document.getElementById('game');
 const title = document.getElementById('title-screen');
@@ -122,7 +122,10 @@ function paintModeRow() {
     });
     row.appendChild(btn);
   }
-  if (blurb) blurb.textContent = getMode(game.mode).blurb;
+  if (blurb) {
+    const exp = difficulty_presets_explain(current);
+    blurb.innerHTML = `<strong>${exp.title}</strong><br/>${exp.body}`;
+  }
 }
 
 function readSeedInput() {

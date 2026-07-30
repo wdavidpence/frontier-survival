@@ -38,6 +38,10 @@ export const BLOCK = {
   GENERATOR: 35,
   ICE_BOX: 36,
   WALL: 37,
+  LAVA: 38,
+  CLAY_DEEP_ORE: 39,
+  SULFUR_ORE: 40,
+  OIL_SEEP: 41,
 };
 
 /** @type {Record<number, {
@@ -92,6 +96,10 @@ export const BLOCK_PROPS = {
   [BLOCK.GENERATOR]: { name: 'Generator', solid: true, transparent: false, hardness: 1.8, color: [0.35, 0.38, 0.42], drops: BLOCK.GENERATOR, light: 4, heat: 2 },
   [BLOCK.ICE_BOX]: { name: 'Ice Box', solid: true, transparent: true, hardness: 0.8, color: [0.65, 0.82, 0.92], drops: BLOCK.ICE_BOX },
   [BLOCK.WALL]: { name: 'Cobble Wall', solid: true, transparent: true, hardness: 1.5, color: [0.5, 0.5, 0.52], drops: BLOCK.WALL },
+  [BLOCK.LAVA]: { name: 'Lava', solid: false, transparent: true, liquid: true, hardness: 100, color: [0.95, 0.35, 0.05], light: 15, heat: 25, replaceable: true },
+  [BLOCK.CLAY_DEEP_ORE]: { name: 'Deep Clay Ore', solid: true, transparent: false, hardness: 1.8, color: [0.32, 0.28, 0.25], drops: BLOCK.CLAY_DEEP_ORE },
+  [BLOCK.SULFUR_ORE]: { name: 'Sulfur Ore', solid: true, transparent: false, hardness: 1.6, color: [0.72, 0.68, 0.28], drops: BLOCK.SULFUR_ORE },
+  [BLOCK.OIL_SEEP]: { name: 'Oil Seep', solid: true, transparent: false, hardness: 1.2, color: [0.18, 0.16, 0.14], drops: BLOCK.OIL_SEEP },
 };
 
 export function isSolid(id) {

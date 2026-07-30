@@ -52,6 +52,7 @@ export class AudioBus {
     this._howlTimer = 0;
     this._crackleTimer = 0;
     this._lastMix = ambientMix();
+    this._voices = [];
   }
 
   ensure() {
@@ -277,10 +278,22 @@ export class AudioBus {
     o.stop(t + 2.3);
   }
 
+  /** Maximum concurrent oscillator voices for SFX. */
+  static MAX_VOICES = 8;
+
   beep(freq, dur = 0.08, type = 'square', gain = 0.2) {
     if (!this.enabled) return;
     this.ensure();
     if (!this.ctx) return;
+
+    // Voice cap: evict oldest voice if at capacity
+    this._trimVoices();
+    if (this._voices.length >= AudioBus.MAX_VOICES) {
+      // Steal the oldest voice (first in array = earliest start time)
+      const stolen = this._voices.shift();
+      try { stolen.src.stop(); } catch (_) {}
+    }
+
     const t = this.ctx.currentTime;
     const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
@@ -292,6 +305,21 @@ export class AudioBus {
     g.connect(this.master);
     o.start(t);
     o.stop(t + dur);
+
+    this._voices.push({ src: o, stopTime: t + dur });
+  }
+
+  /** Remove expired voices and evict oldest if over cap. */
+  _trimVoices() {
+    const now = this.ctx.currentTime;
+    // Purge finished voices
+    for (let i = 0; i < this._voices.length; i++) {
+      if (this._voices[i].stopTime <= now) {
+        try { this._voices[i].src.stop(); } catch (_) {}
+        this._voices.splice(i, 1);
+        i--;
+      }
+    }
   }
 
   breakBlock() {

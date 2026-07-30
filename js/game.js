@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=186';
-import { Player } from './player.js?v=186';
-import { Input } from './input.js?v=186';
-import { GameTime } from './time.js?v=186';
-import { AudioBus } from './audio.js?v=186';
+import { World } from './world.js?v=187';
+import { Player } from './player.js?v=187';
+import { Input } from './input.js?v=187';
+import { GameTime } from './time.js?v=187';
+import { AudioBus } from './audio.js?v=187';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=186';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=186';
+} from './survival.js?v=187';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=187';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=186';
+} from './items.js?v=187';
 import {
   addItems,
   removeItems,
@@ -31,11 +31,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=186';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=186';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=186';
-import { createBlockAtlas } from './atlas.js?v=186';
-import { BreakFX } from './fx.js?v=186';
+} from './inventory.js?v=187';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=187';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=187';
+import { createBlockAtlas } from './atlas.js?v=187';
+import { BreakFX } from './fx.js?v=187';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -45,35 +45,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=186';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=186';
+} from './equipment.js?v=187';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=187';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=186';
-import { getMode } from './modes.js?v=186';
+} from './save.js?v=187';
+import { getMode } from './modes.js?v=187';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=186';
+} from './settings.js?v=187';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=186';
-import { tickSpoilage } from './spoilage.js?v=186';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=186';
-import { wearTool, durabilityRatio } from './durability.js?v=186';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=186';
-import { tickLogic, COMPONENT } from './logic.js?v=186';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=186';
+} from './achievements.js?v=187';
+import { tickSpoilage } from './spoilage.js?v=187';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=187';
+import { wearTool, durabilityRatio } from './durability.js?v=187';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=187';
+import { tickLogic, COMPONENT } from './logic.js?v=187';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=187';
 import {
   chestKey,
   getChestSlots,
@@ -84,7 +84,7 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=186';
+} from './chests.js?v=187';
 
 export class Game {
   /**
@@ -470,7 +470,7 @@ export class Game {
     this.input.uiMode = false;
     this.paused = false;
     this._ignorePauseT = 2.5;
-    this._spawnProtectT = 900; // 15 min early-game grace (food/cold/sleep)
+    this._spawnProtectT = 1800; // 30 min early-game grace (food/cold/sleep)
     this._graceEndedNotified = false;
     this.canvas?.focus?.();
     this.input.requestLock?.();

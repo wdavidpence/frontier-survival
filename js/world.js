@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=186';
-import { heightAt, hash2, fbm } from './gen.js?v=186';
-import { biomeAt, BIOME } from './biomes.js?v=186';
-import { tileForBlock } from './atlas-core.js?v=186';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=186';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=187';
+import { heightAt, hash2, fbm } from './gen.js?v=187';
+import { biomeAt, BIOME } from './biomes.js?v=187';
+import { tileForBlock } from './atlas-core.js?v=187';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=187';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -39,7 +39,209 @@ export class World {
       this.material.side = THREE.DoubleSide;
     }
     this._stats = { quads: 0, naiveFaces: 0 };
+
+    // ── Chunk worker pool (stub) ───────────────────────────────────────
+    this._workerPool = [];
+    this._maxWorkers = Math.max(1, navigator.hardwareConcurrency - 1) || 3;
+    this._workerReady = false;
+
+    // Keep synchronous generation for now — worker path wired in _genAllAsync
     this._genAll();
+  }
+
+  /** Lazily initialise the worker pool (first call creates Blob URL workers). */
+  _ensureWorkers() {
+    if (this._workerReady || typeof Worker === 'undefined') return;
+    this._workerReady = true;
+
+    // Build a Blob URL from the inline chunk-worker source.
+    // We read it via a fetch so we don't need to duplicate the code here.
+    const workerUrl = './js/chunk-worker.js?v=187';
+
+    for (let i = 0; i < this._maxWorkers; i++) {
+      try {
+        const w = new Worker(workerUrl);
+        this._workerPool.push(w);
+      } catch {
+        // Worker not supported — fall back to sync generation (already done)
+        this._workerReady = false;
+        break;
+      }
+    }
+  }
+
+  /**
+   * Generate a single chunk via the worker pool.
+   * @param {number} cx
+   * @param {number} cz
+   * @returns {Promise<Uint8Array>}
+   */
+  generateChunkAsync(cx, cz) {
+    this._ensureWorkers();
+
+    // Fallback: if no workers available, generate synchronously
+    if (!this._workerReady || this._workerPool.length === 0) {
+      return Promise.resolve(this._generateChunkSync(cx, cz));
+    }
+
+    // Find an idle worker (simple round-robin with message queue)
+    const worker = this._workerPool[cx % this._workerPool.length];
+
+    return new Promise((resolve, reject) => {
+      const handler = (e) => {
+        if (e.data.error) {
+          worker.removeEventListener('message', handler);
+          reject(new Error(`Chunk ${cx},${cz}: ${e.data.error}`));
+          return;
+        }
+        worker.removeEventListener('message', handler);
+        resolve(e.data.data); // Uint8Array (transferred)
+      };
+      worker.addEventListener('message', handler);
+      worker.postMessage({ cx, cz, seed: this.seed });
+    });
+  }
+
+  /** Synchronous chunk generation (used as fallback). */
+  _generateChunkSync(cx, cz) {
+    const data = new Uint8Array(CHUNK_SIZE * WORLD_HEIGHT * CHUNK_SIZE);
+    const baseX = cx * CHUNK_SIZE;
+    const baseZ = cz * CHUNK_SIZE;
+
+    for (let lz = 0; lz < CHUNK_SIZE; lz++) {
+      for (let lx = 0; lx < CHUNK_SIZE; lx++) {
+        const x = baseX + lx;
+        const z = baseZ + lz;
+        const h = heightAt(x, z, this.seed);
+        const biome = biomeAt(x, z, this.seed);
+
+        for (let y = 0; y < WORLD_HEIGHT; y++) {
+          let id = BLOCK.AIR;
+          if (y === 0) id = BLOCK.BEDROCK;
+          else if (y > h) {
+            if (y <= SEA_LEVEL) id = BLOCK.WATER;
+            else id = BLOCK.AIR;
+          } else if (y === h) {
+            if (biome === BIOME.SHORE || biome === BIOME.DESERT) id = BLOCK.SAND;
+            else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
+            else id = BLOCK.GRASS;
+          } else if (y > h - 4) {
+            if (biome === BIOME.DESERT || biome === BIOME.SHORE) id = BLOCK.SAND;
+            else id = BLOCK.DIRT;
+          } else {
+            id = BLOCK.STONE;
+            if (y < h - 6 && hash2(x + y * 3, z + this.seed) > 0.97) id = BLOCK.COAL_ORE;
+            if (y < h - 10 && y > 4 && hash2(x * 2 + y, z + this.seed * 5) > 0.985) id = BLOCK.IRON_ORE;
+            if (y >= 2 && y <= 8 && hash2(x + y * 13, z * 7 + this.seed * 3) > 0.982) id = BLOCK.CLAY_DEEP_ORE;
+            if (y >= 3 && y <= h - 5) {
+              if (hash2(x + y * 7, z + this.seed * 3) > 0.991) id = BLOCK.AIR;
+            }
+          }
+          data[this._idx(lx, y, lz)] = id;
+        }
+
+        if (h > SEA_LEVEL + 1) {
+          const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
+          let treeChance = 0;
+          if (biome === BIOME.FOREST) treeChance = 0.08;
+          else if (biome === BIOME.SHORE) treeChance = 0.012;
+          else if (biome === BIOME.TUNDRA) treeChance = 0.02;
+          if (th > 1 - treeChance) {
+            this._placeTree(data, lx, h + 1, lz);
+          }
+        }
+        if (
+          (biome === BIOME.FOREST || biome === BIOME.SHORE) &&
+          h > SEA_LEVEL + 1 &&
+          data[this._idx(lx, h, lz)] === BLOCK.GRASS &&
+          data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
+          hash2(x + 91, z * 3 + (this.seed | 0)) > 0.94
+        ) {
+          data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
+        }
+        if (biome === BIOME.SHORE || (h >= SEA_LEVEL && h <= SEA_LEVEL + 3 && biome !== BIOME.TUNDRA)) {
+          if (hash2(x + 33, z + this.seed) > 0.93) {
+            const surface = data[this._idx(lx, h, lz)];
+            if (surface === BLOCK.GRASS || surface === BLOCK.DIRT || surface === BLOCK.SAND) {
+              data[this._idx(lx, h, lz)] = BLOCK.CLAY;
+            }
+          }
+        }
+      }
+    }
+
+    this._carveLavaTubesSync(data, baseX, baseZ);
+    return data;
+  }
+
+  /** Synchronous lava tube carving (fallback). */
+  _carveLavaTubesSync(data, baseX, baseZ) {
+    const tubeY = 4;
+    const tubeRadius = 2;
+
+    for (let lz = 0; lz < CHUNK_SIZE; lz++) {
+      for (let lx = 0; lx < CHUNK_SIZE; lx++) {
+        const wx = baseX + lx;
+        const wz = baseZ + lz;
+
+        const tubeCenterX = fbm(wx * 0.04 + this.seed * 17, wz * 0.04 + this.seed * 31, 2);
+        const tubeCenterZ = fbm(wx * 0.04 + this.seed * 43, wz * 0.04 + this.seed * 59, 2);
+
+        const tubeLx = (tubeCenterX * CHUNK_SIZE) % CHUNK_SIZE;
+        const tubeLz = (tubeCenterZ * CHUNK_SIZE) % CHUNK_SIZE;
+
+        const dx = lx - tubeLx;
+        const dz = lz - tubeLz;
+        const dist2d = Math.sqrt(dx * dx + dz * dz);
+
+        const tubePresence = hash2(wx + this.seed * 7, wz + this.seed * 13);
+        if (tubePresence < 0.85) continue;
+
+        if (dist2d < tubeRadius) {
+          const yTop = tubeY + Math.floor(hash2(wx, wz + this.seed * 5) * 3);
+          const lavaLevel = tubeY;
+
+          for (let y = lavaLevel; y <= yTop && y < WORLD_HEIGHT - 1; y++) {
+            const i = this._idx(lx, y, lz);
+            const block = data[i];
+            if (block === BLOCK.STONE || block === BLOCK.DIRT) {
+              if (y === lavaLevel) data[i] = BLOCK.LAVA;
+              else if (y < yTop) data[i] = BLOCK.AIR;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /** Async version of _genAll — generates all chunks in parallel via workers. */
+  async _genAllAsync() {
+    const tasks = [];
+    for (let cz = -this.radiusChunks; cz <= this.radiusChunks; cz++) {
+      for (let cx = -this.radiusChunks; cx <= this.radiusChunks; cx++) {
+        tasks.push(this.generateChunkAsync(cx, cz).then((data) => ({ cx, cz, data })));
+      }
+    }
+
+    const results = await Promise.all(tasks);
+    for (const { cx, cz, data } of results) {
+      this.chunks.set(this.key(cx, cz), data);
+    }
+
+    // Now rebuild meshes for all chunks
+    for (let cz = -this.radiusChunks; cz <= this.radiusChunks; cz++) {
+      for (let cx = -this.radiusChunks; cx <= this.radiusChunks; cx++) {
+        this.rebuildChunk(cx, cz);
+      }
+    }
+  }
+
+  /** Dispose worker pool. */
+  disposeWorkers() {
+    for (const w of this._workerPool) {
+      try { w.terminate(); } catch {}
+    }
+    this._workerPool = [];
   }
 
   key(cx, cz) {
@@ -93,6 +295,8 @@ export class World {
             if (y < h - 6 && hash2(x + y * 3, z + this.seed) > 0.97) id = BLOCK.COAL_ORE;
             // iron deeper
             if (y < h - 10 && y > 4 && hash2(x * 2 + y, z + this.seed * 5) > 0.985) id = BLOCK.IRON_ORE;
+            // deep clay ore veins (y <= 8, hash2-safe density)
+            if (y >= 2 && y <= 8 && hash2(x + y * 13, z * 7 + this.seed * 3) > 0.982) id = BLOCK.CLAY_DEEP_ORE;
             // caves
             if (y >= 3 && y <= h - 5) {
               if (hash2(x + y * 7, z + this.seed * 3) > 0.991) id = BLOCK.AIR;
@@ -135,7 +339,67 @@ export class World {
       }
     }
 
+    // Lava tube generation — carve tubular passages deep underground, fill with lava
+    this._carveLavaTubes(data, baseX, baseZ);
+
     this.chunks.set(this.key(cx, cz), data);
+  }
+
+  /**
+   * Lava tube generation — carved tubular passages deep underground filled with lava.
+   * Uses 3D noise-based tunnel routing: center path determined by fbm drift, with
+   * variable radius. Lava pools at the bottom of each tube segment.
+   */
+  _carveLavaTubes(data, baseX, baseZ) {
+    const tubeY = 4; // Deep underground level (above bedrock at y=0)
+    const tubeRadius = 2; // Half-width of the tunnel
+
+    // For each column, compute a tube path through this chunk
+    for (let lz = 0; lz < CHUNK_SIZE; lz++) {
+      for (let lx = 0; lx < CHUNK_SIZE; lx++) {
+        const wx = baseX + lx;
+        const wz = baseZ + lz;
+
+        // Deterministic check: does a lava tube pass near this position?
+        // Use fbm to create the tube centerline offset at depth tubeY
+        const tubeCenterX = fbm(wx * 0.04 + this.seed * 17, wz * 0.04 + this.seed * 31, 2);
+        const tubeCenterZ = fbm(wx * 0.04 + this.seed * 43, wz * 0.04 + this.seed * 59, 2);
+
+        // Map [0,1) to chunk-relative position
+        const tubeLx = (tubeCenterX * CHUNK_SIZE) % CHUNK_SIZE;
+        const tubeLz = (tubeCenterZ * CHUNK_SIZE) % CHUNK_SIZE;
+
+        // Distance from this block to the tube center
+        const dx = lx - tubeLx;
+        const dz = lz - tubeLz;
+        const dist2d = Math.sqrt(dx * dx + dz * dz);
+
+        // Tube presence check — sparse enough to be interesting
+        const tubePresence = hash2(wx + this.seed * 7, wz + this.seed * 13);
+        if (tubePresence < 0.85) continue; // Only ~15% of columns host a tube
+
+        if (dist2d < tubeRadius) {
+          // Carve through stone, fill with lava at bottom level
+          const yTop = tubeY + Math.floor(hash2(wx, wz + this.seed * 5) * 3);
+          const lavaLevel = tubeY;
+
+          for (let y = lavaLevel; y <= yTop && y < WORLD_HEIGHT - 1; y++) {
+            const i = this._idx(lx, y, lz);
+            const block = data[i];
+            // Carve stone/dirt; don't overwrite bedrock
+            if (block === BLOCK.STONE || block === BLOCK.DIRT) {
+              if (y === lavaLevel) {
+                data[i] = BLOCK.LAVA; // Lava floor
+              } else if (y < yTop) {
+                data[i] = BLOCK.AIR; // Carved ceiling/air space
+              }
+            }
+          }
+
+          // Edge glow reserved for future light bleed; lava BLOCK_PROPS.light handles emission.
+        }
+      }
+    }
   }
 
   _placeTree(data, lx, y, lz) {

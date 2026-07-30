@@ -452,9 +452,9 @@
       "body": "Performance work: atlas_minify.",
       "files": "js/world.js,js/game.js,js/mesh-greedy.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_e96c2525"
     },
     {
       "id": "FS-caabde09d3",
@@ -463,9 +463,9 @@
       "body": "Performance work: audio_voice_cap.",
       "files": "js/world.js,js/game.js,js/mesh-greedy.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_b3688fb0"
     },
     {
       "id": "FS-c8c7d7f88d",
@@ -474,9 +474,9 @@
       "body": "Performance work: chunk_worker_stub.",
       "files": "js/world.js,js/game.js,js/mesh-greedy.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_239bd363"
     },
     {
       "id": "FS-a85085c14d",
@@ -485,9 +485,9 @@
       "body": "Performance work: dt_spike_guard.",
       "files": "js/world.js,js/game.js,js/mesh-greedy.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_9d4e2e32"
     },
     {
       "id": "FS-a5403772cb",
@@ -496,9 +496,9 @@
       "body": "Performance work: entity_cull.",
       "files": "js/world.js,js/game.js,js/mesh-greedy.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_6b00fdbd"
     },
     {
       "id": "FS-d40f19fb62",
@@ -507,9 +507,9 @@
       "body": "Performance work: light_cache.",
       "files": "js/world.js,js/game.js,js/mesh-greedy.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_dc213ff5"
     },
     {
       "id": "FS-d9bd0ce018",
@@ -518,9 +518,9 @@
       "body": "Performance work: mesh_pool.",
       "files": "js/world.js,js/game.js,js/mesh-greedy.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_f005e578"
     },
     {
       "id": "FS-2a1ed2cece",
@@ -529,9 +529,9 @@
       "body": "Performance work: mobile_low_tier_preset.",
       "files": "js/world.js,js/game.js,js/mesh-greedy.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_3a96aa66"
     },
     {
       "id": "FS-526623cd67",
@@ -540,9 +540,9 @@
       "body": "Performance work: particle_cap.",
       "files": "js/world.js,js/game.js,js/mesh-greedy.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_87b9962c"
     },
     {
       "id": "FS-280f9b8c69",
@@ -551,9 +551,9 @@
       "body": "Performance work: shadow_toggle.",
       "files": "js/world.js,js/game.js,js/mesh-greedy.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_541351cb"
     },
     {
       "id": "FS-934e86b238",
@@ -562,9 +562,9 @@
       "body": "Platform/support: firefox_pointer_lock.",
       "files": "docs,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_5426cb28"
     },
     {
       "id": "FS-5c63923926",
@@ -573,9 +573,9 @@
       "body": "Add automated smoke/e2e coverage for achievement_unlock.",
       "files": "tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_b27767aa"
     },
     {
       "id": "FS-7abe6ffdc5",
@@ -584,9 +584,9 @@
       "body": "Add automated smoke/e2e coverage for biome_temp_table.",
       "files": "tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_fc074d24"
     },
     {
       "id": "FS-2be4c8d000",
@@ -595,9 +595,9 @@
       "body": "Add automated smoke/e2e coverage for bleed_tick.",
       "files": "tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_1ed1306c"
     },
     {
       "id": "FS-298d087fe5",
@@ -606,9 +606,9 @@
       "body": "Add automated smoke/e2e coverage for boat_speed.",
       "files": "tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_468706c7"
     },
     {
       "id": "FS-1ff8127697",
@@ -617,9 +617,9 @@
       "body": "Add automated smoke/e2e coverage for bucket_fill.",
       "files": "tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_dd61bfd5"
     },
     {
       "id": "FS-239e9dfc2a",
@@ -628,9 +628,9 @@
       "body": "Add automated smoke/e2e coverage for craft_batch.",
       "files": "tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_7a4734f2"
     },
     {
       "id": "FS-091b13af04",
@@ -639,9 +639,9 @@
       "body": "Add automated smoke/e2e coverage for door_toggle.",
       "files": "tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_dfb6e6e7"
     },
     {
       "id": "FS-7d21768155",
@@ -650,9 +650,9 @@
       "body": "Add automated smoke/e2e coverage for fall_damage_curve.",
       "files": "tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_43df6be7"
     },
     {
       "id": "FS-08d14667ea",
@@ -661,9 +661,9 @@
       "body": "Add automated smoke/e2e coverage for inventory_split.",
       "files": "tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_c766a2c8"
     },
     {
       "id": "FS-8eb14808f6",
@@ -672,9 +672,9 @@
       "body": "Add automated smoke/e2e coverage for logic_lamp_power.",
       "files": "tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_0da4fa53"
     },
     {
       "id": "FS-37e960548b",
@@ -1101,9 +1101,9 @@
       "body": "Generate limestone veins at depth bands with hash2-safe density; drops + smelt path if missing.",
       "files": "js/world.js,js/blocks.js,js/items.js,js/crafting.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_0c9a481e"
     },
     {
       "id": "FS-8b2b8affc4",
@@ -1112,9 +1112,9 @@
       "body": "Generate malachite veins at depth bands with hash2-safe density; drops + smelt path if missing.",
       "files": "js/world.js,js/blocks.js,js/items.js,js/crafting.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_1de089b6"
     },
     {
       "id": "FS-8e1159a505",
@@ -1123,9 +1123,9 @@
       "body": "Generate marble veins at depth bands with hash2-safe density; drops + smelt path if missing.",
       "files": "js/world.js,js/blocks.js,js/items.js,js/crafting.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_c1683d8d"
     },
     {
       "id": "FS-d9099ec04e",
@@ -1134,9 +1134,9 @@
       "body": "Generate obsidian_pocket veins at depth bands with hash2-safe density; drops + smelt path if missing.",
       "files": "js/world.js,js/blocks.js,js/items.js,js/crafting.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_2a027afa"
     },
     {
       "id": "FS-ced3ea1e32",
@@ -1145,9 +1145,9 @@
       "body": "Generate oil_seep veins at depth bands with hash2-safe density; drops + smelt path if missing.",
       "files": "js/world.js,js/blocks.js,js/items.js,js/crafting.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_5cfcf461"
     },
     {
       "id": "FS-293470ee2f",
@@ -1156,9 +1156,9 @@
       "body": "Generate salt veins at depth bands with hash2-safe density; drops + smelt path if missing.",
       "files": "js/world.js,js/blocks.js,js/items.js,js/crafting.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_f31e52c5"
     },
     {
       "id": "FS-3b0c7986cb",
@@ -1167,9 +1167,9 @@
       "body": "Generate saltpeter veins at depth bands with hash2-safe density; drops + smelt path if missing.",
       "files": "js/world.js,js/blocks.js,js/items.js,js/crafting.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_918b0d24"
     },
     {
       "id": "FS-7c7075dac1",
@@ -1178,9 +1178,9 @@
       "body": "Generate silver veins at depth bands with hash2-safe density; drops + smelt path if missing.",
       "files": "js/world.js,js/blocks.js,js/items.js,js/crafting.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_9c08f72d"
     },
     {
       "id": "FS-15c6a3278f",
@@ -1189,9 +1189,9 @@
       "body": "Generate sulfur veins at depth bands with hash2-safe density; drops + smelt path if missing.",
       "files": "js/world.js,js/blocks.js,js/items.js,js/crafting.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_8c8a7476"
     },
     {
       "id": "FS-4a664ec5b0",
@@ -1200,9 +1200,9 @@
       "body": "Generate tin veins at depth bands with hash2-safe density; drops + smelt path if missing.",
       "files": "js/world.js,js/blocks.js,js/items.js,js/crafting.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_5a79510c"
     },
     {
       "id": "FS-cf776d9c1e",
@@ -1211,9 +1211,9 @@
       "body": "Generate uranium_rare veins at depth bands with hash2-safe density; drops + smelt path if missing.",
       "files": "js/world.js,js/blocks.js,js/items.js,js/crafting.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_cd7f0c96"
     },
     {
       "id": "FS-85347d4b6f",

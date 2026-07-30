@@ -86,6 +86,8 @@ export class Input {
     this._vMoveZ = 0;
     this._vJump = false;
     this._vCrouch = false;
+    /** Gamepad state */
+    this._gpIndex = -1;
   }
 
   clearTransient({ keepMove = false } = {}) {
