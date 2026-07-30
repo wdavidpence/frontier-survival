@@ -683,9 +683,9 @@
       "body": "Add automated smoke/e2e coverage for map_coords.",
       "files": "tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_aee9233f"
     },
     {
       "id": "FS-658beb3bf3",
@@ -694,9 +694,9 @@
       "body": "Add automated smoke/e2e coverage for save_compat_v18.",
       "files": "tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_8d458ee3"
     },
     {
       "id": "FS-90243758f0",
@@ -705,9 +705,9 @@
       "body": "Add automated smoke/e2e coverage for tree_density_bounds.",
       "files": "tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_ef359478"
     },
     {
       "id": "FS-942ece0f25",
@@ -1222,9 +1222,9 @@
       "body": "Add procedural acacia tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_a7f64cb9"
     },
     {
       "id": "FS-d4bc76ec6f",
@@ -1233,9 +1233,9 @@
       "body": "Add procedural ash tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_20acc340"
     },
     {
       "id": "FS-f5f480da71",
@@ -1244,9 +1244,9 @@
       "body": "Add procedural bamboo_cluster tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_ac6373e8"
     },
     {
       "id": "FS-d204c7ae72",
@@ -1255,9 +1255,9 @@
       "body": "Add procedural baobab tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_d799cff0"
     },
     {
       "id": "FS-cd8f638a2f",
@@ -1266,9 +1266,9 @@
       "body": "Add procedural birch tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_4d0991cf"
     },
     {
       "id": "FS-91d5580d2a",
@@ -1277,9 +1277,9 @@
       "body": "Add procedural bush_tree tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_16f0b6a7"
     },
     {
       "id": "FS-89c2036173",
@@ -1288,9 +1288,9 @@
       "body": "Add procedural cactus_column tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_9796574e"
     },
     {
       "id": "FS-5e8def66fa",
@@ -1299,9 +1299,9 @@
       "body": "Add procedural cedar tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_b0624840"
     },
     {
       "id": "FS-fa9c556b98",
@@ -1310,9 +1310,9 @@
       "body": "Add procedural dead tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_1e4c507f"
     },
     {
       "id": "FS-f5291c7b10",
@@ -1321,9 +1321,9 @@
       "body": "Add procedural frostwood tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_8fa05f7e"
     },
     {
       "id": "FS-d903f3e36b",
@@ -1332,9 +1332,9 @@
       "body": "Add procedural giant_oak tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_8fd0abe2"
     },
     {
       "id": "FS-f4e9eaa7e3",
@@ -1343,9 +1343,9 @@
       "body": "Add procedural jungle tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_5e0778ff"
     },
     {
       "id": "FS-c021670bfb",
@@ -1354,9 +1354,9 @@
       "body": "Add procedural mangrove tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_8055941c"
     },
     {
       "id": "FS-10ae3f1885",
@@ -1365,9 +1365,9 @@
       "body": "Add procedural maple tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_e56587e6"
     },
     {
       "id": "FS-178fab8491",
@@ -1376,9 +1376,9 @@
       "body": "Add procedural oak tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_d1f7726f"
     },
     {
       "id": "FS-26ba783808",
@@ -1387,9 +1387,9 @@
       "body": "Add procedural palm tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_96ec8557"
     },
     {
       "id": "FS-75cd1b2e64",
@@ -1398,9 +1398,9 @@
       "body": "Add procedural pine tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_d0e24e8d"
     },
     {
       "id": "FS-0be9383f44",
