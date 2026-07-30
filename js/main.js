@@ -139,12 +139,41 @@ function readSeedInput() {
   return h >>> 0;
 }
 
+
+function engageControls() {
+  try {
+    game.input?.clearTransient?.();
+    game.input.uiMode = false;
+    game.paused = false;
+    game._ignorePauseT = 2.5;
+    game.canvas?.focus?.();
+    game.input?.requestLock?.();
+    // Drop Esc from confirm()/alert after the call stack clears
+    setTimeout(() => {
+      try {
+        game.input?.clearTransient?.();
+        game.input.uiMode = false;
+        if (game.paused && game.started && !game.survival?.dead) game.setPaused(false);
+        game._ignorePauseT = Math.max(game._ignorePauseT || 0, 1.0);
+        game.input?.requestLock?.();
+      } catch (_) {}
+    }, 0);
+    setTimeout(() => {
+      try {
+        game.input?.pausePressed && (game.input.pausePressed = false);
+        if (game.paused && game.started) game.setPaused(false);
+      } catch (_) {}
+    }, 100);
+  } catch (_) {}
+}
+
 function startNewWorld() {
   const seed = readSeedInput();
   clearSaveStorage();
   game.mode = getMode(game.settings.mode).id;
   game.seed = seed != null ? seed : ((Math.random() * 1e6) | 0);
   game.start(game.seed);
+  engageControls();
   refreshContinue();
 }
 
@@ -173,6 +202,8 @@ btnContinue?.addEventListener('click', (e) => {
   if (!res.ok) {
     alert(`Could not load save: ${res.error || 'unknown'}`);
     refreshContinue();
+  } else {
+    engageControls();
   }
 });
 
@@ -195,4 +226,4 @@ refreshContinue();
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.7');
+console.info('Frontier Survival boot OK · v1.7.1');

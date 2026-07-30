@@ -24,6 +24,35 @@ export class Input {
     this.uiMode = false;
   }
 
+  /** Drop one-shot keys (Esc from confirm dialogs, etc.) */
+  clearTransient() {
+    this.keys.clear();
+    this.breakHeld = false;
+    this.placePressed = false;
+    this.usePressed = false;
+    this.eatPressed = false;
+    this.inventoryPressed = false;
+    this.quickSavePressed = false;
+    this.dropPressed = false;
+    this.pausePressed = false;
+    this.helpPressed = false;
+    this.debugPressed = false;
+    this.hotbarScroll = 0;
+    this.slot = -1;
+  }
+
+  /** Call from a user gesture (Start/New World click) so mouse look engages immediately. */
+  requestLock() {
+    if (this.uiMode) return;
+    if (document.pointerLockElement !== this.el) {
+      try {
+        this.el.requestPointerLock?.();
+      } catch (_) {
+        /* browser may require a later canvas click */
+      }
+    }
+  }
+
   bind() {
     if (this._bound) return;
     this._bound = true;

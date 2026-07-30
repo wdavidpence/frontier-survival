@@ -177,6 +177,7 @@ export class Game {
     this._lightningAcc = 0;
     this._sleepFadeT = 0;
     this._lastBiome = null; // biome notification tracker
+    this._ignorePauseT = 0;
     this._biomeNotifyAcc = 0; // accumulator for periodic biome name display
 
     // Block selection outline
@@ -452,10 +453,17 @@ export class Game {
     this.setPaused(false);
     this.input.bind();
     this.setInventoryOpen(false);
+    this.input.clearTransient?.();
+    this.input.uiMode = false;
+    this.paused = false;
+    this._ignorePauseT = 2.5;
+    this.canvas?.focus?.();
+    this.input.requestLock?.();
     this._applyHelpVisibility();
     this._helpFadeAcc = 0;
     if (notify) {
       this.player.notify(notify, 7);
+      this.player.notify('Click game if look fails · WASD move · Esc pause', 5);
     } else if (freshPlayer) {
       this.player.notify(`${this.modeDef().name} mode. Hunt hares & deer. Craft a spear. Wolves hunt at night.`, 8);
     }
@@ -893,8 +901,13 @@ export class Game {
     let dt = (now - this._last) / 1000;
     this._last = now;
     dt = Math.min(0.05, dt);
+    // Drop Esc leftovers from confirm() dialogs right after boot
+    if (this._ignorePauseT > 0) {
+      this._ignorePauseT -= dt;
+      this.input.pausePressed = false;
+    }
     // Always process pause / help keys
-    if (this.started && this.input.consumePause()) {
+    if (this.started && this._ignorePauseT <= 0 && this.input.consumePause()) {
       if (this.player?.inventoryOpen) this.setInventoryOpen(false);
       else if (!this.survival.dead) this.setPaused(!this.paused);
     }
