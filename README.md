@@ -6,9 +6,9 @@ Inspired by the *systems* of Survivalcraft (harsh nature, clothing, sleep, preda
 
 You wash up in a blocky wilderness where **cold, hunger, fatigue, and wolves** matter as much as mining.
 
-![Status](https://img.shields.io/badge/status-playable%20v1.5-brightgreen)
+![Status](https://img.shields.io/badge/status-playable%20v1.8-brightgreen)
 ![Stack](https://img.shields.io/badge/stack-Three.js%20ESM-blue)
-![Tests](https://img.shields.io/badge/tests-47%20smoke-lightgrey)
+![Tests](https://img.shields.io/badge/tests-83%20smoke-lightgrey)
 
 ---
 
@@ -26,12 +26,12 @@ Open: **http://127.0.0.1:8765/**
 Legacy path still works if you open `/public/` (uses `../js`).
 
 ```bash
-node tests/smoke.mjs   # 47 pure-logic tests
+node tests/smoke.mjs   # 83 pure-logic tests
 ```
 
 ---
 
-## Controls (PC v1.5)
+## Controls (PC v1.8)
 
 | Input | Action |
 |-------|--------|
@@ -125,5 +125,7 @@ See `docs/SCM.md`: more biomes, bow, electricity/logic, boats, multiplayer later
 
 ## Status
 
-**Playable browser v1.5** — doors, glass, clay/bricks, bear predator, bleed/bandage, wooden sword, furnace, shift-click split stacks, sleep fade overlay, drink water.  
+**Playable browser v1.8** — black-canvas harden, opaque WebGL clear, brighter night terrain, bleed HUD wired.  
+Prior v1.6: biomes, taming, logic blocks, bleed UI shell.
+Legacy v1.5: doors, glass, clay/bricks, bear predator, bleed/bandage, wooden sword, furnace, shift-click split stacks, sleep fade overlay, drink water.  
 Not commercial Survivalcraft feature parity; depth continues from the plan checklist.

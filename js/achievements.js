@@ -24,6 +24,11 @@ export const ACHIEVEMENTS = [
   { id: 'first_shield', title: 'Hold the Line', desc: 'Craft a shield.' },
   { id: 'first_armor', title: 'Hardened Hide', desc: 'Equip leather armor.' },
   { id: 'first_snare', title: 'Trapper', desc: 'Place a snare.' },
+  { id: 'first_tame', title: 'Friend of the Wild', desc: 'Fully tame an animal.' },
+  { id: 'first_desert', title: 'Sunburnt', desc: 'Enter a desert biome.' },
+  { id: 'first_door', title: 'Threshold', desc: 'Place a door.' },
+  { id: 'first_power', title: 'Let There Be Light', desc: 'Power a lamp.' },
+  { id: 'first_bucket', title: 'Water Bearer', desc: 'Fill a bucket.' },
 ];
 
 export function emptyAchievements() {

@@ -49,6 +49,10 @@ export const ITEM = {
   BRICK: 141,
   BANDAGE: 142,
   WOOD_SWORD: 143,
+  BUCKET: 144,
+  WATER_BUCKET: 145,
+  MAP: 146,
+  ICE_BOX: 147,
 };
 
 /** @type {Record<number, {
@@ -218,6 +222,10 @@ export const ITEM_PROPS = {
   [ITEM.BRICK]: { name: 'Brick', color: [0.7, 0.3, 0.2], maxStack: 64 },
   [ITEM.BANDAGE]: { name: 'Bandage', color: [0.95, 0.93, 0.9], maxStack: 16, bandage: true },
   [ITEM.WOOD_SWORD]: { name: 'Wood Sword', color: [0.72, 0.55, 0.32], tool: 'weapon', melee: 13, meleeRange: 3.8, maxStack: 1 },
+  [ITEM.BUCKET]: { name: 'Bucket', color: [0.55, 0.55, 0.6], maxStack: 16 },
+  [ITEM.WATER_BUCKET]: { name: 'Water Bucket', color: [0.25, 0.45, 0.85], maxStack: 1 },
+  [ITEM.MAP]: { name: 'Map', color: [0.75, 0.7, 0.5], maxStack: 1 },
+  [ITEM.ICE_BOX]: { name: 'Ice Box', color: [0.7, 0.85, 0.95], maxStack: 8, placeable: true, placeAs: BLOCK.ICE_BOX },
 };
 
 export function propsOf(id) {
@@ -310,6 +318,11 @@ export function dropForBlock(blockId) {
   if (blockId === BLOCK.GLASS) return BLOCK.GLASS;
   if (blockId === BLOCK.BRICKS) return BLOCK.BRICKS;
   if (blockId === BLOCK.FURNACE) return BLOCK.FURNACE;
+  if (blockId === BLOCK.GENERATOR) return BLOCK.GENERATOR;
+  if (blockId === BLOCK.ICE_BOX) return BLOCK.ICE_BOX;
+  if (blockId === BLOCK.WALL) return BLOCK.WALL;
+  if (blockId === BLOCK.WIRE) return BLOCK.WIRE;
+  if (blockId === BLOCK.LAMP) return BLOCK.LAMP;
   const d = BLOCK_PROPS[blockId]?.drops;
   if (d === undefined) return blockId;
   return d;

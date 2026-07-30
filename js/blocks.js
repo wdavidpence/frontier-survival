@@ -35,6 +35,9 @@ export const BLOCK = {
   FURNACE: 32,
   WIRE: 33,
   LAMP: 34,
+  GENERATOR: 35,
+  ICE_BOX: 36,
+  WALL: 37,
 };
 
 /** @type {Record<number, {
@@ -85,7 +88,10 @@ export const BLOCK_PROPS = {
   [BLOCK.BRICKS]: { name: 'Bricks', solid: true, transparent: false, hardness: 1.6, color: [0.7, 0.3, 0.2], drops: BLOCK.BRICKS },
   [BLOCK.FURNACE]: { name: 'Furnace', solid: true, transparent: true, hardness: 1.5, color: [0.28, 0.26, 0.24], heat: 12, light: 8, drops: BLOCK.FURNACE },
   [BLOCK.WIRE]: { name: 'Wire', solid: false, transparent: true, hardness: 0.1, color: [0.65, 0.45, 0.12], drops: BLOCK.WIRE },
-  [BLOCK.LAMP]: { name: 'Lamp', solid: true, transparent: false, hardness: 0.6, color: [0.75, 0.82, 0.9], drops: BLOCK.LAMP },
+  [BLOCK.LAMP]: { name: 'Lamp', solid: true, transparent: false, hardness: 0.6, color: [0.75, 0.82, 0.9], drops: BLOCK.LAMP, light: 0 },
+  [BLOCK.GENERATOR]: { name: 'Generator', solid: true, transparent: false, hardness: 1.8, color: [0.35, 0.38, 0.42], drops: BLOCK.GENERATOR, light: 4, heat: 2 },
+  [BLOCK.ICE_BOX]: { name: 'Ice Box', solid: true, transparent: true, hardness: 0.8, color: [0.65, 0.82, 0.92], drops: BLOCK.ICE_BOX },
+  [BLOCK.WALL]: { name: 'Cobble Wall', solid: true, transparent: true, hardness: 1.5, color: [0.5, 0.5, 0.52], drops: BLOCK.WALL },
 };
 
 export function isSolid(id) {

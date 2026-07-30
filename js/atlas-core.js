@@ -44,6 +44,9 @@ export const TILE = {
   FURNACE: 33,
   WIRE: 34,
   LAMP: 35,
+  GENERATOR: 36,
+  ICE_BOX: 37,
+  WALL: 38,
   CRACK0: 40,
   CRACK1: 41,
   CRACK2: 42,
@@ -140,6 +143,12 @@ export function tileForBlock(blockId, faceDir) {
       return TILE.WIRE;
     case BLOCK.LAMP:
       return TILE.LAMP;
+    case BLOCK.GENERATOR:
+      return TILE.GENERATOR;
+    case BLOCK.ICE_BOX:
+      return TILE.ICE_BOX;
+    case BLOCK.WALL:
+      return TILE.WALL;
     default:
       return TILE.STONE;
   }

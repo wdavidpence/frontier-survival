@@ -422,6 +422,25 @@ function drawLamp(ctx, x0, y0) {
   ctx.fill();
 }
 
+
+function drawGenerator(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [70, 75, 85], 0.2, 91);
+  ctx.fillStyle = '#cc8833';
+  ctx.fillRect(x0 + 10, y0 + 10, 12, 12);
+}
+function drawIceBox(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [160, 200, 230], 0.15, 92);
+  ctx.strokeStyle = 'rgba(40,80,120,0.5)';
+  ctx.strokeRect(x0 + 4, y0 + 4, TILE_PX - 8, TILE_PX - 8);
+}
+function drawWall(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [120, 120, 125], 0.2, 93);
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  for (let y = 8; y < TILE_PX; y += 10) {
+    ctx.beginPath(); ctx.moveTo(x0, y0 + y); ctx.lineTo(x0 + TILE_PX, y0 + y); ctx.stroke();
+  }
+}
+
 function drawCrack(ctx, x0, y0, stage) {
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
   ctx.strokeStyle = `rgba(20,15,10,${0.35 + stage * 0.1})`;
@@ -491,6 +510,9 @@ export function createBlockAtlas() {
   paint(TILE.FURNACE, drawFurnace);
   paint(TILE.WIRE, drawWire);
   paint(TILE.LAMP, drawLamp);
+paint(TILE.GENERATOR, drawGenerator);
+paint(TILE.ICE_BOX, drawIceBox);
+paint(TILE.WALL, drawWall);
   paint(TILE.CRACK0, (c, x, y) => drawCrack(c, x, y, 0));
   paint(TILE.CRACK1, (c, x, y) => drawCrack(c, x, y, 1));
   paint(TILE.CRACK2, (c, x, y) => drawCrack(c, x, y, 2));

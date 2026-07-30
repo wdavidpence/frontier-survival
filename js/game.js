@@ -72,6 +72,7 @@ import { tickSpoilage } from './spoilage.js';
 import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js';
 import { wearTool, durabilityRatio } from './durability.js';
 import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js';
+import { tickLogic, COMPONENT } from './logic.js';
 import { biomeAt, BIOME, ambientTempOffset } from './biomes.js';
 import {
   chestKey,
@@ -178,6 +179,8 @@ export class Game {
     this._sleepFadeT = 0;
     this._lastBiome = null; // biome notification tracker
     this._ignorePauseT = 0;
+    this._poweredLamps = new Set();
+    this._logicAcc = 0;
     this._biomeNotifyAcc = 0; // accumulator for periodic biome name display
 
     // Block selection outline
@@ -1103,6 +1106,7 @@ export class Game {
       nearWater,
       dayPhase: this.time.dayPhase,
       dead: this.survival.dead,
+      biome: this._lastBiome,
     });
 
     const expMult = exposureColdMult({
@@ -1129,6 +1133,7 @@ export class Game {
     if (currentBiome !== this._lastBiome) {
       const labels = { shore: 'Shore', forest: 'Forest', desert: 'Desert', tundra: 'Tundra' };
       this.player.notify(`Entered ${labels[currentBiome] || currentBiome}`, 4);
+      if (currentBiome === 'desert' || currentBiome === BIOME.DESERT) this._unlock('first_desert');
       this._lastBiome = currentBiome;
     }
 
@@ -1153,7 +1158,24 @@ export class Game {
 
     // meat spoilage
     {
-      const sp = tickSpoilage(this.player.slots, dt);
+      let spoilMult = 1;
+      // ice box nearby slows spoilage (SC cold storage pressure)
+      if (this.player && this.world) {
+        const px = Math.floor(this.player.position.x);
+        const py = Math.floor(this.player.position.y);
+        const pz = Math.floor(this.player.position.z);
+        outer: for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -3; dx <= 3; dx++) {
+            for (let dz = -3; dz <= 3; dz++) {
+              if (this.world.getBlock(px + dx, py + dy, pz + dz) === BLOCK.ICE_BOX) {
+                spoilMult = 0.35;
+                break outer;
+              }
+            }
+          }
+        }
+      }
+      const sp = tickSpoilage(this.player.slots, dt, undefined, spoilMult);
       this.player.slots = sp.slots;
       if (sp.spoiled > 0) this.player.notify(`Some meat spoiled (${sp.spoiled}).`, 2.5);
     }
@@ -1270,6 +1292,7 @@ export class Game {
       this._updateOutlineAndPrompt();
       this._tickProjectiles(dt);
       this._tickCrops(dt);
+      this._tickLogicPower(dt);
       this._tickWeatherFX(dt);
     } else if (this._outline) {
       this._outline.visible = false;
@@ -1459,6 +1482,56 @@ export class Game {
   /**
    * Place/update PointLights near player for torches & campfires.
    */
+
+  /** SC-lite electricity: generators power adjacent wires/lamps */
+  _tickLogicPower(dt) {
+    this._logicAcc = (this._logicAcc || 0) + dt;
+    if (this._logicAcc < 0.25 || !this.world || !this.player) return;
+    this._logicAcc = 0;
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const R = 14;
+    const nodes = new Map();
+    const edges = [];
+    const key = (x, y, z) => `${x},${y},${z}`;
+    for (let z = pz - R; z <= pz + R; z++) {
+      for (let y = Math.max(1, py - 6); y <= Math.min(46, py + 6); y++) {
+        for (let x = px - R; x <= px + R; x++) {
+          const id = this.world.getBlock(x, y, z);
+          let type = null;
+          if (id === BLOCK.GENERATOR) type = COMPONENT.SOURCE;
+          else if (id === BLOCK.WIRE) type = COMPONENT.WIRE;
+          else if (id === BLOCK.LAMP) type = COMPONENT.LAMP;
+          if (!type) continue;
+          const k = key(x, y, z);
+          nodes.set(k, { id: k, type });
+        }
+      }
+    }
+    const dirs = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+    for (const k of nodes.keys()) {
+      const [x, y, z] = k.split(',').map(Number);
+      for (const [dx, dy, dz] of dirs) {
+        const k2 = key(x + dx, y + dy, z + dz);
+        if (nodes.has(k2)) edges.push([k, k2]);
+      }
+    }
+    const powered = tickLogic(nodes, edges);
+    const next = new Set();
+    for (const id of powered) {
+      const n = nodes.get(id);
+      if (n && n.type === COMPONENT.LAMP) next.add(id);
+    }
+    let changed = next.size !== this._poweredLamps.size;
+    if (!changed) {
+      for (const k of next) if (!this._poweredLamps.has(k)) { changed = true; break; }
+    }
+    this._poweredLamps = next;
+    if (next.size) this._unlock('first_power');
+    if (changed) this._scanLights(true);
+  }
+
   _scanLights(force) {
     if (!this.world || !this.player) return;
     const px = Math.floor(this.player.position.x);
@@ -1470,8 +1543,11 @@ export class Game {
       for (let z = pz - R; z <= pz + R; z++) {
         for (let x = px - R; x <= px + R; x++) {
           const id = this.world.getBlock(x, y, z);
-          if (id === BLOCK.TORCH || id === BLOCK.CAMPFIRE || id === BLOCK.LAMP) {
+          if (id === BLOCK.TORCH || id === BLOCK.CAMPFIRE || id === BLOCK.GENERATOR) {
             found.push({ x, y, z, id });
+          } else if (id === BLOCK.LAMP) {
+            const k = `${x},${y},${z}`;
+            if (this._poweredLamps && this._poweredLamps.has(k)) found.push({ x, y, z, id });
           }
         }
       }
@@ -1720,6 +1796,13 @@ export class Game {
         this._unlock('first_fire');
         this._campFuel.set(`${px|0},${py|0},${pz|0}`, 80);
       }
+      if (blockId === BLOCK.DOOR_CLOSED || blockId === BLOCK.DOOR_OPEN) {
+        this._unlock('first_door');
+      }
+      if (blockId === BLOCK.GENERATOR) {
+        this.player.notify('Generator placed. Connect with wire to lamps.');
+        this._scanLights(true);
+      }
       if (blockId === BLOCK.TORCH) {
         this.player.notify('Torch placed.');
         this._scanLights(true);
@@ -1837,6 +1920,38 @@ export class Game {
       return;
     }
 
+
+    // Bucket fill / empty
+    const heldB = this.player.heldStack();
+    if (heldB.id === ITEM.BUCKET && hit && hit.id === BLOCK.WATER) {
+      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+      if (cons.ok) {
+        const add = addItems(cons.slots, ITEM.WATER_BUCKET, 1);
+        this.player.slots = add.slots;
+        this.audio.splash?.() || this.audio.ui();
+        this.player.notify('Filled bucket with water.', 2);
+        this._unlock('first_bucket');
+        return;
+      }
+    }
+    if (heldB.id === ITEM.WATER_BUCKET && hit) {
+      const tx = hit.x + (hit.nx || 0);
+      const ty = hit.y + (hit.ny || 0);
+      const tz = hit.z + (hit.nz || 0);
+      const at = this.world.getBlock(tx, ty, tz);
+      if (at === BLOCK.AIR || at === BLOCK.WATER) {
+        const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+        if (cons.ok) {
+          this.world.setBlock(tx, ty, tz, BLOCK.WATER);
+          const add = addItems(cons.slots, ITEM.BUCKET, 1);
+          this.player.slots = add.slots;
+          this.audio.splash?.() || this.audio.placeBlock();
+          this.player.notify('Emptied water bucket.', 2);
+          return;
+        }
+      }
+    }
+
     // Toggle door
     if (hit && (hit.id === BLOCK.DOOR_CLOSED || hit.id === BLOCK.DOOR_OPEN)) {
       const next = hit.id === BLOCK.DOOR_CLOSED ? BLOCK.DOOR_OPEN : BLOCK.DOOR_CLOSED;
@@ -1871,6 +1986,7 @@ export class Game {
                 this.player.slots = cons.slots;
                 const result = tryFeed(ah.animal, cons.id);
                 if (result.fed) {
+                    if (result.tamed) this._unlock('first_tame');
                     const msg = result.tamed
                         ? `${feedSpec.name} is now tamed!`
                         : `${feedSpec.name}: ${Math.round(result.tameProgress)}% tamed`;
@@ -2273,8 +2389,9 @@ export class Game {
         const b = biomeAt(this.player.position.x, this.player.position.z, this.seed);
         if (b) bits.push(String(b));
       } catch (_) {}
-      if (this.player.heldId() === ITEM.COMPASS) {
+      if (this.player.heldId() === ITEM.COMPASS || this.player.heldId() === ITEM.MAP) {
         bits.push(`xyz ${this.player.position.x.toFixed(0)},${this.player.position.y.toFixed(0)},${this.player.position.z.toFixed(0)}`);
+        if (this.player.heldId() === ITEM.MAP) bits.push(`chunk ${Math.floor(this.player.position.x/16)},${Math.floor(this.player.position.z/16)}`);
       }
       if (this._roofed) bits.push('Sheltered');
       const arm = equipmentArmor(this.player.equipment);

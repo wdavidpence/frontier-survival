@@ -5,6 +5,7 @@
 
 /** Pure ambient mix targets for tests / tuning */
 export function ambientMix({
+  biome = null,
   isNight = false,
   weather = 'clear',
   heat = 0,
@@ -21,15 +22,20 @@ export function ambientMix({
   const rain = weather === 'rain' ? 0.35 : weather === 'snow' ? 0.12 : 0;
   const fire = heat > 6 ? Math.min(0.4, 0.08 + heat * 0.012) : 0;
   const water = nearWater ? 0.18 : 0;
-  const birds = !isNight && weather === 'clear' ? 0.55 : 0;
+  let birds = !isNight && weather === 'clear' ? 0.55 : 0;
   const howl = isNight ? 0.4 : 0;
+  let windOut = wind;
+  let waterOut = water;
+  if (biome === 'desert') { windOut = Math.min(1, wind + 0.15); birds *= 0.35; }
+  else if (biome === 'tundra') { windOut = Math.min(1, wind + 0.12); birds *= 0.2; }
+  else if (biome === 'shore') { waterOut = Math.min(1, water + 0.12); }
   return {
     master: 1,
-    wind,
+    wind: windOut,
     night,
     rain,
     fire,
-    water,
+    water: waterOut,
     birds,
     howl,
   };

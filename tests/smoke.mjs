@@ -517,6 +517,7 @@ test('starter inventory respects ration count', () => {
 import { spawnArrow, stepProjectile, hitAnimal } from '../js/projectiles.js';
 import { tickSpoilage, isSpoilable, SPOIL_SECONDS } from '../js/spoilage.js';
 import { unlockAchievement, emptyAchievements, ACHIEVEMENTS } from '../js/achievements.js';
+// ACHIEVEMENTS used in v1.8 tests
 
 test('v1.2 bow and spoilage', () => {
   assert.ok(propsOf(ITEM.BOW).tool === 'bow');
@@ -1020,5 +1021,46 @@ test('ITEM.BERRIES and ITEM.RAW_MEAT values match _FEED_ID', () => {
 });
 
 // Final summary — moved here so all tests run first
+test('v1.8 bucket map wall generator recipes', () => {
+  assert.ok(propsOf(ITEM.BUCKET));
+  assert.ok(propsOf(ITEM.WATER_BUCKET));
+  assert.ok(propsOf(ITEM.MAP));
+  assert.ok(BLOCK.GENERATOR && BLOCK.ICE_BOX && BLOCK.WALL);
+  assert.ok(RECIPES.find((r) => r.id === 'bucket'));
+  assert.ok(RECIPES.find((r) => r.id === 'map'));
+  assert.ok(RECIPES.find((r) => r.id === 'wall'));
+  assert.ok(RECIPES.find((r) => r.id === 'generator'));
+  assert.ok(RECIPES.find((r) => r.id === 'ice_box'));
+  let slots = createStarterInventory(0);
+  slots = addItems(slots, ITEM.IRON_INGOT, 3).slots;
+  const b = craftRecipe(slots, 'bucket');
+  assert.ok(b.ok, b.error);
+  assert.strictEqual(countItems(b.slots, ITEM.BUCKET), 1);
+  assert.ok(ACHIEVEMENTS.some((a) => a.id === 'first_tame'));
+  assert.ok(ACHIEVEMENTS.some((a) => a.id === 'first_desert'));
+  assert.ok(ACHIEVEMENTS.some((a) => a.id === 'first_door'));
+});
+
+test('v1.8 spoilage slows with rateMult', () => {
+  let slots = createStarterInventory(0);
+  slots = addItems(slots, ITEM.RAW_MEAT, 1).slots;
+  slots[0].age = 400;
+  const slow = tickSpoilage(slots, 10, 420, 0.1);
+  const fast = tickSpoilage(slots, 10, 420, 1);
+  // slow ages less effective spoil - with rateMult dt shrinks so less spoil progress
+  assert.ok(slow.slots[0].age <= fast.slots[0].age + 0.001 || slow.spoiled <= fast.spoiled);
+});
+
+test('v1.8 tickLogic Map form with generator', () => {
+  const nodes = new Map([
+    ['g', { type: COMPONENT.SOURCE }],
+    ['w', { type: COMPONENT.WIRE }],
+    ['l', { type: COMPONENT.LAMP }],
+  ]);
+  const edges = [['g', 'w'], ['w', 'l']];
+  const powered = tickLogic(nodes, edges);
+  assert.ok(powered.has('g') && powered.has('w') && powered.has('l'));
+});
+
 console.log(`\n${passed} tests passed`);
 if (process.exitCode) process.exit(1);

@@ -370,6 +370,11 @@ export const RECIPES = [
   { id:'wood_sword', name:'Wood Sword', desc:'2 Planks + 1 Stick', ingredients:[{id:BLOCK.PLANKS,count:2},{id:ITEM.STICK,count:1}], results:[{id:ITEM.WOOD_SWORD,count:1}] },
   { id:'wire', name:'Wire', desc:'1 Iron → 4 Wire (conducts power)', ingredients:[{id:ITEM.IRON_INGOT,count:1}], results:[{id:BLOCK.WIRE,count:4}] },
   { id:'lamp', name:'Lamp', desc:'1 Iron + 2 Glass → Lamp (powered light)', ingredients:[{id:ITEM.IRON_INGOT,count:1},{id:BLOCK.GLASS,count:2}], results:[{id:BLOCK.LAMP,count:1}] },
+  { id:'bucket', name:'Bucket', desc:'3 Iron → Bucket', ingredients:[{id:ITEM.IRON_INGOT,count:3}], results:[{id:ITEM.BUCKET,count:1}] },
+  { id:'map', name:'Map', desc:'Coords when held. 2 Hide + 1 Coal', ingredients:[{id:ITEM.HIDE,count:2},{id:ITEM.COAL,count:1}], results:[{id:ITEM.MAP,count:1}] },
+  { id:'ice_box', name:'Ice Box', desc:'Slows spoilage nearby. 4 Ice + 4 Planks', ingredients:[{id:BLOCK.ICE,count:4},{id:BLOCK.PLANKS,count:4}], results:[{id:ITEM.ICE_BOX,count:1}] },
+  { id:'wall', name:'Cobble Wall', desc:'6 Cobble → 6 Walls', ingredients:[{id:BLOCK.COBBLE,count:6}], results:[{id:BLOCK.WALL,count:6}] },
+  { id:'generator', name:'Generator', desc:'Power source. 4 Iron + 1 Coal', ingredients:[{id:ITEM.IRON_INGOT,count:4},{id:ITEM.COAL,count:1}], results:[{id:BLOCK.GENERATOR,count:1}] },
 ];
 
 export function visibleRecipes() {

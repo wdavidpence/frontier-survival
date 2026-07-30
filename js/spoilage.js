@@ -23,7 +23,9 @@ export function isSpoilable(id) {
  * @param {number} dt
  * @param {number} [spoilAfter]
  */
-export function tickSpoilage(slots, dt, spoilAfter = SPOIL_SECONDS) {
+/** @param {number} [rateMult] <1 slows spoilage (ice box) */
+export function tickSpoilage(slots, dt, spoilAfter = SPOIL_SECONDS, rateMult = 1) {
+  dt = dt * (rateMult > 0 ? rateMult : 1);
   const next = cloneSlots(slots).map((s) => ({ ...s, age: s.age || 0 }));
   let spoiled = 0;
   for (const s of next) {
