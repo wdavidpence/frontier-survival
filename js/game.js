@@ -105,6 +105,7 @@ export class Game {
     this.seed = (Math.random() * 1e6) | 0;
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    this.renderer.setClearColor(0x87b5ff, 1);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -460,6 +461,18 @@ export class Game {
     }
     if (!this._raf) this._loop();
     this.hud.hideTitle?.();
+    document.getElementById("sleep-fade")?.classList.remove("on");
+    const _sf=document.getElementById("sleep-fade"); if(_sf) _sf.style.opacity="0";
+    this.resize();
+    if (this.player) {
+      const eye = this.player.eyePosition();
+      this.camera.position.copy(eye);
+      this.camera.rotation.order = "YXZ";
+      this.camera.rotation.y = this.player.yaw;
+      this.camera.rotation.x = this.player.pitch;
+    }
+    this._updateLighting();
+    this.render();
     this._invNeedsPaint = true;
     this._autosaveAcc = 0;
     this._syncAnimalMeshes();
@@ -2199,11 +2212,13 @@ export class Game {
     // Drive greedy shader lighting
     const mat = this.atlas?.greedyMaterial;
     if (mat?.uniforms) {
-      mat.uniforms.sunIntensity.value = this.time.isNight() ? 0.15 : 0.55 + sunI * 0.7;
+      mat.uniforms.sunIntensity.value = this.time.isNight()
+        ? 0.32
+        : 0.55 + sunI * 0.7;
       mat.uniforms.ambientColor.value.set(
-        this.time.isNight() ? 0.12 : 0.35,
-        this.time.isNight() ? 0.14 : 0.4,
-        this.time.isNight() ? 0.22 : 0.5,
+        this.time.isNight() ? 0.18 : 0.35,
+        this.time.isNight() ? 0.2 : 0.4,
+        this.time.isNight() ? 0.28 : 0.5,
       );
     }
   }
@@ -2219,6 +2234,7 @@ export class Game {
     setBar('bar-stamina', s.stamina, s.maxStamina);
     setBar('bar-temp', this._tempBar(s.bodyTemp), 100);
     setBar('bar-sleep', s.sleep, 100);
+    setBar('bar-bleed', s.bleed || 0, 100);
 
     const tempLabel = document.getElementById('temp-label');
     if (tempLabel) tempLabel.textContent = `${s.bodyTemp.toFixed(1)}°C`;
@@ -2229,7 +2245,10 @@ export class Game {
       meters.classList.toggle('crit-health', s.health < 28);
       meters.classList.toggle('crit-hunger', s.hunger < 18);
       meters.classList.toggle('crit-cold', s.bodyTemp < 34.2);
+      meters.classList.toggle('crit-bleed', (s.bleed || 0) > 20);
     }
+    const bleedTag = document.getElementById('bleed-tag');
+    if (bleedTag) bleedTag.classList.toggle('on', (s.bleed || 0) > 1);
 
     const status = document.getElementById('status-line');
     if (status && this.player) {
@@ -2237,6 +2256,10 @@ export class Game {
       bits.push(this.modeDef().name);
       bits.push(`Seed ${this.seed}`);
       bits.push(this._compassHeading());
+      try {
+        const b = biomeAt(this.player.position.x, this.player.position.z, this.seed);
+        if (b) bits.push(String(b));
+      } catch (_) {}
       if (this.player.heldId() === ITEM.COMPASS) {
         bits.push(`xyz ${this.player.position.x.toFixed(0)},${this.player.position.y.toFixed(0)},${this.player.position.z.toFixed(0)}`);
       }

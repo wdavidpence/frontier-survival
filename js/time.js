@@ -47,7 +47,7 @@ export class GameTime {
 
   skyColor() {
     const s = this.sunIntensity();
-    if (this.isNight()) return { r: 0.02, g: 0.03, b: 0.08 };
+    if (this.isNight()) return { r: 0.05, g: 0.06, b: 0.12 };
     if (s < 0.25) return { r: 0.55, g: 0.35, b: 0.25 }; // dawn/dusk
     if (this.weather === 'rain') return { r: 0.35, g: 0.4, b: 0.45 };
     if (this.weather === 'snow') return { r: 0.55, g: 0.6, b: 0.65 };
