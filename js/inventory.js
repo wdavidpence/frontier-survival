@@ -141,3 +141,21 @@ export function consumeFromHotbar(slots, hotbarIndex, amount = 1) {
   if (s.count <= 0) next[hotbarIndex] = { id: null, count: 0 };
   return { ok: true, slots: next, id };
 }
+
+export function splitStack(slots, index) {
+  const next = cloneSlots(slots);
+  const s = next[index];
+  if (!s || s.id == null || s.count < 2) return { ok: false, slots: next };
+  const half = Math.floor(s.count / 2);
+  let empty = -1;
+  for (let i = 0; i < next.length; i++) {
+    if (next[i].id == null || next[i].count <= 0) { empty = i; break; }
+  }
+  if (empty < 0) return { ok: false, slots: next, error: 'no space' };
+  s.count -= half;
+  const ns = { id: s.id, count: half };
+  if (s.dur != null) ns.dur = s.dur;
+  if (s.age != null) ns.age = s.age;
+  next[empty] = ns;
+  return { ok: true, slots: next };
+}

@@ -58,6 +58,24 @@ export const SPECIES = {
     scale: [0.55, 0.55, 0.95],
     count: 3,
   },
+  bear: {
+    id: 'bear',
+    name: 'Bear',
+    hp: 55,
+    speed: 3.9,
+    hostile: true,
+    fleeRange: 0,
+    senseRange: 11,
+    nightSense: 16,
+    damage: 16,
+    attackRange: 1.6,
+    attackCd: 1.6,
+    meatMin: 3,
+    meatMax: 5,
+    color: [0.45, 0.28, 0.14],
+    scale: [0.9, 1.1, 1.4],
+    count: 2,
+  },
   bird: {
     id: 'bird',
     name: 'Bird',
@@ -209,7 +227,8 @@ export class FaunaSystem {
           a.state = 'wander';
         }
       } else {
-        if (dist < spec.fleeRange) a.state = 'flee';
+        if (a._calmT > 0) { a._calmT -= dt; }
+        else if (dist < spec.fleeRange) a.state = 'flee';
         else if (a.state === 'flee' && dist > spec.fleeRange + 5) a.state = 'wander';
       }
 
@@ -339,6 +358,7 @@ export class FaunaSystem {
     if (animal.type === 'deer') hide = 1 + (Math.random() < 0.5 ? 1 : 0);
     else if (animal.type === 'hare') hide = Math.random() < 0.65 ? 1 : 0;
     else if (animal.type === 'wolf') hide = Math.random() < 0.4 ? 1 : 0;
+    else if (animal.type === 'bear') hide = 2 + (Math.random() < 0.5 ? 1 : 0);
     let egg = 0;
     let feather = 0;
     if (spec.egg) egg = Math.random() < 0.75 ? 1 : 0;

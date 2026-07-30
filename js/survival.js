@@ -14,6 +14,7 @@ export const DEFAULT_SURVIVAL = {
   sleep: 0, // 0 rested → 100 collapsing
   wetness: 0,
   warmthFromClothes: 0,
+  bleed: 0,
   dead: false,
   causeOfDeath: null,
 };
@@ -63,7 +64,8 @@ export function tickSurvival(state, env) {
   const wetPenalty = (next.wetness / 100) * 8;
   // Campfires are a primary survival tool — strong local heat must beat night air
   const fireWarmth = Math.min(32, fire * 1.35);
-  const feelsLike = ambient + clothes + fireWarmth - wetPenalty;
+  let feelsLike = ambient + clothes + fireWarmth - wetPenalty;
+  if (env.desertHeat) feelsLike += 10;
 
   // Homeostasis: comfortable air keeps core ~37°C; extremes and wetness pull away
   let target = 37;

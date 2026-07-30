@@ -618,5 +618,90 @@ test('v1.4 exposure armor spoil fish', () => {
   assert.ok(propsOf(ITEM.EGG).edible > 0);
 });
 
+import { applyBleed, tickBleed, stopBleed, isBleeding } from '../js/bleed.js';
+
+test("v1.5 blocks items bleed", () => {
+  assert.ok(BLOCK.DOOR_CLOSED && BLOCK.GLASS && BLOCK.CLAY && BLOCK.BRICKS && BLOCK.FURNACE);
+  assert.ok(propsOf(ITEM.WOOD_SWORD)?.melee >= 13);
+  assert.ok(propsOf(ITEM.BANDAGE)?.bandage);
+  assert.strictEqual(dropForBlock(BLOCK.CLAY), ITEM.CLAY_BALL);
+  assert.strictEqual(dropForBlock(BLOCK.DOOR_OPEN), BLOCK.DOOR_CLOSED);
+  assert.ok(RECIPES.find(r => r.id === "door"));
+  assert.ok(RECIPES.find(r => r.id === "bandage"));
+  assert.ok(RECIPES.find(r => r.id === "wood_sword"));
+  assert.ok(RECIPES.find(r => r.id === "furnace"));
+  let s = { ...DEFAULT_SURVIVAL, health: 50, bleed: 0 };
+  s = applyBleed(s, 40);
+  assert.ok(isBleeding(s));
+  const h0 = s.health;
+  s = tickBleed(s, 2);
+  assert.ok(s.health < h0);
+  s = stopBleed(s, 100);
+  assert.ok(!isBleeding(s));
+  let slots = createStarterInventory(0);
+  slots = addItems(slots, BLOCK.PLANKS, 6).slots;
+  const c = craftRecipe(slots, "door");
+  assert.ok(c.ok);
+});
+
 console.log(`\n${passed} tests passed`);
 if (process.exitCode) process.exit(1);
+
+
+// --- v1.5 Worker C additions ---
+
+import * as _inv from '../js/inventory.js';
+const splitStack = _inv.splitStack || null;
+
+test('bear SPECIES exists hostile damage>10', () => {
+  const bear = SPECIES.bear;
+  assert.ok(bear, 'bear species should exist');
+  assert.strictEqual(bear.hostile, true);
+  assert.ok(bear.damage > 10, `bear damage ${bear.damage} should be >10`);
+});
+
+test('splitStack from inventory: add 10 sticks, split → two stacks', () => {
+  assert.ok(splitStack, 'splitStack should be exported from inventory');
+  let slots = createStarterInventory(0);
+  const addR = addItems(slots, ITEM.STICK, 10);
+  assert.ok(addR.ok);
+  slots = addR.slots;
+  const stickIdx = slots.findIndex(s => s.id === ITEM.STICK);
+  assert.ok(stickIdx >= 0, 'sticks should be in inventory');
+  assert.strictEqual(slots[stickIdx].count, 10);
+  const splitR = splitStack(slots, stickIdx);
+  assert.ok(splitR.ok, 'split should succeed');
+  slots = splitR.slots;
+  const stickSlots = slots.filter(s => s.id === ITEM.STICK);
+  assert.strictEqual(stickSlots.length, 2, 'should have two stick stacks after split');
+  assert.strictEqual(stickSlots[0].count + stickSlots[1].count, 10);
+});
+
+test('DEFAULT_SURVIVAL has bleed field', () => {
+  assert.ok('bleed' in DEFAULT_SURVIVAL, 'DEFAULT_SURVIVAL should have bleed field');
+});
+
+test('craft glass needs heat — fails without heat', () => {
+  let slots = createStarterInventory(0);
+  slots = addItems(slots, BLOCK.SAND, 1).slots;
+  const cold = craftRecipe(slots, 'glass', { heat: 0 });
+  assert.ok(!cold.ok, 'glass should fail without heat');
+  const hot = craftRecipe(slots, 'glass', { heat: 10 });
+  assert.ok(hot.ok, hot.error || 'glass should succeed with heat');
+  assert.strictEqual(countItems(hot.slots, BLOCK.GLASS), 1);
+});
+
+test('BLOCK.CLAY drop is CLAY_BALL', () => {
+  assert.strictEqual(dropForBlock(BLOCK.CLAY), ITEM.CLAY_BALL);
+});
+
+test('desertHeat raises feelsLike and bodyTemp', () => {
+  let a = { ...DEFAULT_SURVIVAL };
+  let b = { ...DEFAULT_SURVIVAL };
+  for (let i = 0; i < 30; i++) {
+    a = tickSurvival(a, { dt: 1, dayPhase: 0.25, weather: 'clear', blockHeat: 0, sprinting: false, moving: false, inWater: false, sleeping: false, desertHeat: false });
+    b = tickSurvival(b, { dt: 1, dayPhase: 0.25, weather: 'clear', blockHeat: 0, sprinting: false, moving: false, inWater: false, sleeping: false, desertHeat: true });
+  }
+  assert.ok(b.bodyTemp >= a.bodyTemp, `b.bodyTemp=${b.bodyTemp} should be >= a.bodyTemp=${a.bodyTemp}`);
+  assert.ok(b._debug.feelsLike > a._debug.feelsLike, `desert feelsLike ${b._debug.feelsLike} > normal ${a._debug.feelsLike}`);
+});

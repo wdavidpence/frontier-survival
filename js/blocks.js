@@ -27,6 +27,12 @@ export const BLOCK = {
   FENCE: 24,
   SNARE: 25,
   PUMPKIN: 26,
+  DOOR_CLOSED: 27,
+  DOOR_OPEN: 28,
+  GLASS: 29,
+  CLAY: 30,
+  BRICKS: 31,
+  FURNACE: 32,
 };
 
 /** @type {Record<number, {
@@ -70,6 +76,12 @@ export const BLOCK_PROPS = {
   [BLOCK.FENCE]: { name: 'Fence', solid: true, transparent: true, hardness: 0.7, color: [0.6, 0.45, 0.25], drops: BLOCK.FENCE },
   [BLOCK.SNARE]: { name: 'Snare', solid: false, transparent: true, hardness: 0.2, color: [0.5, 0.45, 0.3], drops: BLOCK.SNARE },
   [BLOCK.PUMPKIN]: { name: 'Pumpkin', solid: true, transparent: false, hardness: 0.5, color: [0.9, 0.55, 0.12], topColor: [0.35, 0.55, 0.15], drops: BLOCK.PUMPKIN },
+  [BLOCK.DOOR_CLOSED]: { name: 'Door', solid: true, transparent: true, hardness: 0.8, color: [0.62, 0.45, 0.25], door: true, drops: BLOCK.DOOR_CLOSED },
+  [BLOCK.DOOR_OPEN]: { name: 'Open Door', solid: false, transparent: true, hardness: 0.8, color: [0.62, 0.45, 0.25], door: true, drops: BLOCK.DOOR_CLOSED },
+  [BLOCK.GLASS]: { name: 'Glass', solid: true, transparent: true, hardness: 0.3, color: [0.68, 0.78, 0.9], drops: BLOCK.GLASS },
+  [BLOCK.CLAY]: { name: 'Clay', solid: true, transparent: false, hardness: 0.5, color: [0.42, 0.38, 0.3] },
+  [BLOCK.BRICKS]: { name: 'Bricks', solid: true, transparent: false, hardness: 1.6, color: [0.7, 0.3, 0.2], drops: BLOCK.BRICKS },
+  [BLOCK.FURNACE]: { name: 'Furnace', solid: true, transparent: true, hardness: 1.5, color: [0.28, 0.26, 0.24], heat: 12, light: 8, drops: BLOCK.FURNACE },
 };
 
 export function isSolid(id) {

@@ -339,6 +339,60 @@ function drawPumpkin(ctx, x0, y0) {
   }
 }
 
+function drawDoor(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [160, 110, 70], 0.15, 44);
+  ctx.fillStyle = '#8a6235';
+  ctx.fillRect(x0 + 6, y0, TILE_PX - 12, TILE_PX);
+  ctx.strokeStyle = '#4a3018';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x0 + 6, y0 + 6 + i * 7);
+    ctx.lineTo(x0 + TILE_PX - 8, y0 + 12 + i * 7);
+    ctx.stroke();
+  }
+}
+
+function drawDoorOpen(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  fillNoise(ctx, x0, y0, [160, 110, 70], 0.15, 44);
+}
+
+function drawGlassTile(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [195, 215, 235], 0.15, 55);
+  ctx.strokeStyle = 'rgba(160,180,210,0.4)';
+  ctx.strokeRect(x0 + 6, y0 + 6, TILE_PX - 12, TILE_PX - 12);
+}
+
+function drawClay(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [105, 98, 77], 0.3, 66);
+}
+
+function drawBricks(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [170, 77, 55], 0.2, 77);
+  ctx.strokeStyle = 'rgba(80,30,15,0.5)';
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x0 + 8 + i * 12, y0);
+    ctx.lineTo(x0 + 8 + i * 12, y0 + TILE_PX);
+    ctx.stroke();
+  }
+}
+
+function drawFurnace(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [65, 60, 55], 0.2, 88);
+  ctx.strokeStyle = '#4a3a2a';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x0 + 6, y0 + 6, TILE_PX - 12, TILE_PX - 12);
+  ctx.fillStyle = '#cc5522';
+  ctx.beginPath();
+  ctx.moveTo(x0 + 22, y0 + 18);
+  ctx.lineTo(x0 + 26, y0 + 30);
+  ctx.lineTo(x0 + 8, y0 + 34);
+  ctx.closePath();
+  ctx.fill();
+}
+
 function drawCrack(ctx, x0, y0, stage) {
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
   ctx.strokeStyle = `rgba(20,15,10,${0.35 + stage * 0.1})`;
@@ -400,6 +454,12 @@ export function createBlockAtlas() {
   paint(TILE.FENCE, drawFence);
   paint(TILE.SNARE, drawSnare);
   paint(TILE.PUMPKIN, drawPumpkin);
+  paint(TILE.DOOR_CLOSED, drawDoor);
+  paint(TILE.DOOR_OPEN, drawDoorOpen);
+  paint(TILE.GLASS, drawGlassTile);
+  paint(TILE.CLAY, drawClay);
+  paint(TILE.BRICKS, drawBricks);
+  paint(TILE.FURNACE, drawFurnace);
   paint(TILE.CRACK0, (c, x, y) => drawCrack(c, x, y, 0));
   paint(TILE.CRACK1, (c, x, y) => drawCrack(c, x, y, 1));
   paint(TILE.CRACK2, (c, x, y) => drawCrack(c, x, y, 2));

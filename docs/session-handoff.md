@@ -1,22 +1,23 @@
 # Session Handoff
 
 **Project:** Frontier Survival  
-**Path:** `/mnt/c/Users/wdavi/Projects/SurvivalCraftMobile`  
-**Directive:** Hermes sole SWE + tester — no OpenCode.
+**Path:** `/mnt/c/Users/wdavi/Projects/SurvivalCraftMobile`
 
 ## Live
 - Repo: https://github.com/wdavidpence/frontier-survival  
-- Pages: https://wdavidpence.github.io/frontier-survival/  
+- Pages: https://wdavidpence.github.io/frontier-survival/
 
 ## Local
 Serve repo root → http://127.0.0.1:8765/  
-Tests: `node tests/smoke.mjs` (39)
+Tests: `node tests/smoke.mjs`
 
 ## Latest
-**v1.4** — `docs/improvements-v1.4.md`  
-SC-inspired: rain drench + roof shelter, exposure cold, fish spoil, prey respawn, birds/eggs/feathers, pumpkin/soup, charcoal, snares, leather armor, campfire fuel, storm sleep gate.
+**v1.5** — doors, glass, clay/bricks, bear, bleed/bandage, wooden sword, furnace, shift-click split stacks, sleep fade overlay, drink water.
 
-Prior: v1.3 depth · v1.2 content · v1.1 QoL
+Prior: v1.4 exposure · v1.3 depth · v1.2 content · v1.1 QoL
+
+## Tooling
+OpenCode allowed for implementation tasks.
 
 ## Next
 Biomes, electricity/logic, breeding (docs/SCM.md).

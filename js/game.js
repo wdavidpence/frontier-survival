@@ -10,7 +10,7 @@ import {
   eatFood,
   applyDamage,
 } from './survival.js';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor } from './blocks.js';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js';
 import {
   ITEM,
   propsOf,
@@ -30,6 +30,7 @@ import {
   cloneSlots,
   createStarterInventory,
   emptySlots,
+  splitStack,
 } from './inventory.js';
 import { visibleRecipes, craftRecipe } from './crafting.js';
 import { FaunaSystem, SPECIES } from './animals.js';
@@ -70,6 +71,7 @@ import {
 import { tickSpoilage } from './spoilage.js';
 import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js';
 import { wearTool, durabilityRatio } from './durability.js';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js';
 import {
   chestKey,
   getChestSlots,
@@ -165,6 +167,13 @@ export class Game {
     this._campFuel = new Map(); // "x,y,z" -> fuel 0..100
     this._lastWeather = 'clear';
     this._roofed = false;
+    this._drinkCd = 0;
+    this._deathBeacon = null;
+    this._deathBeaconT = 0;
+    this._pathWear = new Map();
+    this._stormFlashT = 0;
+    this._lightningAcc = 0;
+    this._sleepFadeT = 0;
 
     // Block selection outline
     const edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002, 1.002, 1.002));
@@ -272,6 +281,18 @@ export class Game {
       const slotEl = e.target.closest('[data-slot]');
       if (slotEl) {
         const idx = Number(slotEl.getAttribute('data-slot'));
+        if (e.shiftKey && idx >= 0 && idx < this.player.slots.length) {
+          const res = splitStack(this.player.slots, idx);
+          if (!res.ok) {
+            this.player.notify(res.error === "no space" ? "No inventory space to split." : "Cannot split.");
+            return;
+          }
+          this.player.slots = res.slots;
+          this._invNeedsPaint = true;
+          this._paintInventory();
+          this.audio.ui();
+          return;
+        }
         if (idx >= 0 && idx < HOTBAR_SIZE) {
           this.player.hotbarIndex = idx;
           this._invNeedsPaint = true;
@@ -533,6 +554,37 @@ export class Game {
 
   _cropKey(x, y, z) {
     return `${x|0},${y|0},${z|0}`;
+  }
+
+  _tickCampfires(dt, baseHeat) {
+    if (!this.world || !this.player) return baseHeat;
+    let best = baseHeat || 0;
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const R = 12;
+    for (let z = pz - R; z <= pz + R; z++) {
+      for (let x = px - R; x <= px + R; x++) {
+        for (let y = Math.max(1, py - 4); y <= Math.min(46, py + 4); y++) {
+          if (this.world.getBlock(x, y, z) !== BLOCK.CAMPFIRE) continue;
+          const k = `${x},${y},${z}`;
+          let fuel = this._campFuel.has(k) ? this._campFuel.get(k) : 50;
+          const roofed = hasRoofAbove((xx,yy,zz)=>this.world.getBlock(xx,yy,zz), x, y, z, isSolid, isTransparent);
+          const storm = this.time.weather === 'rain' || this.time.weather === 'snow';
+          fuel -= (storm && !roofed ? 8 : 1.2) * dt;
+          if (fuel <= 0) {
+            this.world.setBlock(x, y, z, BLOCK.AIR);
+            this._campFuel.delete(k);
+            this.player.notify('A campfire died out.', 2.5);
+            this._scanLights(true);
+            continue;
+          }
+          this._campFuel.set(k, fuel);
+          best = Math.max(best, (fuel / 50) * 18);
+        }
+      }
+    }
+    return best;
   }
 
   _tickProjectiles(dt) {
@@ -1030,6 +1082,14 @@ export class Game {
       wetness: this.survival.wetness || 0,
       isNight: this.time.isNight(),
     });
+
+    const feetId = this.world.getBlock(
+      Math.floor(this.player.position.x),
+      Math.floor(this.player.position.y - 0.2),
+      Math.floor(this.player.position.z),
+    );
+    const desertHeat = feetId === BLOCK.SAND && this.time.weather === 'clear' && !this.time.isNight();
+
     this.survival = tickSurvival(this.survival, {
       dt,
       dayPhase: this.time.dayPhase,
@@ -1042,7 +1102,11 @@ export class Game {
       hungerMult: mode.hungerMult,
       coldDamageMult: mode.coldDamageMult * expMult,
       wetnessGain: move.inWater ? 0 : wGain,
+      desertHeat,
     });
+
+    // bleed DPS
+    this.survival = tickBleed(this.survival, dt);
 
     // meat spoilage
     {
@@ -1080,7 +1144,9 @@ export class Game {
           if (w.broken) this.player.notify('Your shield shattered!');
           else this.player.notify('Shield blocks the bite!');
         } else {
-          this.player.notify('A wolf mauls you!');
+          this.player.notify('A predator mauls you!');
+          const bleedAmt = 12 + ((Math.random() * 7) | 0);
+          this.survival = applyBleed(this.survival, bleedAmt);
         }
         dmg = mitigatePhysicalDamage(dmg, equipmentArmor(this.player.equipment));
         this.survival = applyDamage(this.survival, dmg, 'wolf');
@@ -1132,6 +1198,18 @@ export class Game {
             this.player.position.z,
           );
           this.audio.step(this._surfaceName(under));
+          // path wear on grass -> dirt
+          if (under === BLOCK.GRASS) {
+            const fx = Math.floor(this.player.position.x);
+            const fz = Math.floor(this.player.position.z);
+            const key = `${fx},${fz}`;
+            const count = (this._pathWear.get(key) || 0) + 1;
+            this._pathWear.set(key, count);
+            if (count >= 8) {
+              this.world.setBlock(fx, Math.floor(this.player.position.y - 0.2), fz, BLOCK.DIRT);
+              this._pathWear.delete(key);
+            }
+          }
         }
       }
       // bow shot steals LMB when holding bow
@@ -1162,6 +1240,35 @@ export class Game {
         help?.classList.add('faded');
       }
     }
+
+    // lightning flash during storms
+    if (this.time.weather === 'rain' || this.time.weather === 'snow') {
+      this._lightningAcc += dt;
+      const threshold = 8 + Math.random() * 15;
+      if (this._lightningAcc > threshold) {
+        this._stormFlashT = 0.2;
+        this.audio.thunder?.();
+        this._lightningAcc = 0;
+      }
+    } else {
+      this._lightningAcc = Math.max(0, this._lightningAcc - dt * 2);
+    }
+
+    // death beacon decay
+    if (this._deathBeaconT > 0) {
+      this._deathBeaconT -= dt;
+      if (this._deathBeaconT <= 0) {
+        if (this._deathBeacon) {
+          this.scene.remove(this._deathBeacon);
+          this._deathBeacon.geometry?.dispose();
+          this._deathBeacon.material?.dispose?.();
+        }
+        this._deathBeacon = null;
+      }
+    }
+
+    // drink cooldown decay
+    this._drinkCd = Math.max(0, this._drinkCd - dt);
 
     // camera
     const eye = this.player.eyePosition();
@@ -1200,6 +1307,21 @@ export class Game {
       this.player.equipment = emptyEquipment();
       this.player.notify('Your pack spilled into the wild.', 4);
     }
+
+    // death beacon: thin yellow box at death position
+    if (this.player && this.world) {
+      const px = Math.floor(this.player.position.x);
+      const py = Math.floor(this.player.position.y - 1);
+      const pz = Math.floor(this.player.position.z);
+      this.player.notify(`You died at ${px}, ${py}, ${pz}.`, 6);
+      const beaconGeo = new THREE.BoxGeometry(0.85, 0.12, 0.85);
+      const beaconMat = new THREE.MeshBasicMaterial({ color: 0xffdd44, transparent: true, opacity: 0.85 });
+      this._deathBeacon = new THREE.Mesh(beaconGeo, beaconMat);
+      this._deathBeacon.position.set(px + 0.5, py + 1, pz + 0.5);
+      this.scene.add(this._deathBeacon);
+      this._deathBeaconT = 120;
+    }
+
     if (mode.permadeath) {
       clearSaveStorage();
       this.hud.refreshContinue?.();
@@ -1242,8 +1364,9 @@ export class Game {
     if (hit && hit.id !== BLOCK.BEDROCK) {
       this._outline.visible = true;
       this._outline.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
-      if (hit.id === BLOCK.BED) text = 'F — Sleep (if warm & fed)';
-      else if (hit.id === BLOCK.CAMPFIRE) text = 'Hold meat · F cook near heat';
+      const bname = BLOCK_PROPS[hit.id]?.name || '';
+      if (hit.id === BLOCK.BED) text = `F — Sleep (if warm & fed) [${bname}]`;
+      else if (hit.id === BLOCK.CAMPFIRE) text = `Hold meat · F cook near heat [${bname}]`;
     } else {
       this._outline.visible = false;
     }
@@ -1258,7 +1381,10 @@ export class Game {
     if (!text && p?.tool === 'rod') text = 'F near water — Fish';
     if (!text && p?.tool === 'shield') text = 'Hold to block wolf bites';
     if (!text && held?.id === ITEM.FERTILIZER) text = 'F on crop — Fertilize';
-    if (hit && hit.id === BLOCK.CHEST) text = 'F — Open chest';
+    if (hit && hit.id === BLOCK.CHEST) {
+      const cn = BLOCK_PROPS[hit.id]?.name || '';
+      text = `F — Open chest [${cn}]`;
+    }
 
     // animal under crosshair
     const range = p?.meleeRange || 3.6;
@@ -1559,16 +1685,38 @@ export class Game {
     if (!this.input.consumeEat()) return;
     const held = this.player.heldStack();
     const p = propsOf(held.id);
+
+    // Bandage: stop bleeding + heal
+    if (p?.bandage && held.count > 0) {
+      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+      if (!cons.ok) return;
+      this.player.slots = cons.slots;
+      this.survival = stopBleed(this.survival, 100);
+      this.survival = {
+        ...this.survival,
+        health: Math.min(this.survival.maxHealth, this.survival.health + 8),
+      };
+      this.audio.eat();
+      this.player.notify('Applied bandage. Bleeding stopped. +8 health.', 2.5);
+      return;
+    }
+
     if (p?.heal && held.count > 0) {
       const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
       if (!cons.ok) return;
       this.player.slots = cons.slots;
+      let bleedStop = p.name === 'Healing Salve' ? 40 : 0;
+      if (bleedStop > 0) this.survival = stopBleed(this.survival, bleedStop);
       this.survival = {
         ...this.survival,
         health: Math.min(this.survival.maxHealth, this.survival.health + p.heal),
       };
       this.audio.eat();
-      this.player.notify(`Applied ${p.name}. +${p.heal} health.`, 2.5);
+      if (bleedStop > 0) {
+        this.player.notify(`Applied ${p.name}. Bleeding reduced. +${p.heal} health.`, 2.5);
+      } else {
+        this.player.notify(`Applied ${p.name}. +${p.heal} health.`, 2.5);
+      }
       return;
     }
     if (p?.edible && held.count > 0) {
@@ -1623,6 +1771,48 @@ export class Game {
       return;
     }
 
+    // Toggle door
+    if (hit && (hit.id === BLOCK.DOOR_CLOSED || hit.id === BLOCK.DOOR_OPEN)) {
+      const next = hit.id === BLOCK.DOOR_CLOSED ? BLOCK.DOOR_OPEN : BLOCK.DOOR_CLOSED;
+      this.world.setBlock(hit.x, hit.y, hit.z, next);
+      this.audio.placeBlock();
+      this.player.notify(next === BLOCK.DOOR_CLOSED ? 'Door closed.' : 'Door opened.');
+      this._scanLights(true);
+      return;
+    }
+
+    // Drink water
+    if (hit && hit.id === BLOCK.WATER && this._drinkCd <= 0) {
+      this.survival = {
+        ...this.survival,
+        stamina: Math.min(this.survival.maxStamina, this.survival.stamina + 25),
+        wetness: (this.survival.wetness || 0) + 15,
+        hunger: Math.min(this.survival.maxHunger, this.survival.hunger + 3),
+      };
+      this._drinkCd = 2;
+      this.audio.splash?.() || this.audio.eat();
+      this.player.notify('Drank water. +25 stamina.', 2);
+      return;
+    }
+
+    // Feed berries to non-hostile fauna
+    if (held0.id === ITEM.BERRIES) {
+      const ah = this.fauna?.rayHit(origin, dir, 5);
+      if (ah && ah.animal) {
+        const spec = SPECIES[ah.animal.type];
+        if (spec && !spec.hostile) {
+          const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+          if (cons.ok) {
+            this.player.slots = cons.slots;
+            ah.animal._calmT = 45;
+            this.audio.eat();
+            this.player.notify(`Fed berries to ${spec.name || 'animal'}.`, 2.5);
+            return;
+          }
+        }
+      }
+    }
+
     // Fertilizer on crop
     const held0 = this.player.heldStack();
     if (hit && hit.id === BLOCK.CROP && held0.id === ITEM.FERTILIZER) {
@@ -1666,6 +1856,24 @@ export class Game {
           this.audio.placeBlock();
           this.player.notify('You feed the fire.', 1.8);
           this._scanLights(true);
+          return;
+        }
+      }
+    }
+
+    // Feed furnace fuel (same as campfire)
+    if (hit && hit.id === BLOCK.FURNACE) {
+      const fuelIds = new Set([ITEM.STICK, ITEM.COAL, ITEM.CHARCOAL, BLOCK.LOG]);
+      if (held.id != null && fuelIds.has(held.id)) {
+        const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+        if (cons.ok) {
+          this.player.slots = cons.slots;
+          const k = `${hit.x|0},${hit.y|0},${hit.z|0}`;
+          let f = this._campFuel.get(k) ?? 40;
+          f += held.id === BLOCK.LOG ? 50 : held.id === ITEM.STICK ? 14 : 32;
+          this._campFuel.set(k, Math.min(150, f));
+          this.audio.placeBlock();
+          this.player.notify('You fed the furnace.', 1.8);
           return;
         }
       }
@@ -1757,6 +1965,14 @@ export class Game {
     // Skip ~8 hours of game time
     const dayLen = this.time.dayLengthSec || 420;
     const skip = dayLen * (this.time.isNight() ? 0.42 : 0.28);
+
+    // sleep fade overlay
+    const fadeEl = document.getElementById('sleep-fade');
+    if (fadeEl) {
+      fadeEl.style.opacity = '0.85';
+      this._sleepFadeT = 1;
+    }
+
     this.time.elapsed += skip;
     this.survival = applySleepRest(this.survival, this.time.isNight() ? 8 : 5);
     this.audio.sleep?.() || this.audio.ui();
@@ -1907,6 +2123,12 @@ export class Game {
 
   _updateLighting() {
     const sunI = this.time.sunIntensity();
+    // storm lightning flash boost
+    if (this._stormFlashT > 0) {
+      this.ambient.intensity += this._stormFlashT * 8;
+      this.scene.background.setHex(0xccddff);
+      this._stormFlashT -= 1 / 60;
+    }
     this.sun.intensity = 0.25 + sunI * 1.0;
     this.ambient.intensity = 0.12 + sunI * 0.35;
     this.hemi.intensity = 0.15 + sunI * 0.3;

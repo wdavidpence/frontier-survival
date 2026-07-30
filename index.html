@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frontier Survival</title>
+  <title>Frontier Survival v1.5</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -408,6 +408,8 @@
       background: linear-gradient(180deg,#8a909a,#5a6068);
       color: #f0f0f0;
     }
+    #sleep-fade { position:fixed; inset:0; background:#000; opacity:0; pointer-events:none; transition:opacity 0.45s; z-index:50; }
+    #sleep-fade.on { opacity:0.82; }
   </style>
   <script type="importmap">
   {
@@ -426,7 +428,7 @@
     <div id="status-line">Frontier Survival</div>
     <div id="message"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.4</div>
+    <div id="version-badge">v1.5</div>
     <div id="meters">
       <div class="meter"><span>Health</span><div class="track"><div id="bar-health" class="fill"></div></div></div>
       <div class="meter"><span>Hunger</span><div class="track"><div id="bar-hunger" class="fill"></div></div></div>
@@ -450,7 +452,7 @@
       <b>LMB</b> mine/bow · <b>RMB</b> place/plant · <b>Q</b> drop<br/>
       <b>F</b> chest/fish/fertilize/cook/sleep · <b>R</b> eat/salve<br/>
       <b>E</b> craft · <b>K</b> save · <b>Esc</b> pause · <b>F3</b> debug<br/>
-      Shelter in storms · feed fires · snares · birds/eggs
+      Door F · Bandage R · Drink water F · Shift-click split stacks
     </div>
   </div>
 
@@ -482,7 +484,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.4</div>
+      <div class="tag">Browser survival sandbox · v1.5</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -539,6 +541,7 @@
     </div>
   </div>
 
+  <div id="sleep-fade"></div>
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>

@@ -346,4 +346,9 @@ export class AudioBus {
     this.beep(480, 0.05, 'triangle', 0.1);
     this.beep(640, 0.06, 'sine', 0.08);
   }
+  thunder() {
+    this.beep(40, 0.35, 'sawtooth', 0.22);
+    this.beep(55, 0.5, 'triangle', 0.18);
+    this.beep(30, 0.7, 'sine', 0.12);
+  }
 }

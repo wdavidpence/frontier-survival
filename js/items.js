@@ -45,6 +45,10 @@ export const ITEM = {
   PUMPKIN: 137,
   PUMPKIN_SOUP: 138,
   CHARCOAL: 139,
+  CLAY_BALL: 140,
+  BRICK: 141,
+  BANDAGE: 142,
+  WOOD_SWORD: 143,
 };
 
 /** @type {Record<number, {
@@ -210,6 +214,10 @@ export const ITEM_PROPS = {
   },
   [ITEM.PUMPKIN_SOUP]: { name: 'Pumpkin Soup', color: [0.95, 0.7, 0.3], edible: 40, maxStack: 8 },
   [ITEM.CHARCOAL]: { name: 'Charcoal', color: [0.22, 0.22, 0.24], maxStack: 64 },
+  [ITEM.CLAY_BALL]: { name: 'Clay Ball', color: [0.42, 0.38, 0.3], maxStack: 64 },
+  [ITEM.BRICK]: { name: 'Brick', color: [0.7, 0.3, 0.2], maxStack: 64 },
+  [ITEM.BANDAGE]: { name: 'Bandage', color: [0.95, 0.93, 0.9], maxStack: 16, bandage: true },
+  [ITEM.WOOD_SWORD]: { name: 'Wood Sword', color: [0.72, 0.55, 0.32], tool: 'weapon', melee: 13, meleeRange: 3.8, maxStack: 1 },
 };
 
 export function propsOf(id) {
@@ -264,6 +272,8 @@ export function preferredTool(blockId) {
     blockId === BLOCK.SANDSTONE
   )
     return 'pick';
+  if (blockId === BLOCK.BRICKS || blockId === BLOCK.FURNACE || blockId === BLOCK.CLAY) return 'pick';
+  if (blockId === BLOCK.DOOR_CLOSED || blockId === BLOCK.DOOR_OPEN) return 'axe';
   return 'hand';
 }
 
@@ -295,6 +305,11 @@ export function dropForBlock(blockId) {
   if (blockId === BLOCK.FENCE) return BLOCK.FENCE;
   if (blockId === BLOCK.SNARE) return BLOCK.SNARE;
   if (blockId === BLOCK.PUMPKIN) return ITEM.PUMPKIN;
+  if (blockId === BLOCK.CLAY) return ITEM.CLAY_BALL;
+  if (blockId === BLOCK.DOOR_CLOSED || blockId === BLOCK.DOOR_OPEN) return BLOCK.DOOR_CLOSED;
+  if (blockId === BLOCK.GLASS) return BLOCK.GLASS;
+  if (blockId === BLOCK.BRICKS) return BLOCK.BRICKS;
+  if (blockId === BLOCK.FURNACE) return BLOCK.FURNACE;
   const d = BLOCK_PROPS[blockId]?.drops;
   if (d === undefined) return blockId;
   return d;

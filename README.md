@@ -6,9 +6,9 @@ Inspired by the *systems* of Survivalcraft (harsh nature, clothing, sleep, preda
 
 You wash up in a blocky wilderness where **cold, hunger, fatigue, and wolves** matter as much as mining.
 
-![Status](https://img.shields.io/badge/status-playable%201.4%20sc-depth-brightgreen)
+![Status](https://img.shields.io/badge/status-playable%20v1.5-brightgreen)
 ![Stack](https://img.shields.io/badge/stack-Three.js%20ESM-blue)
-![Tests](https://img.shields.io/badge/tests-39%20smoke-lightgrey)
+![Tests](https://img.shields.io/badge/tests-47%20smoke-lightgrey)
 
 ---
 
@@ -26,12 +26,12 @@ Open: **http://127.0.0.1:8765/**
 Legacy path still works if you open `/public/` (uses `../js`).
 
 ```bash
-node tests/smoke.mjs   # 39 pure-logic tests
+node tests/smoke.mjs   # 47 pure-logic tests
 ```
 
 ---
 
-## Controls (PC 1.2)
+## Controls (PC v1.5)
 
 | Input | Action |
 |-------|--------|
@@ -45,9 +45,10 @@ node tests/smoke.mjs   # 39 pure-logic tests
 | RMB | Place block / **plant seeds** |
 | 1–9 | Hotbar |
 | Q | Drop one from selected slot |
+| Shift+click (inv) | Split stack in half |
 | E | Inventory & crafting |
-| F | Cook · equip clothes · sleep on bed |
-| R | Eat |
+| F | Cook · equip clothes · sleep on bed · door toggle · drink water |
+| R | Eat · apply bandage |
 | K | Quick save |
 | Esc | Pause (sensitivity) |
 | H | Toggle help |
@@ -124,5 +125,5 @@ See `docs/SCM.md`: more biomes, bow, electricity/logic, boats, multiplayer later
 
 ## Status
 
-**Playable browser 1.4 SC-depth pack** — farming, iron, bow hunting, spoilage, weather FX, achievements.  
+**Playable browser v1.5** — doors, glass, clay/bricks, bear predator, bleed/bandage, wooden sword, furnace, shift-click split stacks, sleep fade overlay, drink water.  
 Not commercial Survivalcraft feature parity; depth continues from the plan checklist.

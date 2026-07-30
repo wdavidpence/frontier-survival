@@ -39,11 +39,13 @@ function causeFlavor(cause) {
     hypothermia: 'The cold took you.',
     starvation: 'Hunger hollowed you out.',
     exhaustion: 'You collapsed from fatigue.',
-    wolf: 'A wolf’s jaws closed.',
+    wolf: "A wolf's jaws closed.",
+    bear: 'A bear crushed you.',
     fall: 'The ground was unforgiving.',
     drowning: 'The water kept you.',
     food_poisoning: 'Bad meat finished you.',
     heatstroke: 'The heat cooked you from within.',
+    bleeding: 'You bled out.',
   };
   return map[cause] || 'Nature does not negotiate.';
 }
@@ -193,4 +195,4 @@ refreshContinue();
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.4');
+console.info('Frontier Survival boot OK · v1.5');

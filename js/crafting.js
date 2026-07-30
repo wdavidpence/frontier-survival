@@ -361,6 +361,13 @@ export const RECIPES = [
     results: [{ id: ITEM.PUMPKIN_SOUP, count: 1 }],
     requiresHeat: 6,
   },
+  { id:'door', name:'Wooden Door', desc:'6 Planks → Door', ingredients:[{id:BLOCK.PLANKS,count:6}], results:[{id:BLOCK.DOOR_CLOSED,count:1}] },
+  { id:'glass', name:'Glass', desc:'Smelt sand', ingredients:[{id:BLOCK.SAND,count:1}], results:[{id:BLOCK.GLASS,count:1}], requiresHeat:10 },
+  { id:'brick_smelt', name:'Brick', desc:'Smelt clay', ingredients:[{id:ITEM.CLAY_BALL,count:1}], results:[{id:ITEM.BRICK,count:1}], requiresHeat:10 },
+  { id:'bricks_block', name:'Bricks', desc:'4 Brick → Bricks block', ingredients:[{id:ITEM.BRICK,count:4}], results:[{id:BLOCK.BRICKS,count:1}] },
+  { id:'furnace', name:'Furnace', desc:'8 Cobble → Furnace', ingredients:[{id:BLOCK.COBBLE,count:8}], results:[{id:BLOCK.FURNACE,count:1}] },
+  { id:'bandage', name:'Bandage', desc:'2 Cloth → 2 Bandage', ingredients:[{id:ITEM.CLOTH,count:2}], results:[{id:ITEM.BANDAGE,count:2}] },
+  { id:'wood_sword', name:'Wood Sword', desc:'2 Planks + 1 Stick', ingredients:[{id:BLOCK.PLANKS,count:2},{id:ITEM.STICK,count:1}], results:[{id:ITEM.WOOD_SWORD,count:1}] },
 ];
 
 export function visibleRecipes() {
