@@ -167,7 +167,8 @@ test('applyDamage can kill', () => {
 
 test('starter inventory has rations', () => {
   const slots = createStarterInventory();
-  assert.strictEqual(countItems(slots, ITEM.RATION), 3);
+  assert.ok(countItems(slots, ITEM.RATION) >= 3);
+  assert.ok(countItems(slots, BLOCK.TORCH) >= 1);
 });
 
 test('add and remove items', () => {

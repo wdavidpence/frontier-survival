@@ -2,8 +2,8 @@
  * Stack inventory — pure logic (unit-testable).
  * slots: Array<{ id: number|null, count: number }>
  */
-import { maxStack, ITEM } from './items.js?v=183';
-import { BLOCK } from './blocks.js?v=183';
+import { maxStack, ITEM } from './items.js?v=184';
+import { BLOCK } from './blocks.js?v=184';
 
 export const HOTBAR_SIZE = 9;
 export const BAG_SIZE = 18;
@@ -13,13 +13,16 @@ export function emptySlots(n = INV_SIZE) {
   return Array.from({ length: n }, () => ({ id: null, count: 0 }));
 }
 
-export function createStarterInventory(rationCount = 3) {
+export function createStarterInventory(rationCount = 6) {
   const slots = emptySlots();
   const n = Math.max(0, rationCount | 0);
-  if (n > 0) slots[0] = { id: ITEM.RATION, count: n };
-  // Survive the first night: light + sticks for a fire
-  slots[1] = { id: BLOCK.TORCH, count: 4 };
-  slots[2] = { id: ITEM.STICK, count: 8 };
+  if (n > 0) {
+    slots[0] = { id: ITEM.RATION, count: n };
+    // Survive the first night: light, fuel, forage
+    slots[1] = { id: BLOCK.TORCH, count: 8 };
+    slots[2] = { id: ITEM.STICK, count: 12 };
+    slots[3] = { id: ITEM.BERRIES, count: 8 };
+  }
   return slots;
 }
 

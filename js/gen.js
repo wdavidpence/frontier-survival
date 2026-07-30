@@ -1,8 +1,9 @@
 /** Deterministic value noise for terrain */
+/** Deterministic 2D hash in [0,1). Integer-safe (float mul collapsed to ~0.5 for large coords). */
 export function hash2(x, z) {
-  let n = x * 374761393 + z * 668265263;
-  n = (n ^ (n >> 13)) * 1274126177;
-  return ((n ^ (n >> 16)) >>> 0) / 4294967296;
+  let n = Math.imul(x | 0, 374761393) + Math.imul(z | 0, 668265263);
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
 }
 
 export function smoothNoise(x, z) {

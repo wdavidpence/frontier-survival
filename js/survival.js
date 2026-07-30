@@ -45,12 +45,14 @@ export function ambientTempC(dayPhase, weather = 'clear') {
  * @param {number} [env.hungerMult]
  * @param {number} [env.coldDamageMult]
  * @param {number} [env.ambientTempOffset] biome temperature bias °C
+ * @param {number} [env.earlyGameGrace] 0..1 — 1 = full new-game protection (no lethal need DPS)
  */
 export function tickSurvival(state, env) {
   if (state.dead) return state;
 
   const dt = env.dt;
   const next = { ...state };
+  const grace = Math.max(0, Math.min(1, env.earlyGameGrace ?? 0));
   let ambient = ambientTempC(env.dayPhase, env.weather);
   // Apply biome temperature bias (desert +8, tundra -10, etc.)
   if (env.ambientTempOffset) ambient += env.ambientTempOffset;
@@ -58,17 +60,19 @@ export function tickSurvival(state, env) {
   const fire = env.blockHeat || 0;
   const coldMult = env.coldDamageMult ?? 1;
 
-  // Wetness
-  if (env.inWater) next.wetness = Math.min(100, next.wetness + 40 * dt);
+  // Wetness — slower soak during early grace
+  const wetMul = 1 - grace * 0.85;
+  if (env.inWater) next.wetness = Math.min(100, next.wetness + 40 * dt * wetMul);
   else if ((env.wetnessGain || 0) > 0) {
-    next.wetness = Math.min(100, next.wetness + env.wetnessGain * dt);
+    next.wetness = Math.min(100, next.wetness + env.wetnessGain * dt * wetMul);
   } else next.wetness = Math.max(0, next.wetness - 8 * dt);
 
   const wetPenalty = (next.wetness / 100) * 8;
   // Campfires are a primary survival tool — strong local heat must beat night air
   const fireWarmth = Math.min(32, fire * 1.35);
-  let feelsLike = ambient + clothes + fireWarmth - wetPenalty;
-  if (env.desertHeat) feelsLike += 10;
+  // Early game: bias feels-like toward comfort so new players can explore/build
+  let feelsLike = ambient + clothes + fireWarmth - wetPenalty + grace * 10;
+  if (env.desertHeat) feelsLike += 10 * (1 - grace * 0.7);
 
   // Homeostasis: comfortable air keeps core ~37°C; extremes and wetness pull away
   let target = 37;
@@ -88,27 +92,40 @@ export function tickSurvival(state, env) {
   if (fire > 10) {
     target = Math.max(target, Math.min(38.2, 36.5 + fireWarmth * 0.04));
   }
+  // Grace: pull core temp toward healthy 37°C
+  if (grace > 0) {
+    target = target * (1 - grace * 0.85) + 37 * (grace * 0.85);
+  }
 
   const tempRate = 0.12 + (fire > 5 ? 0.1 : 0) + (feelsLike < 5 || feelsLike > 36 ? 0.1 : 0);
   next.bodyTemp += (target - next.bodyTemp) * Math.min(1, tempRate * dt);
+  if (grace > 0.5) {
+    // hard floor during strong grace — never drop into damage band
+    next.bodyTemp = Math.max(next.bodyTemp, 35.8);
+  }
 
-  // Hunger
+  // Hunger — very slow during early grace (Minecraft-like: hours before starvation matters)
   let hungerDrain = 0.35; // per second baseline — harsh enough to matter in a session
   if (env.sprinting) hungerDrain += 0.55;
   if (env.moving) hungerDrain += 0.12;
   if (env.sleeping) hungerDrain *= 0.35;
   hungerDrain *= env.hungerMult ?? 1;
+  hungerDrain *= 1 - grace * 0.92; // ~8% drain at full grace
   next.hunger = Math.max(0, next.hunger - hungerDrain * dt);
+  if (grace > 0.3) {
+    // keep a comfortable floor while learning the game
+    next.hunger = Math.max(next.hunger, 25 + grace * 40);
+  }
 
   // Stamina
   if (env.sprinting && env.moving) {
-    next.stamina = Math.max(0, next.stamina - 22 * dt);
+    next.stamina = Math.max(0, next.stamina - 22 * dt * (1 - grace * 0.4));
   } else if (!env.sprinting) {
     const regen = next.hunger > 10 ? 14 : 5;
-    next.stamina = Math.min(next.maxStamina, next.stamina + regen * dt);
+    next.stamina = Math.min(next.maxStamina, next.stamina + regen * dt * (1 + grace * 0.5));
   }
 
-  // Sleep debt while awake
+  // Sleep debt while awake — slow during grace so exhaustion isn't a day-1 killer
   if (env.sleeping) {
     next.sleep = Math.max(0, next.sleep - 28 * dt);
   } else {
@@ -117,42 +134,48 @@ export function tickSurvival(state, env) {
     const night = env.dayPhase > 0.55 && env.dayPhase < 0.95;
     if (night) sleepGain *= 1.6;
     if (env.sprinting) sleepGain *= 1.2;
+    sleepGain *= 1 - grace * 0.9;
     next.sleep = Math.min(100, next.sleep + sleepGain * dt);
+    if (grace > 0.3) next.sleep = Math.min(next.sleep, 55);
   }
 
-  // Damage conditions
+  // Damage conditions — suppressed during early-game grace
   let dps = 0;
   let cause = null;
 
-  if (next.hunger <= 0) {
-    dps += 4;
-    cause = 'starvation';
-  } else if (next.hunger < 15) {
-    dps += 0.6;
-    cause = 'starvation';
-  }
+  if (grace < 0.95) {
+    const dmgScale = 1 - grace; // ramp damage in as grace fades
 
-  if (next.bodyTemp < 32) {
-    dps += 6 * coldMult;
-    cause = 'hypothermia';
-  } else if (next.bodyTemp < 34.5) {
-    dps += 2 * coldMult;
-    cause = 'hypothermia';
-  } else if (next.bodyTemp > 41) {
-    dps += 5 * coldMult;
-    cause = 'heatstroke';
-  }
+    if (next.hunger <= 0) {
+      dps += 4 * dmgScale;
+      cause = 'starvation';
+    } else if (next.hunger < 15) {
+      dps += 0.6 * dmgScale;
+      cause = 'starvation';
+    }
 
-  if (next.sleep >= 98 && !env.sleeping) {
-    dps += 3;
-    cause = 'exhaustion';
+    if (next.bodyTemp < 32) {
+      dps += 6 * coldMult * dmgScale;
+      cause = 'hypothermia';
+    } else if (next.bodyTemp < 34.5) {
+      dps += 2 * coldMult * dmgScale;
+      cause = 'hypothermia';
+    } else if (next.bodyTemp > 41) {
+      dps += 5 * coldMult * dmgScale;
+      cause = 'heatstroke';
+    }
+
+    if (next.sleep >= 98 && !env.sleeping) {
+      dps += 3 * dmgScale;
+      cause = 'exhaustion';
+    }
   }
 
   if (dps > 0) {
     next.health = Math.max(0, next.health - dps * dt);
   } else if (next.hunger > 40 && next.bodyTemp > 35.5 && next.bodyTemp < 38.5 && next.health < next.maxHealth) {
     // slow regen when comfortable and fed
-    next.health = Math.min(next.maxHealth, next.health + 1.2 * dt);
+    next.health = Math.min(next.maxHealth, next.health + 1.2 * dt * (1 + grace));
   }
 
   if (next.health <= 0) {
@@ -161,7 +184,7 @@ export function tickSurvival(state, env) {
     next.causeOfDeath = cause || 'unknown';
   }
 
-  next._debug = { ambient, feelsLike, target, dps };
+  next._debug = { ambient, feelsLike, target, dps, grace };
   return next;
 }
 

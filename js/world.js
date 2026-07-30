@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=183';
-import { heightAt, hash2, fbm } from './gen.js?v=183';
-import { biomeAt, BIOME } from './biomes.js?v=183';
-import { tileForBlock } from './atlas-core.js?v=183';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=183';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=184';
+import { heightAt, hash2, fbm } from './gen.js?v=184';
+import { biomeAt, BIOME } from './biomes.js?v=184';
+import { tileForBlock } from './atlas-core.js?v=184';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=184';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -92,17 +92,24 @@ export class World {
           data[this._idx(lx, y, lz)] = id;
         }
 
-        // trees — only in forest biome
-        if (biome === BIOME.FOREST && h > SEA_LEVEL + 1 && hash2(x + this.seed * 3, z) > 0.985) {
-          this._placeTree(data, lx, h + 1, lz, baseX, baseZ);
+        // trees — dense in forest, sparse in shore scrub / tundra pines
+        if (h > SEA_LEVEL + 1) {
+          const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
+          let treeChance = 0;
+          if (biome === BIOME.FOREST) treeChance = 0.08; // ~8% of surface cells
+          else if (biome === BIOME.SHORE) treeChance = 0.012;
+          else if (biome === BIOME.TUNDRA) treeChance = 0.02;
+          if (th > 1 - treeChance) {
+            this._placeTree(data, lx, h + 1, lz);
+          }
         }
-        // berry bushes on grass surface — forest only
+        // berry bushes on grass surface — forest mainly
         if (
-          biome === BIOME.FOREST &&
+          (biome === BIOME.FOREST || biome === BIOME.SHORE) &&
           h > SEA_LEVEL + 1 &&
           data[this._idx(lx, h, lz)] === BLOCK.GRASS &&
           data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
-          hash2(x + 91, z + this.seed * 2) > 0.978
+          hash2(x + 91, z * 3 + (this.seed | 0)) > 0.94
         ) {
           data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
         }
@@ -123,7 +130,8 @@ export class World {
   }
 
   _placeTree(data, lx, y, lz) {
-    const trunkH = 4 + Math.floor(hash2(lx + 11, lz + 7) * 3);
+    // Variable height canopy (Minecraft-ish oak)
+    const trunkH = 4 + Math.floor(hash2(lx + 11, lz + 7) * 4); // 4-7
     for (let i = 0; i < trunkH; i++) {
       const ty = y + i;
       if (ty >= WORLD_HEIGHT) break;
@@ -132,11 +140,15 @@ export class World {
       }
     }
     const top = y + trunkH - 1;
+    const radius = 2 + (hash2(lx + 3, lz + 9) > 0.55 ? 1 : 0);
     for (let dy = -2; dy <= 2; dy++) {
-      for (let dx = -2; dx <= 2; dx++) {
-        for (let dz = -2; dz <= 2; dz++) {
-          if (Math.abs(dx) + Math.abs(dy) + Math.abs(dz) > 4) continue;
-          if (dx === 0 && dz === 0 && dy <= 0) continue;
+      for (let dx = -radius; dx <= radius; dx++) {
+        for (let dz = -radius; dz <= radius; dz++) {
+          const dist = Math.abs(dx) + Math.abs(dz) + Math.abs(dy);
+          if (dist > radius + 1) continue;
+          if (dx === 0 && dz === 0 && dy < 0) continue; // keep trunk
+          // thinner top layer
+          if (dy === 2 && (Math.abs(dx) > 1 || Math.abs(dz) > 1)) continue;
           const tx = lx + dx;
           const ty = top + dy;
           const tz = lz + dz;
@@ -145,6 +157,12 @@ export class World {
           if (data[i] === BLOCK.AIR) data[i] = BLOCK.LEAVES;
         }
       }
+    }
+    // canopy peak
+    const peak = top + 3;
+    if (peak < WORLD_HEIGHT && lx >= 0 && lx < CHUNK_SIZE && lz >= 0 && lz < CHUNK_SIZE) {
+      const i = this._idx(lx, peak, lz);
+      if (data[i] === BLOCK.AIR) data[i] = BLOCK.LEAVES;
     }
   }
 

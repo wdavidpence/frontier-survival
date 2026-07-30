@@ -32,7 +32,7 @@ export const MODES = {
     predatorSenseMult: 0.55,
     deathDrops: false,
     permadeath: false,
-    starterRations: 6,
+    starterRations: 8,
   },
   survival: {
     id: 'survival',
@@ -44,7 +44,7 @@ export const MODES = {
     predatorSenseMult: 1,
     deathDrops: false,
     permadeath: false,
-    starterRations: 3,
+    starterRations: 6,
   },
   challenging: {
     id: 'challenging',
@@ -56,7 +56,7 @@ export const MODES = {
     predatorSenseMult: 1.25,
     deathDrops: true,
     permadeath: false,
-    starterRations: 2,
+    starterRations: 5,
   },
   cruel: {
     id: 'cruel',
@@ -68,7 +68,7 @@ export const MODES = {
     predatorSenseMult: 1.4,
     deathDrops: true,
     permadeath: true,
-    starterRations: 1,
+    starterRations: 4,
   },
 };
 

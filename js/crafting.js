@@ -1,7 +1,7 @@
 /** Crafting recipes — pure data + craft helper */
-import { BLOCK } from './blocks.js?v=183';
-import { ITEM } from './items.js?v=183';
-import { craftWith } from './inventory.js?v=183';
+import { BLOCK } from './blocks.js?v=184';
+import { ITEM } from './items.js?v=184';
+import { craftWith } from './inventory.js?v=184';
 
 /**
  * @typedef {{ id: string, name: string, desc?: string, ingredients: {id:number,count:number}[], results: {id:number,count:number}[] }} Recipe

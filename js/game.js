@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=183';
-import { Player } from './player.js?v=183';
-import { Input } from './input.js?v=183';
-import { GameTime } from './time.js?v=183';
-import { AudioBus } from './audio.js?v=183';
+import { World } from './world.js?v=184';
+import { Player } from './player.js?v=184';
+import { Input } from './input.js?v=184';
+import { GameTime } from './time.js?v=184';
+import { AudioBus } from './audio.js?v=184';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=183';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=183';
+} from './survival.js?v=184';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=184';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=183';
+} from './items.js?v=184';
 import {
   addItems,
   removeItems,
@@ -31,11 +31,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=183';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=183';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=183';
-import { createBlockAtlas } from './atlas.js?v=183';
-import { BreakFX } from './fx.js?v=183';
+} from './inventory.js?v=184';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=184';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=184';
+import { createBlockAtlas } from './atlas.js?v=184';
+import { BreakFX } from './fx.js?v=184';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -45,35 +45,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=183';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=183';
+} from './equipment.js?v=184';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=184';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=183';
-import { getMode } from './modes.js?v=183';
+} from './save.js?v=184';
+import { getMode } from './modes.js?v=184';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=183';
+} from './settings.js?v=184';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=183';
-import { tickSpoilage } from './spoilage.js?v=183';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=183';
-import { wearTool, durabilityRatio } from './durability.js?v=183';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=183';
-import { tickLogic, COMPONENT } from './logic.js?v=183';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=183';
+} from './achievements.js?v=184';
+import { tickSpoilage } from './spoilage.js?v=184';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=184';
+import { wearTool, durabilityRatio } from './durability.js?v=184';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=184';
+import { tickLogic, COMPONENT } from './logic.js?v=184';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=184';
 import {
   chestKey,
   getChestSlots,
@@ -84,7 +84,7 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=183';
+} from './chests.js?v=184';
 
 export class Game {
   /**
@@ -470,7 +470,8 @@ export class Game {
     this.input.uiMode = false;
     this.paused = false;
     this._ignorePauseT = 2.5;
-    this._spawnProtectT = 180; // 3 min cold grace
+    this._spawnProtectT = 900; // 15 min early-game grace (food/cold/sleep)
+    this._graceEndedNotified = false;
     this.canvas?.focus?.();
     this.input.requestLock?.();
     this._updateClickToPlay?.();
@@ -479,6 +480,7 @@ export class Game {
     if (notify) {
       this.player.notify(notify, 7);
       this.player.notify('Click game if look fails · WASD move · Esc pause', 5);
+      this.player.notify('Early days are forgiving — gather food, wood, and shelter.', 8);
     } else if (freshPlayer) {
       this.player.notify(`${this.modeDef().name} mode. Hunt hares & deer. Craft a spear. Wolves hunt at night.`, 8);
     }
@@ -1175,25 +1177,32 @@ export class Game {
       this._lastBiome = currentBiome;
     }
 
-    // Spawn cold grace: free heat for first minutes so new players can move/build
+    // Early-game grace: ~15 min to explore, gather, build shelter (like most survival games)
     if ((this._spawnProtectT || 0) > 0) {
       this._spawnProtectT = Math.max(0, this._spawnProtectT - dt);
+      if (this._spawnProtectT <= 0 && !this._graceEndedNotified) {
+        this._graceEndedNotified = true;
+        this.player?.notify?.('The wild grows harsher — manage food, warmth, and rest.', 7);
+      }
     }
-    const protect = (this._spawnProtectT || 0) > 0;
+    // Smooth fade over last 3 minutes
+    const graceT = this._spawnProtectT || 0;
+    const grace = graceT <= 0 ? 0 : graceT >= 180 ? 1 : graceT / 180;
     this.survival = tickSurvival(this.survival, {
       dt,
       dayPhase: this.time.dayPhase,
       weather: this.time.weather,
-      blockHeat: protect ? Math.max(heat, 16) : heat,
+      blockHeat: grace > 0.2 ? Math.max(heat, 10) : heat,
       sprinting: move.sprinting,
       moving: move.moved,
       inWater: move.inWater,
       sleeping: false,
       hungerMult: mode.hungerMult,
-      coldDamageMult: protect ? 0 : mode.coldDamageMult * expMult,
-      wetnessGain: protect ? 0 : (move.inWater ? 0 : wGain),
-      desertHeat: protect ? false : desertHeat,
-      ambientTempOffset: protect ? 0 : tempOffset,
+      coldDamageMult: mode.coldDamageMult * expMult * (1 - grace * 0.95),
+      wetnessGain: move.inWater ? 0 : wGain * (1 - grace * 0.8),
+      desertHeat: grace > 0.5 ? false : desertHeat,
+      ambientTempOffset: tempOffset * (1 - grace * 0.7),
+      earlyGameGrace: grace,
     });
 
     // bleed DPS
