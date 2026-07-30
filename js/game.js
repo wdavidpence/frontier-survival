@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=182';
-import { Player } from './player.js?v=182';
-import { Input } from './input.js?v=182';
-import { GameTime } from './time.js?v=182';
-import { AudioBus } from './audio.js?v=182';
+import { World } from './world.js?v=183';
+import { Player } from './player.js?v=183';
+import { Input } from './input.js?v=183';
+import { GameTime } from './time.js?v=183';
+import { AudioBus } from './audio.js?v=183';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=182';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=182';
+} from './survival.js?v=183';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=183';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=182';
+} from './items.js?v=183';
 import {
   addItems,
   removeItems,
@@ -31,11 +31,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=182';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=182';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=182';
-import { createBlockAtlas } from './atlas.js?v=182';
-import { BreakFX } from './fx.js?v=182';
+} from './inventory.js?v=183';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=183';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=183';
+import { createBlockAtlas } from './atlas.js?v=183';
+import { BreakFX } from './fx.js?v=183';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -45,35 +45,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=182';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=182';
+} from './equipment.js?v=183';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=183';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=182';
-import { getMode } from './modes.js?v=182';
+} from './save.js?v=183';
+import { getMode } from './modes.js?v=183';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=182';
+} from './settings.js?v=183';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=182';
-import { tickSpoilage } from './spoilage.js?v=182';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=182';
-import { wearTool, durabilityRatio } from './durability.js?v=182';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=182';
-import { tickLogic, COMPONENT } from './logic.js?v=182';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=182';
+} from './achievements.js?v=183';
+import { tickSpoilage } from './spoilage.js?v=183';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=183';
+import { wearTool, durabilityRatio } from './durability.js?v=183';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=183';
+import { tickLogic, COMPONENT } from './logic.js?v=183';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=183';
 import {
   chestKey,
   getChestSlots,
@@ -84,7 +84,7 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=182';
+} from './chests.js?v=183';
 
 export class Game {
   /**
@@ -952,8 +952,9 @@ export class Game {
     }
     this._updateClickToPlay?.();
     if (!this.paused && this.started) this.update(dt);
-    else if (this.started) this.render();
-    else this.render();
+    // ALWAYS paint the canvas — update() does not render. Missing this freezes the world
+    // while DOM HUD (key debug) still updates — looks exactly like "WASD broken".
+    this.render();
   };
 
   _applyHelpVisibility() {
@@ -1288,6 +1289,16 @@ export class Game {
         kills: this._stats?.kills || 0,
         wolfKills: this._stats?.wolfKills || 0,
       });
+      // Keep camera in sync so death view isn't a frozen frame
+      if (this.player) {
+        this.player.yaw = this.input.lookX;
+        this.player.pitch = this.input.lookY;
+        const eye = this.player.eyePosition();
+        this.camera.position.copy(eye);
+        this.camera.rotation.order = 'YXZ';
+        this.camera.rotation.y = this.player.yaw;
+        this.camera.rotation.x = this.player.pitch;
+      }
       this._updateHud();
       return;
     }
@@ -2431,7 +2442,10 @@ export class Game {
       if (this.input.wantsCrouch()) k.push('C');
       if (this.input.wantsJump()) k.push('Sp');
       const st = this.survival?.dead ? 'DEAD' : this.paused ? 'PAUSED' : this.input.locked ? 'LOCK' : this.input.softLook ? 'LOOK' : 'WAIT';
-      ctrlDbg.textContent = `${st} keys:${k.join('')||'-'} cap:${this.input.captureEnabled?1:0}`;
+      const pos = this.player
+        ? `${this.player.position.x.toFixed(0)},${this.player.position.z.toFixed(0)}`
+        : '';
+      ctrlDbg.textContent = `${st} keys:${k.join('')||'-'} xyz:${pos}`;
       ctrlDbg.style.color = this.survival?.dead ? '#f66' : k.length ? '#6f6' : '#9cf';
     }
     const status = document.getElementById('status-line');

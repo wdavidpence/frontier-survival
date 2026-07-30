@@ -1,11 +1,11 @@
-import { Game } from './game.js?v=182';
-import { hasSave, clearSaveStorage } from './save.js?v=182';
-import { MODES, MODE_ORDER, getMode } from './modes.js?v=182';
+import { Game } from './game.js?v=183';
+import { hasSave, clearSaveStorage } from './save.js?v=183';
+import { MODES, MODE_ORDER, getMode } from './modes.js?v=183';
 import {
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
-} from './settings.js?v=182';
+} from './settings.js?v=183';
 
 const canvas = document.getElementById('game');
 const title = document.getElementById('title-screen');
@@ -311,4 +311,4 @@ engageControls = function() {
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.8.2');
+console.info('Frontier Survival boot OK · v1.8.3');

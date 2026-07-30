@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=182';
-import { heightAt, hash2, fbm } from './gen.js?v=182';
-import { biomeAt, BIOME } from './biomes.js?v=182';
-import { tileForBlock } from './atlas-core.js?v=182';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=182';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=183';
+import { heightAt, hash2, fbm } from './gen.js?v=183';
+import { biomeAt, BIOME } from './biomes.js?v=183';
+import { tileForBlock } from './atlas-core.js?v=183';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=183';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
