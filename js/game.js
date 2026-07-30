@@ -33,7 +33,7 @@ import {
   splitStack,
 } from './inventory.js';
 import { visibleRecipes, craftRecipe } from './crafting.js';
-import { FaunaSystem, SPECIES } from './animals.js';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js';
 import { createBlockAtlas } from './atlas.js';
 import { BreakFX } from './fx.js';
 import {
@@ -72,6 +72,7 @@ import { tickSpoilage } from './spoilage.js';
 import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js';
 import { wearTool, durabilityRatio } from './durability.js';
 import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js';
 import {
   chestKey,
   getChestSlots,
@@ -174,6 +175,8 @@ export class Game {
     this._stormFlashT = 0;
     this._lightningAcc = 0;
     this._sleepFadeT = 0;
+    this._lastBiome = null; // biome notification tracker
+    this._biomeNotifyAcc = 0; // accumulator for periodic biome name display
 
     // Block selection outline
     const edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002, 1.002, 1.002));
@@ -1090,6 +1093,19 @@ export class Game {
     );
     const desertHeat = feetId === BLOCK.SAND && this.time.weather === 'clear' && !this.time.isNight();
 
+    // Compute current biome + temperature offset
+    const px = Math.floor(this.player.position.x);
+    const pz = Math.floor(this.player.position.z);
+    const currentBiome = biomeAt(px, pz, this.seed);
+    const tempOffset = ambientTempOffset(currentBiome);
+
+    // Notify on biome change
+    if (currentBiome !== this._lastBiome) {
+      const labels = { shore: 'Shore', forest: 'Forest', desert: 'Desert', tundra: 'Tundra' };
+      this.player.notify(`Entered ${labels[currentBiome] || currentBiome}`, 4);
+      this._lastBiome = currentBiome;
+    }
+
     this.survival = tickSurvival(this.survival, {
       dt,
       dayPhase: this.time.dayPhase,
@@ -1103,6 +1119,7 @@ export class Game {
       coldDamageMult: mode.coldDamageMult * expMult,
       wetnessGain: move.inWater ? 0 : wGain,
       desertHeat,
+      ambientTempOffset: tempOffset,
     });
 
     // bleed DPS
@@ -1390,9 +1407,24 @@ export class Game {
     const range = p?.meleeRange || 3.6;
     const ah = this.fauna?.rayHit(origin, dir, range);
     if (ah) {
-      const spec = SPECIES[ah.animal.type];
-      text = `LMB — Attack ${spec?.name || 'animal'} (${Math.ceil(ah.animal.hp)} hp)`;
-      this._outline.visible = false;
+        const spec = SPECIES[ah.animal.type];
+        if (ah.animal.tamed) {
+            text = `${spec?.name || 'animal'} — tamed (${Math.ceil(ah.animal.hp)} hp)`;
+        } else {
+            text = `LMB — Attack ${spec?.name || 'animal'} (${Math.ceil(ah.animal.hp)} hp)`;
+            // Show feed hint when holding the right item
+            if (spec && spec.feedItem) {
+                const feedMap = { berries: ITEM.BERRIES, raw_meat: ITEM.RAW_MEAT };
+                const needed = feedMap[spec.feedItem];
+                if (needed && held?.id === needed) {
+                    const feedHint = ah.animal._tame > 0 ? ` (${Math.round(ah.animal._tame)}%)` : '';
+                    text += ` · [F] Feed${feedHint}`;
+                } else if (needed) {
+                    text += ` · [F] Feed`;
+                }
+            }
+        }
+        this._outline.visible = false;
     }
 
     if (prompt) prompt.textContent = this.player.inventoryOpen ? '' : text;
@@ -1412,7 +1444,7 @@ export class Game {
       for (let z = pz - R; z <= pz + R; z++) {
         for (let x = px - R; x <= px + R; x++) {
           const id = this.world.getBlock(x, y, z);
-          if (id === BLOCK.TORCH || id === BLOCK.CAMPFIRE) {
+          if (id === BLOCK.TORCH || id === BLOCK.CAMPFIRE || id === BLOCK.LAMP) {
             found.push({ x, y, z, id });
           }
         }
@@ -1442,6 +1474,10 @@ export class Game {
           L.color.setHex(0xff8844);
           L.intensity = (this.time.isNight() ? 1.55 : 0.9) * flick;
           L.distance = 16;
+        } else if (b.id === BLOCK.LAMP) {
+          L.color.setHex(0xffeecc);
+          L.intensity = (this.time.isNight() ? 1.3 : 0.65) * flick;
+          L.distance = 13;
         } else {
           L.color.setHex(0xffcc77);
           L.intensity = (this.time.isNight() ? 1.1 : 0.55) * flick;
@@ -1662,6 +1698,10 @@ export class Game {
         this.player.notify('Torch placed.');
         this._scanLights(true);
       }
+      if (blockId === BLOCK.LAMP) {
+        this.player.notify('Lamp placed. Needs wire to power it.');
+        this._scanLights(true);
+      }
       if (blockId === BLOCK.BED) this.player.notify('Bed placed. Look at it and press F at night to sleep.');
       if (blockId === BLOCK.CHEST) {
         this.player.notify('Chest placed. Look and press F to open.');
@@ -1795,22 +1835,28 @@ export class Game {
       return;
     }
 
-    // Feed berries to non-hostile fauna
-    if (held0.id === ITEM.BERRIES) {
-      const ah = this.fauna?.rayHit(origin, dir, 5);
-      if (ah && ah.animal) {
-        const spec = SPECIES[ah.animal.type];
-        if (spec && !spec.hostile) {
-          const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
-          if (cons.ok) {
-            this.player.slots = cons.slots;
-            ah.animal._calmT = 45;
-            this.audio.eat();
-            this.player.notify(`Fed berries to ${spec.name || 'animal'}.`, 2.5);
-            return;
-          }
+    // Feed animal (canFeed/tryFeed) — after held0 defined below
+    const ah = this.fauna?.rayHit(origin, dir, 5);
+    if (ah && !ah.animal.tamed) {
+        const feedSpec = this.fauna.getSpec(ah.animal.type);
+        if (feedSpec && feedSpec.feedItem) {
+            const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+            if (cons.ok && canFeed(ah.animal, cons.id)) {
+                this.player.slots = cons.slots;
+                const result = tryFeed(ah.animal, cons.id);
+                if (result.fed) {
+                    const msg = result.tamed
+                        ? `${feedSpec.name} is now tamed!`
+                        : `${feedSpec.name}: ${Math.round(result.tameProgress)}% tamed`;
+                    this.audio.eat();
+                    this.player.notify(msg, 3);
+                    return;
+                }
+            } else if (cons.ok) {
+                // refund — wrong item for this animal
+                this.player.slots = addItems(this.player.slots, cons.id, 1).slots;
+            }
         }
-      }
     }
 
     // Fertilizer on crop

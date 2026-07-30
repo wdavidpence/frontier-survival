@@ -33,6 +33,8 @@ export const BLOCK = {
   CLAY: 30,
   BRICKS: 31,
   FURNACE: 32,
+  WIRE: 33,
+  LAMP: 34,
 };
 
 /** @type {Record<number, {
@@ -82,6 +84,8 @@ export const BLOCK_PROPS = {
   [BLOCK.CLAY]: { name: 'Clay', solid: true, transparent: false, hardness: 0.5, color: [0.42, 0.38, 0.3] },
   [BLOCK.BRICKS]: { name: 'Bricks', solid: true, transparent: false, hardness: 1.6, color: [0.7, 0.3, 0.2], drops: BLOCK.BRICKS },
   [BLOCK.FURNACE]: { name: 'Furnace', solid: true, transparent: true, hardness: 1.5, color: [0.28, 0.26, 0.24], heat: 12, light: 8, drops: BLOCK.FURNACE },
+  [BLOCK.WIRE]: { name: 'Wire', solid: false, transparent: true, hardness: 0.1, color: [0.65, 0.45, 0.12], drops: BLOCK.WIRE },
+  [BLOCK.LAMP]: { name: 'Lamp', solid: true, transparent: false, hardness: 0.6, color: [0.75, 0.82, 0.9], drops: BLOCK.LAMP },
 };
 
 export function isSolid(id) {

@@ -368,6 +368,8 @@ export const RECIPES = [
   { id:'furnace', name:'Furnace', desc:'8 Cobble → Furnace', ingredients:[{id:BLOCK.COBBLE,count:8}], results:[{id:BLOCK.FURNACE,count:1}] },
   { id:'bandage', name:'Bandage', desc:'2 Cloth → 2 Bandage', ingredients:[{id:ITEM.CLOTH,count:2}], results:[{id:ITEM.BANDAGE,count:2}] },
   { id:'wood_sword', name:'Wood Sword', desc:'2 Planks + 1 Stick', ingredients:[{id:BLOCK.PLANKS,count:2},{id:ITEM.STICK,count:1}], results:[{id:ITEM.WOOD_SWORD,count:1}] },
+  { id:'wire', name:'Wire', desc:'1 Iron → 4 Wire (conducts power)', ingredients:[{id:ITEM.IRON_INGOT,count:1}], results:[{id:BLOCK.WIRE,count:4}] },
+  { id:'lamp', name:'Lamp', desc:'1 Iron + 2 Glass → Lamp (powered light)', ingredients:[{id:ITEM.IRON_INGOT,count:1},{id:BLOCK.GLASS,count:2}], results:[{id:BLOCK.LAMP,count:1}] },
 ];
 
 export function visibleRecipes() {

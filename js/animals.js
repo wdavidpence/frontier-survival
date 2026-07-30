@@ -19,6 +19,7 @@ export const SPECIES = {
     attackCd: 99,
     meatMin: 1,
     meatMax: 1,
+    feedItem: 'berries', // ITEM.BERRIES
     color: [0.72, 0.62, 0.48],
     scale: [0.45, 0.35, 0.55],
     count: 10,
@@ -36,6 +37,7 @@ export const SPECIES = {
     attackCd: 99,
     meatMin: 2,
     meatMax: 3,
+    feedItem: 'berries', // ITEM.BERRIES
     color: [0.55, 0.38, 0.22],
     scale: [0.7, 0.95, 1.1],
     count: 6,
@@ -54,6 +56,7 @@ export const SPECIES = {
     attackCd: 1.35,
     meatMin: 1,
     meatMax: 2,
+    feedItem: 'raw_meat', // ITEM.RAW_MEAT (hostile — never tameable)
     color: [0.35, 0.35, 0.4],
     scale: [0.55, 0.55, 0.95],
     count: 3,
@@ -221,13 +224,15 @@ export class FaunaSystem {
       const sense = (isNight && spec.nightSense ? spec.nightSense : spec.senseRange) * senseMult;
 
       if (spec.hostile) {
-        if (dist < sense) {
+        if (!a.tamed && dist < sense) {
           a.state = 'chase';
         } else if (a.state === 'chase' && dist > sense + 6) {
           a.state = 'wander';
         }
       } else {
-        if (a._calmT > 0) { a._calmT -= dt; }
+        if (a.tamed) {
+            // Tamed — don't flee from player
+        } else if (a._calmT > 0) { a._calmT -= dt; }
         else if (dist < spec.fleeRange) a.state = 'flee';
         else if (a.state === 'flee' && dist > spec.fleeRange + 5) a.state = 'wander';
       }
@@ -460,4 +465,66 @@ export class FaunaSystem {
   living() {
     return this.animals.filter((a) => !a.dead);
   }
+}
+
+/** Item name → ITEM ID lookup for feedItem matching. */
+const _FEED_ID = { berries: 115, raw_meat: 106 };
+
+/**
+ * Pure check — can this animal eat this item?
+ * Non-hostile animals accept their species feedItem. Hostile (wolf, bear) never tameable
+ * but can still be fed their feedItem for calm only.
+ * @param {object} animal — { type, _tame?, tamed? }
+ * @param {number|string} itemId — ITEM.BERRIES, ITEM.RAW_MEAT, or string name
+ * @returns {boolean}
+ */
+export function canFeed(animal, itemId) {
+  if (!animal || animal.dead) return false;
+  const spec = SPECIES[animal.type];
+  if (!spec || !spec.feedItem) return false;
+  const feedId = typeof itemId === 'number' ? itemId : _FEED_ID[itemId];
+  const feedName = typeof itemId === 'number'
+    ? Object.keys(_FEED_ID).find((k) => _FEED_ID[k] === itemId)
+    : itemId;
+  return spec.feedItem === feedName || spec.feedItem === String(feedId);
+}
+
+/**
+ * Pure — attempt to feed an animal. Mutates the animal object in place.
+ * Sets _calmT (temporary calm state duration) and _tame progress (0–100).
+ * When tame >= 100, marks animal.tamed = true. Hostile animals get calm but
+ * no tame progress (never tameable).
+ * @param {object} animal — { type, _tame?, tamed?, dead? }
+ * @param {number|string} itemId — ITEM.BERRIES, ITEM.RAW_MEAT, or string name
+ * @returns {{ fed: boolean, calmT: number, tameProgress: number, tamed: boolean }}
+ */
+export function tryFeed(animal, itemId) {
+  if (!animal || animal.dead) return { fed: false, calmT: 0, tameProgress: 0, tamed: !!animal.tamed };
+  const spec = SPECIES[animal.type];
+  if (!spec || !spec.feedItem) return { fed: false, calmT: 0, tameProgress: 0, tamed: !!animal.tamed };
+
+  const feedId = typeof itemId === 'number' ? itemId : _FEED_ID[itemId];
+  const feedName = typeof itemId === 'number'
+    ? Object.keys(_FEED_ID).find((k) => _FEED_ID[k] === itemId)
+    : itemId;
+
+  if (spec.feedItem !== feedName && spec.feedItem !== String(feedId)) {
+    return { fed: false, calmT: 0, tameProgress: 0, tamed: !!animal.tamed };
+  }
+
+  // Feed accepted — calm for 60s, tame progress +15 (hostile gets no tame)
+  animal._calmT = Math.max(animal._calmT || 0, 60);
+  let tameProgress = animal._tame || 0;
+
+  if (!spec.hostile) {
+    tameProgress = Math.min(100, tameProgress + 15);
+    animal._tame = tameProgress;
+
+    // Non-hostile animals become tamed at 100
+    if (tameProgress >= 100) {
+      animal.tamed = true;
+    }
+  }
+
+  return { fed: true, calmT: animal._calmT, tameProgress, tamed: !!animal.tamed };
 }

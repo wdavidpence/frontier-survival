@@ -13,6 +13,7 @@
       --stamina: #3c8c5a;
       --temp: #5a9fd4;
       --sleep: #7a6bb0;
+      --bleed: #8b0000;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -66,6 +67,16 @@
     #bar-stamina { background: linear-gradient(90deg, #1f5c38, var(--stamina)); }
     #bar-temp { background: linear-gradient(90deg, #2a6a9a, var(--temp)); }
     #bar-sleep { background: linear-gradient(90deg, #4a3d78, var(--sleep)); }
+    #bar-bleed { background: linear-gradient(90deg, #5a0000, var(--bleed)); }
+    #bleed-tag {
+      position: absolute; top: 12px; right: 16px;
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: #f4c2c2; background: rgba(80,0,0,0.65);
+      padding: 4px 10px; border-radius: 12px;
+      border: 1px solid rgba(200,60,60,0.45);
+      display: none;
+    }
+    #bleed-tag.on { display: block; }
     #temp-label { font-size: 10px; color: #9cf; margin-left: 4px; text-transform: none; }
     #hotbar {
       position: absolute;
@@ -380,6 +391,8 @@
     #meters.crit-health #bar-health { animation: pulse-bar 0.7s ease-in-out infinite; }
     #meters.crit-hunger #bar-hunger { animation: pulse-bar 0.85s ease-in-out infinite; }
     #meters.crit-cold #bar-temp { animation: pulse-bar 0.9s ease-in-out infinite; }
+    #meters.crit-bleed #bar-bleed { animation: pulse-bar 0.6s ease-in-out infinite; }
+    #bleed-tag.crit-bleed { animation: pulse-bar 0.6s ease-in-out infinite; }
     @keyframes pulse-bar {
       0%, 100% { filter: brightness(1); }
       50% { filter: brightness(1.45); }
@@ -426,6 +439,7 @@
     <div id="hurt-vignette"></div>
     <div id="crosshair"></div>
     <div id="status-line">Frontier Survival</div>
+    <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
     <div id="prompt"></div>
     <div id="version-badge">v1.5</div>
@@ -435,6 +449,7 @@
       <div class="meter"><span>Stamina</span><div class="track"><div id="bar-stamina" class="fill"></div></div></div>
       <div class="meter"><span>Temp <span id="temp-label"></span></span><div class="track"><div id="bar-temp" class="fill"></div></div></div>
       <div class="meter"><span>Fatigue</span><div class="track"><div id="bar-sleep" class="fill"></div></div></div>
+      <div class="meter" id="bleed-meter"><span>Bleed</span><div class="track"><div id="bar-bleed" class="fill"></div></div></div>
     </div>
     <div id="hotbar">
       <div class="hotbar-slot active" data-key="1"></div>
@@ -452,7 +467,7 @@
       <b>LMB</b> mine/bow · <b>RMB</b> place/plant · <b>Q</b> drop<br/>
       <b>F</b> chest/fish/fertilize/cook/sleep · <b>R</b> eat/salve<br/>
       <b>E</b> craft · <b>K</b> save · <b>Esc</b> pause · <b>F3</b> debug<br/>
-      Door F · Bandage R · Drink water F · Shift-click split stacks
+      Door F · Bandage R (stop Bleed) · Drink water F · Shift-click split stacks
     </div>
   </div>
 
@@ -542,6 +557,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="../js/main.js"></script>
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>

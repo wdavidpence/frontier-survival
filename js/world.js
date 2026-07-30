@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js';
 import { heightAt, hash2, fbm } from './gen.js';
+import { biomeAt, BIOME } from './biomes.js';
 import { tileForBlock } from './atlas-core.js';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js';
 
@@ -59,9 +60,7 @@ export class World {
         const x = baseX + lx;
         const z = baseZ + lz;
         const h = heightAt(x, z, this.seed);
-        const biomeNoise = fbm(x * 0.02 + this.seed, z * 0.02, 3);
-        const cold = biomeNoise > 0.62;
-        const sandy = h <= SEA_LEVEL + 2 && biomeNoise < 0.45;
+        const biome = biomeAt(x, z, this.seed);
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
           let id = BLOCK.AIR;
@@ -70,12 +69,15 @@ export class World {
             if (y <= SEA_LEVEL) id = BLOCK.WATER;
             else id = BLOCK.AIR;
           } else if (y === h) {
-            if (h < SEA_LEVEL) id = BLOCK.SAND;
-            else if (sandy) id = BLOCK.SAND;
-            else if (cold && h > SEA_LEVEL + 10) id = BLOCK.SNOW;
-            else id = BLOCK.GRASS;
+            // Biome-driven surface block
+            if (biome === BIOME.SHORE) id = BLOCK.SAND;
+            else if (biome === BIOME.DESERT) id = BLOCK.SAND;
+            else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
+            else id = BLOCK.GRASS; // FOREST default
           } else if (y > h - 4) {
-            id = sandy || h < SEA_LEVEL ? BLOCK.SAND : BLOCK.DIRT;
+            // Sub-surface follows biome: desert/shore → sand, tundra → dirt, else dirt
+            if (biome === BIOME.DESERT || biome === BIOME.SHORE) id = BLOCK.SAND;
+            else id = BLOCK.DIRT;
           } else {
             id = BLOCK.STONE;
             // coal veins
@@ -90,15 +92,14 @@ export class World {
           data[this._idx(lx, y, lz)] = id;
         }
 
-        // trees
-        if (h > SEA_LEVEL + 1 && !sandy && !cold && hash2(x + this.seed * 3, z) > 0.985) {
+        // trees — only in forest biome
+        if (biome === BIOME.FOREST && h > SEA_LEVEL + 1 && hash2(x + this.seed * 3, z) > 0.985) {
           this._placeTree(data, lx, h + 1, lz, baseX, baseZ);
         }
-        // berry bushes on grass surface
+        // berry bushes on grass surface — forest only
         if (
+          biome === BIOME.FOREST &&
           h > SEA_LEVEL + 1 &&
-          !sandy &&
-          !cold &&
           data[this._idx(lx, h, lz)] === BLOCK.GRASS &&
           data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
           hash2(x + 91, z + this.seed * 2) > 0.978
@@ -106,8 +107,8 @@ export class World {
           data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
         }
 
-        // clay deposits near coast
-        if (h >= SEA_LEVEL && h <= SEA_LEVEL + 3 && !cold) {
+        // clay deposits near shore biome
+        if (biome === BIOME.SHORE || (h >= SEA_LEVEL && h <= SEA_LEVEL + 3 && biome !== BIOME.TUNDRA)) {
           if (hash2(x + 33, z + this.seed) > 0.93) {
             const surface = data[this._idx(lx, h, lz)];
             if (surface === BLOCK.GRASS || surface === BLOCK.DIRT || surface === BLOCK.SAND) {

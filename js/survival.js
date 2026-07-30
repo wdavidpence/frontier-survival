@@ -44,13 +44,16 @@ export function ambientTempC(dayPhase, weather = 'clear') {
  * @param {boolean} env.sleeping
  * @param {number} [env.hungerMult]
  * @param {number} [env.coldDamageMult]
+ * @param {number} [env.ambientTempOffset] biome temperature bias °C
  */
 export function tickSurvival(state, env) {
   if (state.dead) return state;
 
   const dt = env.dt;
   const next = { ...state };
-  const ambient = ambientTempC(env.dayPhase, env.weather);
+  let ambient = ambientTempC(env.dayPhase, env.weather);
+  // Apply biome temperature bias (desert +8, tundra -10, etc.)
+  if (env.ambientTempOffset) ambient += env.ambientTempOffset;
   const clothes = next.warmthFromClothes || 0;
   const fire = env.blockHeat || 0;
   const coldMult = env.coldDamageMult ?? 1;

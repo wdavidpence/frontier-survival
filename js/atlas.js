@@ -393,6 +393,35 @@ function drawFurnace(ctx, x0, y0) {
   ctx.fill();
 }
 
+function drawWire(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  // thin copper wire line across center
+  ctx.strokeStyle = '#b87a20';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  // horizontal wire with slight sag
+  ctx.moveTo(x0 + 2, y0 + 14);
+  ctx.quadraticCurveTo(x0 + 16, y0 + 20, x0 + TILE_PX - 2, y0 + 14);
+  ctx.stroke();
+}
+
+function drawLamp(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [180, 200, 235], 0.15, 90);
+  // glass dome on top
+  ctx.fillStyle = 'rgba(255,240,180,0.6)';
+  ctx.beginPath();
+  ctx.arc(x0 + 16, y0 + 14, 8, Math.PI, 0);
+  ctx.fill();
+  // base plate
+  ctx.fillStyle = '#8a7a60';
+  ctx.fillRect(x0 + 4, y0 + 22, TILE_PX - 8, 6);
+  // glow spot
+  ctx.fillStyle = 'rgba(255,230,140,0.5)';
+  ctx.beginPath();
+  ctx.arc(x0 + 16, y0 + 12, 4, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function drawCrack(ctx, x0, y0, stage) {
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
   ctx.strokeStyle = `rgba(20,15,10,${0.35 + stage * 0.1})`;
@@ -460,6 +489,8 @@ export function createBlockAtlas() {
   paint(TILE.CLAY, drawClay);
   paint(TILE.BRICKS, drawBricks);
   paint(TILE.FURNACE, drawFurnace);
+  paint(TILE.WIRE, drawWire);
+  paint(TILE.LAMP, drawLamp);
   paint(TILE.CRACK0, (c, x, y) => drawCrack(c, x, y, 0));
   paint(TILE.CRACK1, (c, x, y) => drawCrack(c, x, y, 1));
   paint(TILE.CRACK2, (c, x, y) => drawCrack(c, x, y, 2));

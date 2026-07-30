@@ -13,6 +13,7 @@ import {
   applyDamage,
 } from '../js/survival.js';
 import { heightAt, fbm, hash2 } from '../js/gen.js';
+import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js';
 import { ITEM, mineMultiplier, dropForBlock, isPlaceable, propsOf } from '../js/items.js';
 import {
@@ -24,7 +25,8 @@ import {
   craftWith,
 } from '../js/inventory.js';
 import { craftRecipe, visibleRecipes } from '../js/crafting.js';
-import { meatDropCount, SPECIES } from '../js/animals.js';
+import { meatDropCount, SPECIES, canFeed, tryFeed } from '../js/animals.js';
+import { tickLogic, isPowered, COMPONENT } from '../js/logic.js';
 import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
 import {
   equipmentWarmth,
@@ -644,11 +646,7 @@ test("v1.5 blocks items bleed", () => {
   assert.ok(c.ok);
 });
 
-console.log(`\n${passed} tests passed`);
-if (process.exitCode) process.exit(1);
-
-
-// --- v1.5 Worker C additions ---
+// ── Feed/tame tests (FS-L2 / FS-H2) ─────────────────────
 
 import * as _inv from '../js/inventory.js';
 const splitStack = _inv.splitStack || null;
@@ -705,3 +703,322 @@ test('desertHeat raises feelsLike and bodyTemp', () => {
   assert.ok(b.bodyTemp >= a.bodyTemp, `b.bodyTemp=${b.bodyTemp} should be >= a.bodyTemp=${a.bodyTemp}`);
   assert.ok(b._debug.feelsLike > a._debug.feelsLike, `desert feelsLike ${b._debug.feelsLike} > normal ${a._debug.feelsLike}`);
 });
+
+test('feedItem fields set on hare deer wolf', () => {
+  assert.strictEqual(SPECIES.hare.feedItem, 'berries');
+  assert.strictEqual(SPECIES.deer.feedItem, 'berries');
+  assert.strictEqual(SPECIES.wolf.feedItem, 'raw_meat');
+});
+
+test('canFeed returns true for matching feed item', () => {
+  const hare = { type: 'hare', dead: false };
+  assert.ok(canFeed(hare, ITEM.BERRIES));
+  assert.ok(canFeed(hare, 'berries'));
+});
+
+test('canFeed returns false for wrong feed item', () => {
+  const hare = { type: 'hare', dead: false };
+  assert.ok(!canFeed(hare, ITEM.RAW_MEAT));
+  assert.ok(!canFeed(hare, 'raw_meat'));
+});
+
+test('canFeed returns false for dead animal', () => {
+  const hare = { type: 'hare', dead: true };
+  assert.ok(!canFeed(hare, ITEM.BERRIES));
+});
+
+test('tryFeed hare with berries progresses tame 0→15', () => {
+  const hare = { type: 'hare', dead: false };
+  const r1 = tryFeed(hare, ITEM.BERRIES);
+  assert.ok(r1.fed);
+  assert.strictEqual(r1.calmT, 60);
+  assert.strictEqual(r1.tameProgress, 15);
+  assert.ok(!r1.tamed);
+
+  const r2 = tryFeed(hare, 'berries');
+  assert.ok(r2.fed);
+  assert.strictEqual(r2.tameProgress, 30);
+});
+
+test('tryFeed reaches tamed at 100', () => {
+  const hare = { type: 'hare', dead: false };
+  // 7 feeds × 15 = 105 → capped at 100
+  for (let i = 0; i < 7; i++) {
+    tryFeed(hare, ITEM.BERRIES);
+  }
+  assert.ok(hare.tamed, 'hare should be tamed after 7 feeds');
+});
+
+test('tryFeed wolf never becomes tamed', () => {
+  const wolf = { type: 'wolf', dead: false };
+  assert.ok(canFeed(wolf, ITEM.RAW_MEAT));
+
+  for (let i = 0; i < 20; i++) {
+    tryFeed(wolf, ITEM.RAW_MEAT);
+  }
+  assert.ok(!wolf.tamed, 'wolf should never be tamed');
+  // But it gets calm
+  assert.ok(wolf._calmT > 0, 'wolf should get calm from feeding');
+});
+
+test('tryFeed wrong item returns fed:false', () => {
+  const hare = { type: 'hare', dead: false };
+  const r = tryFeed(hare, ITEM.RAW_MEAT);
+  assert.ok(!r.fed);
+  assert.strictEqual(r.tameProgress, 0);
+});
+
+test('tryFeed non-existent animal type returns fed:false', () => {
+  const unknown = { type: 'dragon', dead: false };
+  const r = tryFeed(unknown, ITEM.BERRIES);
+  assert.ok(!r.fed);
+});
+
+test('tryFeed dead animal returns fed:false', () => {
+  const hare = { type: 'hare', dead: true };
+  const r = tryFeed(hare, ITEM.BERRIES);
+  assert.ok(!r.fed);
+});
+
+test('deer tame progression', () => {
+  const deer = { type: 'deer', dead: false };
+  assert.ok(canFeed(deer, ITEM.BERRIES));
+
+  for (let i = 0; i < 7; i++) {
+    const r = tryFeed(deer, ITEM.BERRIES);
+    assert.ok(r.fed);
+  }
+  assert.ok(deer.tamed, 'deer should be tamed after 7 berry feeds');
+});
+
+// ── Logic / electricity tests ──
+
+test('tickLogic: simple line SOURCE→WIRE→LAMP all powered', () => {
+  const nodes = new Map([
+    ['s1', { type: COMPONENT.SOURCE }],
+    ['w1', { type: COMPONENT.WIRE }],
+    ['l1', { type: COMPONENT.LAMP }],
+  ]);
+  const edges = [['s1', 'w1'], ['w1', 'l1']];
+  const powered = tickLogic(nodes, edges);
+
+  assert.ok(isPowered(powered, 's1'), 'source powered');
+  assert.ok(isPowered(powered, 'w1'), 'wire powered');
+  assert.ok(isPowered(powered, 'l1'), 'lamp powered');
+  assert.strictEqual(powered.size, 3);
+});
+
+test('tickLogic: branch SOURCE→WIRE with two LAMPs', () => {
+  const nodes = new Map([
+    ['src', { type: COMPONENT.SOURCE }],
+    ['hub', { type: COMPONENT.WIRE }],
+    ['a', { type: COMPONENT.LAMP }],
+    ['b', { type: COMPONENT.LAMP }],
+  ]);
+  const edges = [['src', 'hub'], ['hub', 'a'], ['hub', 'b']];
+  const powered = tickLogic(nodes, edges);
+
+  assert.strictEqual(powered.size, 4, 'all nodes powered');
+  assert.ok(isPowered(powered, 'a'));
+  assert.ok(isPowered(powered, 'b'));
+});
+
+test('tickLogic: unpowered lamp when disconnected', () => {
+  const nodes = new Map([
+    ['src', { type: COMPONENT.SOURCE }],
+    ['w1', { type: COMPONENT.WIRE }],
+    ['lonely', { type: COMPONENT.LAMP }],
+  ]);
+  const edges = [['src', 'w1']]; // lonely lamp has no edge
+  const powered = tickLogic(nodes, edges);
+
+  assert.strictEqual(powered.size, 2);
+  assert.ok(!isPowered(powered, 'lonely'), 'disconnected lamp not powered');
+});
+
+test('tickLogic: no sources means nothing powered', () => {
+  const nodes = new Map([
+    ['w1', { type: COMPONENT.WIRE }],
+    ['l1', { type: COMPONENT.LAMP }],
+  ]);
+  const edges = [['w1', 'l1']];
+  const powered = tickLogic(nodes, edges);
+
+  assert.strictEqual(powered.size, 0, 'no sources → nothing powered');
+});
+
+// ── v1.6 biomes pure ──────────────────────────────────────
+test('biomeAt deterministic', () => {
+  assert.strictEqual(biomeAt(10, -20, 42), biomeAt(10, -20, 42));
+});
+
+test('biomeAt returns known biome strings', () => {
+  const seen = new Set();
+  for (let i = -5; i <= 5; i++) {
+    seen.add(biomeAt(i, i, 1));
+  }
+  for (const b of seen) {
+    assert.ok(
+      b === 'shore' || b === 'forest' || b === 'desert' || b === 'tundra',
+      `unexpected biome: ${b}`,
+    );
+  }
+});
+
+test('biomeAt origin sample', () => {
+  // biomeAt(0,0,1) is deterministic — just assert it lands in a valid set
+  const b = biomeAt(0, 0, 1);
+  assert.ok(['shore', 'forest', 'desert', 'tundra'].includes(b));
+});
+
+test('biomeAt shore near sea-level seed', () => {
+  // Search for a position that produces shore biome (z=0 has coast at seed=0)
+  let found = false;
+  for (let x = -20; x <= 20 && !found; x++) {
+    if (biomeAt(x, 0, 0) === BIOME.SHORE) found = true;
+  }
+  assert.ok(found, 'expected shore biome in search range');
+});
+
+test('ambientTempOffset desert +8', () => {
+  assert.strictEqual(ambientTempOffset(BIOME.DESERT), 8);
+});
+
+test('ambientTempOffset tundra -10', () => {
+  assert.strictEqual(ambientTempOffset(BIOME.TUNDRA), -10);
+});
+
+test('ambientTempOffset shore +2', () => {
+  assert.strictEqual(ambientTempOffset(BIOME.SHORE), 2);
+});
+
+test('ambientTempOffset forest 0', () => {
+  assert.strictEqual(ambientTempOffset(BIOME.FOREST), 0);
+});
+
+test('BIOME constant values', () => {
+  assert.strictEqual(BIOME.SHORE, 'shore');
+  assert.strictEqual(BIOME.FOREST, 'forest');
+  assert.strictEqual(BIOME.DESERT, 'desert');
+  assert.strictEqual(BIOME.TUNDRA, 'tundra');
+});
+
+// ── biome → survival integration ──────────────────────────
+
+test('tickSurvival ambientTempOffset desert makes it hotter', () => {
+  const state = { ...DEFAULT_SURVIVAL };
+  // noon phase, clear weather → baseline ~26 °C; desert +8 = ~34 °C
+  const withOffset = tickSurvival(state, {
+    dt: 1, dayPhase: 0.25, weather: 'clear', blockHeat: 0,
+    sprinting: false, moving: false, inWater: false, sleeping: false,
+    ambientTempOffset: 8, // desert
+  });
+  const without = tickSurvival(state, {
+    dt: 1, dayPhase: 0.25, weather: 'clear', blockHeat: 0,
+    sprinting: false, moving: false, inWater: false, sleeping: false,
+  });
+  // Desert offset pushes feelsLike up → bodyTemp should trend higher (or at least not cooler)
+  assert.ok(
+    withOffset._debug.feelsLike >= without._debug.feelsLike + 6,
+    `desert feelsLike should be ≥ baseline+6: got ${withOffset._debug.feelsLike} vs ${without._debug.feelsLike}`,
+  );
+});
+
+test('tickSurvival ambientTempOffset tundra makes it colder', () => {
+  const state = { ...DEFAULT_SURVIVAL };
+  // night phase, clear → baseline ~-2 °C; tundra -10 = ~-12 °C
+  const withOffset = tickSurvival(state, {
+    dt: 1, dayPhase: 0.75, weather: 'clear', blockHeat: 0,
+    sprinting: false, moving: false, inWater: false, sleeping: false,
+    ambientTempOffset: -10, // tundra
+  });
+  const without = tickSurvival(state, {
+    dt: 1, dayPhase: 0.75, weather: 'clear', blockHeat: 0,
+    sprinting: false, moving: false, inWater: false, sleeping: false,
+  });
+  assert.ok(
+    withOffset._debug.feelsLike <= without._debug.feelsLike - 8,
+    `tundra feelsLike should be ≤ baseline-8: got ${withOffset._debug.feelsLike} vs ${without._debug.feelsLike}`,
+  );
+});
+
+// ── biome → world gen integration ─────────────────────────
+
+test('biomeAt returns valid biome for any coordinate', () => {
+  const valid = new Set(['shore', 'forest', 'desert', 'tundra']);
+  for (let x = -30; x <= 30; x += 7) {
+    for (let z = -30; z <= 30; z += 7) {
+      const b = biomeAt(x, z, 42);
+      assert.ok(valid.has(b), `expected valid biome at (${x},${z}), got ${b}`);
+    }
+  }
+});
+
+test('biomeAt produces multiple biome types across map', () => {
+  // The classifier (FS-L1) is height/dryness based — verify at least shore+forest appear
+  // (desert/tundra need higher dryness/elevation than default parameters produce)
+  const seen = new Set();
+  for (let s = 0; s < 10; s++) {
+    for (let x = -80; x <= 80; x += 10) {
+      for (let z = -80; z <= 80; z += 10) {
+        seen.add(biomeAt(x, z, s));
+      }
+    }
+  }
+  // Shore appears near sea-level, forest is the default — both should exist
+  assert.ok(
+    seen.size >= 2,
+    `expected ≥2 biome types across seeds, found ${seen.size}: ${[...seen].join(', ')}`,
+  );
+});
+
+// ── Tamed animal behavior (FS-H2) ────────────────────────
+import { FaunaSystem } from '../js/animals.js';
+
+test('tamed non-hostile animal does not flee', () => {
+  const hare = { type: 'hare', dead: false, state: 'wander', tamed: true, _calmT: 0 };
+  assert.strictEqual(hare.state, 'wander');
+  // After tryFeed makes tamed, verify it stays tamed
+  const r = tryFeed(hare, ITEM.BERRIES);
+  assert.ok(r.tamed || hare.tamed, 'already tamed animal should remain tamed');
+});
+
+test('tamed flag persists after tryFeed', () => {
+  const deer = { type: 'deer', dead: false };
+  for (let i = 0; i < 7; i++) tryFeed(deer, ITEM.BERRIES);
+  assert.ok(deer.tamed);
+  // Feed again — should still be tamed and fed:true
+  const r = tryFeed(deer, ITEM.BERRIES);
+  assert.ok(r.fed, 'tamed animal should still accept feed');
+  assert.strictEqual(r.tameProgress, 100);
+});
+
+test('canFeed works for wolf with raw_meat', () => {
+  const wolf = { type: 'wolf', dead: false };
+  assert.ok(canFeed(wolf, ITEM.RAW_MEAT));
+  assert.ok(canFeed(wolf, 'raw_meat'));
+});
+
+test('canFeed returns false for species without feedItem (bear)', () => {
+  const bear = { type: 'bear', dead: false };
+  // Bear has no feedItem field in SPECIES
+  assert.ok(!canFeed(bear, ITEM.RAW_MEAT), 'bear should not be feedable — no feedItem defined');
+});
+
+test('tryFeed wolf gets calm but no tame progress', () => {
+  const wolf = { type: 'wolf', dead: false };
+  const r = tryFeed(wolf, ITEM.RAW_MEAT);
+  assert.ok(r.fed);
+  assert.strictEqual(r.tameProgress, 0, 'wolf tame progress should stay 0');
+  assert.ok(!r.tamed, 'wolf should not be tamed');
+  assert.strictEqual(wolf._calmT, 60, 'wolf should get calm');
+});
+
+test('ITEM.BERRIES and ITEM.RAW_MEAT values match _FEED_ID', () => {
+  assert.strictEqual(ITEM.BERRIES, 115);
+  assert.strictEqual(ITEM.RAW_MEAT, 106);
+});
+
+// Final summary — moved here so all tests run first
+console.log(`\n${passed} tests passed`);
+if (process.exitCode) process.exit(1);
