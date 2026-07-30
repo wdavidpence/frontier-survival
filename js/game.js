@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=181';
-import { Player } from './player.js?v=181';
-import { Input } from './input.js?v=181';
-import { GameTime } from './time.js?v=181';
-import { AudioBus } from './audio.js?v=181';
+import { World } from './world.js?v=182';
+import { Player } from './player.js?v=182';
+import { Input } from './input.js?v=182';
+import { GameTime } from './time.js?v=182';
+import { AudioBus } from './audio.js?v=182';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=181';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=181';
+} from './survival.js?v=182';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=182';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=181';
+} from './items.js?v=182';
 import {
   addItems,
   removeItems,
@@ -31,11 +31,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=181';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=181';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=181';
-import { createBlockAtlas } from './atlas.js?v=181';
-import { BreakFX } from './fx.js?v=181';
+} from './inventory.js?v=182';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=182';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=182';
+import { createBlockAtlas } from './atlas.js?v=182';
+import { BreakFX } from './fx.js?v=182';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -45,35 +45,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=181';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=181';
+} from './equipment.js?v=182';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=182';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=181';
-import { getMode } from './modes.js?v=181';
+} from './save.js?v=182';
+import { getMode } from './modes.js?v=182';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=181';
+} from './settings.js?v=182';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=181';
-import { tickSpoilage } from './spoilage.js?v=181';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=181';
-import { wearTool, durabilityRatio } from './durability.js?v=181';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=181';
-import { tickLogic, COMPONENT } from './logic.js?v=181';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=181';
+} from './achievements.js?v=182';
+import { tickSpoilage } from './spoilage.js?v=182';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=182';
+import { wearTool, durabilityRatio } from './durability.js?v=182';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=182';
+import { tickLogic, COMPONENT } from './logic.js?v=182';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=182';
 import {
   chestKey,
   getChestSlots,
@@ -84,7 +84,7 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=181';
+} from './chests.js?v=182';
 
 export class Game {
   /**
@@ -179,6 +179,7 @@ export class Game {
     this._sleepFadeT = 0;
     this._lastBiome = null; // biome notification tracker
     this._ignorePauseT = 0;
+    this._spawnProtectT = 0;
     this._poweredLamps = new Set();
     this._logicAcc = 0;
     this._biomeNotifyAcc = 0; // accumulator for periodic biome name display
@@ -368,6 +369,9 @@ export class Game {
       this.input.requestLock?.();
     }
     this._updateClickToPlay?.();
+    document.getElementById('touch-pad')?.classList.remove('hidden');
+    document.getElementById('touch-look')?.classList.remove('hidden');
+    document.getElementById('ctrl-debug')?.classList.remove('hidden');
   }
 
   start(seed = this.seed) {
@@ -466,6 +470,7 @@ export class Game {
     this.input.uiMode = false;
     this.paused = false;
     this._ignorePauseT = 2.5;
+    this._spawnProtectT = 180; // 3 min cold grace
     this.canvas?.focus?.();
     this.input.requestLock?.();
     this._updateClickToPlay?.();
@@ -1169,20 +1174,25 @@ export class Game {
       this._lastBiome = currentBiome;
     }
 
+    // Spawn cold grace: free heat for first minutes so new players can move/build
+    if ((this._spawnProtectT || 0) > 0) {
+      this._spawnProtectT = Math.max(0, this._spawnProtectT - dt);
+    }
+    const protect = (this._spawnProtectT || 0) > 0;
     this.survival = tickSurvival(this.survival, {
       dt,
       dayPhase: this.time.dayPhase,
       weather: this.time.weather,
-      blockHeat: heat,
+      blockHeat: protect ? Math.max(heat, 16) : heat,
       sprinting: move.sprinting,
       moving: move.moved,
       inWater: move.inWater,
       sleeping: false,
       hungerMult: mode.hungerMult,
-      coldDamageMult: mode.coldDamageMult * expMult,
-      wetnessGain: move.inWater ? 0 : wGain,
-      desertHeat,
-      ambientTempOffset: tempOffset,
+      coldDamageMult: protect ? 0 : mode.coldDamageMult * expMult,
+      wetnessGain: protect ? 0 : (move.inWater ? 0 : wGain),
+      desertHeat: protect ? false : desertHeat,
+      ambientTempOffset: protect ? 0 : tempOffset,
     });
 
     // bleed DPS
@@ -2411,6 +2421,19 @@ export class Game {
     const bleedTag = document.getElementById('bleed-tag');
     if (bleedTag) bleedTag.classList.toggle('on', (s.bleed || 0) > 1);
 
+    const ctrlDbg = document.getElementById('ctrl-debug');
+    if (ctrlDbg && this.started) {
+      const k = [];
+      if (this.input.wantsForward()) k.push('W');
+      if (this.input.wantsLeft()) k.push('A');
+      if (this.input.wantsBack()) k.push('S');
+      if (this.input.wantsRight()) k.push('D');
+      if (this.input.wantsCrouch()) k.push('C');
+      if (this.input.wantsJump()) k.push('Sp');
+      const st = this.survival?.dead ? 'DEAD' : this.paused ? 'PAUSED' : this.input.locked ? 'LOCK' : this.input.softLook ? 'LOOK' : 'WAIT';
+      ctrlDbg.textContent = `${st} keys:${k.join('')||'-'} cap:${this.input.captureEnabled?1:0}`;
+      ctrlDbg.style.color = this.survival?.dead ? '#f66' : k.length ? '#6f6' : '#9cf';
+    }
     const status = document.getElementById('status-line');
     if (status && this.player) {
       const bits = [];

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frontier Survival v1.8.1</title>
+  <title>Frontier Survival v1.8.2</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -444,6 +444,38 @@
       pointer-events: none;
     }
     #click-to-play .ctp-panel small { display:block; margin-top:8px; color:#9a9388; font-size:12px; }
+    #touch-pad {
+      position: fixed; left: 12px; bottom: 100px; z-index: 16;
+      display: grid; grid-template-columns: 52px 52px 52px; grid-template-rows: 52px 52px 52px; gap: 4px;
+      pointer-events: auto; user-select: none; touch-action: none;
+      opacity: 0.85;
+    }
+    #touch-pad.hidden { display: none; }
+    #touch-pad button {
+      width: 52px; height: 52px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(8,12,18,0.65); color: #e8e4dc;
+      font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    #touch-pad button:active, #touch-pad button.held {
+      background: rgba(212,165,116,0.35); border-color: rgba(212,165,116,0.7);
+    }
+    #touch-look {
+      position: fixed; right: 12px; bottom: 100px; z-index: 16;
+      width: 120px; height: 120px; border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(8,12,18,0.45); color: #cfc8bc;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; text-align: center; pointer-events: auto;
+      touch-action: none; user-select: none;
+    }
+    #touch-look.hidden { display: none; }
+    #ctrl-debug {
+      position: fixed; left: 16px; top: 40px; z-index: 17;
+      font-size: 11px; color: #9cf; background: rgba(0,0,0,0.45);
+      padding: 4px 8px; border-radius: 6px; pointer-events: none;
+      font-family: ui-monospace, monospace;
+    }
     #sleep-fade.on { opacity:0.82; }
   </style>
   <script type="importmap">
@@ -463,6 +495,17 @@
       <small>WASD move · mouse look · Space jump · Ctrl/C crouch · Esc pause</small>
     </div>
   </div>
+  <div id="ctrl-debug" class="hidden"></div>
+  <div id="touch-pad" class="hidden">
+    <span></span><button type="button" data-dir="f">W</button><span></span>
+    <button type="button" data-dir="l">A</button>
+    <button type="button" data-dir="b">S</button>
+    <button type="button" data-dir="r">D</button>
+    <button type="button" data-act="jump">⬆</button>
+    <button type="button" data-act="crouch">C</button>
+    <span></span>
+  </div>
+  <div id="touch-look" class="hidden">drag<br/>to look</div>
   <div id="hud">
     <div id="hurt-vignette"></div>
     <div id="crosshair"></div>
@@ -470,7 +513,7 @@
     <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.8.1</div>
+    <div id="version-badge">v1.8.2</div>
     <div id="meters">
       <div class="meter"><span>Health</span><div class="track"><div id="bar-health" class="fill"></div></div></div>
       <div class="meter"><span>Hunger</span><div class="track"><div id="bar-hunger" class="fill"></div></div></div>
@@ -527,7 +570,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.8.1</div>
+      <div class="tag">Browser survival sandbox · v1.8.2</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -585,6 +628,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=181"></script>
+  <script type="module" src="./js/main.js?v=182"></script>
 </body>
 </html>

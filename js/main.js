@@ -1,11 +1,11 @@
-import { Game } from './game.js?v=181';
-import { hasSave, clearSaveStorage } from './save.js?v=181';
-import { MODES, MODE_ORDER, getMode } from './modes.js?v=181';
+import { Game } from './game.js?v=182';
+import { hasSave, clearSaveStorage } from './save.js?v=182';
+import { MODES, MODE_ORDER, getMode } from './modes.js?v=182';
 import {
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
-} from './settings.js?v=181';
+} from './settings.js?v=182';
 
 const canvas = document.getElementById('game');
 const title = document.getElementById('title-screen');
@@ -236,6 +236,79 @@ btnRespawn?.addEventListener('click', (e) => {
 paintModeRow();
 refreshContinue();
 
+// On-screen controls (always available after start — proves input path works)
+function wireTouchControls() {
+  const pad = document.getElementById('touch-pad');
+  const look = document.getElementById('touch-look');
+  if (!pad || !look) return;
+  const setDir = () => {
+    let x = 0, z = 0;
+    pad.querySelectorAll('button.held[data-dir]').forEach((b) => {
+      const d = b.getAttribute('data-dir');
+      if (d === 'f') z -= 1;
+      if (d === 'b') z += 1;
+      if (d === 'l') x -= 1;
+      if (d === 'r') x += 1;
+    });
+    game.input?.setVirtualMove?.(x, z);
+  };
+  pad.querySelectorAll('button').forEach((btn) => {
+    const down = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      btn.classList.add('held');
+      if (btn.dataset.act === 'jump') game.input?.setVirtualJump?.(true);
+      if (btn.dataset.act === 'crouch') game.input?.setVirtualCrouch?.(true);
+      setDir();
+      game.input?.setCaptureEnabled?.(true);
+    };
+    const up = (e) => {
+      e.preventDefault();
+      btn.classList.remove('held');
+      if (btn.dataset.act === 'jump') game.input?.setVirtualJump?.(false);
+      if (btn.dataset.act === 'crouch') game.input?.setVirtualCrouch?.(false);
+      setDir();
+    };
+    btn.addEventListener('pointerdown', down);
+    btn.addEventListener('pointerup', up);
+    btn.addEventListener('pointerleave', up);
+    btn.addEventListener('pointercancel', up);
+  });
+  let lx = null, ly = null;
+  const lookDown = (e) => {
+    e.preventDefault();
+    lx = e.clientX; ly = e.clientY;
+    look.setPointerCapture?.(e.pointerId);
+    game.input?.setCaptureEnabled?.(true);
+    if (game.input) game.input.softLook = true;
+  };
+  const lookMove = (e) => {
+    if (lx == null) return;
+    e.preventDefault();
+    const dx = e.clientX - lx, dy = e.clientY - ly;
+    lx = e.clientX; ly = e.clientY;
+    game.input?.nudgeLook?.(dx, dy);
+  };
+  const lookUp = () => { lx = ly = null; };
+  look.addEventListener('pointerdown', lookDown);
+  look.addEventListener('pointermove', lookMove);
+  look.addEventListener('pointerup', lookUp);
+  look.addEventListener('pointercancel', lookUp);
+}
+
+function showPlayChrome(on) {
+  document.getElementById('touch-pad')?.classList.toggle('hidden', !on);
+  document.getElementById('touch-look')?.classList.toggle('hidden', !on);
+  document.getElementById('ctrl-debug')?.classList.toggle('hidden', !on);
+}
+
+wireTouchControls();
+const _engage = engageControls;
+engageControls = function() {
+  _engage();
+  showPlayChrome(true);
+};
+
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.8.1');
+console.info('Frontier Survival boot OK · v1.8.2');

@@ -1,24 +1,22 @@
 # Session Handoff
 
-**Project:** Frontier Survival  
-**Live:** https://wdavidpence.github.io/frontier-survival/
+## Latest **v1.8.2**
+Controls overhaul after confirmed v1.8.1 still broken for player:
 
-## Latest
-**v1.8.1** — controls fix: Minecraft-style capture
-- Click-to-play overlay until pointer lock
-- Document-level key capture + preventDefault for WASD/Ctrl
-- setCaptureEnabled session flag (WASD works without lock)
-- Mouse look via pointer lock; LMB-drag fallback
-- Module cache-bust `?v=181` on imports
-- Heal stuck paused/uiMode each frame
+Root causes found in live troubleshooting:
+1. Player can die of hypothermia quickly (rain/night ~28s) — movement zeroed while dead; feels like "controls broken"
+2. Pointer-lock often fails after Start click (gesture expired) — no mouse look
+3. Browsers cache old ES modules
 
-## Prior
-v1.8 content (bucket, electricity, ice box, map, walls)  
-v1.7 black canvas / v1.7.1 Esc-pause freeze
+Fixes:
+- Dual key mapping (code + key + keyCode)
+- Soft mouse-look without pointer lock after click-to-play
+- On-screen WASD pad + drag-to-look (bottom corners)
+- Live ctrl-debug strip (DEAD/PAUSED/LOCK/keys)
+- 3-minute spawn cold protection
+- Starter torches + sticks
+- Module cache bust ?v=182
 
-## Play tip
-Hard refresh. Start/New world. If mouse free, click **Click to play**.
-WASD move, mouse look, Space jump, Ctrl/C crouch, Esc pause.
-
-## Tests
-`node tests/smoke.mjs` → 83
+## Play
+https://wdavidpence.github.io/frontier-survival/
+Hard refresh. Badge **v1.8.2**. Use on-screen W/A/S/D if keyboard fails.

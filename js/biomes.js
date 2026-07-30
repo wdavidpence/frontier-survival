@@ -1,5 +1,5 @@
 /** Pure biome classifier — no game.js coupling. */
-import { heightAt, fbm } from './gen.js?v=181';
+import { heightAt, fbm } from './gen.js?v=182';
 
 export const BIOME = {
   SHORE: 'shore',
