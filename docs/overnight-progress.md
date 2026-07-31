@@ -749,3 +749,4 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-07-31T17:58:32-04:00 | SHIP v1.10.6 fauna nearest+dual pause |
 | 2026-07-31T18:02:30-04:00 | SHIP v1.10.7 friendlyFire+pad prompt |
 | 2026-07-31T18:06:05-04:00 | SHIP v1.10.8 bow+death; KILLED 6 orphan thrash workers |
+| 2026-07-31T18:08:11-04:00 | SHIP v1.10.9 coop dual sleep; killed thrash local35; pure proximity card |

@@ -2,7 +2,7 @@
  * PadInputAdapter — Input-shaped facade driven by one Gamepad (P2 DualSense).
  * Compatible with Player.update(world, input, survival, dt).
  */
-import { readGamepad } from './input-coop.js?v=210';
+import { readGamepad } from './input-coop.js?v=211';
 
 export class PadInputAdapter {
   constructor() {

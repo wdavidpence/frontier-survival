@@ -1,7 +1,7 @@
 /**
  * Pure atlas tile math — no DOM/Three (unit-testable).
  */
-import { BLOCK } from './blocks.js?v=210';
+import { BLOCK } from './blocks.js?v=211';
 
 export const TILE_PX = 32;
 export const ATLAS_N = 8;
