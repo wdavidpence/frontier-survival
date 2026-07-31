@@ -43,4 +43,12 @@ Max-runtime: 12m
 
 - `running` usually ≥1 when machines healthy  
 - Worker done cards accumulate without judge writing most diffs  
-- Frontier sessions short: stats → smoke → browser → dispatch/ship  
+- Frontier sessions short: stats → smoke → browser → dispatch/ship
+
+## Next pure card ideas
+
+1. **Pure helper: `clamp()` utility** — single-file `scripts/clamp.mjs` export, used by world gen + UI positioning.
+2. **Smoke assert: animal count sanity** — `tests/smoke.mjs` extension that asserts total animals within expected range after world gen.
+3. **Docs: worker lane routing decision tree** — flowchart-style markdown for when to mint vs dispatch vs judge.
+4. **Pure helper: `debounce()` utility** — single-file `scripts/debounce.mjs` for UI event throttling.
+5. **Smoke assert: chunk count verification** — post-world-gen check that spawned chunk count matches expected formula.  

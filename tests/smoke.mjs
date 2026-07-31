@@ -2064,7 +2064,7 @@ test('coop-perf-budget doc exists', () => {
 });
 
 
-import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap } from '../js/coop-proximity.js';
+import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01 } from '../js/coop-proximity.js';
 
 test('wouldPartnerNearForSleep near and far', () => {
   assert.ok(wouldPartnerNearForSleep({ x: 0, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, 4.5));
@@ -2108,6 +2108,17 @@ test('coopPixelRatioCap caps DPR', () => {
   assert.strictEqual(coopPixelRatioCap(0.8), 0.8);
 });
 
+
+test('clamp01 clamps to [0,1] and rejects non-finite', () => {
+  assert.strictEqual(clamp01(0), 0);
+  assert.strictEqual(clamp01(1), 1);
+  assert.strictEqual(clamp01(0.5), 0.5);
+  assert.strictEqual(clamp01(-0.3), 0);
+  assert.strictEqual(clamp01(2.7), 1);
+  assert.strictEqual(clamp01(NaN), 0);
+  assert.strictEqual(clamp01(Infinity), 0);
+  assert.strictEqual(clamp01(-Infinity), 0);
+});
 
 
 

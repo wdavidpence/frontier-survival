@@ -67,3 +67,13 @@ export function coopPixelRatioCap(dpr) {
   return Math.min((dpr || 1), 1.5);
 }
 
+/**
+ * Clamp a number to the [0, 1] range, returning 0 for non-finite input.
+ * @param {number} n
+ * @returns {number} 0..1, always finite
+ */
+export function clamp01(n) {
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(1, n));
+}
+
