@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=216';
-import { heightAt, hash2, fbm } from './gen.js?v=216';
-import { biomeAt, BIOME } from './biomes.js?v=216';
-import { tileForBlock } from './atlas-core.js?v=216';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=216';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=220';
+import { heightAt, hash2, fbm } from './gen.js?v=220';
+import { biomeAt, BIOME } from './biomes.js?v=220';
+import { tileForBlock } from './atlas-core.js?v=220';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=220';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -56,7 +56,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=216';
+    const workerUrl = './js/chunk-worker.js?v=220';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -122,11 +122,11 @@ export class World {
             if (y <= SEA_LEVEL) id = BLOCK.WATER;
             else id = BLOCK.AIR;
           } else if (y === h) {
-            if (biome === BIOME.SHORE || biome === BIOME.DESERT) id = BLOCK.SAND;
+            if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN || biome === BIOME.TROPICAL) id = BLOCK.SAND;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
             else id = BLOCK.GRASS;
           } else if (y > h - 4) {
-            if (biome === BIOME.DESERT || biome === BIOME.SHORE) id = BLOCK.SAND;
+            if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN || biome === BIOME.TROPICAL) id = BLOCK.SAND;
             else id = BLOCK.DIRT;
           } else {
             id = BLOCK.STONE;
@@ -143,9 +143,11 @@ export class World {
         if (h > SEA_LEVEL + 1) {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
           let treeChance = 0;
-          if (biome === BIOME.FOREST) treeChance = 0.08;
+          if (biome === BIOME.FOREST) treeChance = 0.04; // half prior density for navigability
           else if (biome === BIOME.SHORE) treeChance = 0.012;
           else if (biome === BIOME.TUNDRA) treeChance = 0.02;
+          else if (biome === BIOME.TROPICAL) treeChance = 0.03; // palm-like sparse canopy
+          else if (biome === BIOME.OCEAN) treeChance = 0;
           if (th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -158,15 +160,17 @@ export class World {
             } else if (biome === BIOME.FOREST && spruceRoll > 0.85) {
               // Forest: ~15% of non-sequoia trees are spruce
               this._placeSpruce(data, lx, h + 1, lz);
+            } else if (biome === BIOME.TROPICAL) {
+              this._placePalm(data, lx, h + 1, lz);
             } else {
               this._placeTree(data, lx, h + 1, lz);
             }
           }
         }
         if (
-          (biome === BIOME.FOREST || biome === BIOME.SHORE) &&
+          (biome === BIOME.FOREST || biome === BIOME.SHORE || biome === BIOME.TROPICAL) &&
           h > SEA_LEVEL + 1 &&
-          data[this._idx(lx, h, lz)] === BLOCK.GRASS &&
+          (data[this._idx(lx, h, lz)] === BLOCK.GRASS || data[this._idx(lx, h, lz)] === BLOCK.SAND) &&
           data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
           hash2(x + 91, z * 3 + (this.seed | 0)) > 0.94
         ) {
@@ -294,13 +298,12 @@ export class World {
             else id = BLOCK.AIR;
           } else if (y === h) {
             // Biome-driven surface block
-            if (biome === BIOME.SHORE) id = BLOCK.SAND;
-            else if (biome === BIOME.DESERT) id = BLOCK.SAND;
+            if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN || biome === BIOME.TROPICAL) id = BLOCK.SAND;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
             else id = BLOCK.GRASS; // FOREST default
           } else if (y > h - 4) {
             // Sub-surface follows biome: desert/shore → sand, tundra → dirt, else dirt
-            if (biome === BIOME.DESERT || biome === BIOME.SHORE) id = BLOCK.SAND;
+            if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN || biome === BIOME.TROPICAL) id = BLOCK.SAND;
             else id = BLOCK.DIRT;
           } else {
             id = BLOCK.STONE;
@@ -322,9 +325,11 @@ export class World {
         if (h > SEA_LEVEL + 1) {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
           let treeChance = 0;
-          if (biome === BIOME.FOREST) treeChance = 0.08; // ~8% of surface cells
+          if (biome === BIOME.FOREST) treeChance = 0.04; // ~4% surface — half prior density
           else if (biome === BIOME.SHORE) treeChance = 0.012;
           else if (biome === BIOME.TUNDRA) treeChance = 0.02;
+          else if (biome === BIOME.TROPICAL) treeChance = 0.03; // palm-like sparse canopy
+          else if (biome === BIOME.OCEAN) treeChance = 0;
           if (th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -337,6 +342,8 @@ export class World {
             } else if (biome === BIOME.FOREST && spruceRoll > 0.85) {
               // Forest: ~15% of non-sequoia trees are spruce
               this._placeSpruce(data, lx, h + 1, lz);
+            } else if (biome === BIOME.TROPICAL) {
+              this._placePalm(data, lx, h + 1, lz);
             } else {
               this._placeTree(data, lx, h + 1, lz);
             }
@@ -344,9 +351,9 @@ export class World {
         }
         // berry bushes on grass surface — forest mainly
         if (
-          (biome === BIOME.FOREST || biome === BIOME.SHORE) &&
+          (biome === BIOME.FOREST || biome === BIOME.SHORE || biome === BIOME.TROPICAL) &&
           h > SEA_LEVEL + 1 &&
-          data[this._idx(lx, h, lz)] === BLOCK.GRASS &&
+          (data[this._idx(lx, h, lz)] === BLOCK.GRASS || data[this._idx(lx, h, lz)] === BLOCK.SAND) &&
           data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
           hash2(x + 91, z * 3 + (this.seed | 0)) > 0.94
         ) {
@@ -462,6 +469,30 @@ export class World {
     if (peak < WORLD_HEIGHT && lx >= 0 && lx < CHUNK_SIZE && lz >= 0 && lz < CHUNK_SIZE) {
       const i = this._idx(lx, peak, lz);
       if (data[i] === BLOCK.AIR) data[i] = BLOCK.LEAVES;
+    }
+  }
+
+
+  /** Sparse palm-like tree for tropical islands (tall trunk, small canopy). */
+  _placePalm(data, lx, y, lz) {
+    const trunkH = 5 + Math.floor(hash2(lx + 21, lz + 13) * 3);
+    for (let i = 0; i < trunkH; i++) {
+      const ty = y + i;
+      if (ty >= WORLD_HEIGHT) break;
+      data[this._idx(lx, ty, lz)] = BLOCK.LOG;
+    }
+    const top = y + trunkH - 1;
+    const fronds = [
+      [0, 0], [1, 0], [-1, 0], [0, 1], [0, -1],
+      [2, 0], [-2, 0], [0, 2], [0, -2],
+      [1, 1], [1, -1], [-1, 1], [-1, -1],
+    ];
+    for (const [dx, dz] of fronds) {
+      const tx = lx + dx;
+      const tz = lz + dz;
+      const ty = top + (Math.abs(dx) + Math.abs(dz) > 1 ? 0 : 1);
+      if (tx < 0 || tx >= CHUNK_SIZE || tz < 0 || tz >= CHUNK_SIZE || ty < 0 || ty >= WORLD_HEIGHT) continue;
+      if (data[this._idx(tx, ty, tz)] === BLOCK.AIR) data[this._idx(tx, ty, tz)] = BLOCK.LEAVES;
     }
   }
 

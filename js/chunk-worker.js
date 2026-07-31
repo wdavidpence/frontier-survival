@@ -41,28 +41,43 @@ function fbm(x, z, octaves = 4) {
   return sum / norm;
 }
 
+const WORLD_SCALE = 0.5;
 function heightAt(x, z, seed = 0) {
-  const sx = x * 0.03 + seed * 17.1;
-  const sz = z * 0.03 + seed * 9.7;
+  const sx = x * 0.03 * WORLD_SCALE + seed * 17.1;
+  const sz = z * 0.03 * WORLD_SCALE + seed * 9.7;
   const h = fbm(sx, sz, 5);
   const ridge = Math.abs(fbm(sx * 0.5 + 20, sz * 0.5 - 10, 3) - 0.5) * 2;
   let y = 18 + h * 16 + ridge * 8;
-  const coast = fbm(x * 0.01 + 3, z * 0.01 + 7, 3);
-  if (coast < 0.38) y -= (0.38 - coast) * 28;
+  const coast = fbm(x * 0.01 * WORLD_SCALE + 3, z * 0.01 * WORLD_SCALE + 7, 3);
+  if (coast < 0.44) {
+    const depth = (0.44 - coast) / 0.44;
+    y -= depth * depth * 26;
+  }
+  if (coast < 0.38) {
+    const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
+    if (isle > 0.7) {
+      const peak = 16 + 1 + Math.floor((isle - 0.7) * 28);
+      y = Math.max(y, peak);
+    }
+  }
   return Math.floor(y);
 }
 
 function biomeAt(x, z, seed = 0) {
   const h = heightAt(x, z, seed);
-  if (h < 20) return 'shore'; // SHORE
+  const coast = fbm(x * 0.01 * WORLD_SCALE + 3, z * 0.01 * WORLD_SCALE + 7, 3);
+  const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
+  if (h < 16 - 1) return 'ocean';
+  if (h >= 16 && h <= 16 + 7 && coast < 0.4 && isle > 0.7) return 'tropical';
+  if (h < 20) return 'shore';
   const dryness = fbm(
-    x * 0.015 + seed * 31.3,
-    z * 0.015 + seed * 22.7,
+    x * 0.015 * WORLD_SCALE + seed * 31.3,
+    z * 0.015 * WORLD_SCALE + seed * 22.7,
     4,
   );
-  if (h > 30 && dryness < 0.35) return 'tundra'; // TUNDRA
-  if (dryness > 0.65) return 'desert'; // DESERT
-  return 'forest'; // FOREST default
+  if (h > 30 && dryness < 0.35) return 'tundra';
+  if (dryness > 0.65) return 'desert';
+  return 'forest';
 }
 
 // ── Block IDs (must match blocks.js) ────────────────────────────────────────
@@ -134,19 +149,7 @@ function generateChunkData(cx, cz, seed) {
       const x = baseX + lx;
       const z = baseZ + lz;
       const h = heightAt(x, z, seed);
-      let biome = 'forest'; // default
-
-      if (h < 20) {
-        biome = 'shore';
-      } else {
-        const dryness = fbm(
-          x * 0.015 + seed * 31.3,
-          z * 0.015 + seed * 22.7,
-          4,
-        );
-        if (h > 30 && dryness < 0.35) biome = 'tundra';
-        else if (dryness > 0.65) biome = 'desert';
-      }
+      const biome = biomeAt(x, z, seed);
 
       for (let y = 0; y < WORLD_HEIGHT; y++) {
         let id = BLOCK.AIR;
@@ -154,11 +157,11 @@ function generateChunkData(cx, cz, seed) {
         else if (y > h) {
           if (y <= SEA_LEVEL) id = BLOCK.WATER;
         } else if (y === h) {
-          if (biome === 'shore' || biome === 'desert') id = BLOCK.SAND;
+          if (biome === 'shore' || biome === 'desert' || biome === 'ocean' || biome === 'tropical') id = BLOCK.SAND;
           else if (biome === 'tundra') id = BLOCK.SNOW;
           else id = BLOCK.GRASS;
         } else if (y > h - 4) {
-          if (biome === 'desert' || biome === 'shore') id = BLOCK.SAND;
+          if (biome === 'desert' || biome === 'shore' || biome === 'ocean' || biome === 'tropical') id = BLOCK.SAND;
           else id = BLOCK.DIRT;
         } else {
           id = BLOCK.STONE;
@@ -176,11 +179,13 @@ function generateChunkData(cx, cz, seed) {
       if (h > SEA_LEVEL + 1) {
         const th = hash2(x * 3 + (seed | 0), z * 5 + 19);
         let treeChance = 0;
-        if (biome === 'forest') treeChance = 0.08;
+        if (biome === 'forest') treeChance = 0.04;
         else if (biome === 'shore') treeChance = 0.012;
         else if (biome === 'tundra') treeChance = 0.02;
+        else if (biome === 'tropical') treeChance = 0.03;
         if (th > 1 - treeChance) {
-          _placeTree(data, idx, lx, h + 1, lz);
+          if (biome === 'tropical') _placePalm(data, idx, lx, h + 1, lz);
+          else _placeTree(data, idx, lx, h + 1, lz);
         }
       }
 

@@ -1,3 +1,5 @@
+import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
+import { heightAt, fbm, hash2 } from '../js/gen.js';
 /**
  * Pure-logic smoke tests (no browser/Three).
  * Run: node tests/smoke.mjs
@@ -13,8 +15,6 @@ import {
   eatFood,
   applyDamage,
 } from '../js/survival.js';
-import { heightAt, fbm, hash2 } from '../js/gen.js';
-import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js';
 import { ITEM, mineMultiplier, dropForBlock, isPlaceable, propsOf } from '../js/items.js';
 import {
@@ -2063,7 +2063,7 @@ test('coop-perf-budget doc exists', () => {
 });
 
 
-import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount } from '../js/coop-proximity.js';
+import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap } from '../js/coop-proximity.js';
 
 test('wouldPartnerNearForSleep near and far', () => {
   assert.ok(wouldPartnerNearForSleep({ x: 0, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, 4.5));
@@ -2097,4 +2097,45 @@ test('livingPartnerCount counts', () => {
   assert.strictEqual(livingPartnerCount(null, null), 0);
 });
 
+
+test('coopPixelRatioCap caps DPR', () => {
+  assert.strictEqual(coopPixelRatioCap(1), 1);
+  assert.strictEqual(coopPixelRatioCap(1.5), 1.5);
+  assert.strictEqual(coopPixelRatioCap(2), 1.5);
+  assert.strictEqual(coopPixelRatioCap(3), 1.5);
+  assert.strictEqual(coopPixelRatioCap(undefined), 1);
+  assert.strictEqual(coopPixelRatioCap(0.8), 0.8);
+});
+
+
+
+
+test('forest tree density constant half of prior 0.08', () => {
+  // documented contract — world uses 0.04
+  const src = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('treeChance = 0.04'));
+  assert.ok(!src.includes('treeChance = 0.08'));
+});
+
+test('ocean and tropical biomes exist', () => {
+  assert.strictEqual(BIOME.OCEAN, 'ocean');
+  assert.strictEqual(BIOME.TROPICAL, 'tropical');
+  assert.ok(ambientTempOffset(BIOME.TROPICAL) > ambientTempOffset(BIOME.FOREST));
+  // sample many cells — should see water-column heights and some biome variety
+  let oceanish = 0, land = 0;
+  const seed = 42;
+  for (let i = 0; i < 400; i++) {
+    const x = ((i * 17) % 400) - 200;
+    const z = ((i * 31) % 400) - 200;
+    const h = heightAt(x, z, seed);
+    const b = biomeAt(x, z, seed);
+    if (h < 16) oceanish++;
+    if (h > 18) land++;
+    if (b === BIOME.OCEAN) oceanish++;
+  }
+  assert.ok(oceanish > 5, 'expect some deep/ocean samples');
+  assert.ok(land > 20, 'expect land samples');
+});
+
 if (process.exitCode) process.exit(1);
+

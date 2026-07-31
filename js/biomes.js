@@ -1,46 +1,59 @@
 /** Pure biome classifier — no game.js coupling. */
-import { heightAt, fbm } from './gen.js?v=216';
+import { heightAt, fbm, WORLD_SCALE } from './gen.js?v=220';
 
 export const BIOME = {
+  OCEAN: 'ocean',
+  TROPICAL: 'tropical',
   SHORE: 'shore',
   FOREST: 'forest',
   DESERT: 'desert',
   TUNDRA: 'tundra',
 };
 
+const SEA = 16; // must match World.SEA_LEVEL
+
 /**
  * Return biome string for world coordinates (x, z) given seed.
- * Uses heightAt for elevation + a second fbm pass for "aridity" axis.
- * - shore: height near/below sea level (< 20)
- * - desert: arid region (high dryness noise, moderate height)
- * - tundra: cold high elevation
- * - forest: default everywhere else
+ * - ocean: deep floor below sea (open water columns)
+ * - tropical: sandy islands / atolls in warm coastal basins
+ * - shore: near sea level beaches
+ * - desert / tundra / forest: inland
  */
 export function biomeAt(x, z, seed = 0) {
   const h = heightAt(x, z, seed);
+  const coast = fbm(x * 0.01 * WORLD_SCALE + 3, z * 0.01 * WORLD_SCALE + 7, 3);
+  const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
 
-  // Shore: near or below sea level
+  // Open ocean basins
+  if (h < SEA - 1) return BIOME.OCEAN;
+
+  // Tropical islands: modest land bumps in wet coastal noise
+  if (
+    h >= SEA &&
+    h <= SEA + 7 &&
+    coast < 0.4 &&
+    isle > 0.7
+  ) {
+    return BIOME.TROPICAL;
+  }
+
+  // Shore shelf / beach
   if (h < 20) return BIOME.SHORE;
 
-  // Aridity axis — independent fbm pass seeded by position
   const dryness = fbm(
-    x * 0.015 + seed * 31.3,
-    z * 0.015 + seed * 22.7,
+    x * 0.015 * WORLD_SCALE + seed * 31.3,
+    z * 0.015 * WORLD_SCALE + seed * 22.7,
     4,
   );
 
-  // Tundra: high elevation AND cool (low dryness maps to cold)
   if (h > 30 && dryness < 0.35) return BIOME.TUNDRA;
-
-  // Desert: arid (high dryness) at moderate-to-high elevation
   if (dryness > 0.65) return BIOME.DESERT;
 
   return BIOME.FOREST;
 }
 
 /**
- * Return ambient temperature offset (°C) for a biome.
- * Applied as an additive bias on top of the day/night cycle in survival.js.
+ * Ambient temperature offset (°C) for a biome.
  */
 export function ambientTempOffset(biome) {
   switch (biome) {
@@ -49,8 +62,12 @@ export function ambientTempOffset(biome) {
     case BIOME.TUNDRA:
       return -10;
     case BIOME.SHORE:
-      return +2; // mild coastal breeze
+      return +2;
+    case BIOME.OCEAN:
+      return +1;
+    case BIOME.TROPICAL:
+      return +11;
     default:
-      return 0; // forest baseline
+      return 0;
   }
 }

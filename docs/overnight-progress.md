@@ -757,3 +757,4 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-07-31T18:14:36-04:00 | SHIP v1.10.12 effectiveCoopRD; reclaim thrash |
 | 2026-07-31T18:17:36-04:00 | SHIP v1.10.13 p2 survival+PS5 docs |
 | 2026-07-31T18:19:50-04:00 | SHIP v1.10.14 df7b6fe isBothPlayersDown |
+| 2026-07-31T18:21:34-04:00 | SHIP v1.10.15 livingPartnerCount+PS5 Test4; reclaimed thrash |

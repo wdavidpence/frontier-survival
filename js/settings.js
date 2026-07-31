@@ -10,7 +10,7 @@ export const DEFAULT_SETTINGS = {
   playMode: 'solo',
   sensitivity: 0.0022,
   helpVisible: true,
-  renderDistance: 5,
+  renderDistance: 8, // larger default world (~2.5x area vs old RD5)
   /** Coop: when false (default), players cannot hurt each other with melee/arrows */
   friendlyFire: false,
 };
@@ -54,7 +54,7 @@ export function parseSettings(raw) {
   const helpVisible = data.helpVisible !== false;
   let renderDistance = Number(data.renderDistance);
   if (!Number.isFinite(renderDistance)) renderDistance = DEFAULT_SETTINGS.renderDistance;
-  renderDistance = Math.max(2, Math.min(10, Math.round(renderDistance)));
+  renderDistance = Math.max(2, Math.min(16, Math.round(renderDistance)));
   return {
     ok: true,
     data: {

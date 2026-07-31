@@ -1,6 +1,6 @@
-import { Game } from './game.js?v=216';
-import { hasSave, clearSaveStorage } from './save.js?v=216';
-import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=216';
+import { Game } from './game.js?v=220';
+import { hasSave, clearSaveStorage } from './save.js?v=220';
+import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=220';
 import {
   writeSettings,
   sensitivityFromSlider,
@@ -8,7 +8,7 @@ import {
   getPlayMode,
   PLAY_MODE_ORDER,
   PLAY_MODE_META,
-} from './settings.js?v=216';
+} from './settings.js?v=220';
 
 const canvas = document.getElementById('game');
 const title = document.getElementById('title-screen');
@@ -270,7 +270,7 @@ if (titleSens) {
 const titleRd = document.getElementById('title-rd-slider');
 const titleRdLab = document.getElementById('title-rd-label');
 if (titleRd) {
-  titleRd.value = String(game.settings.renderDistance ?? 5);
+  titleRd.value = String(game.settings.renderDistance ?? 8);
   if (titleRdLab) titleRdLab.textContent = titleRd.value;
   titleRd.addEventListener('input', () => {
     const v = Number(titleRd.value);
@@ -390,4 +390,4 @@ engageControls = function() {
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.10.15');
+console.info('Frontier Survival boot OK · v1.11.0');

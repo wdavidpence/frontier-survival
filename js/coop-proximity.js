@@ -32,7 +32,7 @@ export function wouldPartnerNearForSleep(a, b, maxDist = 4.5) {
 export function effectiveCoopRenderDistance(sliderRd) {
   const rd = Number(sliderRd);
   const base = Number.isFinite(rd) ? rd : 5;
-  return Math.max(2, Math.min(10, Math.round(base) - 2));
+  return Math.max(2, Math.min(16, Math.round(base) - 2));
 }
 
 /**
@@ -56,5 +56,14 @@ export function livingPartnerCount(s1, s2) {
   if (s1 && !s1.dead) n += 1;
   if (s2 && !s2.dead) n += 1;
   return n;
+}
+
+/**
+ * Cap device pixel ratio for coop canvas/text-render passes.
+ * @param {number} [dpr] window.devicePixelRatio or explicit value
+ * @returns {number} clamped to 1..1.5
+ */
+export function coopPixelRatioCap(dpr) {
+  return Math.min((dpr || 1), 1.5);
 }
 

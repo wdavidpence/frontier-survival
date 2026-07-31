@@ -36,14 +36,38 @@ export function fbm(x, z, octaves = 4) {
   return sum / norm;
 }
 
+/** Sea level constant shared with world (keep in sync with World.SEA_LEVEL). */
+export const GEN_SEA_LEVEL = 16;
+
+/**
+ * Terrain height. Deep ocean basins when coastal noise is low;
+ * tropical island peaks rise back above sea in those basins.
+ */
+/** <1 stretches continents so travel covers more varied terrain before looping patterns. */
+export const WORLD_SCALE = 0.5; // ~2x larger landforms (4x area feel of noise)
+
 export function heightAt(x, z, seed = 0) {
-  const sx = x * 0.03 + seed * 17.1;
-  const sz = z * 0.03 + seed * 9.7;
+  const sx = x * 0.03 * WORLD_SCALE + seed * 17.1;
+  const sz = z * 0.03 * WORLD_SCALE + seed * 9.7;
   const h = fbm(sx, sz, 5);
   const ridge = Math.abs(fbm(sx * 0.5 + 20, sz * 0.5 - 10, 3) - 0.5) * 2;
   let y = 18 + h * 16 + ridge * 8;
-  // shoreline dip
-  const coast = fbm(x * 0.01 + 3, z * 0.01 + 7, 3);
-  if (coast < 0.38) y -= (0.38 - coast) * 28;
+
+  // Broad ocean / shelf: lower coast noise → deeper water
+  const coast = fbm(x * 0.01 * WORLD_SCALE + 3, z * 0.01 * WORLD_SCALE + 7, 3);
+  if (coast < 0.44) {
+    const depth = (0.44 - coast) / 0.44; // 0..1
+    y -= depth * depth * 26;
+  }
+
+  // Tropical island peaks inside wet basins
+  if (coast < 0.38) {
+    const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
+    if (isle > 0.7) {
+      const peak = GEN_SEA_LEVEL + 1 + Math.floor((isle - 0.7) * 28);
+      y = Math.max(y, peak);
+    }
+  }
+
   return Math.floor(y);
 }
