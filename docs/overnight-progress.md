@@ -755,3 +755,4 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-07-31T18:12:05-04:00 | VERIFY: t_d626a2e9 is done; `js/coop-proximity.js` exists, `game.js` imports/wires it, and near/far/null/position-form assertions are present in `tests/smoke.mjs`; standalone smoke-coop-sleep file is intentionally absent under the card's OR acceptance. Current board auto-progressed to running=2: t_dc8e3256 qwen35 docs perf notes and t_a4f1ed48 local35 v1.10.10 proximity audit. Decision: continue; no correction or publish until live audit/artifacts are independently checked. |
 | 2026-07-31T18:12:58-04:00 | SHIP v1.10.11 coop perf RD; killed thrash docs workers |
 | 2026-07-31T18:14:36-04:00 | SHIP v1.10.12 effectiveCoopRD; reclaim thrash |
+| 2026-07-31T18:17:36-04:00 | SHIP v1.10.13 p2 survival+PS5 docs |

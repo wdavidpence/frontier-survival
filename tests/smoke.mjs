@@ -2063,7 +2063,7 @@ test('coop-perf-budget doc exists', () => {
 });
 
 
-import { wouldPartnerNearForSleep, effectiveCoopRenderDistance } from '../js/coop-proximity.js';
+import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from '../js/coop-proximity.js';
 
 test('wouldPartnerNearForSleep near and far', () => {
   assert.ok(wouldPartnerNearForSleep({ x: 0, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, 4.5));
@@ -2078,6 +2078,14 @@ test('effectiveCoopRenderDistance bias', () => {
   assert.strictEqual(effectiveCoopRenderDistance(2), 2);
   assert.strictEqual(effectiveCoopRenderDistance(10), 8);
   assert.strictEqual(effectiveCoopRenderDistance(NaN), 3);
+});
+
+
+test('isBothPlayersDown both and partial', () => {
+  assert.ok(isBothPlayersDown({ dead: true }, { dead: true }));
+  assert.ok(!isBothPlayersDown({ dead: true }, { dead: false }));
+  assert.ok(!isBothPlayersDown({ dead: true }, null));
+  assert.ok(!isBothPlayersDown(null, { dead: true }));
 });
 
 if (process.exitCode) process.exit(1);

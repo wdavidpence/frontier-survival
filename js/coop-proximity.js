@@ -34,3 +34,14 @@ export function effectiveCoopRenderDistance(sliderRd) {
   const base = Number.isFinite(rd) ? rd : 5;
   return Math.max(2, Math.min(10, Math.round(base) - 2));
 }
+
+/**
+ * Coop session over when both survival states are dead.
+ * @param {{dead?: boolean}|null|undefined} s1
+ * @param {{dead?: boolean}|null|undefined} s2
+ * @returns {boolean}
+ */
+export function isBothPlayersDown(s1, s2) {
+  return !!(s1 && s1.dead && s2 && s2.dead);
+}
+
