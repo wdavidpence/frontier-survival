@@ -45,3 +45,16 @@ export function isBothPlayersDown(s1, s2) {
   return !!(s1 && s1.dead && s2 && s2.dead);
 }
 
+/**
+ * Count living partners among up to two survival states.
+ * @param {{dead?: boolean}|null|undefined} s1
+ * @param {{dead?: boolean}|null|undefined} s2
+ * @returns {number} 0..2
+ */
+export function livingPartnerCount(s1, s2) {
+  let n = 0;
+  if (s1 && !s1.dead) n += 1;
+  if (s2 && !s2.dead) n += 1;
+  return n;
+}
+

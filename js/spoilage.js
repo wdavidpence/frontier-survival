@@ -2,8 +2,8 @@
  * Inventory stack spoilage helpers — pure.
  * Optional slot.age seconds for spoilable items.
  */
-import { ITEM } from './items.js?v=215';
-import { cloneSlots } from './inventory.js?v=215';
+import { ITEM } from './items.js?v=216';
+import { cloneSlots } from './inventory.js?v=216';
 
 export const SPOIL_SECONDS = 420; // ~one game day default real-time window
 

@@ -72,20 +72,31 @@ PRIORITY: 5
 
 ---
 
-## Test 4: DualSense Controller — Player 2 (Split-Screen / Co-op)
+## Test 4: DualSense Controller — Player 2 (Split-Screen / Co-op) — v1.10+ mappings
 
-- [ ] Second DualSense paired and recognized by PS5 browser
-- [ ] Player 2 can join game (if split-screen/co-op feature is implemented)
-- [ ] Player 2 uses separate stick for camera and movement (no input conflict with P1)
-- [ ] Both players see their own HUD elements without overlap
-- [ ] Inventory/crafting does not block the other player
+Title: choose **Local Co-op** then Start.
 
-**Known PS5 browser limits:**
-- Multi-tab or multi-window is not supported — all players share one browser tab
-- If split-screen uses a single canvas, resolution is halved per player — expect lower visual fidelity
-- No native gamepad API support for more than 2 controllers in PS5 browser
+### Recognition
+- [ ] Second DualSense paired; if browser only exposes one pad, right-half `#coop-pad-prompt` shows
+- [ ] When two pads visible: pad0→P1 (or KBM P1), pad1→P2 body on **right** viewport
 
----
+### P2 controls (Standard Gamepad / DualSense)
+- [ ] Left stick — move
+- [ ] Right stick — look
+- [ ] **R2** (or Square) — mine / break
+- [ ] **L1** — place block
+- [ ] **Share** — P2 inventory ("P2 Pack and Craft"); does not uiMode-lock P1
+- [ ] **Options** — pause full sim (both players)
+- [ ] **Circle** — use (bed sleep request when looking at bed)
+- [ ] **Cross** — jump
+- [ ] D-pad left/right — cycle P2 hotbar
+
+### Shared rules
+- [ ] Dual HUD: left P1 meters/hotbar, right P2
+- [ ] Friendly fire off by default
+- [ ] Fauna can aggro nearest of P1/P2
+- [ ] One player down: other continues; both down: death overlay
+- [ ] Coop sleep: both living players within ~4.5m of each other at bed
 
 ## Test 5: TV-Safe Display
 
