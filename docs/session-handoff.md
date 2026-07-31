@@ -34,3 +34,10 @@ browser New World: terrain+HUD+controls
 - Shipped WIP batch toward v1.8.9: DualSense/gamepad input+docs, render distance slider (dual HTML), sequoia block/atlas IDs + paints (world spawn still open on sequoia card)
 - Overnight: gateway + cron every 45m; Hermes default = judge
 - Caps: 27s≤4, 35≤2, local35≤1, global≤7; enforce file locks
+
+## Overnight leave 2026-07-30T21:35
+- Shipped **v1.8.9** (59c2be6): DualSense/gamepad, render-distance slider, sequoia atlas paints
+- Third worker **local35 = gpt-oss-20b** ACTIVE (bridge :18000)
+- Running set cleaned for locks: sequoia (qwen27s), starter_map + biome_temp (qwen35), chicken (local35)
+- Cron every 45m strengthened with frontier-survival-judge-loop + multi-worker routing
+- User checking tomorrow morning
