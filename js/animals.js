@@ -116,6 +116,24 @@ export const SPECIES = {
     scale: [0.55, 0.45, 0.65],
     count: 20,
   },
+  cow: {
+    id: 'cow',
+    name: 'Cow',
+    hp: 40,
+    speed: 3.2,
+    hostile: false,
+    fleeRange: 10,
+    senseRange: 14,
+    damage: 0,
+    attackRange: 0,
+    attackCd: 99,
+    meatMin: 2,
+    meatMax: 4,
+    feedItem: 'berries', // ITEM.BERRIES (herbivore)
+    color: [0.55, 0.42, 0.3],
+    scale: [1.0, 1.3, 1.6],
+    count: 4,
+  },
 };
 
 function groundY(world, x, z) {
@@ -382,6 +400,7 @@ export class FaunaSystem {
     else if (animal.type === 'hare') hide = Math.random() < 0.65 ? 1 : 0;
     else if (animal.type === 'wolf') hide = Math.random() < 0.4 ? 1 : 0;
     else if (animal.type === 'bear') hide = 2 + (Math.random() < 0.5 ? 1 : 0);
+    else if (animal.type === 'cow') hide = 2 + (Math.random() < 0.6 ? 1 : 0);
     let egg = 0;
     let feather = 0;
     if (spec.egg) egg = Math.random() < 0.75 ? 1 : 0;
