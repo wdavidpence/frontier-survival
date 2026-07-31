@@ -77,3 +77,14 @@ export function clamp01(n) {
   return Math.max(0, Math.min(1, n));
 }
 
+/**
+ * Linear interpolation between two numbers, with t clamped to [0,1].
+ * @param {number} a start value
+ * @param {number} b end value
+ * @param {number} t interpolation factor (clamped to 0..1)
+ * @returns {number} a + (b - a) * clamp01(t)
+ */
+export function lerp(a, b, t) {
+  return a + (b - a) * clamp01(t);
+}
+

@@ -1,5 +1,6 @@
 import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
 import { heightAt, fbm, hash2 } from '../js/gen.js';
+import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp } from '../js/coop-proximity.js';
 /**
  * Pure-logic smoke tests (no browser/Three).
  * Run: node tests/smoke.mjs
@@ -2064,7 +2065,6 @@ test('coop-perf-budget doc exists', () => {
 });
 
 
-import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01 } from '../js/coop-proximity.js';
 
 test('wouldPartnerNearForSleep near and far', () => {
   assert.ok(wouldPartnerNearForSleep({ x: 0, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, 4.5));
@@ -2162,6 +2162,19 @@ test('ocean and tropical biomes exist', () => {
   }
   assert.ok(oceanish > 5, 'expect some deep/ocean samples');
   assert.ok(land > 20, 'expect land samples');
+});
+
+test('lerp uses clamp01 for t', () => {
+  // Basic interpolation at boundaries
+  assert.strictEqual(lerp(0, 10, 0), 0);
+  assert.strictEqual(lerp(0, 10, 1), 10);
+  assert.strictEqual(lerp(0, 10, 0.5), 5);
+  // t outside [0,1] is clamped via clamp01
+  assert.strictEqual(lerp(0, 10, -0.5), 0);
+  assert.strictEqual(lerp(0, 10, 2), 10);
+  // Non-finite t -> clamp01 returns 0, so lerp returns a
+  assert.strictEqual(lerp(3, 7, NaN), 3);
+  assert.strictEqual(lerp(3, 7, Infinity), 3);
 });
 
 if (process.exitCode) process.exit(1);

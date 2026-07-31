@@ -762,3 +762,4 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-07-31T18:30:07-04:00 | TICK: running t_613d73da/qwen27s tests-only biome correction, t_27799461/qwen35 docs-only world-size note, t_a477e441/local35 read-only release audit; smoke FAIL (4 stale biome expectations: ocean now valid), diff-check PASS; browser local :8767 v1.11.0 HTTP 200, Start→HUD/title hidden, 0 JS errors; live v1.11.0; broad WIP uncommitted, no ship. Next: verify t_613d73da correction, inspect audit artifacts, rerun smoke and release gate. Decision: redirect.
 | 2026-07-31T22:32:39.149Z | watchdog running 2→2 reclaimed t_a477e441 Spawned 1 |
 | 2026-07-31T18:34:17-04:00 | 24/7 ops: watchdog cron 15m noLLM; frontier judge 45m; smoke green ocean asserts |
+| 2026-07-31T18:37:54-04:00 | judge: shipped worker clamp01+ideas 8722872; 3 lanes; smoke green; browser v1.11.0 |
