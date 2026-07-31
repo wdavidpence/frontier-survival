@@ -469,6 +469,39 @@ function drawCrack(ctx, x0, y0, stage) {
   }
 }
 
+function drawSequoiaLogSide(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [115, 62, 30], 0.3, 200);
+  ctx.strokeStyle = 'rgba(50,28,12,0.6)';
+  for (let x = 3; x < TILE_PX; x += 5) {
+    ctx.beginPath();
+    ctx.moveTo(x0 + x, y0);
+    ctx.lineTo(x0 + x, y0 + TILE_PX);
+    ctx.stroke();
+  }
+}
+
+function drawSequoiaLogTop(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [135, 92, 48], 0.2, 201);
+  ctx.strokeStyle = 'rgba(80,45,20,0.6)';
+  ctx.beginPath();
+  ctx.arc(x0 + 16, y0 + 16, 12, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x0 + 16, y0 + 16, 6, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawSequoiaLeaves(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [42, 110, 38], 0.5, 202, 230);
+  const r = rnd(203);
+  for (let i = 0; i < 25; i++) {
+    ctx.fillStyle = r() > 0.5 ? 'rgba(25,80,22,0.5)' : 'rgba(65,135,45,0.4)';
+    ctx.beginPath();
+    ctx.arc(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1 + r() * 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 export function createBlockAtlas() {
   const canvas = document.createElement('canvas');
   canvas.width = ATLAS_PX;
