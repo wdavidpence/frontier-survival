@@ -742,3 +742,6 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-07-31T17:36:23-04:00 | SHIP v1.10.1 4910079 dual cam+playMode; smoke159; GH Pages push; dual HUD dispatched |
 | 2026-07-31T17:40:29-04:00 | SHIP v1.10.2 dual HUD + router; next P2 body + bind P2 |
 | 2026-07-31T17:45:38-04:00 | SHIP v1.10.3 p2 body; browser dist=2.2 camFollows0 |
+| 2026-07-31T17:51:13-04:00 | Verified v1.10.4 release: smoke 159 PASS, diff-check PASS, dual HTML equal, local :8767 HTTP 200 + DOM Start→hidden overlay + console errors 0. Board recovered from zero-running; running t_b4aa2af9 qwen27s (input.js) and t_bcd06edc qwen35 (coop inventory). No ship: release commit b985e2b is already published locally/origin, live CDN not rechecked this tick; docs/backlog metadata remains uncommitted. Decision: continue. |
+| 2026-07-31T17:50:20-04:00 | SHIP v1.10.4 coop save+v2 p2 mine/place; browser saveOk |
+| 2026-07-31T17:51:13-04:00 | Verified v1.10.4 release: smoke 159 PASS, diff-check PASS, dual HTML equal, local :8767 HTTP 200 + DOM Start→hidden overlay + console errors 0. Board recovered from zero-running; running t_b4aa2af9 qwen27s (input.js) and t_bcd06edc qwen35 (coop inventory). No new ship; b985e2b is already at origin and docs/backlog metadata remains uncommitted. Decision: continue. |

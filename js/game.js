@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=205';
-import { Player } from './player.js?v=205';
-import { Input } from './input.js?v=205';
-import { GameTime } from './time.js?v=205';
-import { AudioBus } from './audio.js?v=205';
+import { World } from './world.js?v=206';
+import { Player } from './player.js?v=206';
+import { Input } from './input.js?v=206';
+import { GameTime } from './time.js?v=206';
+import { AudioBus } from './audio.js?v=206';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=205';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=205';
+} from './survival.js?v=206';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=206';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=205';
+} from './items.js?v=206';
 import {
   addItems,
   removeItems,
@@ -31,11 +31,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=205';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=205';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=205';
-import { createBlockAtlas } from './atlas.js?v=205';
-import { BreakFX } from './fx.js?v=205';
+} from './inventory.js?v=206';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=206';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=206';
+import { createBlockAtlas } from './atlas.js?v=206';
+import { BreakFX } from './fx.js?v=206';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -45,35 +45,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=205';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=205';
+} from './equipment.js?v=206';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=206';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=205';
-import { getMode } from './modes.js?v=205';
+} from './save.js?v=206';
+import { getMode } from './modes.js?v=206';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=205';
+} from './settings.js?v=206';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=205';
-import { tickSpoilage } from './spoilage.js?v=205';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=205';
-import { wearTool, durabilityRatio } from './durability.js?v=205';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=205';
-import { tickLogic, COMPONENT } from './logic.js?v=205';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=205';
+} from './achievements.js?v=206';
+import { tickSpoilage } from './spoilage.js?v=206';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=206';
+import { wearTool, durabilityRatio } from './durability.js?v=206';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=206';
+import { tickLogic, COMPONENT } from './logic.js?v=206';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=206';
 import {
   chestKey,
   getChestSlots,
@@ -84,11 +84,11 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=205';
-import { checkTooltip, show as showTooltip } from './tooltips.js?v=205';
-import { splitViewport } from './viewport-split.js?v=205';
-import { readGamepad } from './input-coop.js?v=205';
-import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=205';
+} from './chests.js?v=206';
+import { checkTooltip, show as showTooltip } from './tooltips.js?v=206';
+import { splitViewport } from './viewport-split.js?v=206';
+import { readGamepad } from './input-coop.js?v=206';
+import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=206';
 
 export class Game {
   /**
@@ -109,6 +109,8 @@ export class Game {
     this.mode = getMode(this.settings.mode).id;
     /** Local split-screen: when true, dual viewports/input path is active (MVP wires flag first). */
     this.coopMode = this.settings.playMode === 'coop';
+    /** Which player owns open inventory UI: p1 | p2 */
+    this._invOwner = 'p1';
     this.seed = (Math.random() * 1e6) | 0;
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -250,7 +252,7 @@ export class Game {
   _bindInventoryUi() {
     const panel = document.getElementById('inventory-screen');
     const closeBtn = document.getElementById('btn-close-inv');
-    closeBtn?.addEventListener('click', () => this.setInventoryOpen(false));
+    closeBtn?.addEventListener('click', () => this.setInventoryOpen(false, this._invOwner || 'p1'));
     document.getElementById('btn-save-game')?.addEventListener('click', () => {
       this.saveGame();
       this._paintInventory();
@@ -325,21 +327,22 @@ export class Game {
       }
       const slotEl = e.target.closest('[data-slot]');
       if (slotEl) {
+        const pl = this._bagPlayer?.() || this.player;
         const idx = Number(slotEl.getAttribute('data-slot'));
-        if (e.shiftKey && idx >= 0 && idx < this.player.slots.length) {
-          const res = splitStack(this.player.slots, idx);
+        if (e.shiftKey && idx >= 0 && idx < pl.slots.length) {
+          const res = splitStack(pl.slots, idx);
           if (!res.ok) {
-            this.player.notify(res.error === "no space" ? "No inventory space to split." : "Cannot split.");
+            pl.notify(res.error === "no space" ? "No inventory space to split." : "Cannot split.");
             return;
           }
-          this.player.slots = res.slots;
+          pl.slots = res.slots;
           this._invNeedsPaint = true;
           this._paintInventory();
           this.audio.ui();
           return;
         }
         if (idx >= 0 && idx < HOTBAR_SIZE) {
-          this.player.hotbarIndex = idx;
+          pl.hotbarIndex = idx;
           this._invNeedsPaint = true;
           this._paintInventory();
         }
@@ -969,7 +972,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=205').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=206').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -1135,50 +1138,87 @@ export class Game {
     help.classList.toggle('faded', false);
   }
 
-  setInventoryOpen(open) {
-    if (!this.player) return;
+
+  /** Active bag for inventory UI (P1 or P2). */
+  _bagPlayer() {
+    if (this._invOwner === 'p2' && this.player2) return this.player2;
+    return this.player;
+  }
+
+  _bagSurvival() {
+    if (this._invOwner === 'p2' && this.survival2) return this.survival2;
+    return this.survival;
+  }
+
+  setInventoryOpen(open, who = 'p1') {
+    who = who === 'p2' ? 'p2' : 'p1';
+    if (who === 'p1' && !this.player) return;
+    if (who === 'p2' && !this.player2) return;
+
     if (open) {
       this.setPaused(false);
       this._closeChest();
+      if (this.player) this.player.inventoryOpen = who === 'p1';
+      if (this.player2) this.player2.inventoryOpen = who === 'p2';
+      this._invOwner = who;
+    } else {
+      if (who === 'p1' && this.player) this.player.inventoryOpen = false;
+      if (who === 'p2' && this.player2) this.player2.inventoryOpen = false;
+      if (this._invOwner === who) this._invOwner = 'p1';
     }
-    this.player.inventoryOpen = open;
-    this.input.uiMode = open || this.paused;
-    this.input.setCaptureEnabled?.(!(open || this.paused) && this.started);
-    const panel = document.getElementById('inventory-screen');
-    if (open) {
-      panel?.classList.remove('hidden');
+
+    const anyOpen = !!(this.player?.inventoryOpen || this.player2?.inventoryOpen);
+    const p1Owns = !!this.player?.inventoryOpen;
+
+    // Pointer lock / uiMode only when P1 bag is open — P2 pad inv must not steal P1 look
+    if (p1Owns) {
+      this.input.uiMode = true;
+      this.input.setCaptureEnabled?.(false);
       if (document.pointerLockElement) document.exitPointerLock();
       this.input.breakHeld = false;
+    } else if (!this.paused) {
+      this.input.uiMode = false;
+      this.input.setCaptureEnabled?.(!!this.started);
+    }
+
+    const panel = document.getElementById('inventory-screen');
+    const title = panel?.querySelector('h2');
+    if (anyOpen) {
+      panel?.classList.remove('hidden');
+      if (title) title.textContent = this._invOwner === 'p2' ? 'P2 Pack and Craft' : 'Pack and Craft';
       this._invNeedsPaint = true;
       this._paintInventory();
       this.audio.ui();
     } else {
       panel?.classList.add('hidden');
-      // autosave when closing pack
-      if (this.started && !this.survival.dead && !this.paused) this.saveGame({ quiet: true });
+      if (title) title.textContent = 'Pack and Craft';
+      if (this.started && !this.survival?.dead && !this.paused) this.saveGame({ quiet: true });
       if (this.started && !this.paused) {
         this.input.setCaptureEnabled?.(true);
         this.canvas?.focus?.();
+        // Re-lock pointer for P1 only (P2 never needs pointer lock)
+        this.input.requestLock?.();
       }
     }
     this._updateClickToPlay?.();
   }
 
   _tryCraft(recipeId) {
-    if (!this.player) return;
-    const res = craftRecipe(this.player.slots, recipeId, { heat: this._lastHeat || 0 });
+    const bag = this._bagPlayer?.() || this.player;
+    if (!bag) return;
+    const res = craftRecipe(bag.slots, recipeId, { heat: this._lastHeat || 0 });
     if (!res.ok) {
       if (res.error === 'need campfire heat') {
-        this.player.notify('Stand near a campfire to cook.');
+        bag.notify('Stand near a campfire to cook.');
       } else {
-        this.player.notify(res.error === 'inventory full' ? 'Inventory full.' : 'Missing ingredients.');
+        bag.notify(res.error === 'inventory full' ? 'Inventory full.' : 'Missing ingredients.');
       }
       this.audio.hurt();
       return;
     }
-    this.player.slots = res.slots;
+    bag.slots = res.slots;
     this.audio.placeBlock();
-    this.player.notify(`Crafted: ${recipeId.replace(/_/g, ' ')}`);
+    bag.notify(`Crafted: ${recipeId.replace(/_/g, ' ')}`);
     if (recipeId === 'bow') this._unlock('first_bow');
     if (recipeId === 'smelt_iron') this._unlock('first_iron');
     if (recipeId === 'bread') this._unlock('first_bread');
@@ -1197,7 +1237,10 @@ export class Game {
 
     if (this.input.consumeInventory()) {
       if (this._chestOpenKey) this._closeChest();
-      else this.setInventoryOpen(!this.player.inventoryOpen);
+      else this.setInventoryOpen(!this.player.inventoryOpen, 'p1');
+    }
+    if (this.coopMode && this.input2?.consumeInventory?.()) {
+      this.setInventoryOpen(!this.player2?.inventoryOpen, 'p2');
     }
     if (this.input.consumeQuickSave()) {
       this.saveGame();
@@ -1245,10 +1288,12 @@ export class Game {
           deadzone: this.input?.deadzone ?? 0.15,
           sensitivity: this.input?.gpSensitivity ?? 0.03,
         });
+        if (!this.player2.inventoryOpen) {
         this.player2.update(this.world, this.input2, this.survival2 || this.survival, dt);
         if (this.player2.pendingFallDamage > 0 && this.survival2) {
           this.survival2 = applyDamage(this.survival2, this.player2.pendingFallDamage, 'fall');
           this.player2.pendingFallDamage = 0;
+        }
         }
       }
 
@@ -1609,7 +1654,7 @@ export class Game {
     this._updateLighting();
     this._tickTooltips(dt);
     this._updateHud();
-    if (this.player.inventoryOpen && this._invNeedsPaint) this._paintInventory();
+    if ((this.player?.inventoryOpen || this.player2?.inventoryOpen) && this._invNeedsPaint) this._paintInventory();
 
     // periodic autosave
     this._autosaveAcc += dt;
@@ -2532,14 +2577,15 @@ export class Game {
 
   _paintInventory() {
     this._invNeedsPaint = false;
-    if (!this.player) return;
+    const pl = this._bagPlayer?.() || this.player;
+    if (!pl) return;
 
     const bag = document.getElementById('inv-slots');
     if (bag) {
       bag.innerHTML = '';
-      this.player.slots.forEach((s, i) => {
+      pl.slots.forEach((s, i) => {
         const el = document.createElement('div');
-        el.className = 'inv-slot' + (i === this.player.hotbarIndex && i < HOTBAR_SIZE ? ' active' : '');
+        el.className = 'inv-slot' + (i === pl.hotbarIndex && i < HOTBAR_SIZE ? ' active' : '');
         el.dataset.slot = String(i);
         if (i < HOTBAR_SIZE) el.dataset.hot = String(i + 1);
         if (s.id != null && s.count > 0) {
@@ -2564,7 +2610,7 @@ export class Game {
       const filter = (this._recipeFilter || '').toLowerCase().trim();
       for (const r of visibleRecipes()) {
         if (filter && !(`${r.name} ${r.desc || ''} ${r.id}`.toLowerCase().includes(filter))) continue;
-        const has = hasIngredients(this.player.slots, r.ingredients);
+        const has = hasIngredients(pl.slots, r.ingredients);
         const heatOk = !r.requiresHeat || (this._lastHeat || 0) >= r.requiresHeat;
         const can = has && heatOk;
         const btn = document.createElement('button');
@@ -2581,10 +2627,10 @@ export class Game {
 
     const eqEl = document.getElementById('equip-slots');
     if (eqEl) {
-      const w = equipmentWarmth(this.player.equipment);
+      const w = equipmentWarmth(pl.equipment);
       eqEl.innerHTML = `<div class="equip-warmth">Clothing warmth: <b>${w}</b> (F to equip held clothes)</div>`;
       for (const slot of EQUIP_SLOTS) {
-        const id = this.player.equipment?.[slot];
+        const id = pl.equipment?.[slot];
         const row = document.createElement('div');
         row.className = 'equip-row';
         const name = id != null ? displayName(id) : '— empty —';
@@ -2906,7 +2952,7 @@ export class Game {
     if (this.coopMode && !this._coopRouter) {
       try {
         // Lazy import path already static at top for readGamepad; router from same module via dynamic if needed
-        import(`./input-coop.js?v=205`).then((mod) => {
+        import(`./input-coop.js?v=206`).then((mod) => {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);

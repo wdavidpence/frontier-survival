@@ -2,7 +2,7 @@
  * PadInputAdapter — Input-shaped facade driven by one Gamepad (P2 DualSense).
  * Compatible with Player.update(world, input, survival, dt).
  */
-import { readGamepad } from './input-coop.js?v=205';
+import { readGamepad } from './input-coop.js?v=206';
 
 export class PadInputAdapter {
   constructor() {
@@ -20,6 +20,8 @@ export class PadInputAdapter {
     this.breakHeld = false;
     this.placePressed = false;
     this._prevPlace = false;
+    this.inventoryPressed = false;
+    this._prevInv = false;
     this.uiMode = false;
   }
 
@@ -34,6 +36,7 @@ export class PadInputAdapter {
     this._slotQ = -1;
     this._scroll = 0;
     this.placePressed = false;
+    this.inventoryPressed = false;
     if (!gp) {
       this._fwd = 0;
       this._str = 0;
@@ -63,6 +66,10 @@ export class PadInputAdapter {
     const placeNow = pressed(4);
     if (placeNow && !this._prevPlace) this.placePressed = true;
     this._prevPlace = placeNow;
+    // Share / View (button 8) toggles P2 inventory
+    const invNow = pressed(8);
+    if (invNow && !this._prevInv) this.inventoryPressed = true;
+    this._prevInv = invNow;
     // D-pad left/right edge → hotbar
     const dL = pressed(14);
     const dR = pressed(15);
@@ -107,6 +114,12 @@ export class PadInputAdapter {
   consumePlace() {
     const v = this.placePressed;
     this.placePressed = false;
+    return v;
+  }
+
+  consumeInventory() {
+    const v = this.inventoryPressed;
+    this.inventoryPressed = false;
     return v;
   }
 }

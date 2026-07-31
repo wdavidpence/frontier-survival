@@ -251,6 +251,7 @@ export class Input {
     if (on) this.softLook = true;
   }
 
+  /** P1-only pointer lock (coop P2 uses pad look — never call this for P2). */
   requestLock() {
     if (this.uiMode) return Promise.resolve(false);
     this.softLook = true;
