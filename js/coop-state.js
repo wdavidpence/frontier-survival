@@ -1,6 +1,6 @@
 export { clonePlayer, cloneSurvivalState, serializeCoopGameState };
 
-import { DEFAULT_SURVIVAL } from './survival.js?v=206';
+import { DEFAULT_SURVIVAL } from './survival.js?v=207';
 
 // Clone a player object shallowly (position etc.). For now just deep copy of slots.
 function clonePlayer(player) {

@@ -2,7 +2,7 @@
  * PadInputAdapter — Input-shaped facade driven by one Gamepad (P2 DualSense).
  * Compatible with Player.update(world, input, survival, dt).
  */
-import { readGamepad } from './input-coop.js?v=206';
+import { readGamepad } from './input-coop.js?v=207';
 
 export class PadInputAdapter {
   constructor() {
@@ -22,6 +22,8 @@ export class PadInputAdapter {
     this._prevPlace = false;
     this.inventoryPressed = false;
     this._prevInv = false;
+    this.pausePressed = false;
+    this._prevPause = false;
     this.uiMode = false;
   }
 
@@ -37,6 +39,7 @@ export class PadInputAdapter {
     this._scroll = 0;
     this.placePressed = false;
     this.inventoryPressed = false;
+    this.pausePressed = false;
     if (!gp) {
       this._fwd = 0;
       this._str = 0;
@@ -70,6 +73,10 @@ export class PadInputAdapter {
     const invNow = pressed(8);
     if (invNow && !this._prevInv) this.inventoryPressed = true;
     this._prevInv = invNow;
+    // Options / Menu (button 9) pause — freezes full sim for both players
+    const pauseNow = pressed(9);
+    if (pauseNow && !this._prevPause) this.pausePressed = true;
+    this._prevPause = pauseNow;
     // D-pad left/right edge → hotbar
     const dL = pressed(14);
     const dR = pressed(15);
@@ -120,6 +127,12 @@ export class PadInputAdapter {
   consumeInventory() {
     const v = this.inventoryPressed;
     this.inventoryPressed = false;
+    return v;
+  }
+
+  consumePause() {
+    const v = this.pausePressed;
+    this.pausePressed = false;
     return v;
   }
 }

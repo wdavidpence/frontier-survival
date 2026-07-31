@@ -2,8 +2,8 @@
  * Wildlife simulation — pure movement/AI helpers + manager.
  * Prey flee; predators hunt (worse at night). Meat drops on death.
  */
-import { isSolid, BLOCK } from './blocks.js?v=206';
-import { hash2 } from './gen.js?v=206';
+import { isSolid, BLOCK } from './blocks.js?v=207';
+import { hash2 } from './gen.js?v=207';
 
 export const SPECIES = {
   hare: {
@@ -325,16 +325,21 @@ export class FaunaSystem {
 
   /**
    * @param {number} dt
-   * @param {{x:number,y:number,z:number}} player
+   * @param {{x:number,y:number,z:number,id?:string}|Array<{x:number,y:number,z:number,id?:string}>} playerOrPlayers
+   *   Solo: one player object. Coop: array of players (id 'p1'|'p2'); nearest is targeted.
    * @param {boolean} isNight
    * @param {{ senseMult?: number, damageMult?: number }} [opts]
-   * @returns {{ playerDamage: number, kills: object[] }}
+   * @returns {{ playerDamage: number, player2Damage: number, kills: object[] }}
    */
-  tick(dt, player, isNight, opts = {}) {
+  tick(dt, playerOrPlayers, isNight, opts = {}) {
     let playerDamage = 0;
+    let player2Damage = 0;
     const kills = [];
-    const px = player.x;
-    const pz = player.z;
+    const list = Array.isArray(playerOrPlayers)
+      ? playerOrPlayers.filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.z))
+      : playerOrPlayers && Number.isFinite(playerOrPlayers.x)
+        ? [{ ...playerOrPlayers, id: playerOrPlayers.id || 'p1' }]
+        : [];
     const senseMult = opts.senseMult ?? 1;
     const damageMult = opts.damageMult ?? 1;
 
@@ -343,36 +348,49 @@ export class FaunaSystem {
       const spec = this.getSpec(a.type);
       a.attackTimer = Math.max(0, a.attackTimer - dt);
 
-      const d2 = dist2(a.x, a.z, px, pz);
-      const dist = Math.sqrt(d2);
+      // Nearest living target among player list (solo = one entry)
+      let nearest = null;
+      let dist = Infinity;
+      for (const pl of list) {
+        const d = Math.sqrt(dist2(a.x, a.z, pl.x, pl.z));
+        if (d < dist) {
+          dist = d;
+          nearest = pl;
+        }
+      }
+      const px = nearest ? nearest.x : 0;
+      const pz = nearest ? nearest.z : 0;
+      const targetId = nearest?.id === 'p2' ? 'p2' : 'p1';
       const sense = (isNight && spec.nightSense ? spec.nightSense : spec.senseRange) * senseMult;
 
       if (spec.hostile) {
-        if (!a.tamed && dist < sense) {
+        if (!a.tamed && nearest && dist < sense) {
           a.state = 'chase';
-        } else if (a.state === 'chase' && dist > sense + 6) {
+          a._chaseTarget = targetId;
+        } else if (a.state === 'chase' && (!nearest || dist > sense + 6)) {
           a.state = 'wander';
+          a._chaseTarget = null;
         }
       } else {
         if (a.tamed) {
             // Tamed — don't flee from player
         } else if (a._calmT > 0) { a._calmT -= dt; }
-        else if (dist < spec.fleeRange) a.state = 'flee';
-        else if (a.state === 'flee' && dist > spec.fleeRange + 5) a.state = 'wander';
+        else if (nearest && dist < spec.fleeRange) a.state = 'flee';
+        else if (a.state === 'flee' && (!nearest || dist > spec.fleeRange + 5)) a.state = 'wander';
       }
 
       let wishX = 0;
       let wishZ = 0;
       let speed = spec.speed;
 
-      if (a.state === 'flee') {
+      if (a.state === 'flee' && nearest) {
         const dx = a.x - px;
         const dz = a.z - pz;
         const len = Math.hypot(dx, dz) || 1;
         wishX = dx / len;
         wishZ = dz / len;
         speed *= 1.15;
-      } else if (a.state === 'chase') {
+      } else if (a.state === 'chase' && nearest) {
         const dx = px - a.x;
         const dz = pz - a.z;
         const len = Math.hypot(dx, dz) || 1;
@@ -380,7 +398,9 @@ export class FaunaSystem {
         wishZ = dz / len;
         if (isNight) speed *= 1.12;
         if (dist < spec.attackRange && a.attackTimer <= 0) {
-          playerDamage += spec.damage * damageMult;
+          const amt = spec.damage * damageMult;
+          if (targetId === 'p2') player2Damage += amt;
+          else playerDamage += amt;
           a.attackTimer = spec.attackCd;
         }
       } else {
@@ -436,7 +456,7 @@ export class FaunaSystem {
       if (a.dead && a._corpseT !== undefined) a._corpseT -= dt;
     }
 
-    return { playerDamage, kills };
+    return { playerDamage, player2Damage, kills };
   }
 
   /**

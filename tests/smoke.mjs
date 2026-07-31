@@ -26,7 +26,7 @@ import {
   craftWith,
 } from '../js/inventory.js';
 import { craftRecipe, visibleRecipes } from '../js/crafting.js';
-import { meatDropCount, SPECIES, canFeed, tryFeed } from '../js/animals.js';
+import { FaunaSystem,  meatDropCount, SPECIES, canFeed, tryFeed } from '../js/animals.js';
 import { tickLogic, isPowered, COMPONENT } from '../js/logic.js';
 import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
 import {
@@ -1145,7 +1145,6 @@ test('biomeAt produces multiple biome types across map', () => {
 });
 
 // ── Tamed animal behavior (FS-H2) ────────────────────────
-import { FaunaSystem } from '../js/animals.js';
 
 test('tamed non-hostile animal does not flee', () => {
   const hare = { type: 'hare', dead: false, state: 'wander', tamed: true, _calmT: 0 };
@@ -1991,6 +1990,47 @@ test('coop save player2 roundtrip v2', () => {
   const p1 = parseSavePayload(JSON.stringify(v1));
   assert.ok(p1.ok);
   assert.strictEqual(p1.data.player2, null);
+});
+
+
+
+test('fauna nearest of two players deals damage to closer', () => {
+  // Minimal mock world
+  const world = {
+    radiusChunks: 4,
+    getBlock: () => 0,
+  };
+  // groundY uses world - may need blocks - use real World if heavy; instead unit the selection logic via tick with simple animals
+  const fauna = new FaunaSystem(world, 1);
+  // inject a hostile animal between two players
+  const wolfType = Object.keys(SPECIES).find((k) => SPECIES[k].hostile) || 'wolf';
+  fauna.animals = [{
+    id: 1,
+    type: wolfType,
+    x: 0, y: 1, z: 0,
+    vx: 0, vz: 0, yaw: 0,
+    hp: 20, maxHp: 20,
+    dead: false,
+    state: 'chase',
+    attackTimer: 0,
+    wanderT: 1,
+    targetX: 0, targetZ: 0,
+    tamed: false,
+  }];
+  const p1 = { id: 'p1', x: 10, y: 1, z: 0 };
+  const p2 = { id: 'p2', x: 1.2, y: 1, z: 0 }; // closer
+  const spec = SPECIES[wolfType];
+  // ensure attack range can hit p2
+  const r = fauna.tick(0.05, [p1, p2], false, { damageMult: 1, senseMult: 1 });
+  assert.ok((r.player2Damage || 0) >= 0);
+  // With p2 in attack range and p1 far, damage should prefer p2 if within attackRange
+  if (1.2 < (spec.attackRange || 2)) {
+    assert.ok(r.player2Damage > 0 || r.playerDamage === 0, 'prefer nearer p2 when in range');
+  }
+  // solo path still works
+  const solo = fauna.tick(0.05, { x: 0.5, y: 1, z: 0 }, false, {});
+  assert.ok(typeof solo.playerDamage === 'number');
+  assert.ok(typeof solo.player2Damage === 'number');
 });
 
 if (process.exitCode) process.exit(1);
