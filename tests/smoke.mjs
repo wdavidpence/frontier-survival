@@ -2051,6 +2051,7 @@ test('game source has coop death and p2 bow hooks', () => {
   assert.ok(src.includes("ownerId: who") || src.includes("ownerId: 'p2'"));
   assert.ok(src.includes('bothDead') || src.includes('p2Dead'));
   assert.ok(src.includes("respawn(who"));
+  assert.ok(src.includes('both players must stand near the bed'));
 });
 
 if (process.exitCode) process.exit(1);
