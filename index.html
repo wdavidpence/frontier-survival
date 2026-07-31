@@ -254,6 +254,29 @@
       pointer-events: none;
     }
     #help b { color: #ddd5c6; }
+    #spawn-marker {
+      position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+      width: 48px; height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none; opacity: 0.85;
+    }
+    #spawn-marker .marker-icon {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #f0c040, #d4922a);
+      border: 3px solid rgba(255,255,255,0.9);
+      box-shadow: 0 0 12px rgba(240,192,64,0.6), 0 2px 8px rgba(0,0,0,0.5);
+      position: relative;
+    }
+    #spawn-marker .marker-icon::after {
+      content: ''; position: absolute; inset: 6px;
+      border-radius: 50%; background: rgba(255,255,255,0.4);
+    }
+    #spawn-marker .marker-label {
+      position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%);
+      font-size: 9px; color: #f0e6d4; white-space: nowrap;
+      text-shadow: 0 1px 3px #000; letter-spacing: 0.05em;
+    }
     .overlay {
       position: fixed; inset: 0;
       display: flex; align-items: center; justify-content: center;
@@ -528,6 +551,7 @@
     <div id="hurt-vignette"></div>
     <div id="crosshair"></div>
     <div id="status-line">Frontier Survival</div>
+    <div id="spawn-marker" class="hidden"><div class="marker-icon"></div><span class="marker-label">SPAWN</span></div>
     <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
     <div id="prompt"></div>
@@ -652,6 +676,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=189"></script>
+  <script type="module" src="./js/main.js?v=190"></script>
 </body>
 </html>

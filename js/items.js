@@ -2,7 +2,7 @@
  * Unified item/block IDs for inventory stacks.
  * Blocks: 0–99 (see blocks.js). Items: 100+.
  */
-import { BLOCK, BLOCK_PROPS } from './blocks.js?v=187';
+import { BLOCK, BLOCK_PROPS } from './blocks.js?v=190';
 
 export const ITEM = {
   STICK: 100,

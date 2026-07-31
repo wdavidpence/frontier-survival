@@ -45,7 +45,7 @@ for (const item of wave) {
     `FILES (preferred): ${item.files}`,
     '',
     'CONSTRAINTS:',
-    '- Repo: /mnt/c/Users/wdavi/Projects/SurvivalCraftMobile',
+    '- Repo: /mnt/c/Users/wdavi/Projects/Frontier-Survival',
     '- Surgical edits only. Never git reset/clean/checkout --hard.',
     '- Prefer OpenCode: opencode run --model lmstudio/qwen3.6-35b-a3b-mtp or qwen27/qwen3.6-27b-mlx or qwen35/...',
     '- Run: node tests/smoke.mjs (must pass)',

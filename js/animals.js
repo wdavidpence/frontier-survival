@@ -2,8 +2,8 @@
  * Wildlife simulation — pure movement/AI helpers + manager.
  * Prey flee; predators hunt (worse at night). Meat drops on death.
  */
-import { isSolid, BLOCK } from './blocks.js?v=187';
-import { hash2 } from './gen.js?v=187';
+import { isSolid, BLOCK } from './blocks.js?v=190';
+import { hash2 } from './gen.js?v=190';
 
 export const SPECIES = {
   hare: {
@@ -97,6 +97,24 @@ export const SPECIES = {
     color: [0.35, 0.45, 0.75],
     scale: [0.28, 0.22, 0.35],
     count: 8,
+  },
+  chicken: {
+    id: 'chicken',
+    name: 'Chicken',
+    hp: 8,
+    speed: 5.0,
+    hostile: false,
+    fleeRange: 12,
+    senseRange: 13,
+    damage: 0,
+    attackRange: 0,
+    attackCd: 99,
+    meatMin: 1,
+    meatMax: 2,
+    feedItem: 'seeds',
+    color: [0.6, 0.4, 0.3],
+    scale: [0.55, 0.45, 0.65],
+    count: 20,
   },
 };
 
@@ -468,7 +486,7 @@ export class FaunaSystem {
 }
 
 /** Item name → ITEM ID lookup for feedItem matching. */
-const _FEED_ID = { berries: 115, raw_meat: 106 };
+const _FEED_ID = { berries: 115, raw_meat: 106, seeds: 116 };
 
 /**
  * Pure check — can this animal eat this item?

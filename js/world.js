@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=187';
-import { heightAt, hash2, fbm } from './gen.js?v=187';
-import { biomeAt, BIOME } from './biomes.js?v=187';
-import { tileForBlock } from './atlas-core.js?v=187';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=187';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=190';
+import { heightAt, hash2, fbm } from './gen.js?v=190';
+import { biomeAt, BIOME } from './biomes.js?v=190';
+import { tileForBlock } from './atlas-core.js?v=190';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=190';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -56,7 +56,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=187';
+    const workerUrl = './js/chunk-worker.js?v=190';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -147,7 +147,12 @@ export class World {
           else if (biome === BIOME.SHORE) treeChance = 0.012;
           else if (biome === BIOME.TUNDRA) treeChance = 0.02;
           if (th > 1 - treeChance) {
-            this._placeTree(data, lx, h + 1, lz);
+            const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
+            if (biome === BIOME.FOREST && sequoiaRoll > 0.97) {
+              this._placeSequoia(data, lx, h + 1, lz);
+            } else {
+              this._placeTree(data, lx, h + 1, lz);
+            }
           }
         }
         if (
@@ -313,7 +318,13 @@ export class World {
           else if (biome === BIOME.SHORE) treeChance = 0.012;
           else if (biome === BIOME.TUNDRA) treeChance = 0.02;
           if (th > 1 - treeChance) {
-            this._placeTree(data, lx, h + 1, lz);
+            // Sequoia spawn: rare in forest biome (~3% of all tree placements)
+            const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
+            if (biome === BIOME.FOREST && sequoiaRoll > 0.97) {
+              this._placeSequoia(data, lx, h + 1, lz);
+            } else {
+              this._placeTree(data, lx, h + 1, lz);
+            }
           }
         }
         // berry bushes on grass surface — forest mainly
@@ -436,6 +447,54 @@ export class World {
     if (peak < WORLD_HEIGHT && lx >= 0 && lx < CHUNK_SIZE && lz >= 0 && lz < CHUNK_SIZE) {
       const i = this._idx(lx, peak, lz);
       if (data[i] === BLOCK.AIR) data[i] = BLOCK.LEAVES;
+    }
+  }
+
+  /** Place a massive sequoia — thick trunk, tall, reddish canopy. */
+  _placeSequoia(data, lx, y, lz) {
+    const trunkH = 8 + Math.floor(hash2(lx + 41, lz + 37) * 5); // 8-12
+    const thick = hash2(lx + 53, lz + 61) > 0.4; // ~60% chance of 2x2 base
+    for (let i = 0; i < trunkH; i++) {
+      const ty = y + i;
+      if (ty >= WORLD_HEIGHT) break;
+      // Main trunk column
+      this._setAir(data, lx, ty, lz, BLOCK.SEQUOIA_LOG);
+      // Thick base: 2x2 bottom + occasional flare near top
+      if (thick) {
+        this._setAir(data, lx + 1, ty, lz, BLOCK.SEQUOIA_LOG);
+        this._setAir(data, lx, ty, lz + 1, BLOCK.SEQUOIA_LOG);
+        this._setAir(data, lx + 1, ty, lz + 1, BLOCK.SEQUOIA_LOG);
+      } else if (i < 2) {
+        // Narrow flare at very bottom for thin variants
+        this._setAir(data, lx + 1, ty, lz, BLOCK.SEQUOIA_LOG);
+      }
+    }
+    // Massive canopy: wide ellipsoid near the top, reddish-green foliage
+    const canopyBase = y + trunkH - 2;
+    const rXZ = thick ? 3 : 2;
+    for (let dy = -1; dy <= 3; dy++) {
+      for (let dx = -rXZ; dx <= rXZ; dx++) {
+        for (let dz = -rXZ; dz <= rXZ; dz++) {
+          const dist = Math.abs(dx) + Math.abs(dz);
+          if (dist > rXZ + 1) continue;
+          // Shrink top/bottom layers for rounded shape
+          if (dy === 3 && dist > rXZ) continue;
+          if (dy === -1 && dist > rXZ - 1) continue;
+          const tx = lx + dx;
+          const ty = canopyBase + dy;
+          const tz = lz + dz;
+          if (tx < 0 || tx >= CHUNK_SIZE || tz < 0 || tz >= CHUNK_SIZE || ty < 0 || ty >= WORLD_HEIGHT) continue;
+          const i = this._idx(tx, ty, tz);
+          if (data[i] === BLOCK.AIR) data[i] = BLOCK.SEQUOIA_LEAVES;
+        }
+      }
+    }
+  }
+
+  /** Helper: set block only if in-bounds. */
+  _setAir(data, lx, ty, lz, block) {
+    if (lx >= 0 && lx < CHUNK_SIZE && lz >= 0 && lz < CHUNK_SIZE && ty >= 0 && ty < WORLD_HEIGHT) {
+      data[this._idx(lx, ty, lz)] = block;
     }
   }
 

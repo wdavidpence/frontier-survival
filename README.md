@@ -6,9 +6,9 @@ Inspired by the *systems* of Survivalcraft (harsh nature, clothing, sleep, preda
 
 You wash up in a blocky wilderness where **cold, hunger, fatigue, and wolves** matter as much as mining.
 
-![Status](https://img.shields.io/badge/status-playable%20v1.8-brightgreen)
+![Status](https://img.shields.io/badge/status-playable%20v1.9.0-brightgreen)
 ![Stack](https://img.shields.io/badge/stack-Three.js%20ESM-blue)
-![Tests](https://img.shields.io/badge/tests-83%20smoke-lightgrey)
+![Tests](https://img.shields.io/badge/tests-106%20smoke-lightgrey)
 
 ---
 
@@ -17,7 +17,7 @@ You wash up in a blocky wilderness where **cold, hunger, fatigue, and wolves** m
 Serve the **repository root** (so `./js` resolves):
 
 ```bash
-cd /path/to/SurvivalCraftMobile
+cd /path/to/Frontier-Survival
 python3 -m http.server 8765 --bind 127.0.0.1
 ```
 
@@ -26,7 +26,7 @@ Open: **http://127.0.0.1:8765/**
 Legacy path still works if you open `/public/` (uses `../js`).
 
 ```bash
-node tests/smoke.mjs   # 83 pure-logic tests
+node tests/smoke.mjs   # 106 pure-logic tests
 ```
 
 ---

@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=187';
-import { Player } from './player.js?v=187';
-import { Input } from './input.js?v=187';
-import { GameTime } from './time.js?v=187';
-import { AudioBus } from './audio.js?v=187';
+import { World } from './world.js?v=190';
+import { Player } from './player.js?v=190';
+import { Input } from './input.js?v=190';
+import { GameTime } from './time.js?v=190';
+import { AudioBus } from './audio.js?v=190';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=187';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=187';
+} from './survival.js?v=190';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=190';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=187';
+} from './items.js?v=190';
 import {
   addItems,
   removeItems,
@@ -31,11 +31,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=187';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=187';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=187';
-import { createBlockAtlas } from './atlas.js?v=187';
-import { BreakFX } from './fx.js?v=187';
+} from './inventory.js?v=190';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=190';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=190';
+import { createBlockAtlas } from './atlas.js?v=190';
+import { BreakFX } from './fx.js?v=190';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -45,35 +45,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=187';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=187';
+} from './equipment.js?v=190';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=190';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=187';
-import { getMode } from './modes.js?v=187';
+} from './save.js?v=190';
+import { getMode } from './modes.js?v=190';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=187';
+} from './settings.js?v=190';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=187';
-import { tickSpoilage } from './spoilage.js?v=187';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=187';
-import { wearTool, durabilityRatio } from './durability.js?v=187';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=187';
-import { tickLogic, COMPONENT } from './logic.js?v=187';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=187';
+} from './achievements.js?v=190';
+import { tickSpoilage } from './spoilage.js?v=190';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=190';
+import { wearTool, durabilityRatio } from './durability.js?v=190';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=190';
+import { tickLogic, COMPONENT } from './logic.js?v=190';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=190';
 import {
   chestKey,
   getChestSlots,
@@ -84,7 +84,7 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=187';
+} from './chests.js?v=190';
 
 export class Game {
   /**
@@ -183,6 +183,7 @@ export class Game {
     this._lastBiome = null; // biome notification tracker
     this._ignorePauseT = 0;
     this._spawnProtectT = 0;
+    this._spawnPos = null; // {x, y, z} — tracked for starter_map_marker
     this._poweredLamps = new Set();
     this._logicAcc = 0;
     this._biomeNotifyAcc = 0; // accumulator for periodic biome name display
@@ -458,6 +459,7 @@ export class Game {
 
     if (freshPlayer || !saveData) {
       const spawn = this.world.findSpawn();
+      this._spawnPos = { x: spawn.x, y: spawn.y, z: spawn.z };
       this.player = new Player(spawn, { starterRations: this.modeDef().starterRations });
       this.survival = { ...DEFAULT_SURVIVAL };
       this.time = new GameTime({ dayLengthSec: 420 });
@@ -492,6 +494,17 @@ export class Game {
       }
       this._crops = new Map(Array.isArray(saveData.crops) ? saveData.crops : []);
       this._chests = importChests(saveData.chests || []);
+      // restore starter spawn pin (fallback to world spawn for older saves)
+      if (saveData.spawnPos && Number.isFinite(saveData.spawnPos.x)) {
+        this._spawnPos = {
+          x: saveData.spawnPos.x,
+          y: saveData.spawnPos.y,
+          z: saveData.spawnPos.z,
+        };
+      } else {
+        const spawn = this.world.findSpawn();
+        this._spawnPos = { x: spawn.x, y: spawn.y, z: spawn.z };
+      }
     }
 
     this.prevHealth = this.survival.health;
@@ -878,6 +891,7 @@ export class Game {
       seed: this.seed,
       mode: this.mode,
       survival: this.survival,
+      spawnPos: this._spawnPos ? { ...this._spawnPos } : null,
       time: {
         elapsed: this.time.elapsed,
         weather: this.time.weather,
@@ -1526,6 +1540,39 @@ export class Game {
     return dirs[idx];
   }
 
+  /**
+   * Early-game spawn pin: edge compass toward first-hour spawn.
+   * Visible while grace remains or player is still near camp (~120m).
+   */
+  _updateSpawnMarker() {
+    const el = document.getElementById('spawn-marker');
+    if (!el || !this.player || !this._spawnPos) {
+      el?.classList.add('hidden');
+      return;
+    }
+    const px = this.player.position.x;
+    const pz = this.player.position.z;
+    const dx = this._spawnPos.x - px;
+    const dz = this._spawnPos.z - pz;
+    const dist = Math.hypot(dx, dz);
+    const graceOn = (this._spawnProtectT || 0) > 0;
+    // hide once far away after grace (finder becomes clutter)
+    const show = this.started && !this.survival?.dead && (graceOn || dist < 120);
+    el.classList.toggle('hidden', !show);
+    if (!show) return;
+    // world: +X east, -Z north; yaw 0 looks -Z
+    const bearing = Math.atan2(dx, -dz);
+    let rel = bearing - this.player.yaw;
+    while (rel > Math.PI) rel -= Math.PI * 2;
+    while (rel < -Math.PI) rel += Math.PI * 2;
+    const icon = el.querySelector('.marker-icon');
+    if (icon) icon.style.transform = `rotate(${(rel * 180) / Math.PI}deg)`;
+    const label = el.querySelector('.marker-label');
+    if (label) {
+      label.textContent = dist < 4 ? 'SPAWN' : `${Math.round(dist)}m`;
+    }
+  }
+
   _updateOutlineAndPrompt() {
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
@@ -1569,7 +1616,7 @@ export class Game {
             text = `LMB — Attack ${spec?.name || 'animal'} (${Math.ceil(ah.animal.hp)} hp)`;
             // Show feed hint when holding the right item
             if (spec && spec.feedItem) {
-                const feedMap = { berries: ITEM.BERRIES, raw_meat: ITEM.RAW_MEAT };
+                const feedMap = { berries: ITEM.BERRIES, raw_meat: ITEM.RAW_MEAT, seeds: ITEM.SEEDS };
                 const needed = feedMap[spec.feedItem];
                 if (needed && held?.id === needed) {
                     const feedHint = ah.animal._tame > 0 ? ` (${Math.round(ah.animal._tame)}%)` : '';
@@ -2506,6 +2553,8 @@ export class Game {
       ctrlDbg.textContent = `${st} keys:${k.join('')||'-'} ${gp} xyz:${pos}`;
       ctrlDbg.style.color = this.survival?.dead ? '#f66' : k.length ? '#6f6' : '#9cf';
     }
+    this._updateSpawnMarker();
+
     const status = document.getElementById('status-line');
     if (status && this.player) {
       const bits = [];

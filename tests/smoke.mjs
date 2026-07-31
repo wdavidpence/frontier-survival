@@ -3,6 +3,7 @@
  * Run: node tests/smoke.mjs
  */
 import assert from 'assert';
+import { readFileSync } from 'node:fs';
 import {
   DEFAULT_SURVIVAL,
   ambientTempC,
@@ -898,6 +899,66 @@ test('ambientTempOffset forest 0', () => {
   assert.strictEqual(ambientTempOffset(BIOME.FOREST), 0);
 });
 
+// ── biome_temp_table: full table coverage ────────────────────────
+
+test('biome_temp_table complete mapping', () => {
+  // All four BIOME constants must map to a numeric offset
+  const table = [
+    { biome: BIOME.DESERT, expected: +8 },
+    { biome: BIOME.TUNDRA, expected: -10 },
+    { biome: BIOME.SHORE, expected: +2 },
+    { biome: BIOME.FOREST, expected: 0 },
+  ];
+  for (const { biome, expected } of table) {
+    const actual = ambientTempOffset(biome);
+    assert.strictEqual(actual, expected, `biome_temp_table[${biome}]`);
+  }
+});
+
+test('biome_temp_table unknown biome returns default 0', () => {
+  // Any string not in the switch falls through to default → 0
+  assert.strictEqual(ambientTempOffset('jungle'), 0);
+  assert.strictEqual(ambientTempOffset(null), 0);
+  assert.strictEqual(ambientTempOffset(undefined), 0);
+});
+
+test('biome_temp_table all BIOME constants have entries', () => {
+  // Guard against adding a new BIOME constant without an offset entry
+  const knownBiomes = [BIOME.SHORE, BIOME.FOREST, BIOME.DESERT, BIOME.TUNDRA];
+  for (const b of knownBiomes) {
+    const offset = ambientTempOffset(b);
+    assert.ok(
+      typeof offset === 'number' && Number.isFinite(offset),
+      `ambientTempOffset(${b}) must be a finite number`,
+    );
+  }
+});
+
+test('biome_temp_table values are distinct', () => {
+  const offsets = [BIOME.SHORE, BIOME.FOREST, BIOME.DESERT, BIOME.TUNDRA].map(ambientTempOffset);
+  const unique = new Set(offsets);
+  assert.strictEqual(unique.size, offsets.length, 'all biome offsets should be distinct');
+});
+
+test('biome_temp_table desert + shore offset interaction', () => {
+  // Desert (+8) and shore (+2) should produce a measurable gap in feelsLike
+  const state = { ...DEFAULT_SURVIVAL };
+  const desert = tickSurvival(state, {
+    dt: 1, dayPhase: 0.25, weather: 'clear', blockHeat: 0,
+    sprinting: false, moving: false, inWater: false, sleeping: false,
+    ambientTempOffset: 8,
+  });
+  const shore = tickSurvival(state, {
+    dt: 1, dayPhase: 0.25, weather: 'clear', blockHeat: 0,
+    sprinting: false, moving: false, inWater: false, sleeping: false,
+    ambientTempOffset: 2,
+  });
+  assert.ok(
+    desert._debug.feelsLike > shore._debug.feelsLike,
+    `desert feelsLike ${desert._debug.feelsLike} > shore ${shore._debug.feelsLike}`,
+  );
+});
+
 test('BIOME constant values', () => {
   assert.strictEqual(BIOME.SHORE, 'shore');
   assert.strictEqual(BIOME.FOREST, 'forest');
@@ -1180,6 +1241,38 @@ test('v1.8 tickLogic Map form with generator', () => {
   const edges = [['g', 'w'], ['w', 'l']];
   const powered = tickLogic(nodes, edges);
   assert.ok(powered.has('g') && powered.has('w') && powered.has('l'));
+});
+
+
+// ── chicken + sequoia WIP acceptance ───────────────────────────
+
+test('chicken SPECIES exists passive feed seeds', () => {
+  const c = SPECIES.chicken;
+  assert.ok(c, 'chicken species');
+  assert.strictEqual(c.hostile, false);
+  assert.strictEqual(c.feedItem, 'seeds');
+  assert.ok(c.hp > 0 && c.count > 0);
+  assert.ok(canFeed({ type: 'chicken' }, ITEM.SEEDS));
+  assert.ok(!canFeed({ type: 'chicken' }, ITEM.BERRIES));
+});
+
+test('sequoia blocks and world placer exist', () => {
+  assert.ok(BLOCK.SEQUOIA_LOG);
+  assert.ok(BLOCK.SEQUOIA_LEAVES);
+  assert.ok(BLOCK_PROPS[BLOCK.SEQUOIA_LOG]?.solid);
+  assert.ok(BLOCK_PROPS[BLOCK.SEQUOIA_LEAVES]?.transparent);
+  assert.strictEqual(tileForBlock(BLOCK.SEQUOIA_LOG, 'side'), TILE.SEQUOIA_LOG_SIDE);
+  assert.strictEqual(tileForBlock(BLOCK.SEQUOIA_LEAVES, 'side'), TILE.SEQUOIA_LEAVES);
+  const worldSrc = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
+  assert.ok(worldSrc.includes('_placeSequoia'));
+  assert.ok(worldSrc.includes('BLOCK.SEQUOIA_LOG'));
+  assert.ok(worldSrc.includes('biome === BIOME.FOREST'));
+});
+
+test('spawn marker HUD hooks present in index', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(html.includes('id="spawn-marker"'));
+  assert.ok(html.includes('#spawn-marker'));
 });
 
 console.log(`\n${passed} tests passed`);

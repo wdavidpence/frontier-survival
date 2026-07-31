@@ -1,43 +1,40 @@
-# Session handoff — Frontier Survival
+# Frontier Survival — fresh-session handoff
 
-**Permanent mode ACTIVE** until genre-competitive / polished / bug-free.
+Date: 2026-07-30 (judge tick post v1.9.0 ship)
+Repo: `/mnt/c/Users/wdavi/Projects/Frontier-Survival`
+Board: `frontier-survival`
+Live: https://wdavidpence.github.io/frontier-survival/
 
-**v1.8.7** (a4ad31b+) — judge-verified batch: difficulty explain, grace 30m, atlas 7x7+lava, audio voice cap, chunk-worker stub (IDs match blocks), lava tubes + deep clay, ?v=187
-**Live:** https://wdavidpence.github.io/frontier-survival/ — hard refresh
-**Local verify:** http://127.0.0.1:8767/ — browser boot showed forest terrain + HUD + hotbar (seed 429562)
+## Role
+Hermes default is SWE manager + orchestrator + sole code judge. Workers implement; never auto-trust summaries.
 
-## Hermes role (permanent)
-SWE manager + orchestrator + **code judge**. Workers implement; Hermes independently tests and is the only ship gate. File locks prevent concurrent writers destroying good code. See docs/kanban-routing.md.
+## Workers
+- `qwen27s` → qwen27/qwen3.6-27b-mlx @100.71.141.123:1234 depth≤4
+- `qwen35` → qwen35/qwen3.6-35b-a3b-mlx @100.122.149.120:8000 depth≤2
+- `local35` → gpt-oss-20b via WSL bridge :18000 (depth≤1). Prefer tiny pure/docs/reviews only when free.
 
-## Permanent pipeline
-MASTER_PLAN + competitive-backlog → mint → local workers → Hermes judge (smoke+browser+diff) → commit at green plateaus → BUGLOG → cards
-Cron: FS permanent kanban loop every 45m (04f1c4c224d7)
-Depth: qwen27s≤4, qwen35≤2, local35≤1, global≤7
-Hot locks: world/game/atlas/blocks/smoke.mjs — one owner
+## Last ship
+**v1.9.0** — sequoia worldgen placer + forest rare spawn; chicken fauna + seeds feed; starter spawn-marker HUD/save; dual HTML synced; full ES `?v=190` bust. Smoke: 106 passed.
 
-## Board lanes
-- qwen27s @100.71.141.123:1234
-- qwen35 @100.122.149.120:8000
-- local35 @100.90.123.54:8000
+## Board posture
+- Mass `blocked` body-system / multiplayer_future / cave pile = intentional backlog parks + old crash diagnostics (do not mass-unblock).
+- Prefer unblocking pure qa tests and non-overlapping pure modules when capacity free.
+- Hot locks one owner: world/mesh/atlas/blocks, game/main/player, animals, input, tests/smoke.mjs.
+- Caps: qwen27s≤4, qwen35≤2, local35≤1, global≤7. Always `dispatch --max N`.
 
-## Verify
+## Immediate next
+1. Pure smoke tests (hash2 uniformity, bleed, boat, etc.) one smoke owner at a time.
+2. Early-game balance cards that avoid world.js/game.js thrash if locks free.
+3. Next tree species only after sequoia closed; serialize world.js.
+4. Browser boot check on :8767 periodically.
+5. Do not mint more body-system mega cards until core competitive loop polished.
+
+## Commands
+```bash
+cd /mnt/c/Users/wdavi/Projects/Frontier-Survival
 node tests/smoke.mjs
-browser New World: terrain+HUD+controls
+hermes kanban --board frontier-survival stats
+hermes kanban --board frontier-survival dispatch --max 7
+```
 
-## Open process notes
-- mesh-pool.js stub present, not wired (card scheduled)
-- Tree species + ore veins serial behind world.js lock
-- Smoke tests serial behind tests/smoke.mjs lock
-
-## Judge handoff 2026-07-30T21:32
-- Workers: qwen27s, qwen35, local35=gpt-oss-20b (WSL bridge :18000→Win :8000)
-- Shipped WIP batch toward v1.8.9: DualSense/gamepad input+docs, render distance slider (dual HTML), sequoia block/atlas IDs + paints (world spawn still open on sequoia card)
-- Overnight: gateway + cron every 45m; Hermes default = judge
-- Caps: 27s≤4, 35≤2, local35≤1, global≤7; enforce file locks
-
-## Overnight leave 2026-07-30T21:35
-- Shipped **v1.8.9** (59c2be6): DualSense/gamepad, render-distance slider, sequoia atlas paints
-- Third worker **local35 = gpt-oss-20b** ACTIVE (bridge :18000)
-- Running set cleaned for locks: sequoia (qwen27s), starter_map + biome_temp (qwen35), chicken (local35)
-- Cron every 45m strengthened with frontier-survival-judge-loop + multi-worker routing
-- User checking tomorrow morning
+Never git reset/clean/checkout --hard. Workers do not commit/push.

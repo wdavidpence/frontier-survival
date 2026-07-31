@@ -1,11 +1,11 @@
-import { Game } from './game.js?v=187';
-import { hasSave, clearSaveStorage } from './save.js?v=187';
-import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=187';
+import { Game } from './game.js?v=190';
+import { hasSave, clearSaveStorage } from './save.js?v=190';
+import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=190';
 import {
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
-} from './settings.js?v=187';
+} from './settings.js?v=190';
 
 const canvas = document.getElementById('game');
 const title = document.getElementById('title-screen');
