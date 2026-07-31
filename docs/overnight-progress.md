@@ -747,3 +747,4 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-07-31T17:51:13-04:00 | Verified v1.10.4 release: smoke 159 PASS, diff-check PASS, dual HTML equal, local :8767 HTTP 200 + DOM Start→hidden overlay + console errors 0. Board recovered from zero-running; running t_b4aa2af9 qwen27s (input.js) and t_bcd06edc qwen35 (coop inventory). No new ship; b985e2b is already at origin and docs/backlog metadata remains uncommitted. Decision: continue. |
 | 2026-07-31T17:55:05-04:00 | SHIP v1.10.5 p2 inv + p1 lock; browser uiMode false |
 | 2026-07-31T17:58:32-04:00 | SHIP v1.10.6 fauna nearest+dual pause |
+| 2026-07-31T18:02:30-04:00 | SHIP v1.10.7 friendlyFire+pad prompt |

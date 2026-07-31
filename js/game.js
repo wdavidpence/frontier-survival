@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=208';
-import { Player } from './player.js?v=208';
-import { Input } from './input.js?v=208';
-import { GameTime } from './time.js?v=208';
-import { AudioBus } from './audio.js?v=208';
+import { World } from './world.js?v=209';
+import { Player } from './player.js?v=209';
+import { Input } from './input.js?v=209';
+import { GameTime } from './time.js?v=209';
+import { AudioBus } from './audio.js?v=209';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=208';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=208';
+} from './survival.js?v=209';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=209';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=208';
+} from './items.js?v=209';
 import {
   addItems,
   removeItems,
@@ -31,11 +31,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=208';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=208';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=208';
-import { createBlockAtlas } from './atlas.js?v=208';
-import { BreakFX } from './fx.js?v=208';
+} from './inventory.js?v=209';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=209';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=209';
+import { createBlockAtlas } from './atlas.js?v=209';
+import { BreakFX } from './fx.js?v=209';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -45,35 +45,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=208';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=208';
+} from './equipment.js?v=209';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=209';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=208';
-import { getMode } from './modes.js?v=208';
+} from './save.js?v=209';
+import { getMode } from './modes.js?v=209';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=208';
+} from './settings.js?v=209';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=208';
-import { tickSpoilage } from './spoilage.js?v=208';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=208';
-import { wearTool, durabilityRatio } from './durability.js?v=208';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=208';
-import { tickLogic, COMPONENT } from './logic.js?v=208';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=208';
+} from './achievements.js?v=209';
+import { tickSpoilage } from './spoilage.js?v=209';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=209';
+import { wearTool, durabilityRatio } from './durability.js?v=209';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=209';
+import { tickLogic, COMPONENT } from './logic.js?v=209';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=209';
 import {
   chestKey,
   getChestSlots,
@@ -84,11 +84,11 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=208';
-import { checkTooltip, show as showTooltip } from './tooltips.js?v=208';
-import { splitViewport } from './viewport-split.js?v=208';
-import { readGamepad } from './input-coop.js?v=208';
-import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=208';
+} from './chests.js?v=209';
+import { checkTooltip, show as showTooltip } from './tooltips.js?v=209';
+import { splitViewport } from './viewport-split.js?v=209';
+import { readGamepad } from './input-coop.js?v=209';
+import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=209';
 
 export class Game {
   /**
@@ -872,25 +872,28 @@ export class Game {
     this._projectiles = next;
   }
 
-  _tryShootBow() {
-    if (this._bowCd > 0) return false;
-    const held = propsOf(this.player.heldId());
+  _tryShootBow(who = 'p1') {
+    who = who === 'p2' ? 'p2' : 'p1';
+    const cdKey = who === 'p2' ? '_bowCd2' : '_bowCd';
+    if ((this[cdKey] || 0) > 0) return false;
+    const pl = who === 'p2' ? this.player2 : this.player;
+    if (!pl) return false;
+    const held = propsOf(pl.heldId());
     if (held?.tool !== 'bow') return false;
-    if (countItems(this.player.slots, ITEM.ARROW) <= 0) {
-      this.player.notify('No arrows. Craft sticks + cobble.');
+    if (countItems(pl.slots, ITEM.ARROW) <= 0) {
+      pl.notify('No arrows. Craft sticks + cobble.');
       return true;
     }
-    const rem = removeItems(this.player.slots, ITEM.ARROW, 1);
+    const rem = removeItems(pl.slots, ITEM.ARROW, 1);
     if (!rem.ok) return true;
-    this.player.slots = rem.slots;
-    const origin = this.player.eyePosition();
-    const dir = this.player.lookDir();
-    // spawn slightly forward
+    pl.slots = rem.slots;
+    const origin = pl.eyePosition();
+    const dir = pl.lookDir();
     origin.x += dir.x * 0.6;
     origin.y += dir.y * 0.6;
     origin.z += dir.z * 0.6;
-    this._projectiles.push(spawnArrow(origin, dir, { damage: 15, speed: 32, ownerId: 'p1' }));
-    this._bowCd = 0.55;
+    this._projectiles.push(spawnArrow(origin, dir, { damage: 15, speed: 32, ownerId: who }));
+    this[cdKey] = 0.55;
     this._stats.arrowsFired = (this._stats.arrowsFired || 0) + 1;
     this.audio.shoot?.() || this.audio.hit();
     return true;
@@ -988,7 +991,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=208').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=209').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -1327,6 +1330,7 @@ export class Game {
     this.time.tick(dt);
     this._crossHitT = Math.max(0, this._crossHitT - dt);
     this._bowCd = Math.max(0, this._bowCd - dt);
+    this._bowCd2 = Math.max(0, (this._bowCd2 || 0) - dt);
     this._fishCd = Math.max(0, this._fishCd - dt);
     this._fpsFrames++;
     this._fpsAcc += dt;
@@ -1374,8 +1378,14 @@ export class Game {
         }
       }
 
-      if (this.coopMode && this.player2 && this.input2 && !this.paused) {
-        this._handleCoopP2World(dt);
+      if (this.coopMode && this.player2 && this.input2 && !this.paused && !this.survival2?.dead) {
+        // P2 bow steals R2 when holding bow
+        if (this.input2.breakHeld && propsOf(this.player2.heldId())?.tool === 'bow') {
+          this._tryShootBow('p2');
+          this.player2.breaking = null;
+        } else {
+          this._handleCoopP2World(dt);
+        }
       }
 
       if (this.player.pendingFallDamage > 0) {
@@ -1609,9 +1619,14 @@ export class Game {
     if (this.survival.health < this.prevHealth - 0.5) this.audio.hurt();
     this.prevHealth = this.survival.health;
 
-    if (this.survival.dead) {
-      this.setInventoryOpen(false);
-      // Hard-block all input so death screen never looks like frozen controls
+    const p1Dead = !!this.survival.dead;
+    const p2Dead = !!(this.coopMode && this.survival2?.dead);
+    const bothDead = p1Dead && (p2Dead || !this.coopMode);
+
+    // Solo death OR coop both-down → full death overlay (session over until respawn)
+    if (bothDead) {
+      this.setInventoryOpen(false, 'p1');
+      if (this.player2?.inventoryOpen) this.setInventoryOpen(false, 'p2');
       this.input.uiMode = true;
       if (!this._deathSfxPlayed) {
         this.audio.death();
@@ -1621,15 +1636,18 @@ export class Game {
         this._deathHandled = true;
         this._onDeath();
       }
-      this.hud.showDeath?.(this.survival.causeOfDeath, {
+      const cause = p1Dead
+        ? this.survival.causeOfDeath
+        : this.survival2?.causeOfDeath || 'The frontier claims you both.';
+      this.hud.showDeath?.(cause, {
         mode: this.mode,
         permadeath: mode.permadeath,
         dropped: mode.deathDrops,
         day: this.time.dayNumber,
         kills: this._stats?.kills || 0,
         wolfKills: this._stats?.wolfKills || 0,
+        coop: !!this.coopMode,
       });
-      // Keep camera in sync so death view isn't a frozen frame
       if (this.player) {
         this.player.yaw = this.input.lookX;
         this.player.pitch = this.input.lookY;
@@ -1642,6 +1660,30 @@ export class Game {
       this._updateHud();
       return;
     }
+
+    // Coop: one player down — session continues for the living partner
+    if (this.coopMode && p1Dead && !p2Dead) {
+      this.input.uiMode = true;
+      if (document.pointerLockElement) document.exitPointerLock();
+      if (!this._p1DownMsg) {
+        this.player?.notify('You are down. Partner still fights — Respawn when ready.', 6);
+        this._p1DownMsg = true;
+        this.audio.hurt();
+      }
+    } else {
+      this._p1DownMsg = false;
+    }
+    if (this.coopMode && p2Dead && !p1Dead) {
+      if (!this._p2DownMsg) {
+        this.player2?.notify('You are down. Partner still fights — Respawn when ready.', 6);
+        this.player?.notify('P2 is down.', 4);
+        this._p2DownMsg = true;
+        this.audio.hurt();
+      }
+    } else {
+      this._p2DownMsg = false;
+    }
+
     this._deathSfxPlayed = false;
     this._deathHandled = false;
 
@@ -1670,9 +1712,10 @@ export class Game {
           }
         }
       }
-      // bow shot steals LMB when holding bow
+      // bow shot steals LMB when holding bow (living P1 only)
+      if (!this.survival.dead) {
       if (this.input.breakHeld && propsOf(this.player.heldId())?.tool === 'bow') {
-        this._tryShootBow();
+        this._tryShootBow('p1');
         this.player.breaking = null;
         this.fx.hideCrack();
       } else {
@@ -1683,6 +1726,7 @@ export class Game {
       this._handleCookUse();
       this._handleDrop();
       this._updateOutlineAndPrompt();
+      }
       this._tickProjectiles(dt);
       this._tickCrops(dt);
       this._tickLogicPower(dt);
@@ -3057,7 +3101,7 @@ export class Game {
     if (this.coopMode && !this._coopRouter) {
       try {
         // Lazy import path already static at top for readGamepad; router from same module via dynamic if needed
-        import(`./input-coop.js?v=208`).then((mod) => {
+        import(`./input-coop.js?v=209`).then((mod) => {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);
@@ -3344,23 +3388,56 @@ const hbName = document.getElementById('hotbar-name');
     r.render(this.scene, this.camera2);
   }
 
-  respawn() {
+  respawn(who = 'p1') {
     if (!this.world) return;
+    who = who === 'p2' ? 'p2' : 'p1';
     const mode = this.modeDef();
-    if (mode.permadeath) {
-      // full new world
+    if (mode.permadeath && (!this.coopMode || (this.survival?.dead && this.survival2?.dead))) {
       this.hud.hideDeath?.();
       this.newGame();
       return;
     }
-    const spawn = this.world.findSpawn();
-    // keep inventory if not death-drop mode; death already cleared slots if needed
+    const base = this.world.findSpawn();
+    const near = this.coopMode && this.player && who === 'p2' && !this.survival?.dead
+      ? {
+          x: this.player.position.x + 2,
+          y: this.player.position.y,
+          z: this.player.position.z,
+        }
+      : this.coopMode && this.player2 && who === 'p1' && !this.survival2?.dead
+        ? {
+            x: this.player2.position.x + 2,
+            y: this.player2.position.y,
+            z: this.player2.position.z,
+          }
+        : base;
+
+    if (who === 'p2') {
+      if (!this.player2) return;
+      const keepSlots = this.player2.slots;
+      const keepEq = this.player2.equipment;
+      this.player2 = new Player(near, { starterRations: 0 });
+      if (keepSlots) this.player2.slots = cloneSlots(keepSlots);
+      if (keepEq) this.player2.equipment = { ...emptyEquipment(), ...keepEq };
+      if (countItems(this.player2.slots, ITEM.RATION) === 0) {
+        this.player2.slots = createStarterInventory(mode.deathDrops ? 1 : Math.min(3, mode.starterRations || 3));
+      }
+      this.survival2 = { ...DEFAULT_SURVIVAL };
+      this.input2 = this.input2 || new PadInputAdapter();
+      this.input2.lookX = this.player2.yaw;
+      this.input2.lookY = 0;
+      this._p2DownMsg = false;
+      this.player2.notify('P2 respawned. Stay close to your partner.');
+      this.hud.hideDeath?.();
+      this.saveGame({ quiet: true });
+      return;
+    }
+
     const keepSlots = this.player?.slots;
     const keepEq = this.player?.equipment;
-    this.player = new Player(spawn, { starterRations: 0 });
+    this.player = new Player(near, { starterRations: 0 });
     if (keepSlots) this.player.slots = cloneSlots(keepSlots);
     if (keepEq) this.player.equipment = { ...emptyEquipment(), ...keepEq };
-    // if inventory empty after death drops, give a single ration on survival modes
     if (countItems(this.player.slots, ITEM.RATION) === 0 && !mode.deathDrops) {
       this.player.slots = createStarterInventory(mode.starterRations);
     } else if (mode.deathDrops && countItems(this.player.slots, ITEM.RATION) === 0) {
@@ -3369,9 +3446,12 @@ const hbName = document.getElementById('hotbar-name');
     this.survival = { ...DEFAULT_SURVIVAL };
     this.prevHealth = 100;
     this._deathHandled = false;
-    this.fauna?.clearNear(spawn.x, spawn.z, 14);
+    this._p1DownMsg = false;
+    this.fauna?.clearNear(near.x, near.z, 14);
     this.hud.hideDeath?.();
-    this.setInventoryOpen(false);
+    this.setInventoryOpen(false, 'p1');
+    this.input.uiMode = false;
+    this.input.setCaptureEnabled?.(true);
     this.player.notify(
       mode.deathDrops
         ? 'You wake with almost nothing. Rebuild your pack.'
@@ -3379,6 +3459,7 @@ const hbName = document.getElementById('hotbar-name');
     );
     this.saveGame({ quiet: true });
     this._scanLights(true);
+    this.input.requestLock?.();
   }
 
   dispose() {

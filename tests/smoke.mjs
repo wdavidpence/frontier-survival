@@ -2044,4 +2044,13 @@ test('friendlyFire default false in settings', () => {
   assert.strictEqual(on.data.friendlyFire, true);
 });
 
+
+test('game source has coop death and p2 bow hooks', () => {
+  const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.ok(src.includes("_tryShootBow(who = 'p1')") || src.includes('_tryShootBow(who'));
+  assert.ok(src.includes("ownerId: who") || src.includes("ownerId: 'p2'"));
+  assert.ok(src.includes('bothDead') || src.includes('p2Dead'));
+  assert.ok(src.includes("respawn(who"));
+});
+
 if (process.exitCode) process.exit(1);
