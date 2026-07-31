@@ -2,8 +2,8 @@
  * Stack inventory — pure logic (unit-testable).
  * slots: Array<{ id: number|null, count: number }>
  */
-import { maxStack, ITEM } from './items.js?v=202';
-import { BLOCK } from './blocks.js?v=202';
+import { maxStack, ITEM } from './items.js?v=204';
+import { BLOCK } from './blocks.js?v=204';
 
 export const HOTBAR_SIZE = 9;
 export const BAG_SIZE = 18;

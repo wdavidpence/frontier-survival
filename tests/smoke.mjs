@@ -1945,4 +1945,20 @@ test('trigger-button-map: L2 and R2 entries exist', () => {
   assert.strictEqual(TRIGGER_BUTTON_MAP[7].axis, 5, 'R2 button should reference axis 5');
 });
 
+
+import { PadInputAdapter } from '../js/pad-input.js';
+
+test('PadInputAdapter movement thresholds', () => {
+  const p = new PadInputAdapter();
+  p._fwd = 0.5; p._str = -0.5;
+  assert.ok(p.wantsForward());
+  assert.ok(p.wantsLeft());
+  assert.ok(!p.wantsBack());
+  p._jump = true;
+  assert.ok(p.wantsJump());
+  p._scroll = 1;
+  assert.strictEqual(p.consumeHotbarScroll(), 1);
+  assert.strictEqual(p.consumeHotbarScroll(), 0);
+});
+
 if (process.exitCode) process.exit(1);

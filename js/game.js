@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=202';
-import { Player } from './player.js?v=202';
-import { Input } from './input.js?v=202';
-import { GameTime } from './time.js?v=202';
-import { AudioBus } from './audio.js?v=202';
+import { World } from './world.js?v=204';
+import { Player } from './player.js?v=204';
+import { Input } from './input.js?v=204';
+import { GameTime } from './time.js?v=204';
+import { AudioBus } from './audio.js?v=204';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=202';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=202';
+} from './survival.js?v=204';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=204';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=202';
+} from './items.js?v=204';
 import {
   addItems,
   removeItems,
@@ -31,11 +31,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=202';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=202';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=202';
-import { createBlockAtlas } from './atlas.js?v=202';
-import { BreakFX } from './fx.js?v=202';
+} from './inventory.js?v=204';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=204';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=204';
+import { createBlockAtlas } from './atlas.js?v=204';
+import { BreakFX } from './fx.js?v=204';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -45,35 +45,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=202';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=202';
+} from './equipment.js?v=204';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=204';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=202';
-import { getMode } from './modes.js?v=202';
+} from './save.js?v=204';
+import { getMode } from './modes.js?v=204';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=202';
+} from './settings.js?v=204';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=202';
-import { tickSpoilage } from './spoilage.js?v=202';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=202';
-import { wearTool, durabilityRatio } from './durability.js?v=202';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=202';
-import { tickLogic, COMPONENT } from './logic.js?v=202';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=202';
+} from './achievements.js?v=204';
+import { tickSpoilage } from './spoilage.js?v=204';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=204';
+import { wearTool, durabilityRatio } from './durability.js?v=204';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=204';
+import { tickLogic, COMPONENT } from './logic.js?v=204';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=204';
 import {
   chestKey,
   getChestSlots,
@@ -84,10 +84,11 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=202';
-import { checkTooltip, show as showTooltip } from './tooltips.js?v=202';
-import { splitViewport } from './viewport-split.js?v=202';
-import { readGamepad } from './input-coop.js?v=202';
+} from './chests.js?v=204';
+import { checkTooltip, show as showTooltip } from './tooltips.js?v=204';
+import { splitViewport } from './viewport-split.js?v=204';
+import { readGamepad } from './input-coop.js?v=204';
+import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=204';
 
 export class Game {
   /**
@@ -458,7 +459,7 @@ export class Game {
       seed,
       freshPlayer: true,
       notify: this.coopMode
-        ? 'Local Co-op split-screen: left=P1 · right=P2 (pad1 look). Full P2 body next.'
+        ? 'Local Co-op: left=P1 KBM/pad0 · right=P2 body (pad1 move/look).'
         : 'Hunt wildlife · craft a spear · cook at campfires · watch wolves. E craft · F use · K save · Esc pause',
     });
   }
@@ -505,6 +506,7 @@ export class Game {
       this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0 };
       this._achievements = emptyAchievements();
       this._crops = new Map();
+      this._spawnCoopP2(spawn);
     } else {
       this.player = new Player({
         x: saveData.player.x,
@@ -546,6 +548,13 @@ export class Game {
       }
     }
 
+    if (this.coopMode && !this.player2 && this.player) {
+      this._spawnCoopP2({
+        x: this.player.position.x,
+        y: this.player.position.y,
+        z: this.player.position.z,
+      });
+    }
     this.prevHealth = this.survival.health;
     this._deathHandled = false;
     // keep spawn safe from wolves/hares packed on face
@@ -932,7 +941,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=202').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=204').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -1193,6 +1202,21 @@ export class Game {
     let move = { moved: false, sprinting: false, inWater: false };
     if (!this.player.inventoryOpen) {
       move = this.player.update(this.world, this.input, this.survival, dt);
+      if (this.coopMode && this.player2 && this.input2) {
+        // P2 uses pad1 when P1 holds pad0; else pad0 if P1 is KBM-only
+        const p2PadIndex = this.input?._gpConnected ? 1 : 0;
+        const gp2 = getConnectedPad(p2PadIndex);
+        this.input2.poll(gp2, dt, {
+          deadzone: this.input?.deadzone ?? 0.15,
+          sensitivity: this.input?.gpSensitivity ?? 0.03,
+        });
+        this.player2.update(this.world, this.input2, this.survival2 || this.survival, dt);
+        if (this.player2.pendingFallDamage > 0 && this.survival2) {
+          this.survival2 = applyDamage(this.survival2, this.player2.pendingFallDamage, 'fall');
+          this.player2.pendingFallDamage = 0;
+        }
+      }
+
       if (this.player.pendingFallDamage > 0) {
         const dmg = this.player.pendingFallDamage;
         this.player.pendingFallDamage = 0;
@@ -2750,6 +2774,26 @@ export class Game {
     }
   }
 
+
+  _spawnCoopP2(spawn) {
+    this.player2 = null;
+    this.input2 = null;
+    this.survival2 = null;
+    if (!this.coopMode || !spawn) return;
+    const s2 = {
+      x: (spawn.x ?? spawn.position?.x ?? 0) + 2.2,
+      y: spawn.y ?? spawn.position?.y ?? 40,
+      z: spawn.z ?? spawn.position?.z ?? 0,
+    };
+    this.player2 = new Player(s2, { starterRations: this.modeDef().starterRations });
+    this.input2 = new PadInputAdapter();
+    this.input2.lookX = this.player?.yaw || 0;
+    this.input2.lookY = 0;
+    this.survival2 = { ...DEFAULT_SURVIVAL };
+    this._p2Yaw = this.input2.lookX;
+    this._p2Pitch = 0;
+  }
+
   _applyCoopHudMode() {
     try {
       document.body.classList.toggle('coop-mode', !!this.coopMode);
@@ -2757,7 +2801,7 @@ export class Game {
     if (this.coopMode && !this._coopRouter) {
       try {
         // Lazy import path already static at top for readGamepad; router from same module via dynamic if needed
-        import(`./input-coop.js?v=202`).then((mod) => {
+        import(`./input-coop.js?v=204`).then((mod) => {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);
@@ -2779,15 +2823,16 @@ export class Game {
     setBar('bar-sleep', s.sleep, 100);
     setBar('bar-bleed', s.bleed || 0, 100);
 
-    // P2 half-screen meters (shared survival until dual body lands)
+    // P2 half-screen meters (own survival2 when dual body active)
     if (this.coopMode) {
-      setBar('bar-health-p2', s.health, s.maxHealth);
-      setBar('bar-hunger-p2', s.hunger, s.maxHunger);
-      setBar('bar-stamina-p2', s.stamina, s.maxStamina);
-      setBar('bar-temp-p2', this._tempBar(s.bodyTemp), 100);
-      setBar('bar-sleep-p2', s.sleep, 100);
+      const s2 = this.survival2 || s;
+      setBar('bar-health-p2', s2.health, s2.maxHealth);
+      setBar('bar-hunger-p2', s2.hunger, s2.maxHunger);
+      setBar('bar-stamina-p2', s2.stamina, s2.maxStamina);
+      setBar('bar-temp-p2', this._tempBar(s2.bodyTemp), 100);
+      setBar('bar-sleep-p2', s2.sleep, 100);
       const tl2 = document.getElementById('temp-label-p2');
-      if (tl2) tl2.textContent = `${s.bodyTemp.toFixed(1)}°C`;
+      if (tl2) tl2.textContent = `${s2.bodyTemp.toFixed(1)}°C`;
     }
 
     const tempLabel = document.getElementById('temp-label');
@@ -2914,9 +2959,10 @@ export class Game {
     
     // Mirror hotbar chrome to P2 half (shared inv until dual inventory)
     if (this.coopMode && this.player) {
+      const p2 = this.player2 || this.player;
       document.querySelectorAll('#hotbar-p2 .hotbar-slot').forEach((el, i) => {
-        el.classList.toggle('active', i === this.player.hotbarIndex);
-        const stack = this.player.slots[i];
+        el.classList.toggle('active', i === p2.hotbarIndex);
+        const stack = p2.slots[i];
         if (stack && stack.id != null && stack.count > 0) {
           const p = propsOf(stack.id);
           const col = p?.color || [0.5, 0.5, 0.5];
@@ -2971,32 +3017,19 @@ const hbName = document.getElementById('hotbar-name');
     return Math.max(0, Math.min(100, ((bodyTemp - 30) / 12) * 100));
   }
 
-  /** Update P2 freecam offset + look from gamepad slot 1 (DualSense P2). */
+  /** Drive camera2 from player2 (pad body) or freecam fallback beside P1. */
   _updateCoopP2Camera(dt) {
     if (!this.camera2 || !this.player) return;
-    // Look from pad1 (second connected gamepad) when present
+    if (this.player2 && this.input2) {
+      this.camera2.position.copy(this.player2.eyePosition());
+      this.camera2.rotation.order = 'YXZ';
+      this.camera2.rotation.y = this.player2.yaw;
+      this.camera2.rotation.x = this.player2.pitch;
+      return;
+    }
+    // Freecam fallback (no body yet)
     try {
-      const pads = navigator.getGamepads?.() || [];
-      let gp1 = null;
-      let found = 0;
-      for (let i = 0; i < pads.length; i++) {
-        const g = pads[i];
-        if (!g) continue;
-        found++;
-        if (found === 2) {
-          gp1 = g;
-          break;
-        }
-      }
-      // If only one pad and P1 is on KBM, allow pad0 for P2 look as fallback when solo pad coop testing
-      if (!gp1 && this.input && !this.input._gpConnected) {
-        for (let i = 0; i < pads.length; i++) {
-          if (pads[i]) {
-            gp1 = pads[i];
-            break;
-          }
-        }
-      }
+      const gp1 = getConnectedPad(this.input?._gpConnected ? 1 : 0);
       const st = readGamepad(gp1, this.input?.deadzone ?? 0.15);
       if (st) {
         const sens = this.input?.gpSensitivity ?? 0.03;
@@ -3005,12 +3038,8 @@ const hbName = document.getElementById('hotbar-name');
         const lim = Math.PI / 2 - 0.05;
         this._p2Pitch = Math.max(-lim, Math.min(lim, this._p2Pitch));
       }
-    } catch (_) {
-      /* Gamepad API optional */
-    }
-
+    } catch (_) {}
     const eye = this.player.eyePosition();
-    // Stand beside P1 in P1's local right axis
     this._tmpRight.set(Math.cos(this.player.yaw), 0, -Math.sin(this.player.yaw));
     this.camera2.position.set(
       eye.x + this._tmpRight.x * 1.6,

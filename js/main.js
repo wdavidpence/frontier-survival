@@ -1,6 +1,6 @@
-import { Game } from './game.js?v=202';
-import { hasSave, clearSaveStorage } from './save.js?v=202';
-import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=202';
+import { Game } from './game.js?v=204';
+import { hasSave, clearSaveStorage } from './save.js?v=204';
+import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=204';
 import {
   writeSettings,
   sensitivityFromSlider,
@@ -8,7 +8,7 @@ import {
   getPlayMode,
   PLAY_MODE_ORDER,
   PLAY_MODE_META,
-} from './settings.js?v=202';
+} from './settings.js?v=204';
 
 const canvas = document.getElementById('game');
 const title = document.getElementById('title-screen');
@@ -390,4 +390,4 @@ engageControls = function() {
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.10.2');
+console.info('Frontier Survival boot OK · v1.10.3');
