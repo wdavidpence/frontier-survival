@@ -1,5 +1,5 @@
 /**
- * Pure coop proximity helpers (no DOM / Three.js).
+ * Pure coop helpers (no DOM / Three.js).
  */
 
 /**
@@ -22,4 +22,15 @@ export function wouldPartnerNearForSleep(a, b, maxDist = 4.5) {
   const dy = ay - by;
   const dz = az - bz;
   return dx * dx + dy * dy + dz * dz <= md * md;
+}
+
+/**
+ * Coop dual-pass render distance bias (see docs/roadmap/coop-perf-budget.md).
+ * @param {number} sliderRd settings.renderDistance (2–10)
+ * @returns {number} effective chunk/fog radius integer >= 2
+ */
+export function effectiveCoopRenderDistance(sliderRd) {
+  const rd = Number(sliderRd);
+  const base = Number.isFinite(rd) ? rd : 5;
+  return Math.max(2, Math.min(10, Math.round(base) - 2));
 }

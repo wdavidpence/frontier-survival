@@ -2052,7 +2052,7 @@ test('game source has coop death and p2 bow hooks', () => {
   assert.ok(src.includes('bothDead') || src.includes('p2Dead'));
   assert.ok(src.includes("respawn(who"));
   assert.ok(src.includes('both players must stand near the bed'));
-  assert.ok(src.includes('coopMode) rd = Math.max') || src.includes('rd - 2'));
+  assert.ok(src.includes('effectiveCoopRenderDistance'));
 });
 
 test('coop-perf-budget doc exists', () => {
@@ -2062,13 +2062,21 @@ test('coop-perf-budget doc exists', () => {
 });
 
 
-import { wouldPartnerNearForSleep } from '../js/coop-proximity.js';
+import { wouldPartnerNearForSleep, effectiveCoopRenderDistance } from '../js/coop-proximity.js';
 
 test('wouldPartnerNearForSleep near and far', () => {
   assert.ok(wouldPartnerNearForSleep({ x: 0, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, 4.5));
   assert.ok(!wouldPartnerNearForSleep({ x: 0, y: 1, z: 0 }, { x: 20, y: 1, z: 0 }, 4.5));
   assert.ok(!wouldPartnerNearForSleep(null, { x: 0, y: 0, z: 0 }));
   assert.ok(wouldPartnerNearForSleep({ position: { x: 0, y: 0, z: 0 } }, { position: { x: 1, y: 0, z: 0 } }, 2));
+});
+
+
+test('effectiveCoopRenderDistance bias', () => {
+  assert.strictEqual(effectiveCoopRenderDistance(5), 3);
+  assert.strictEqual(effectiveCoopRenderDistance(2), 2);
+  assert.strictEqual(effectiveCoopRenderDistance(10), 8);
+  assert.strictEqual(effectiveCoopRenderDistance(NaN), 3);
 });
 
 if (process.exitCode) process.exit(1);
