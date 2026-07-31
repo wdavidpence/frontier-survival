@@ -2053,6 +2053,7 @@ test('game source has coop death and p2 bow hooks', () => {
   assert.ok(src.includes("respawn(who"));
   assert.ok(src.includes('both players must stand near the bed'));
   assert.ok(src.includes('effectiveCoopRenderDistance'));
+  assert.ok(src.includes('Coop P2 body systems') || src.includes('survival2 = tickSurvival'));
 });
 
 test('coop-perf-budget doc exists', () => {

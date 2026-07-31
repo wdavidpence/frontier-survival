@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=213';
-import { Player } from './player.js?v=213';
-import { Input } from './input.js?v=213';
-import { GameTime } from './time.js?v=213';
-import { AudioBus } from './audio.js?v=213';
+import { World } from './world.js?v=214';
+import { Player } from './player.js?v=214';
+import { Input } from './input.js?v=214';
+import { GameTime } from './time.js?v=214';
+import { AudioBus } from './audio.js?v=214';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=213';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=213';
+} from './survival.js?v=214';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=214';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=213';
+} from './items.js?v=214';
 import {
   addItems,
   removeItems,
@@ -31,11 +31,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=213';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=213';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=213';
-import { createBlockAtlas } from './atlas.js?v=213';
-import { BreakFX } from './fx.js?v=213';
+} from './inventory.js?v=214';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=214';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=214';
+import { createBlockAtlas } from './atlas.js?v=214';
+import { BreakFX } from './fx.js?v=214';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -45,35 +45,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=213';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=213';
+} from './equipment.js?v=214';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=214';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=213';
-import { getMode } from './modes.js?v=213';
+} from './save.js?v=214';
+import { getMode } from './modes.js?v=214';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=213';
+} from './settings.js?v=214';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=213';
-import { tickSpoilage } from './spoilage.js?v=213';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=213';
-import { wearTool, durabilityRatio } from './durability.js?v=213';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=213';
-import { tickLogic, COMPONENT } from './logic.js?v=213';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=213';
+} from './achievements.js?v=214';
+import { tickSpoilage } from './spoilage.js?v=214';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=214';
+import { wearTool, durabilityRatio } from './durability.js?v=214';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=214';
+import { tickLogic, COMPONENT } from './logic.js?v=214';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=214';
 import {
   chestKey,
   getChestSlots,
@@ -84,12 +84,12 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=213';
-import { checkTooltip, show as showTooltip } from './tooltips.js?v=213';
-import { splitViewport } from './viewport-split.js?v=213';
-import { readGamepad } from './input-coop.js?v=213';
-import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=213';
-import { wouldPartnerNearForSleep, effectiveCoopRenderDistance } from './coop-proximity.js?v=213';
+} from './chests.js?v=214';
+import { checkTooltip, show as showTooltip } from './tooltips.js?v=214';
+import { splitViewport } from './viewport-split.js?v=214';
+import { readGamepad } from './input-coop.js?v=214';
+import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=214';
+import { wouldPartnerNearForSleep, effectiveCoopRenderDistance } from './coop-proximity.js?v=214';
 
 export class Game {
   /**
@@ -1010,7 +1010,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=213').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=214').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -1553,6 +1553,61 @@ export class Game {
 
     // bleed DPS
     this.survival = tickBleed(this.survival, dt);
+
+    // Coop P2 body systems (SC-depth: hunger/cold/stamina for second player)
+    if (this.coopMode && this.player2 && this.survival2 && !this.survival2.dead) {
+      const p2 = this.player2.position;
+      const heat2 = heat; // TODO: per-player heat sample; share P1 heat for MVP
+      const roof2 = hasRoofAbove(
+        (x, y, z) => this.world.getBlock(x, y, z),
+        p2.x, p2.y, p2.z, isSolid, isTransparent,
+      );
+      const exp2 = exposureColdMult({
+        weather: this.time.weather,
+        roofed: roof2,
+        wetness: this.survival2.wetness || 0,
+        isNight: this.time.isNight(),
+      });
+      const feet2 = this.world.getBlock(
+        Math.floor(p2.x), Math.floor(p2.y - 0.2), Math.floor(p2.z),
+      );
+      const desert2 = feet2 === BLOCK.SAND && this.time.weather === 'clear' && !this.time.isNight();
+      const biome2 = biomeAt(Math.floor(p2.x), Math.floor(p2.z), this.seed);
+      const temp2 = ambientTempOffset(biome2);
+      const inW2 = this.world.getBlock(p2.x, p2.y, p2.z) === BLOCK.WATER
+        || this.world.getBlock(p2.x, p2.y + 1, p2.z) === BLOCK.WATER;
+      // Approximate move/sprint from pad input2 if present
+      const moving2 = !!(this.input2 && (
+        this.input2.wantsForward() || this.input2.wantsBack()
+        || this.input2.wantsLeft() || this.input2.wantsRight()
+      ));
+      const sprint2 = !!(this.input2 && this.input2.wantsSprint() && moving2);
+      const wGain2 = wetnessGainRate({
+        weather: this.time.weather,
+        roofed: roof2,
+        inWater: inW2,
+      });
+      this.survival2 = tickSurvival(this.survival2, {
+        dt,
+        dayPhase: this.time.dayPhase,
+        weather: this.time.weather,
+        blockHeat: grace > 0.2 ? Math.max(heat2, 10) : heat2,
+        sprinting: sprint2,
+        moving: moving2,
+        inWater: inW2,
+        sleeping: false,
+        hungerMult: mode.hungerMult,
+        coldDamageMult: mode.coldDamageMult * exp2 * (1 - grace * 0.95),
+        wetnessGain: inW2 ? 0 : wGain2 * (1 - grace * 0.8),
+        desertHeat: grace > 0.5 ? false : desert2,
+        ambientTempOffset: temp2 * (1 - grace * 0.7),
+        earlyGameGrace: grace,
+      });
+      this.survival2 = tickBleed(this.survival2, dt);
+      // P2 spoilage
+      const sp2 = tickSpoilage(this.player2.slots, dt, undefined, 1);
+      this.player2.slots = sp2.slots;
+    }
 
     // meat spoilage
     {
@@ -3146,7 +3201,7 @@ export class Game {
     if (this.coopMode && !this._coopRouter) {
       try {
         // Lazy import path already static at top for readGamepad; router from same module via dynamic if needed
-        import(`./input-coop.js?v=213`).then((mod) => {
+        import(`./input-coop.js?v=214`).then((mod) => {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);

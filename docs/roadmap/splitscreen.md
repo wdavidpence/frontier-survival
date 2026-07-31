@@ -322,3 +322,33 @@ Backward compatibility:
 - **Three.js scissor**: `renderer.setScissorTest(true)` + `setScissor(x, y, w, h)` is well-supported in Chrome/Chromium (PS5 browser).
 - **Save migration**: v1 -> v2 must handle existing saves gracefully. Solo players should never notice the change.
 - **PS5 browser gamepad**: May only see one controller. Document this limitation; design for two but test with one.
+
+## PS5 dual DualSense acceptance (browser)
+
+Derived from `docs/playtest-ps5-browser.md` + live v1.10+ coop.
+
+### Boot
+- [ ] Open GH Pages URL in PS5 browser; title shows Solo | Local Co-op
+- [ ] Select **Local Co-op**, Start; dual viewports + P1/P2 tags
+- [ ] If only one pad: `#coop-pad-prompt` visible on right half (large TV text)
+
+### Two DualSense (if OS exposes both to browser)
+- [ ] Pad0 or KBM drives **left** (P1); pad1 drives **right** (P2 body)
+- [ ] P2: left stick move, right stick look, R2 mine, L1 place, Share inv, Options pause, Circle use/sleep
+- [ ] P1 Esc/Options pauses **both**; resume re-locks P1 pointer only
+- [ ] Friendly fire off: swinging/arrows do not kill partner
+- [ ] Fauna can target either player (nearest)
+- [ ] One player death: partner keeps playing; Respawn restores downed player
+- [ ] Both dead: death overlay; Respawn/new as solo path
+- [ ] Bed sleep: both living players within ~4.5m; night skips; both fatigue restore
+- [ ] Save/Continue restores player2 pose + survival2 when playMode coop
+
+### Perf
+- [ ] Coop effective RD = slider−2; aim ≥30 fps dual 1080p-class (see coop-perf-budget.md)
+- [ ] No console spam / freezes on 10+ min session
+
+### Known limits
+- Some PS5 browser builds may only expose **one** gamepad to the page — document result
+- No DualSense haptics/adaptive triggers in browser
+- Tab suspend may drop WebGL context after idle
+
