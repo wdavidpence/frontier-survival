@@ -305,7 +305,25 @@
       letter-spacing: 0.04em;
     }
     .panel button:hover { filter: brightness(1.06); }
-    #death-screen .panel h1 { color: #e08080; }
+    #death-screen {
+      background: radial-gradient(ellipse at center, rgba(40,10,10,0.92), rgba(5,2,2,0.97));
+      z-index: 30;
+    }
+    #death-screen .panel {
+      border-color: rgba(200,80,60,0.4);
+      box-shadow: 0 24px 80px rgba(120,20,10,0.5);
+    }
+    #death-screen .panel h1 {
+      color: #e06050;
+      font-size: 32px;
+    }
+    #death-screen .panel p { color: #d4c8b8; }
+    #death-cause {
+      font-size: 15px;
+      color: #e8a090;
+      font-weight: 600;
+      margin: 12px 0;
+    }
 
     #chest-screen .inv-panel { width: min(420px, 94vw); }
     #chest-slots {

@@ -517,7 +517,7 @@ test('starter inventory respects ration count', () => {
 
 import { spawnArrow, stepProjectile, hitAnimal } from '../js/projectiles.js';
 import { tickSpoilage, isSpoilable, SPOIL_SECONDS } from '../js/spoilage.js';
-import { unlockAchievement, emptyAchievements, ACHIEVEMENTS } from '../js/achievements.js';
+import { unlockAchievement, emptyAchievements, ACHIEVEMENTS, popAchievementToast, achievementTitle, achievementDesc } from '../js/achievements.js';
 // ACHIEVEMENTS used in v1.8 tests
 
 test('v1.2 bow and spoilage', () => {
@@ -1019,6 +1019,125 @@ test('tryFeed wolf gets calm but no tame progress', () => {
 test('ITEM.BERRIES and ITEM.RAW_MEAT values match _FEED_ID', () => {
   assert.strictEqual(ITEM.BERRIES, 115);
   assert.strictEqual(ITEM.RAW_MEAT, 106);
+});
+
+// ── achievement_unlock comprehensive coverage ─────────────
+
+test('emptyAchievements starts with no unlocks', () => {
+  const ach = emptyAchievements();
+  assert.deepStrictEqual(ach.unlocked, {});
+  assert.strictEqual(ach.queue.length, 0);
+});
+
+test('unlockAchievement on valid id sets changed:true and queues', () => {
+  let ach = emptyAchievements();
+  ach = unlockAchievement(ach, 'first_log');
+  assert.ok(ach.changed);
+  assert.strictEqual(ach.unlocked.first_log, true);
+  assert.deepStrictEqual(ach.queue, ['first_log']);
+});
+
+test('unlockAchievement idempotent — second call returns changed:false', () => {
+  let ach = emptyAchievements();
+  ach = unlockAchievement(ach, 'first_fire');
+  const again = unlockAchievement(ach, 'first_fire');
+  assert.strictEqual(again.changed, false);
+  assert.deepStrictEqual(again.queue, ['first_fire']); // not duplicated
+});
+
+test('unlockAchievement ignores empty/null/undefined ids', () => {
+  let ach = emptyAchievements();
+  ach = unlockAchievement(ach, '');
+  assert.strictEqual(ach.changed, false);
+  ach = unlockAchievement(ach, null);
+  assert.strictEqual(ach.changed, false);
+  ach = unlockAchievement(ach, undefined);
+  assert.strictEqual(ach.changed, false);
+});
+
+test('unlockAchievement ignores unknown achievement ids', () => {
+  let ach = emptyAchievements();
+  ach = unlockAchievement(ach, 'nonexistent_achievement');
+  assert.strictEqual(ach.changed, false);
+});
+
+test('unlockAchievement queues multiple distinct achievements', () => {
+  let ach = emptyAchievements();
+  ach = unlockAchievement(ach, 'first_log');
+  ach = unlockAchievement(ach, 'first_fire');
+  ach = unlockAchievement(ach, 'first_kill');
+  assert.strictEqual(Object.keys(ach.unlocked).length, 3);
+  assert.deepStrictEqual(ach.queue, ['first_log', 'first_fire', 'first_kill']);
+});
+
+test('popAchievementToast returns null when queue empty', () => {
+  const ach = emptyAchievements();
+  const result = popAchievementToast(ach);
+  assert.strictEqual(result.id, null);
+});
+
+test('popAchievementToast drains queue in FIFO order', () => {
+  let ach = emptyAchievements();
+  ach = unlockAchievement(ach, 'first_log');
+  ach = unlockAchievement(ach, 'first_fire');
+  ach = unlockAchievement(ach, 'first_night');
+
+  let r = popAchievementToast(ach);
+  assert.strictEqual(r.id, 'first_log');
+
+  r = popAchievementToast(r.state);
+  assert.strictEqual(r.id, 'first_fire');
+
+  r = popAchievementToast(r.state);
+  assert.strictEqual(r.id, 'first_night');
+
+  r = popAchievementToast(r.state);
+  assert.strictEqual(r.id, null); // queue empty
+});
+
+test('popAchievementToast preserves unlocked record after drain', () => {
+  let ach = emptyAchievements();
+  ach = unlockAchievement(ach, 'first_log');
+
+  let r = popAchievementToast(ach);
+  assert.strictEqual(r.id, 'first_log');
+
+  // unlocked record still has the achievement even after popping
+  assert.strictEqual(r.state.unlocked.first_log, true);
+});
+
+test('achievementTitle returns known title for valid id', () => {
+  assert.strictEqual(achievementTitle('first_log'), 'Woodsman');
+  assert.strictEqual(achievementTitle('first_fire'), 'Spark of Life');
+  assert.strictEqual(achievementTitle('first_night'), 'Still Breathing');
+});
+
+test('achievementTitle falls back to id for unknown', () => {
+  assert.strictEqual(achievementTitle('no_such_achievement'), 'no_such_achievement');
+});
+
+test('achievementDesc returns known description', () => {
+  assert.strictEqual(achievementDesc('first_log'), 'Gather your first log.');
+  assert.strictEqual(achievementDesc('first_fire'), 'Place a campfire.');
+});
+
+test('achievementDesc returns empty string for unknown id', () => {
+  assert.strictEqual(achievementDesc('no_such_achievement'), '');
+});
+
+test('ACHIEVEMENTS array has expected count and structure', () => {
+  assert.ok(ACHIEVEMENTS.length >= 20);
+  for (const a of ACHIEVEMENTS) {
+    assert.ok(typeof a.id === 'string' && a.id.length > 0);
+    assert.ok(typeof a.title === 'string' && a.title.length > 0);
+    assert.ok(typeof a.desc === 'string' && a.desc.length > 0);
+  }
+});
+
+test('ACHIEVEMENTS ids are unique', () => {
+  const ids = ACHIEVEMENTS.map(a => a.id);
+  const unique = new Set(ids);
+  assert.strictEqual(unique.size, ids.length, 'duplicate achievement ids found');
 });
 
 // Final summary — moved here so all tests run first

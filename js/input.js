@@ -88,6 +88,13 @@ export class Input {
     this._vCrouch = false;
     /** Gamepad state */
     this._gpIndex = -1;
+    this._gpConnected = false;
+    /** Gamepad deadzone (0-1, default 0.15) */
+    this.deadzone = 0.15;
+    /** Gamepad look sensitivity (multiplier on right-stick delta) */
+    this.gpSensitivity = 0.03;
+    /** Gamepad vibration/rumble handle */
+    this._gpVibrate = null;
   }
 
   clearTransient({ keepMove = false } = {}) {
@@ -129,15 +136,18 @@ export class Input {
       if (this.el) this.el.style.cursor = this.locked ? 'none' : 'crosshair';
       return this.locked;
     };
+    // Firefox rejects { unadjustedMovement: true } — skip option there.
+    const _isFirefox = /firefox\//i.test(navigator.userAgent);
     try {
-      const ret = this.el.requestPointerLock && this.el.requestPointerLock({ unadjustedMovement: true });
+      const opts = _isFirefox ? undefined : { unadjustedMovement: true };
+      const ret = this.el.requestPointerLock && this.el.requestPointerLock(opts);
       if (ret && typeof ret.then === 'function') {
         return ret.then(finish).catch(() => {
+          // Non-Firefox browsers may still reject unadjustedMovement — bare retry.
           try { this.el.requestPointerLock(); } catch (_) { /* */ }
           return finish();
         });
       }
-      try { this.el.requestPointerLock(); } catch (_) { /* */ }
       return Promise.resolve(finish());
     } catch (_) {
       try { this.el.requestPointerLock(); } catch (__){ /* */ }

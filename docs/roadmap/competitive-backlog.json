@@ -1409,9 +1409,9 @@
       "body": "Add procedural sequoia tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_9628ac54"
     },
     {
       "id": "FS-f51472fa5a",
@@ -1420,9 +1420,9 @@
       "body": "Add procedural spruce tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_a9e70d60"
     },
     {
       "id": "FS-00610d5819",
@@ -1431,9 +1431,9 @@
       "body": "Add procedural willow tree variant with distinct trunk/canopy, spawn rules by biome, log/leaf drops.",
       "files": "js/world.js,js/atlas.js,js/blocks.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_c842acc2"
     },
     {
       "id": "FS-7ebaa66a63",
@@ -2036,9 +2036,9 @@
       "body": "Add animal species alligator: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_474a86aa"
     },
     {
       "id": "FS-55cbb69365",
@@ -2047,9 +2047,9 @@
       "body": "Add animal species bat: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_153f0b8f"
     },
     {
       "id": "FS-2c909202f2",
@@ -2058,9 +2058,9 @@
       "body": "Add animal species bear_brown: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_039e1a5f"
     },
     {
       "id": "FS-5298fa54e1",
@@ -2069,9 +2069,9 @@
       "body": "Add animal species bear_polar: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_7e38efd9"
     },
     {
       "id": "FS-348b54a70c",
@@ -2080,9 +2080,9 @@
       "body": "Add animal species bee_swarm: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_4541dd19"
     },
     {
       "id": "FS-e3ac4f1a66",
@@ -2091,9 +2091,9 @@
       "body": "Add animal species bison: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_48862143"
     },
     {
       "id": "FS-9069938e9f",
@@ -2102,9 +2102,9 @@
       "body": "Add animal species boar: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_c3b4573a"
     },
     {
       "id": "FS-ab7100ab3d",
@@ -2113,9 +2113,9 @@
       "body": "Add animal species camel: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_ff6d059a"
     },
     {
       "id": "FS-e081fd3624",
@@ -2124,9 +2124,9 @@
       "body": "Add animal species cat_wild: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_eadb0749"
     },
     {
       "id": "FS-7434adc665",
@@ -2135,9 +2135,9 @@
       "body": "Add animal species chicken: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_c3d3018e"
     },
     {
       "id": "FS-2d1e943eb0",
@@ -2146,9 +2146,9 @@
       "body": "Add animal species cougar: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_8fd1aab1"
     },
     {
       "id": "FS-cabbb1d72a",
@@ -2157,9 +2157,9 @@
       "body": "Add animal species cow: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_5e1bb100"
     },
     {
       "id": "FS-bec11d109f",
@@ -2168,9 +2168,9 @@
       "body": "Add animal species crab: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_9c956220"
     },
     {
       "id": "FS-f8ba4cc1e8",
@@ -2179,9 +2179,9 @@
       "body": "Add animal species crow: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_94f43200"
     },
     {
       "id": "FS-e984c35d65",
@@ -2190,9 +2190,9 @@
       "body": "Add animal species deer_stag: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_fbb425c3"
     },
     {
       "id": "FS-1e19bb4d84",
@@ -2201,9 +2201,9 @@
       "body": "Add animal species dog_wild: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_2a915063"
     },
     {
       "id": "FS-ad75b590da",
@@ -2212,9 +2212,9 @@
       "body": "Add animal species donkey: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_52d8296b"
     },
     {
       "id": "FS-b99940bb73",
@@ -2223,9 +2223,9 @@
       "body": "Add animal species eagle: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_7eb08645"
     },
     {
       "id": "FS-11c1cc492f",
@@ -2234,9 +2234,9 @@
       "body": "Add animal species firefly: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_94ba8632"
     },
     {
       "id": "FS-2fcf30c6b0",
@@ -2245,9 +2245,9 @@
       "body": "Add animal species fish_school: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_47c0c3e4"
     },
     {
       "id": "FS-9ecaf120f4",
@@ -2256,9 +2256,9 @@
       "body": "Add animal species fox: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_845e2b3e"
     },
     {
       "id": "FS-a14432ba39",
@@ -2267,9 +2267,9 @@
       "body": "Add animal species goat: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_abbd7df4"
     },
     {
       "id": "FS-7c6bb6a663",
@@ -2278,9 +2278,9 @@
       "body": "Add animal species horse: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_83fe4543"
     },
     {
       "id": "FS-0df641fb20",
@@ -2289,9 +2289,9 @@
       "body": "Add animal species hyena: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_6a62ef14"
     },
     {
       "id": "FS-99fd81d960",
@@ -2300,9 +2300,9 @@
       "body": "Add animal species llama: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_c91ca361"
     },
     {
       "id": "FS-f9be1852e6",
@@ -2311,9 +2311,9 @@
       "body": "Add animal species monkey: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_7ad28dbc"
     },
     {
       "id": "FS-a28fc5faa8",
@@ -2322,9 +2322,9 @@
       "body": "Add animal species moose: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_8e93acdf"
     },
     {
       "id": "FS-6a1071ddbf",
@@ -2333,9 +2333,9 @@
       "body": "Add animal species owl: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_e2b771d5"
     },
     {
       "id": "FS-adc00f9242",
@@ -2344,9 +2344,9 @@
       "body": "Add animal species parrot: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_89acd69d"
     },
     {
       "id": "FS-8e3499b014",

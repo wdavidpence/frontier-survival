@@ -1282,6 +1282,8 @@ export class Game {
 
     if (this.survival.dead) {
       this.setInventoryOpen(false);
+      // Hard-block all input so death screen never looks like frozen controls
+      this.input.uiMode = true;
       if (!this._deathSfxPlayed) {
         this.audio.death();
         this._deathSfxPlayed = true;

@@ -59,9 +59,7 @@ const hud = {
     death.classList.remove('hidden');
     const el = document.getElementById('death-cause');
     if (el) {
-      el.textContent = cause
-        ? `Cause: ${cause} — ${causeFlavor(cause)}`
-        : causeFlavor(cause);
+      el.textContent = cause ? `${causeFlavor(cause)} (${cause})` : 'You died.';
     }
     const stats = document.getElementById('death-stats');
     if (stats) {
