@@ -2,7 +2,7 @@
  * Equipment / clothing — warmth loadout (SC differentiator).
  * Pure logic.
  */
-import { ITEM, propsOf } from './items.js?v=201';
+import { ITEM, propsOf } from './items.js?v=202';
 
 export const EQUIP_SLOTS = ['head', 'chest', 'feet'];
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frontier Survival v1.10.1</title>
+  <title>Frontier Survival v1.10.2</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -105,6 +105,75 @@
       border-color: var(--accent);
       box-shadow: 0 0 0 1px var(--accent), inset 0 0 12px rgba(212,165,116,0.25);
     }
+
+    /* Local co-op dual HUD (left=P1, right=P2) */
+    body.coop-mode #meters {
+      left: 12px; bottom: 72px; width: min(200px, 42vw);
+    }
+    body.coop-mode #hotbar {
+      left: 25%; bottom: 14px; transform: translateX(-50%);
+      gap: 4px; padding: 6px;
+    }
+    body.coop-mode #hotbar .hotbar-slot { width: 36px; height: 36px; }
+    body.coop-mode #crosshair { left: 25%; }
+    body.coop-mode #status-line { left: 12px; right: auto; max-width: 46vw; }
+    body.coop-mode #help { display: none; }
+    body.coop-mode #version-badge { left: 12px; right: auto; }
+    #meters-p2, #hotbar-p2, #crosshair-p2, #p2-tag {
+      display: none;
+    }
+    body.coop-mode #meters-p2 {
+      display: flex; flex-direction: column; gap: 6px;
+      position: absolute; right: 12px; bottom: 72px;
+      width: min(200px, 42vw);
+      padding: 10px 12px;
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      backdrop-filter: blur(6px);
+    }
+    body.coop-mode #hotbar-p2 {
+      display: flex; gap: 4px;
+      position: absolute; left: 75%; bottom: 14px;
+      transform: translateX(-50%);
+      padding: 6px;
+      background: var(--panel);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    body.coop-mode #hotbar-p2 .hotbar-slot { width: 36px; height: 36px; }
+    body.coop-mode #crosshair-p2 {
+      display: block;
+      position: absolute; left: 75%; top: 50%;
+      width: 14px; height: 14px;
+      margin: -7px 0 0 -7px;
+      border: 2px solid rgba(180,220,255,0.75);
+      border-radius: 50%;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.35);
+    }
+    body.coop-mode #p2-tag {
+      display: block;
+      position: absolute; right: 12px; top: 12px;
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: #b8d4f0; background: rgba(20,40,70,0.65);
+      padding: 4px 10px; border-radius: 12px;
+      border: 1px solid rgba(120,160,220,0.45);
+    }
+    body.coop-mode #p1-tag {
+      display: block;
+      position: absolute; left: 12px; top: 12px;
+      font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: #f0d4b8; background: rgba(70,40,20,0.65);
+      padding: 4px 10px; border-radius: 12px;
+      border: 1px solid rgba(212,165,116,0.45);
+    }
+    #p1-tag { display: none; }
+    #bar-health-p2 { background: linear-gradient(90deg, #8b1e1e, var(--health)); }
+    #bar-hunger-p2 { background: linear-gradient(90deg, #8a7020, var(--hunger)); }
+    #bar-stamina-p2 { background: linear-gradient(90deg, #1f5c38, var(--stamina)); }
+    #bar-temp-p2 { background: linear-gradient(90deg, #2a6a9a, var(--temp)); }
+    #bar-sleep-p2 { background: linear-gradient(90deg, #4a3d78, var(--sleep)); }
+
     .hotbar-slot::after {
       content: attr(data-key);
       position: absolute; top: 2px; left: 4px;
@@ -605,7 +674,29 @@
     <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.10.1</div>
+    <div id="version-badge">v1.10.2</div>
+    <div id="p1-tag">P1</div>
+    <div id="p2-tag">P2 · pad1 look</div>
+    <div id="crosshair-p2"></div>
+    <div id="meters-p2">
+      <div class="meter"><span>Health</span><div class="track"><div id="bar-health-p2" class="fill"></div></div></div>
+      <div class="meter"><span>Hunger</span><div class="track"><div id="bar-hunger-p2" class="fill"></div></div></div>
+      <div class="meter"><span>Stamina</span><div class="track"><div id="bar-stamina-p2" class="fill"></div></div></div>
+      <div class="meter"><span>Temp <span id="temp-label-p2"></span></span><div class="track"><div id="bar-temp-p2" class="fill"></div></div></div>
+      <div class="meter"><span>Fatigue</span><div class="track"><div id="bar-sleep-p2" class="fill"></div></div></div>
+    </div>
+    <div id="hotbar-p2">
+      <div class="hotbar-slot active" data-key="1"></div>
+      <div class="hotbar-slot" data-key="2"></div>
+      <div class="hotbar-slot" data-key="3"></div>
+      <div class="hotbar-slot" data-key="4"></div>
+      <div class="hotbar-slot" data-key="5"></div>
+      <div class="hotbar-slot" data-key="6"></div>
+      <div class="hotbar-slot" data-key="7"></div>
+      <div class="hotbar-slot" data-key="8"></div>
+      <div class="hotbar-slot" data-key="9"></div>
+    </div>
+
     <div id="meters">
       <div class="meter"><span>Health</span><div class="track"><div id="bar-health" class="fill"></div></div></div>
       <div class="meter"><span>Hunger</span><div class="track"><div id="bar-hunger" class="fill"></div></div></div>
@@ -630,7 +721,7 @@
       <b>LMB</b> mine/bow · <b>RMB</b> place/plant · <b>Q</b> drop<br/>
       <b>F</b> chest/fish/fertilize/cook/sleep · <b>R</b> eat/salve<br/>
       <b>E</b> craft · <b>K</b> save · <b>Esc</b> pause · <b>F3</b> debug<br/>
-      Door F · Bandage R (stop Bleed) · Drink water F · Shift-click split stacks
+      Door F · Bandage R · Drink F · Co-op: left P1 KBM/pad0 · right P2 pad1 look
     </div>
   </div>
 
@@ -662,7 +753,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.10.1</div>
+      <div class="tag">Browser survival sandbox · v1.10.2</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -729,6 +820,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=201"></script>
+  <script type="module" src="./js/main.js?v=202"></script>
 </body>
 </html>

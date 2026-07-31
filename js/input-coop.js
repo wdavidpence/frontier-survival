@@ -1,4 +1,4 @@
-import { GamepadSlotManager } from './input.js?v=201';
+import { GamepadSlotManager } from './input.js?v=202';
 
 export const P1 = 'p1';
 export const P2 = 'p2';

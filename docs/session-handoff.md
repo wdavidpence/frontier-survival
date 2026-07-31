@@ -215,3 +215,9 @@ Next: verify pure-module cards → promote viewport/coop-state (no input.js) →
 - Board: 1 running (`t_8ca91af1` qwen27s), 76 scheduled, 68 blocked, 79 done. New correction `t_40dd3d59` is scheduled behind `js/input.js` ownership.
 - Release: broad uncommitted WIP; dual HTML equal; 61 relative imports use `?v=200`, but 6 unversioned relative imports remain in co-op/JSDoc paths; no commit/push.
 - Next: verify DualSense card, then unblock cache-bust correction and rerun full release checks.
+
+## Ship v1.10.1 — 2026-07-31T17:36
+- commit `4910079` pushed main
+- Solo|Local Co-op + dual scissor cameras (P2 freecam pad1)
+- smoke 159; ?v=201 full bust
+- next: dual HUD, bind P1/P2, P2 body entity
