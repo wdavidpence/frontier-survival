@@ -3,17 +3,58 @@
  * World edits are sparse [x,y,z,id] tuples applied after regen from seed.
  */
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export const SAVE_KEY = 'frontier_survival_save_v1';
+
+function packPlayer(player) {
+  if (!player) return null;
+  return {
+    x: player.x,
+    y: player.y,
+    z: player.z,
+    yaw: player.yaw,
+    pitch: player.pitch,
+    hotbarIndex: player.hotbarIndex,
+    slots: (player.slots || []).map((s) => ({
+      id: s.id,
+      count: s.count,
+      ...(s.age != null ? { age: s.age } : {}),
+      ...(s.dur != null ? { dur: s.dur } : {}),
+    })),
+    equipment: player.equipment || { head: null, chest: null, feet: null },
+  };
+}
+
+function packSurvival(survival) {
+  if (!survival) return null;
+  return {
+    health: survival.health,
+    maxHealth: survival.maxHealth,
+    hunger: survival.hunger,
+    maxHunger: survival.maxHunger,
+    stamina: survival.stamina,
+    maxStamina: survival.maxStamina,
+    bodyTemp: survival.bodyTemp,
+    sleep: survival.sleep,
+    wetness: survival.wetness,
+    warmthFromClothes: survival.warmthFromClothes || 0,
+    dead: !!survival.dead,
+    causeOfDeath: survival.causeOfDeath || null,
+    bleed: survival.bleed || 0,
+  };
+}
 
 /**
  * @param {object} state
  * @param {number} state.seed
- * @param {number} state.mode
+ * @param {string} [state.mode]
+ * @param {string} [state.playMode]
  * @param {object} state.survival
- * @param {object} state.time — { elapsed, weather, weatherTimer, dayLengthSec }
- * @param {object} state.player — { x,y,z, yaw, pitch, hotbarIndex, slots }
- * @param {Array<[number,number,number,number]>} state.edits
+ * @param {object} [state.survival2]
+ * @param {object} state.time
+ * @param {object} state.player
+ * @param {object} [state.player2]
+ * @param {Array} state.edits
  */
 export function buildSavePayload(state) {
   return {
@@ -21,43 +62,24 @@ export function buildSavePayload(state) {
     savedAt: Date.now(),
     seed: state.seed,
     mode: state.mode || 'survival',
-    survival: {
-      health: state.survival.health,
-      maxHealth: state.survival.maxHealth,
-      hunger: state.survival.hunger,
-      maxHunger: state.survival.maxHunger,
-      stamina: state.survival.stamina,
-      maxStamina: state.survival.maxStamina,
-      bodyTemp: state.survival.bodyTemp,
-      sleep: state.survival.sleep,
-      wetness: state.survival.wetness,
-      warmthFromClothes: state.survival.warmthFromClothes || 0,
-      dead: !!state.survival.dead,
-      causeOfDeath: state.survival.causeOfDeath || null,
-    },
+    playMode: state.playMode === 'coop' ? 'coop' : 'solo',
+    survival: packSurvival(state.survival),
+    survival2: packSurvival(state.survival2),
     time: {
       elapsed: state.time.elapsed,
       weather: state.time.weather,
       weatherTimer: state.time.weatherTimer,
       dayLengthSec: state.time.dayLengthSec,
     },
-    player: {
-      x: state.player.x,
-      y: state.player.y,
-      z: state.player.z,
-      yaw: state.player.yaw,
-      pitch: state.player.pitch,
-      hotbarIndex: state.player.hotbarIndex,
-      slots: (state.player.slots || []).map((s) => ({
-        id: s.id,
-        count: s.count,
-        ...(s.age != null ? { age: s.age } : {}),
-        ...(s.dur != null ? { dur: s.dur } : {}),
-      })),
-      equipment: state.player.equipment || { head: null, chest: null, feet: null },
-    },
+    player: packPlayer(state.player),
+    player2: packPlayer(state.player2),
     edits: state.edits || [],
     animals: Array.isArray(state.animals) ? state.animals : [],
+    stats: state.stats || undefined,
+    achievements: state.achievements || undefined,
+    crops: state.crops || undefined,
+    chests: state.chests || undefined,
+    spawnPos: state.spawnPos || undefined,
   };
 }
 
@@ -76,7 +98,7 @@ export function parseSavePayload(raw) {
     }
   }
   if (!data || typeof data !== 'object') return { ok: false, error: 'not object' };
-  if (data.v !== SAVE_VERSION) return { ok: false, error: `unsupported version ${data.v}` };
+  if (data.v !== 1 && data.v !== 2) return { ok: false, error: `unsupported version ${data.v}` };
   if (typeof data.seed !== 'number') return { ok: false, error: 'missing seed' };
   if (!data.player || typeof data.player.x !== 'number') return { ok: false, error: 'missing player' };
   if (!data.survival) return { ok: false, error: 'missing survival' };
@@ -87,6 +109,16 @@ export function parseSavePayload(raw) {
   if (!data.player.equipment || typeof data.player.equipment !== 'object') {
     data.player.equipment = { head: null, chest: null, feet: null };
   }
+  if (data.playMode !== 'coop') data.playMode = 'solo';
+  if (data.player2 && typeof data.player2.x === 'number') {
+    if (!Array.isArray(data.player2.slots)) data.player2.slots = [];
+    if (!data.player2.equipment || typeof data.player2.equipment !== 'object') {
+      data.player2.equipment = { head: null, chest: null, feet: null };
+    }
+  } else {
+    data.player2 = null;
+  }
+  if (!data.survival2 || typeof data.survival2 !== 'object') data.survival2 = null;
   // sanitize edits
   data.edits = data.edits.filter(
     (e) =>

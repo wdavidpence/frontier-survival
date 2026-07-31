@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=204';
-import { Player } from './player.js?v=204';
-import { Input } from './input.js?v=204';
-import { GameTime } from './time.js?v=204';
-import { AudioBus } from './audio.js?v=204';
+import { World } from './world.js?v=205';
+import { Player } from './player.js?v=205';
+import { Input } from './input.js?v=205';
+import { GameTime } from './time.js?v=205';
+import { AudioBus } from './audio.js?v=205';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=204';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=204';
+} from './survival.js?v=205';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=205';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=204';
+} from './items.js?v=205';
 import {
   addItems,
   removeItems,
@@ -31,11 +31,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=204';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=204';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=204';
-import { createBlockAtlas } from './atlas.js?v=204';
-import { BreakFX } from './fx.js?v=204';
+} from './inventory.js?v=205';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=205';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=205';
+import { createBlockAtlas } from './atlas.js?v=205';
+import { BreakFX } from './fx.js?v=205';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -45,35 +45,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=204';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=204';
+} from './equipment.js?v=205';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=205';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=204';
-import { getMode } from './modes.js?v=204';
+} from './save.js?v=205';
+import { getMode } from './modes.js?v=205';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=204';
+} from './settings.js?v=205';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=204';
-import { tickSpoilage } from './spoilage.js?v=204';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=204';
-import { wearTool, durabilityRatio } from './durability.js?v=204';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=204';
-import { tickLogic, COMPONENT } from './logic.js?v=204';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=204';
+} from './achievements.js?v=205';
+import { tickSpoilage } from './spoilage.js?v=205';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=205';
+import { wearTool, durabilityRatio } from './durability.js?v=205';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=205';
+import { tickLogic, COMPONENT } from './logic.js?v=205';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=205';
 import {
   chestKey,
   getChestSlots,
@@ -84,11 +84,11 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=204';
-import { checkTooltip, show as showTooltip } from './tooltips.js?v=204';
-import { splitViewport } from './viewport-split.js?v=204';
-import { readGamepad } from './input-coop.js?v=204';
-import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=204';
+} from './chests.js?v=205';
+import { checkTooltip, show as showTooltip } from './tooltips.js?v=205';
+import { splitViewport } from './viewport-split.js?v=205';
+import { readGamepad } from './input-coop.js?v=205';
+import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=205';
 
 export class Game {
   /**
@@ -523,6 +523,34 @@ export class Game {
         ? { ...emptyEquipment(), ...saveData.player.equipment }
         : emptyEquipment();
       this.survival = { ...DEFAULT_SURVIVAL, ...saveData.survival, dead: false, causeOfDeath: null };
+      if (saveData.playMode === 'coop') {
+        this.coopMode = true;
+        this.settings.playMode = 'coop';
+      }
+      if (saveData.player2 && typeof saveData.player2.x === 'number') {
+        this.player2 = new Player({
+          x: saveData.player2.x,
+          y: saveData.player2.y,
+          z: saveData.player2.z,
+        });
+        this.player2.yaw = saveData.player2.yaw || 0;
+        this.player2.pitch = saveData.player2.pitch || 0;
+        this.player2.hotbarIndex = saveData.player2.hotbarIndex || 0;
+        this.player2.slots = cloneSlots(saveData.player2.slots || []);
+        this.player2.equipment = saveData.player2.equipment
+          ? { ...emptyEquipment(), ...saveData.player2.equipment }
+          : emptyEquipment();
+        this.input2 = new PadInputAdapter();
+        this.input2.lookX = this.player2.yaw;
+        this.input2.lookY = this.player2.pitch;
+        this.survival2 = {
+          ...DEFAULT_SURVIVAL,
+          ...(saveData.survival2 || {}),
+          dead: false,
+          causeOfDeath: null,
+        };
+      }
+
       this.time = new GameTime({ dayLengthSec: saveData.time.dayLengthSec || 420 });
       this.time.elapsed = saveData.time.elapsed || 0;
       this.time.weather = saveData.time.weather || 'clear';
@@ -941,7 +969,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=204').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=205').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -956,10 +984,25 @@ export class Game {
   }
 
   captureState() {
+    const packLive = (pl) =>
+      pl
+        ? {
+            x: pl.position.x,
+            y: pl.position.y,
+            z: pl.position.z,
+            yaw: pl.yaw,
+            pitch: pl.pitch,
+            hotbarIndex: pl.hotbarIndex,
+            slots: pl.slots,
+            equipment: pl.equipment || emptyEquipment(),
+          }
+        : null;
     return {
       seed: this.seed,
       mode: this.mode,
+      playMode: this.coopMode ? 'coop' : 'solo',
       survival: this.survival,
+      survival2: this.survival2 || null,
       spawnPos: this._spawnPos ? { ...this._spawnPos } : null,
       time: {
         elapsed: this.time.elapsed,
@@ -967,16 +1010,8 @@ export class Game {
         weatherTimer: this.time.weatherTimer,
         dayLengthSec: this.time.dayLengthSec,
       },
-      player: {
-        x: this.player.position.x,
-        y: this.player.position.y,
-        z: this.player.position.z,
-        yaw: this.player.yaw,
-        pitch: this.player.pitch,
-        hotbarIndex: this.player.hotbarIndex,
-        slots: this.player.slots,
-        equipment: this.player.equipment || emptyEquipment(),
-      },
+      player: packLive(this.player),
+      player2: packLive(this.player2),
       edits: this.world.exportEdits(),
       animals: this.fauna ? this.fauna.exportState() : [],
       stats: this._stats || { kills: 0, wolfKills: 0, arrowsFired: 0 },
@@ -1215,6 +1250,10 @@ export class Game {
           this.survival2 = applyDamage(this.survival2, this.player2.pendingFallDamage, 'fall');
           this.player2.pendingFallDamage = 0;
         }
+      }
+
+      if (this.coopMode && this.player2 && this.input2 && !this.paused) {
+        this._handleCoopP2World(dt);
       }
 
       if (this.player.pendingFallDamage > 0) {
@@ -2775,6 +2814,72 @@ export class Game {
   }
 
 
+
+  /** P2 shared-world mine/place via pad (R2 break, L1 place). */
+  _handleCoopP2World(dt) {
+    const p = this.player2;
+    const input = this.input2;
+    if (!p || !input || !this.world || this.survival2?.dead) return;
+    const origin = p.eyePosition();
+    const dir = p.lookDir();
+
+    if (input.breakHeld) {
+      const hit = this.world.raycast(origin, dir, 6);
+      if (hit && hit.id !== BLOCK.BEDROCK) {
+        const key = `${hit.x},${hit.y},${hit.z}`;
+        if (!p.breaking || p.breaking.key !== key) {
+          p.breaking = { key, x: hit.x, y: hit.y, z: hit.z, progress: 0 };
+        }
+        const hard = getHardness(hit.id);
+        const mult = mineMultiplier(p.heldId(), hit.id);
+        p.breaking.progress += (this._breakSpeed * mult * dt) / hard;
+        if (p.breaking.progress >= 1) {
+          let drop = dropForBlock(hit.id);
+          this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR);
+          if (drop != null) {
+            const add = addItems(p.slots, drop, 1);
+            p.slots = add.slots;
+          }
+          this.audio.breakBlock?.();
+          p.breaking = null;
+          this.fx?.setCrack?.(null, 0);
+        }
+      } else {
+        p.breaking = null;
+      }
+    } else {
+      p.breaking = null;
+    }
+
+    if (input.consumePlace?.()) {
+      const hit = this.world.raycast(origin, dir, 6);
+      if (hit && hit.normal) {
+        const px = hit.x + hit.normal.x;
+        const py = hit.y + hit.normal.y;
+        const pz = hit.z + hit.normal.z;
+        const placeId = placeBlockId(p.heldId());
+        if (placeId != null && this.world.getBlock(px, py, pz) === BLOCK.AIR) {
+          // don't place inside either player
+          const inside = (pl) => {
+            if (!pl) return false;
+            const dx = pl.position.x - (px + 0.5);
+            const dy = pl.position.y + 0.9 - (py + 0.5);
+            const dz = pl.position.z - (pz + 0.5);
+            return dx * dx + dy * dy + dz * dz < 1.1;
+          };
+          if (!inside(this.player) && !inside(p)) {
+            const cons = consumeFromHotbar(p.slots, p.hotbarIndex, 1);
+            if (cons.ok) {
+              p.slots = cons.slots;
+              this.world.setBlock(px, py, pz, placeId);
+              this.audio.place?.() || this.audio.ui?.();
+            }
+          }
+        }
+      }
+    }
+  }
+
   _spawnCoopP2(spawn) {
     this.player2 = null;
     this.input2 = null;
@@ -2801,7 +2906,7 @@ export class Game {
     if (this.coopMode && !this._coopRouter) {
       try {
         // Lazy import path already static at top for readGamepad; router from same module via dynamic if needed
-        import(`./input-coop.js?v=204`).then((mod) => {
+        import(`./input-coop.js?v=205`).then((mod) => {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);

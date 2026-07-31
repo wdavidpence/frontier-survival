@@ -46,6 +46,7 @@ import {
   readSaveFromStorage,
   clearSaveStorage,
   SAVE_KEY,
+  SAVE_VERSION,
 } from '../js/save.js';
 
 let passed = 0;
@@ -1959,6 +1960,37 @@ test('PadInputAdapter movement thresholds', () => {
   p._scroll = 1;
   assert.strictEqual(p.consumeHotbarScroll(), 1);
   assert.strictEqual(p.consumeHotbarScroll(), 0);
+});
+
+
+test('coop save player2 roundtrip v2', () => {
+  assert.ok(SAVE_VERSION >= 2);
+  const payload = buildSavePayload({
+    seed: 42,
+    mode: 'survival',
+    playMode: 'coop',
+    survival: { health: 90, maxHealth: 100, hunger: 80, maxHunger: 100, stamina: 70, maxStamina: 100, bodyTemp: 37, sleep: 50, wetness: 0 },
+    survival2: { health: 88, maxHealth: 100, hunger: 70, maxHunger: 100, stamina: 60, maxStamina: 100, bodyTemp: 36.5, sleep: 40, wetness: 0 },
+    time: { elapsed: 10, weather: 'clear', weatherTimer: 30, dayLengthSec: 420 },
+    player: { x: 1, y: 2, z: 3, yaw: 0.1, pitch: 0, hotbarIndex: 0, slots: [{ id: null, count: 0 }], equipment: { head: null, chest: null, feet: null } },
+    player2: { x: 4, y: 2, z: 3, yaw: 0.2, pitch: 0, hotbarIndex: 1, slots: [{ id: null, count: 0 }], equipment: { head: null, chest: null, feet: null } },
+    edits: [[1,2,3,4]],
+    animals: [],
+  });
+  assert.strictEqual(payload.v, 2);
+  assert.strictEqual(payload.playMode, 'coop');
+  assert.ok(payload.player2);
+  assert.strictEqual(payload.player2.x, 4);
+  assert.strictEqual(payload.survival2.health, 88);
+  const parsed = parseSavePayload(JSON.stringify(payload));
+  assert.ok(parsed.ok);
+  assert.strictEqual(parsed.data.player2.x, 4);
+  assert.strictEqual(parsed.data.playMode, 'coop');
+  // v1 still loads
+  const v1 = { ...payload, v: 1, player2: undefined, survival2: undefined, playMode: undefined };
+  const p1 = parseSavePayload(JSON.stringify(v1));
+  assert.ok(p1.ok);
+  assert.strictEqual(p1.data.player2, null);
 });
 
 if (process.exitCode) process.exit(1);

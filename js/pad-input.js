@@ -2,7 +2,7 @@
  * PadInputAdapter — Input-shaped facade driven by one Gamepad (P2 DualSense).
  * Compatible with Player.update(world, input, survival, dt).
  */
-import { readGamepad } from './input-coop.js?v=204';
+import { readGamepad } from './input-coop.js?v=205';
 
 export class PadInputAdapter {
   constructor() {
@@ -17,6 +17,9 @@ export class PadInputAdapter {
     this._scroll = 0;
     this._prevDpadL = false;
     this._prevDpadR = false;
+    this.breakHeld = false;
+    this.placePressed = false;
+    this._prevPlace = false;
     this.uiMode = false;
   }
 
@@ -30,12 +33,14 @@ export class PadInputAdapter {
     const sens = opts.sensitivity ?? 0.03;
     this._slotQ = -1;
     this._scroll = 0;
+    this.placePressed = false;
     if (!gp) {
       this._fwd = 0;
       this._str = 0;
       this._jump = false;
       this._sprint = false;
       this._crouch = false;
+      this.breakHeld = false;
       return;
     }
     const st = readGamepad(gp, dz);
@@ -48,9 +53,16 @@ export class PadInputAdapter {
       this.lookY = Math.max(-lim, Math.min(lim, this.lookY));
     }
     const pressed = (i) => !!(gp.buttons[i] && gp.buttons[i].pressed);
+    const value = (i) => (gp.buttons[i] ? gp.buttons[i].value || (pressed(i) ? 1 : 0) : 0);
     this._jump = pressed(0); // Cross/A
-    this._sprint = pressed(5) || (gp.buttons[7] && gp.buttons[7].value > 0.4); // R1/R2
+    this._sprint = pressed(5) || value(7) > 0.4; // R1/R2
     this._crouch = pressed(10); // L3
+    // R2 mine/break (also Square as alt mine)
+    this.breakHeld = value(7) > 0.35 || pressed(2);
+    // L1 place edge
+    const placeNow = pressed(4);
+    if (placeNow && !this._prevPlace) this.placePressed = true;
+    this._prevPlace = placeNow;
     // D-pad left/right edge → hotbar
     const dL = pressed(14);
     const dR = pressed(15);
@@ -89,6 +101,12 @@ export class PadInputAdapter {
   consumeHotbarScroll() {
     const v = this._scroll;
     this._scroll = 0;
+    return v;
+  }
+
+  consumePlace() {
+    const v = this.placePressed;
+    this.placePressed = false;
     return v;
   }
 }
