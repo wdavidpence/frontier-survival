@@ -33,11 +33,17 @@ This board follows `docs/frontier-token-protocol.md` permanently:
    - `js/animals.js`, `js/input.js`, `tests/smoke.mjs`
 4. If a card needs a locked file: `schedule` with `file_lock_wait:<path>` until owner done.
 5. Depth caps: qwen27s≤4, qwen35≤2, local35≤1, global running≤7.
-6. Judge may reclaim thrash / heartbeat-only >~30m with no diffs.
+6. Judge may reclaim thrash / heartbeat-only **≥12m** with no artifacts (be patient under 12m). Prefer tiny pure/docs cards — see `docs/worker-24-7-ops.md`.
 7. Commit/push only after Hermes judge green (smoke PASS + no known P0).
 8. Cache bust **all** `?v=N` on ship (not entry alone).
 9. Sync `index.html` + `public/index.html` on UI changes.
 10. Never `git reset --hard` / `clean` / destructive checkout.
+
+## 24/7 local workers
+
+- Keep gateways up; run `node scripts/worker-lane-watchdog.mjs` on a timer (no frontier tokens).
+- Mint small pure/docs cards when ready queue is thin — never idle healthy capacity.
+- Frontier judge is sparse (45m loop); workers burn local tokens continuously.
 
 ## Dispatch order (each tick)
 1. `node tests/smoke.mjs`

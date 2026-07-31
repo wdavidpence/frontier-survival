@@ -43,7 +43,9 @@ Do not reread the entire repository, backlog, worker transcripts, or unchanged s
 
 ## Recovery and release gates
 
-- Reclaim heartbeat-only or no-diff workers after the documented threshold; do not spend repeated frontier turns coaching them.
+- Reclaim heartbeat-only or no-diff workers only after **≥12 minutes** with no artifact (or crash loop). Be patient; do not thrash reclaim at 1–3m.
+- Card bodies must be **small pure/docs/single-file slices** so local workers finish without frontier takeover.
+- See `docs/worker-24-7-ops.md` for permanent 24/7 lane fill + watchdog.
 - Reassign or block deterministic startup failures after diagnosis.
 - At a green plateau, independently verify smoke, diff, browser/live artifact, dual HTML sync, and all module cache-bust versions before commit/push.
 - Workers never commit or push unless a card explicitly says so; Hermes publishes only after the gate is green.

@@ -758,3 +758,5 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-07-31T18:17:36-04:00 | SHIP v1.10.13 p2 survival+PS5 docs |
 | 2026-07-31T18:19:50-04:00 | SHIP v1.10.14 df7b6fe isBothPlayersDown |
 | 2026-07-31T18:21:34-04:00 | SHIP v1.10.15 livingPartnerCount+PS5 Test4; reclaimed thrash |
+| 2026-07-31T18:27:05-04:00 | SHIP v1.11.0 trees half ocean tropical larger map |
+| 2026-07-31T18:30:07-04:00 | TICK: running t_613d73da/qwen27s tests-only biome correction, t_27799461/qwen35 docs-only world-size note, t_a477e441/local35 read-only release audit; smoke FAIL (4 stale biome expectations: ocean now valid), diff-check PASS; browser local :8767 v1.11.0 HTTP 200, Start→HUD/title hidden, 0 JS errors; live v1.11.0; broad WIP uncommitted, no ship. Next: verify t_613d73da correction, inspect audit artifacts, rerun smoke and release gate. Decision: redirect.
