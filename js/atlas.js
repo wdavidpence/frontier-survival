@@ -11,7 +11,7 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=190';
+} from './atlas-core.js?v=201';
 
 export {
   TILE,
@@ -22,7 +22,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=190';
+} from './atlas-core.js?v=201';
 
 function rnd(seed) {
   let s = seed | 0;
@@ -502,6 +502,39 @@ function drawSequoiaLeaves(ctx, x0, y0) {
   }
 }
 
+function drawSpruceLogSide(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [72, 48, 25], 0.3, 300);
+  ctx.strokeStyle = 'rgba(40,25,10,0.6)';
+  for (let x = 4; x < TILE_PX; x += 6) {
+    ctx.beginPath();
+    ctx.moveTo(x0 + x, y0);
+    ctx.lineTo(x0 + x, y0 + TILE_PX);
+    ctx.stroke();
+  }
+}
+
+function drawSpruceLogTop(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [95, 68, 38], 0.25, 301);
+  ctx.strokeStyle = 'rgba(60,38,15,0.7)';
+  ctx.beginPath();
+  ctx.arc(x0 + 16, y0 + 16, 10, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x0 + 16, y0 + 16, 5, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function drawSpruceLeaves(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [35, 85, 42], 0.45, 302, 225);
+  const r = rnd(303);
+  for (let i = 0; i < 22; i++) {
+    ctx.fillStyle = r() > 0.5 ? 'rgba(20,65,30,0.5)' : 'rgba(48,110,52,0.35)';
+    ctx.beginPath();
+    ctx.arc(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1 + r() * 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 export function createBlockAtlas() {
   const canvas = document.createElement('canvas');
   canvas.width = ATLAS_PX;
@@ -583,6 +616,11 @@ paint(TILE.WALL, drawWall);
     c.fillStyle = 'rgba(20,90,20,0.22)';
     c.fillRect(x, y, TILE_PX, TILE_PX);
   });
+
+  // Spruce variants — dark pine tones (tiles 49–51; ATLAS_N=8 fits)
+  paint(TILE.SPRUCE_LOG_SIDE, drawSpruceLogSide);
+  paint(TILE.SPRUCE_LOG_TOP, drawSpruceLogTop);
+  paint(TILE.SPRUCE_LEAVES, drawSpruceLeaves);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = THREE.NearestFilter;

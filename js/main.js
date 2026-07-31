@@ -1,11 +1,14 @@
-import { Game } from './game.js?v=190';
-import { hasSave, clearSaveStorage } from './save.js?v=190';
-import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=190';
+import { Game } from './game.js?v=201';
+import { hasSave, clearSaveStorage } from './save.js?v=201';
+import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=201';
 import {
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
-} from './settings.js?v=190';
+  getPlayMode,
+  PLAY_MODE_ORDER,
+  PLAY_MODE_META,
+} from './settings.js?v=201';
 
 const canvas = document.getElementById('game');
 const title = document.getElementById('title-screen');
@@ -126,6 +129,63 @@ function paintModeRow() {
   }
 }
 
+const PLAY_MODE_SESSION_KEY = 'fs_play_mode_session';
+
+function readSessionPlayMode() {
+  try {
+    return getPlayMode(sessionStorage.getItem(PLAY_MODE_SESSION_KEY));
+  } catch {
+    return getPlayMode(game.settings.playMode);
+  }
+}
+
+function writeSessionPlayMode(id) {
+  const pm = getPlayMode(id);
+  try {
+    sessionStorage.setItem(PLAY_MODE_SESSION_KEY, pm);
+  } catch (_) {}
+  return pm;
+}
+
+function setPlayMode(id) {
+  const pm = writeSessionPlayMode(id);
+  game.settings.playMode = pm;
+  game.coopMode = pm === 'coop';
+  writeSettings(game.settings);
+  paintPlayModeRow();
+}
+
+function paintPlayModeRow() {
+  const row = document.getElementById('play-mode-row');
+  const blurb = document.getElementById('play-mode-blurb');
+  if (!row) return;
+  row.innerHTML = '';
+  const current = getPlayMode(game.settings.playMode);
+  for (const id of PLAY_MODE_ORDER) {
+    const m = PLAY_MODE_META[id];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mode-btn' + (id === current ? ' active' : '');
+    btn.textContent = m.name;
+    btn.dataset.playMode = id;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setPlayMode(id);
+    });
+    row.appendChild(btn);
+  }
+  if (blurb) blurb.textContent = PLAY_MODE_META[current].blurb;
+}
+
+// Restore session play mode over persisted settings when present
+{
+  const sessionPm = readSessionPlayMode();
+  if (sessionPm) {
+    game.settings.playMode = sessionPm;
+    game.coopMode = sessionPm === 'coop';
+  }
+}
+
 function readSeedInput() {
   const el = document.getElementById('seed-input');
   if (!el) return null;
@@ -184,6 +244,9 @@ function startNewWorld() {
   const seed = readSeedInput();
   clearSaveStorage();
   game.mode = getMode(game.settings.mode).id;
+  game.settings.playMode = getPlayMode(game.settings.playMode);
+  game.coopMode = game.settings.playMode === 'coop';
+  writeSettings(game.settings);
   game.seed = seed != null ? seed : ((Math.random() * 1e6) | 0);
   game.start(game.seed);
   engageControls();
@@ -249,6 +312,7 @@ btnRespawn?.addEventListener('click', (e) => {
 });
 
 paintModeRow();
+paintPlayModeRow();
 refreshContinue();
 
 // On-screen controls (always available after start — proves input path works)
@@ -326,4 +390,4 @@ engageControls = function() {
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.9.0');
+console.info('Frontier Survival boot OK · v1.10.1');

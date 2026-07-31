@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=190';
-import { heightAt, hash2, fbm } from './gen.js?v=190';
-import { biomeAt, BIOME } from './biomes.js?v=190';
-import { tileForBlock } from './atlas-core.js?v=190';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=190';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=201';
+import { heightAt, hash2, fbm } from './gen.js?v=201';
+import { biomeAt, BIOME } from './biomes.js?v=201';
+import { tileForBlock } from './atlas-core.js?v=201';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=201';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -56,7 +56,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=190';
+    const workerUrl = './js/chunk-worker.js?v=201';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -147,9 +147,17 @@ export class World {
           else if (biome === BIOME.SHORE) treeChance = 0.012;
           else if (biome === BIOME.TUNDRA) treeChance = 0.02;
           if (th > 1 - treeChance) {
+            // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
-            if (biome === BIOME.FOREST && sequoiaRoll > 0.97) {
+            const spruceRoll = hash2(x * 5 + 17, z * 3 + (this.seed | 0));
+            if (biome === BIOME.TUNDRA && spruceRoll > 0.15) {
+              // Tundra: ~85% spruce, fallback to oak for the rest
+              this._placeSpruce(data, lx, h + 1, lz);
+            } else if (biome === BIOME.FOREST && sequoiaRoll > 0.97) {
               this._placeSequoia(data, lx, h + 1, lz);
+            } else if (biome === BIOME.FOREST && spruceRoll > 0.85) {
+              // Forest: ~15% of non-sequoia trees are spruce
+              this._placeSpruce(data, lx, h + 1, lz);
             } else {
               this._placeTree(data, lx, h + 1, lz);
             }
@@ -318,10 +326,17 @@ export class World {
           else if (biome === BIOME.SHORE) treeChance = 0.012;
           else if (biome === BIOME.TUNDRA) treeChance = 0.02;
           if (th > 1 - treeChance) {
-            // Sequoia spawn: rare in forest biome (~3% of all tree placements)
+            // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
-            if (biome === BIOME.FOREST && sequoiaRoll > 0.97) {
+            const spruceRoll = hash2(x * 5 + 17, z * 3 + (this.seed | 0));
+            if (biome === BIOME.TUNDRA && spruceRoll > 0.15) {
+              // Tundra: ~85% spruce, fallback to oak for the rest
+              this._placeSpruce(data, lx, h + 1, lz);
+            } else if (biome === BIOME.FOREST && sequoiaRoll > 0.97) {
               this._placeSequoia(data, lx, h + 1, lz);
+            } else if (biome === BIOME.FOREST && spruceRoll > 0.85) {
+              // Forest: ~15% of non-sequoia trees are spruce
+              this._placeSpruce(data, lx, h + 1, lz);
             } else {
               this._placeTree(data, lx, h + 1, lz);
             }
@@ -489,6 +504,39 @@ export class World {
         }
       }
     }
+  }
+
+  /** Place a spruce tree — tall narrow cone, dark pine tones. */
+  _placeSpruce(data, lx, y, lz) {
+    const trunkH = 5 + Math.floor(hash2(lx + 71, lz + 59) * 3); // 5-7
+    for (let i = 0; i < trunkH; i++) {
+      const ty = y + i;
+      if (ty >= WORLD_HEIGHT) break;
+      this._setAir(data, lx, ty, lz, BLOCK.SPRUCE_LOG);
+    }
+    // Conical canopy: wide at bottom, narrow point at top — stacked diamond layers
+    const canopyStart = y + Math.max(1, trunkH - 3);
+    const layers = 3 + Math.floor(hash2(lx + 13, lz + 29) * 2); // 3-4 layers
+    for (let layer = 0; layer < layers; layer++) {
+      const cy = canopyStart + layer;
+      if (cy >= WORLD_HEIGHT) break;
+      // Radius shrinks as we go up: start at 3, end at 1
+      const r = Math.max(1, 3 - layer);
+      for (let dx = -r; dx <= r; dx++) {
+        for (let dz = -r; dz <= r; dz++) {
+          const dist = Math.abs(dx) + Math.abs(dz);
+          if (dist > r) continue;
+          const tx = lx + dx;
+          const tz = lz + dz;
+          if (tx < 0 || tx >= CHUNK_SIZE || tz < 0 || tz >= CHUNK_SIZE) continue;
+          const i = this._idx(tx, cy, tz);
+          if (data[i] === BLOCK.AIR) data[i] = BLOCK.SPRUCE_LEAVES;
+        }
+      }
+    }
+    // Top cap
+    const topY = canopyStart + layers;
+    this._setAir(data, lx, topY, lz, BLOCK.SPRUCE_LEAVES);
   }
 
   /** Helper: set block only if in-bounds. */

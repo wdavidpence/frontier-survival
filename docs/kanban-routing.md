@@ -1,8 +1,19 @@
 # Kanban routing + judge gate (permanent)
 
 Hermes **default profile** = SWE manager + orchestrator + **code judge**.
-Worker profiles (`qwen27s`, `qwen35`, `local35`) = implementers only.
+Workers (`qwen27s`, `qwen35`, `local35`) = implementers only.
 `local35` = **gpt-oss-20b** on Windows 127.0.0.1:8000 via WSL bridge :18000.
+
+## Reduced frontier-token protocol
+
+This board follows `docs/frontier-token-protocol.md` permanently:
+
+- qwen27s/qwen35/local35 perform implementation; the frontier model does not do bulk coding.
+- Use one compact frontier judge pass per 45-minute loop, with extra passes only for P0s, crash recovery, release plateaus, or blocked dependencies.
+- Feed the judge a compact envelope: stats, running card IDs/locks, diff stat/check, smoke result, browser error summary, and next cards. Do not reread unchanged source or full worker transcripts.
+- Mechanical checks come before reasoning; batch independent checks.
+- A judge pass emits one decision: continue, redirect, recover, block, or ship.
+- Keep local35 warm with one bounded non-overlapping pure/docs/review lane when capacity permits; never manufacture a conflicting hot-file task.
 
 ## OpenCode workers (live)
 

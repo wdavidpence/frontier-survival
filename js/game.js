@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=190';
-import { Player } from './player.js?v=190';
-import { Input } from './input.js?v=190';
-import { GameTime } from './time.js?v=190';
-import { AudioBus } from './audio.js?v=190';
+import { World } from './world.js?v=201';
+import { Player } from './player.js?v=201';
+import { Input } from './input.js?v=201';
+import { GameTime } from './time.js?v=201';
+import { AudioBus } from './audio.js?v=201';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=190';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=190';
+} from './survival.js?v=201';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=201';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=190';
+} from './items.js?v=201';
 import {
   addItems,
   removeItems,
@@ -31,11 +31,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=190';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=190';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=190';
-import { createBlockAtlas } from './atlas.js?v=190';
-import { BreakFX } from './fx.js?v=190';
+} from './inventory.js?v=201';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=201';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=201';
+import { createBlockAtlas } from './atlas.js?v=201';
+import { BreakFX } from './fx.js?v=201';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -45,35 +45,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=190';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=190';
+} from './equipment.js?v=201';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=201';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=190';
-import { getMode } from './modes.js?v=190';
+} from './save.js?v=201';
+import { getMode } from './modes.js?v=201';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=190';
+} from './settings.js?v=201';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=190';
-import { tickSpoilage } from './spoilage.js?v=190';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=190';
-import { wearTool, durabilityRatio } from './durability.js?v=190';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=190';
-import { tickLogic, COMPONENT } from './logic.js?v=190';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=190';
+} from './achievements.js?v=201';
+import { tickSpoilage } from './spoilage.js?v=201';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=201';
+import { wearTool, durabilityRatio } from './durability.js?v=201';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=201';
+import { tickLogic, COMPONENT } from './logic.js?v=201';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=201';
 import {
   chestKey,
   getChestSlots,
@@ -84,7 +84,10 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=190';
+} from './chests.js?v=201';
+import { checkTooltip, show as showTooltip } from './tooltips.js?v=201';
+import { splitViewport } from './viewport-split.js?v=201';
+import { readGamepad } from './input-coop.js?v=201';
 
 export class Game {
   /**
@@ -103,6 +106,8 @@ export class Game {
     const settingsRes = readSettings();
     this.settings = settingsRes.ok ? settingsRes.data : { ...DEFAULT_SETTINGS };
     this.mode = getMode(this.settings.mode).id;
+    /** Local split-screen: when true, dual viewports/input path is active (MVP wires flag first). */
+    this.coopMode = this.settings.playMode === 'coop';
     this.seed = (Math.random() * 1e6) | 0;
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -116,6 +121,13 @@ export class Game {
     this.scene.fog = new THREE.Fog(0x87b5ff, 40, 120);
 
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 200);
+    /** P2 camera for local split-screen (active when coopMode). */
+    this.camera2 = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 200);
+    this._p2Yaw = 0;
+    this._p2Pitch = 0;
+    this._p2Offset = new THREE.Vector3(1.6, 0, 0);
+    this._tmpRight = new THREE.Vector3();
+    this._tmpFwd = new THREE.Vector3();
 
     // Apply render distance from settings
     this._applyRenderDistance();
@@ -187,6 +199,25 @@ export class Game {
     this._poweredLamps = new Set();
     this._logicAcc = 0;
     this._biomeNotifyAcc = 0; // accumulator for periodic biome name display
+    this._tooltipQueue = []; // pending tooltip ids to show
+    this._tooltipShownAcc = 0; // cooldown between tooltips (min 8s)
+    this._firstLogSeen = false;
+    this._firstFireSeen = false;
+    this._firstCookSeen = false;
+    this._firstNightSeen = false;
+    this._firstKillSeen = false;
+    this._firstClothesSeen = false;
+    this._firstSleepSeen = false;
+    this._firstFarmSeen = false;
+    this._firstDoorSeen = false;
+    this._firstPowerSeen = false;
+    this._firstChestSeen = false;
+    this._firstSnareSeen = false;
+    this._firstTameSeen = false;
+    this._firstBowSeen = false;
+    this._firstIronSeen = false;
+    this._firstDesertSeen = false;
+    this._firstBucketSeen = false;
 
     // Block selection outline
     const edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1.002, 1.002, 1.002));
@@ -417,10 +448,17 @@ export class Game {
 
   start(seed = this.seed) {
     this.seed = seed;
+    this.coopMode = this.settings.playMode === 'coop';
+    if (this.coopMode) {
+      this._p2Yaw = this.input?.lookX || 0;
+      this._p2Pitch = this.input?.lookY || 0;
+    }
     this._bootWorld({
       seed,
       freshPlayer: true,
-      notify: 'Hunt wildlife · craft a spear · cook at campfires · watch wolves. E craft · F use · K save · Esc pause',
+      notify: this.coopMode
+        ? 'Local Co-op split-screen: left=P1 · right=P2 (pad1 look). Full P2 body next.'
+        : 'Hunt wildlife · craft a spear · cook at campfires · watch wolves. E craft · F use · K save · Esc pause',
     });
   }
 
@@ -569,6 +607,27 @@ export class Game {
         this._toastT = 3.5;
         this.audio.toast?.() || this.audio.ui();
       }
+    }
+
+    // Wire achievement unlocks to tooltip flags
+    switch (id) {
+      case 'first_log': this._firstLogSeen = true; break;
+      case 'first_fire': this._firstFireSeen = true; break;
+      case 'first_cook': this._firstCookSeen = true; break;
+      case 'first_night': this._firstNightSeen = true; break;
+      case 'first_kill': this._firstKillSeen = true; break;
+      case 'first_clothes': this._firstClothesSeen = true; break;
+      case 'first_sleep': this._firstSleepSeen = true; break;
+      case 'first_farm': this._firstFarmSeen = true; break;
+      case 'first_door': this._firstDoorSeen = true; break;
+      case 'first_power': this._firstPowerSeen = true; break;
+      case 'first_chest': this._firstChestSeen = true; break;
+      case 'first_snare': this._firstSnareSeen = true; break;
+      case 'first_tame': this._firstTameSeen = true; break;
+      case 'first_bow': this._firstBowSeen = true; break;
+      case 'first_iron': this._firstIronSeen = true; break;
+      case 'first_desert': this._firstDesertSeen = true; break;
+      case 'first_bucket': this._firstBucketSeen = true; break;
     }
   }
 
@@ -872,7 +931,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=201').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -954,6 +1013,7 @@ export class Game {
     this.seed = (Math.random() * 1e6) | 0;
     // keep selected mode from settings / title UI
     this.mode = getMode(this.settings.mode).id;
+    this.coopMode = this.settings.playMode === 'coop';
     this.start(this.seed);
     this.hud.refreshContinue?.();
   }
@@ -961,9 +1021,17 @@ export class Game {
   resize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
-    this.camera.aspect = w / h;
-    this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h, false);
+    if (this.coopMode && this.camera2) {
+      const [a, b] = splitViewport(w, h, 'lr');
+      this.camera.aspect = Math.max(0.1, a.w / Math.max(1, a.h));
+      this.camera.updateProjectionMatrix();
+      this.camera2.aspect = Math.max(0.1, b.w / Math.max(1, b.h));
+      this.camera2.updateProjectionMatrix();
+    } else {
+      this.camera.aspect = w / Math.max(1, h);
+      this.camera.updateProjectionMatrix();
+    }
   }
 
   _loop = () => {
@@ -1475,6 +1543,7 @@ export class Game {
       this._scanLights(false);
     }
     this._updateLighting();
+    this._tickTooltips(dt);
     this._updateHud();
     if (this.player.inventoryOpen && this._invNeedsPaint) this._paintInventory();
 
@@ -2462,6 +2531,177 @@ export class Game {
     }
   }
 
+  /**
+   * Tick tooltip triggers — called every frame while game is running.
+   * Queues tooltips when conditions are met, shows them with cooldown.
+   */
+  _tickTooltips(dt) {
+    if (!this.started || this.paused || !this.player || this.survival?.dead) return;
+
+    // Cooldown between tooltips (8 seconds minimum)
+    if (this._tooltipQueue.length > 0) {
+      this._tooltipShownAcc += dt;
+      if (this._tooltipShownAcc >= 8) {
+        const id = this._tooltipQueue.shift();
+        this._tooltipShownAcc = 0;
+        const result = checkTooltip(id);
+        if (result) {
+          showTooltip(result.def);
+        }
+      }
+    }
+
+    const p = this.player.position;
+    const biome = (() => { try { return biomeAt(p.x, p.z, this.seed); } catch(_) { return null; } })();
+
+    // move_look: show immediately on first frame of play (deduped)
+    if (!this._tooltipQueue.includes('move_look')) {
+      this._tooltipQueue.push('move_look');
+    }
+
+    // mine_wood: after player has mined at least one log
+    if (this.player.slots.some(s => s.id === BLOCK.LOG) && !this._tooltipQueue.includes('mine_wood')) {
+      this._tooltipQueue.push('mine_wood');
+    }
+
+    // craft_table: after player has logs and it's day 2+ or fire placed
+    if (this.player.slots.some(s => s.id === BLOCK.LOG) && !this._tooltipQueue.includes('craft_table') && (this._firstFireSeen || this.time.dayNumber > 1)) {
+      this._tooltipQueue.push('craft_table');
+    }
+
+    // shelter: after player has placed any block (tracked via campfire/chest/door unlocks)
+    if ((this._firstFireSeen || this._firstChestSeen || this._firstDoorSeen) && !this._tooltipQueue.includes('shelter')) {
+      this._tooltipQueue.push('shelter');
+    }
+
+    // campfire: after player has placed a campfire
+    if (this._firstFireSeen && !this._tooltipQueue.includes('campfire')) {
+      this._tooltipQueue.push('campfire');
+    }
+
+    // cook_meat: after player has cooked meat (first_cook achievement)
+    if (this._firstCookSeen && !this._tooltipQueue.includes('cook_meat')) {
+      this._tooltipQueue.push('cook_meat');
+    }
+
+    // eat_food: after player has eaten anything (hunger > 0 change from eating)
+    if ((this._firstCookSeen || this.time.dayNumber > 2) && !this._tooltipQueue.includes('eat_food')) {
+      this._tooltipQueue.push('eat_food');
+    }
+
+    // first_night: after surviving into day 2 or when night falls on day 1
+    if (this.time.dayNumber >= 2 && !this._tooltipQueue.includes('first_night')) {
+      this._tooltipQueue.push('first_night');
+    }
+
+    // hunt: after player has killed an animal
+    if (this._firstKillSeen && !this._tooltipQueue.includes('hunt')) {
+      this._tooltipQueue.push('hunt');
+    }
+
+    // clothes: after player has equipped clothing
+    if (this._firstClothesSeen && !this._tooltipQueue.includes('clothes')) {
+      this._tooltipQueue.push('clothes');
+    }
+
+    // sleep: after player has placed a bed (first_door unlock also implies building)
+    if ((this._firstSleepSeen || this.player.slots.some(s => s.id === BLOCK.BED)) && !this._tooltipQueue.includes('sleep')) {
+      this._tooltipQueue.push('sleep');
+    }
+
+    // farm: after player has planted seeds (first_farm achievement)
+    if (this._firstFarmSeen && !this._tooltipQueue.includes('farm')) {
+      this._tooltipQueue.push('farm');
+    }
+
+    // water: after player has been in rain or near water (day 2+)
+    if (this.time.dayNumber >= 2 && !this._tooltipQueue.includes('water')) {
+      this._tooltipQueue.push('water');
+    }
+
+    // save: after 30 seconds of play
+    if (this.time.elapsed > 30 && !this._tooltipQueue.includes('save')) {
+      this._tooltipQueue.push('save');
+    }
+
+    // biome-specific: desert heat warning
+    if (biome === BIOME.DESERT && !this._tooltipQueue.includes('shelter')) {
+      this._tooltipQueue.push('shelter');
+    }
+
+    // first_night: warn when night falls on day 1
+    if (this.time.dayNumber === 1 && this.time.isNight() && !this._tooltipQueue.includes('first_night')) {
+      this._tooltipQueue.push('first_night');
+    }
+
+    // bow: after player has crafted a bow (check inventory) — reinforces hunting tip
+    if (this.player.slots.some(s => s.id === ITEM.BOW) && !this._tooltipQueue.includes('hunt')) {
+      this._tooltipQueue.push('hunt');
+    }
+
+    // desert: first time entering desert biome — reinforces shelter tip
+    if (biome === BIOME.DESERT && !this._tooltipQueue.includes('shelter')) {
+      this._tooltipQueue.push('shelter');
+    }
+
+    // bucket: after filling a bucket (first_bucket achievement) — reinforces water tip
+    if (this._firstBucketSeen && !this._tooltipQueue.includes('water')) {
+      this._tooltipQueue.push('water');
+    }
+
+    // snare: after placing a snare — reinforces farm/food tip
+    if (this._firstSnareSeen && !this._tooltipQueue.includes('farm')) {
+      this._tooltipQueue.push('farm');
+    }
+
+    // power: after powering a lamp (first_power achievement) — reinforces lighting tips
+    if (this._firstPowerSeen && !this._tooltipQueue.includes('campfire')) {
+      this._tooltipQueue.push('campfire');
+    }
+
+    // chest: after placing a chest — reinforces saving tip
+    if (this._firstChestSeen && !this._tooltipQueue.includes('save')) {
+      this._tooltipQueue.push('save');
+    }
+
+    // door: after placing a door (shelter reinforcement)
+    if (this._firstDoorSeen && !this._tooltipQueue.includes('shelter')) {
+      this._tooltipQueue.push('shelter');
+    }
+
+    // hunger warning: if player is starving, show eat tip
+    if (this.survival.hunger < 20 && !this._tooltipQueue.includes('eat_food')) {
+      this._tooltipQueue.push('eat_food');
+    }
+
+    // cold warning: if player is freezing, show clothes/fire tip
+    if (this.survival.bodyTemp < 35 && !this._tooltipQueue.includes('campfire')) {
+      this._tooltipQueue.push('campfire');
+    }
+
+    // night warning: if it's night and player has no light nearby, show campfire
+    if (this.time.isNight() && !this._tooltipQueue.includes('campfire') && this._lightPool.length === 0) {
+      this._tooltipQueue.push('campfire');
+    }
+
+    // starvation emergency: if hunger is critically low, show eat tip immediately
+    if (this.survival.hunger < 10 && !this._tooltipQueue.includes('eat_food')) {
+      // Clear queue and show immediately
+      this._tooltipQueue = [];
+      const result = checkTooltip('eat_food');
+      if (result) showTooltip(result.def);
+    }
+
+    // hypothermia emergency: if body temp is critically low, show campfire immediately
+    if (this.survival.bodyTemp < 34.5 && !this._tooltipQueue.includes('campfire')) {
+      this._tooltipQueue = [];
+      const result = checkTooltip('campfire');
+      if (result) showTooltip(result.def);
+    }
+
+    // biome notify: show biome name periodically (existing logic)
+  }
+
   _updateLighting() {
     const sunI = this.time.sunIntensity();
     // storm lightning flash boost
@@ -2684,8 +2924,91 @@ export class Game {
     return Math.max(0, Math.min(100, ((bodyTemp - 30) / 12) * 100));
   }
 
+  /** Update P2 freecam offset + look from gamepad slot 1 (DualSense P2). */
+  _updateCoopP2Camera(dt) {
+    if (!this.camera2 || !this.player) return;
+    // Look from pad1 (second connected gamepad) when present
+    try {
+      const pads = navigator.getGamepads?.() || [];
+      let gp1 = null;
+      let found = 0;
+      for (let i = 0; i < pads.length; i++) {
+        const g = pads[i];
+        if (!g) continue;
+        found++;
+        if (found === 2) {
+          gp1 = g;
+          break;
+        }
+      }
+      // If only one pad and P1 is on KBM, allow pad0 for P2 look as fallback when solo pad coop testing
+      if (!gp1 && this.input && !this.input._gpConnected) {
+        for (let i = 0; i < pads.length; i++) {
+          if (pads[i]) {
+            gp1 = pads[i];
+            break;
+          }
+        }
+      }
+      const st = readGamepad(gp1, this.input?.deadzone ?? 0.15);
+      if (st) {
+        const sens = this.input?.gpSensitivity ?? 0.03;
+        this._p2Yaw -= st.rx * sens * 60 * dt;
+        this._p2Pitch -= st.ry * sens * 60 * dt;
+        const lim = Math.PI / 2 - 0.05;
+        this._p2Pitch = Math.max(-lim, Math.min(lim, this._p2Pitch));
+      }
+    } catch (_) {
+      /* Gamepad API optional */
+    }
+
+    const eye = this.player.eyePosition();
+    // Stand beside P1 in P1's local right axis
+    this._tmpRight.set(Math.cos(this.player.yaw), 0, -Math.sin(this.player.yaw));
+    this.camera2.position.set(
+      eye.x + this._tmpRight.x * 1.6,
+      eye.y,
+      eye.z + this._tmpRight.z * 1.6,
+    );
+    this.camera2.rotation.order = 'YXZ';
+    this.camera2.rotation.y = this._p2Yaw;
+    this.camera2.rotation.x = this._p2Pitch;
+  }
+
   render() {
-    this.renderer.render(this.scene, this.camera);
+    const r = this.renderer;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    if (!this.coopMode || !this.camera2 || !this.started) {
+      r.setScissorTest(false);
+      r.setViewport(0, 0, w, h);
+      r.render(this.scene, this.camera);
+      return;
+    }
+
+    // Keep P2 camera live every frame in coop
+    this._updateCoopP2Camera(1 / 60);
+
+    const [left, right] = splitViewport(w, h, 'lr');
+    // WebGL scissor origin is bottom-left; splitViewport y is top-left CSS
+    const toGL = (rect) => ({
+      x: rect.x,
+      y: h - rect.y - rect.h,
+      w: rect.w,
+      h: rect.h,
+    });
+    const L = toGL(left);
+    const R = toGL(right);
+
+    r.setScissorTest(true);
+
+    r.setViewport(L.x, L.y, L.w, L.h);
+    r.setScissor(L.x, L.y, L.w, L.h);
+    r.render(this.scene, this.camera);
+
+    r.setViewport(R.x, R.y, R.w, R.h);
+    r.setScissor(R.x, R.y, R.w, R.h);
+    r.render(this.scene, this.camera2);
   }
 
   respawn() {

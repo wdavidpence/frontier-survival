@@ -4,6 +4,7 @@
 > Format: `YYYY-MM-DD | P0-P3 | area | summary | repro | status | card?`
 
 ## Open
+2026-07-31 | P2 | boot | prior blank Start exception not reproduced on :8767 | Start→hotbar; console 0 | watch | —
 
 2026-07-30 | P1 | input | Mouse look X felt inverted for player | look left/right swapped | fixed-v1.8.6 | —
 2026-07-30 | P0 | render | WASD keys updated HUD but world frozen | loop update without render | fixed-v1.8.3 | —

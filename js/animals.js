@@ -2,8 +2,8 @@
  * Wildlife simulation — pure movement/AI helpers + manager.
  * Prey flee; predators hunt (worse at night). Meat drops on death.
  */
-import { isSolid, BLOCK } from './blocks.js?v=190';
-import { hash2 } from './gen.js?v=190';
+import { isSolid, BLOCK } from './blocks.js?v=201';
+import { hash2 } from './gen.js?v=201';
 
 export const SPECIES = {
   hare: {
@@ -134,6 +134,83 @@ export const SPECIES = {
     scale: [1.0, 1.3, 1.6],
     count: 4,
   },
+  alligator: {
+    id: 'alligator',
+    name: 'Alligator',
+    hp: 45,
+    speed: 3.0,
+    hostile: true,
+    fleeRange: 0,
+    senseRange: 12,
+    nightSense: 17,
+    damage: 14,
+    attackRange: 1.5,
+    attackCd: 1.5,
+    meatMin: 2,
+    meatMax: 4,
+    feedItem: 'raw_meat', // ITEM.RAW_MEAT (hostile — never tameable)
+    color: [0.25, 0.38, 0.18],
+    scale: [0.6, 0.55, 1.8],
+    count: 3,
+    aquatic: true, // comfortable in/near water; spawns near water tiles
+  },
+  fox: {
+    id: 'fox',
+    name: 'Fox',
+    hp: 15,
+    speed: 4.2,
+    hostile: false,
+    fleeRange: 9,
+    senseRange: 13,
+    damage: 0,
+    attackRange: 0,
+    attackCd: 99,
+    meatMin: 1,
+    meatMax: 2,
+    feedItem: 'berries', // ITEM.BERRIES (omnivore)
+    color: [0.75, 0.42, 0.18],
+    scale: [0.4, 0.45, 0.65],
+    count: 8,
+  },
+  boar: {
+    id: 'boar',
+    name: 'Boar',
+    hp: 35,
+    speed: 3.8,
+    hostile: true,
+    fleeRange: 0,
+    senseRange: 7, // short fuse — charges when player gets close
+    nightSense: 12,
+    damage: 12, // tusk charge
+    attackRange: 1.3,
+    attackCd: 1.5,
+    meatMin: 2,
+    meatMax: 3,
+    feedItem: 'raw_meat', // ITEM.RAW_MEAT (hostile — never tameable)
+    color: [0.42, 0.30, 0.18],
+    scale: [0.65, 0.7, 1.0], // stocky, low to ground
+    count: 4,
+  },
+  bat: {
+    id: 'bat',
+    name: 'Bat',
+    hp: 6,
+    speed: 7.0, // fast flyer
+    hostile: false,
+    fleeRange: 12,
+    senseRange: 15, // echolocation — good awareness
+    nightSense: 20, // even better at night (nocturnal)
+    damage: 0,
+    attackRange: 0,
+    attackCd: 99,
+    meatMin: 0,
+    meatMax: 1,
+    wing: true, // drops bat wing on death
+    color: [0.28, 0.22, 0.3],
+    scale: [0.25, 0.2, 0.35],
+    nocturnal: true, // primarily active at night
+    count: 10,
+  },
 };
 
 function groundY(world, x, z) {
@@ -193,7 +270,18 @@ export class FaunaSystem {
         const z = Math.sin(ang) * rad;
         if (Math.hypot(x, z) < minR) continue;
         const y = groundY(this.world, x, z);
-        if (this.world.getBlock(x, y - 1, z) === BLOCK.WATER) continue;
+        // aquatic species prefer water; others avoid it
+        if (spec.aquatic) {
+          // check if on water tile or adjacent to one
+          const onWater = this.world.getBlock(x, y - 1, z) === BLOCK.WATER;
+          const nearWater = this.world.getBlock(Math.floor(x + 1), y - 1, Math.floor(z)) === BLOCK.WATER ||
+                            this.world.getBlock(Math.floor(x - 1), y - 1, Math.floor(z)) === BLOCK.WATER ||
+                            this.world.getBlock(Math.floor(x), y - 1, Math.floor(z + 1)) === BLOCK.WATER ||
+                            this.world.getBlock(Math.floor(x), y - 1, Math.floor(z - 1)) === BLOCK.WATER;
+          if (!onWater && !nearWater) continue;
+        } else {
+          if (this.world.getBlock(x, y - 1, z) === BLOCK.WATER) continue;
+        }
         this.animals.push(this._make(spec, x, y, z));
         placed++;
         n++;
@@ -327,8 +415,8 @@ export class FaunaSystem {
         nx = a.x;
         nz = a.z;
       }
-      // water slow / avoid deep
-      if (this.world.getBlock(nx, gy - 1, nz) === BLOCK.WATER) {
+      // water slow / avoid deep (aquatic species are comfortable in water)
+      if (!spec.aquatic && this.world.getBlock(nx, gy - 1, nz) === BLOCK.WATER) {
         nx = a.x * 0.7 + nx * 0.3;
         nz = a.z * 0.7 + nz * 0.3;
       }
@@ -384,7 +472,7 @@ export class FaunaSystem {
   }
 
   /**
-   * @returns {{ killed: boolean, meat: number, hide: number, egg?: number, feather?: number, name: string, type?: string } | null}
+   * @returns {{ killed: boolean, meat: number, hide: number, egg?: number, feather?: number, wing?: number, name: string, type?: string } | null}
    */
   damageAnimal(animal, amount) {
     if (!animal || animal.dead) return null;
@@ -401,11 +489,17 @@ export class FaunaSystem {
     else if (animal.type === 'wolf') hide = Math.random() < 0.4 ? 1 : 0;
     else if (animal.type === 'bear') hide = 2 + (Math.random() < 0.5 ? 1 : 0);
     else if (animal.type === 'cow') hide = 2 + (Math.random() < 0.6 ? 1 : 0);
+    else if (animal.type === 'alligator') hide = 2 + (Math.random() < 0.7 ? 1 : 0);
+    else if (animal.type === 'fox') hide = Math.random() < 0.6 ? 1 : 0;
+    else if (animal.type === 'boar') hide = 2 + (Math.random() < 0.6 ? 1 : 0);
+    else if (animal.type === 'bat') hide = Math.random() < 0.3 ? 1 : 0;
     let egg = 0;
     let feather = 0;
+    let wing = 0;
     if (spec.egg) egg = Math.random() < 0.75 ? 1 : 0;
     if (spec.feather) feather = 1 + (Math.random() < 0.5 ? 1 : 0);
-    return { killed: true, meat, hide, egg, feather, name: spec.name, type: animal.type };
+    if (spec.wing) wing = Math.random() < 0.65 ? 1 : 0;
+    return { killed: true, meat, hide, egg, feather, wing, name: spec.name, type: animal.type };
   }
 
   /** Count living of type */

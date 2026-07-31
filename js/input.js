@@ -1,4 +1,79 @@
-/** Keyboard + mouse input (Minecraft-style). Bulletproof for browser quirks. */
+/** Keyboard + mouse input (Minecraft-style). Bulletproof for browser quirks.
+
+ * INPUT PRIORITY (when both KBM and gamepad0 are active on the same player):
+ *   Inputs MERGE / ACCUMULATE — no source is exclusive. Keyboard keys land in
+ *   Input.keys; gamepad axes/buttons set the virtual-move/jump/sprint flags.
+ *   The convenience accessors (wantsForward, wantsBack, etc.) use OR logic:
+ *   either KBM keys OR gamepad virtual-move can satisfy the condition.
+ *   Gamepad stick only overrides KBM when outside deadzone; otherwise keys still work.
+ * SAFETY: Gamepad polling is guarded — zero connected gamepads causes no crash,
+ * and pollGamepad() returns early when _gpConnected is false. */
+
+/**
+ * GamepadSlotManager — tracks connected gamepads with stable slot assignment.
+ *
+ * slot0 = first connected, slot1 = second connected by connection order.
+ * On disconnect, the slot becomes free. A new pad takes the lowest available
+ * slot. This prevents thrashing and survives mid-game disconnect/reconnect.
+ */
+export class GamepadSlotManager {
+  constructor() {
+    /** @type {{0: number|null, 1: number|null}} slot -> gamepad index, null = free */
+    this.slots = { 0: null, 1: null };
+    /** gamepad index -> slot, for reverse lookup */
+    this._gpToSlot = new Map();
+  }
+
+  /** Called on gamepadconnected. Returns assigned slot (0|1) or -1 if full. */
+  onConnect(gamepadIndex) {
+    // Already tracked — return existing slot.
+    if (this._gpToSlot.has(gamepadIndex)) {
+      return this._gpToSlot.get(gamepadIndex);
+    }
+    // Find first free slot.
+    for (const slot of [0, 1]) {
+      if (this.slots[slot] === null) {
+        this.slots[slot] = gamepadIndex;
+        this._gpToSlot.set(gamepadIndex, slot);
+        return slot;
+      }
+    }
+    return -1; // No free slots
+  }
+
+  /** Called on gamepaddisconnected. Returns freed slot or -1 if not tracked. */
+  onDisconnect(gamepadIndex) {
+    const slot = this._gpToSlot.get(gamepadIndex);
+    if (slot !== undefined) {
+      this.slots[slot] = null;
+      this._gpToSlot.delete(gamepadIndex);
+      return slot;
+    }
+    return -1;
+  }
+
+  /** Get the gamepad index for a slot (0|1), or null if free. */
+  getGamepad(slot) {
+    return this.slots[slot];
+  }
+
+  /** Check if a slot has an active gamepad. */
+  hasGamepad(slot) {
+    return this.slots[slot] !== null;
+  }
+
+  /** Reset all slots. */
+  reset() {
+    this.slots[0] = null;
+    this.slots[1] = null;
+    this._gpToSlot.clear();
+  }
+
+  /** Get all connected gamepad indices. */
+  getConnectedIndices() {
+    return Object.values(this.slots).filter(v => v !== null);
+  }
+}
 
 const CODE_FROM_KEY = {
   w: 'KeyW', a: 'KeyA', s: 'KeyS', d: 'KeyD',
@@ -33,6 +108,56 @@ const GAME_CODES = new Set([
   'Digit6', 'Digit7', 'Digit8', 'Digit9',
   'Escape', 'F3',
 ]);
+
+/**
+ * Standard Gamepad button mapping (single source of truth).
+ * Maps gamepad button index -> { action, label, ps5_label }.
+ *
+ * Standard layout (GT/Xbox): A=0, B=1, X=2, Y=3, LB=4, RB=5,
+ *   Back/Share=8, Start/Options=9, LS=10, RS=11.
+ *   D-pad: Up=12, Down=14, Left=13, Right=15.
+ * PS5 DualSense: Cross=0, Circle=1, Square=2, Triangle=3,
+ *   L1=4, R1=5, Share=8, Options=9, L3=10, R3=11.
+ */
+export const GAMEPAD_BUTTON_MAP = {
+  0:   { action: 'jump',      label: 'A/Cross' },
+  1:   { action: 'use',       label: 'B/Circle' },
+  2:   { action: 'drop',      label: 'X/Square' },
+  3:   { action: 'eat',       label: 'Y/Triangle' },
+  4:   { action: 'place',     label: 'LB/L1' },
+  5:   { action: 'sprint',    label: 'RB/R1' },
+  8:   { action: 'inventory', label: 'Share/Back' },
+  9:   { action: 'pause',     label: 'Options/Start' },
+  10:  { action: 'quick_save', label: 'L3/LS' },
+  11:  { action: 'crouch',   label: 'R3/RS' },
+  12:  { action: 'dpad_up',   label: 'D-pad Up' },
+  13:  { action: 'dpad_left', label: 'D-pad Left' },
+  14:  { action: 'dpad_down', label: 'D-pad Down' },
+  15:  { action: 'dpad_right', label: 'D-pad Right' },
+};
+
+/**
+ * Standard Gamepad axis mapping (single source of truth).
+ * Maps gamepad axis index -> { name, description }.
+ *
+ * Standard layout (GT/Xbox/PS5):
+ *   0=left stick X, 1=left stick Y, 2=L2 trigger,
+ *   3=right stick Y, 4=right stick X, 5=R2 trigger.
+ */
+export const GAMEPAD_AXIS_MAP = {
+  0:   { name: 'left_stick_x', description: 'Left stick horizontal (L=-1, R=+1)' },
+  1:   { name: 'left_stick_y', description: 'Left stick vertical (U=-1, D=+1)' },
+  2:   { name: 'l2_trigger', description: 'Left trigger axis (0..1, gradual)' },
+  3:   { name: 'right_stick_y', description: 'Right stick vertical (U=-1, D=+1)' },
+  4:   { name: 'right_stick_x', description: 'Right stick horizontal (L=-1, R=+1)' },
+  5:   { name: 'r2_trigger', description: 'Right trigger axis (0..1, gradual)' },
+};
+
+/** Trigger axes that also have a pressed button counterpart (buttons[6]=L2, [7]=R2). */
+export const TRIGGER_BUTTON_MAP = {
+  6: { axis: 2, action: 'l2_pressed', label: 'L2 pressed (button)' },
+  7: { axis: 5, action: 'r2_pressed', label: 'R2 pressed (button)' },
+};
 
 function normalizeCode(e) {
   if (e.code && e.code !== 'Unidentified') return e.code;
@@ -86,8 +211,10 @@ export class Input {
     this._vMoveZ = 0;
     this._vJump = false;
     this._vCrouch = false;
-    /** Gamepad state */
-    this._gpIndex = -1;
+    /** Gamepad state — dual gamepad support via shared GamepadSlotManager */
+    this._slots = null; // Shared GamepadSlotManager (set by caller or auto-created)
+    this._mySlot = 0; // This Input controls slot 0 (primary player)
+    this._gpIndex = -1; // Current gamepad index for slot 0 (back compat)
     this._gpConnected = false;
     /** Gamepad deadzone (0-1, default 0.15) */
     this.deadzone = 0.15;
@@ -144,7 +271,7 @@ export class Input {
       if (ret && typeof ret.then === 'function') {
         return ret.then(finish).catch(() => {
           // Non-Firefox browsers may still reject unadjustedMovement — bare retry.
-          try { this.el.requestPointerLock(); } catch (_) { /* */ }
+          try { this.el.requestPointerLock().catch(() => {}); } catch (_) { /* */ }
           return finish();
         });
       }
@@ -242,14 +369,68 @@ export class Input {
   };
 
   _onGpConnect = (e) => {
-    this._gpIndex = e.gamepad.index;
-    this._gpConnected = true;
+    const gpIndex = e.gamepad.index;
+    // Use slot manager if available, otherwise fall back to legacy single-pad.
+    if (this._slots) {
+      const slot = this._slots.onConnect(gpIndex);
+      // If this pad took our slot, update our tracking.
+      if (slot === this._mySlot) {
+        this._gpIndex = gpIndex;
+        this._gpConnected = true;
+      }
+    } else {
+      // Legacy: first pad connected goes to slot 0 (this player).
+      if (this._gpIndex === -1) {
+        this._gpIndex = gpIndex;
+        this._gpConnected = true;
+      }
+    }
   };
 
-  _onGpDisconnect = () => {
-    this._gpIndex = -1;
-    this._gpConnected = false;
+  _onGpDisconnect = (e) => {
+    if (!e || !e.gamepad) {
+      // Fallback: unknown disconnect — clear our state.
+      this._gpIndex = -1;
+      this._gpConnected = false;
+      return;
+    }
+    const gpIndex = e.gamepad.index;
+    if (this._slots) {
+      this._slots.onDisconnect(gpIndex);
+      // If our gamepad disconnected, clear tracking.
+      if (gpIndex === this._gpIndex) {
+        this._gpIndex = -1;
+        this._gpConnected = false;
+      }
+    } else {
+      // Legacy: if our pad disconnected, clear.
+      if (gpIndex === this._gpIndex) {
+        this._gpIndex = -1;
+        this._gpConnected = false;
+      }
+    }
   };
+
+  /** Set the shared GamepadSlotManager and this Input's slot (0 or 1). */
+  setSlotManager(manager, slot = 0) {
+    this._slots = manager;
+    this._mySlot = slot;
+    // Pick up existing gamepad in our slot.
+    this._refreshGamepadFromSlot();
+  }
+
+  /** Refresh _gpIndex/_gpConnected from the slot manager's current state. */
+  _refreshGamepadFromSlot() {
+    if (!this._slots) return;
+    const gpIndex = this._slots.getGamepad(this._mySlot);
+    if (gpIndex !== null) {
+      this._gpIndex = gpIndex;
+      this._gpConnected = true;
+    } else {
+      this._gpIndex = -1;
+      this._gpConnected = false;
+    }
+  }
 
   /** Poll gamepad state — call from game loop each frame */
   pollGamepad() {
@@ -258,22 +439,7 @@ export class Input {
     const gp = gamepads[this._gpIndex];
     if (!gp) return;
 
-    // DualSense / standard gamepad layout:
-    //   axis[0] = left stick X (left=-1, right=+1)
-    //   axis[1] = left stick Y (up=-1, down=+1)
-    //   axis[2] = left trigger (L2), range 0..1
-    //   axis[3] = right stick Y (up=-1, down=+1)
-    //   axis[4] = right stick X (left=-1, right=+1)
-    //   axis[5] = right trigger (R2), range 0..1
-    //   buttons[0] = Cross (A)
-    //   buttons[1] = Circle (B)
-    //   buttons[2] = Square (X)
-    //   buttons[3] = Triangle (Y)
-    //   buttons[4] = L1, [5] = R1
-    //   buttons[6] = L2 (pressed), [7] = R2 (pressed)
-    //   buttons[8] = Share, [9] = Options
-    //   buttons[10] = Left stick press (L3), [11] = Right stick press (R3)
-    //   buttons[12..15] = D-pad
+    // Gamepad state — see GAMEPAD_BUTTON_MAP and GAMEPAD_AXIS_MAP for mappings.
 
     const dz = this.deadzone;
     const sens = this.gpSensitivity;
@@ -312,50 +478,37 @@ export class Input {
     const lim = Math.PI / 2 - 0.01;
     this.lookY = Math.max(-lim, Math.min(lim, this.lookY));
 
-    // Buttons: Cross (0) = jump, Circle (1) = use, Square (2) = drop
-    // Triangle (3) = eat, L1 (4) = place, R1 (5) = sprint
-    // Left stick press (10) = crouch, Right stick press (11) = quick save
-    // D-pad up (12) = forward, down (14) = back, left (13) = left, right (15) = right
-    // Share (8) = inventory, Options (9) = pause
-
+    // Dispatch buttons via GAMEPAD_BUTTON_MAP (single source of truth).
     const btn = (i) => gp.buttons[i] && gp.buttons[i].pressed;
     const absBtn = (i) => gp.buttons[i] && gp.buttons[i].value;
 
-    // Jump on Cross press
-    if (btn(0)) this._vJump = true;
+    // Action dispatch table — maps action names to setters.
+    const actionMap = {
+      jump:       () => this._vJump = true,
+      use:        () => this.usePressed = true,
+      drop:       () => this.dropPressed = true,
+      eat:        () => this.eatPressed = true,
+      place:      () => this.placePressed = true,
+      sprint:     () => this.keys.add('ShiftLeft'),
+      crouch:     () => this.keys.add('KeyC'),
+      quick_save: () => this.quickSavePressed = true,
+      inventory:  () => this.inventoryPressed = true,
+      pause:      () => this.pausePressed = true,
+    };
 
-    // Use on Circle press
-    if (btn(1)) this.usePressed = true;
+    // D-pad key overrides (d-pad adds keyboard codes instead of action flags).
+    const dpadKeys = { dpad_up: 'KeyW', dpad_down: 'KeyS', dpad_left: 'KeyA', dpad_right: 'KeyD' };
 
-    // Drop on Square press
-    if (btn(2)) this.dropPressed = true;
-
-    // Eat on Triangle press
-    if (btn(3)) this.eatPressed = true;
-
-    // Place on L1 press
-    if (btn(4)) this.placePressed = true;
-
-    // Sprint on R1 press
-    if (btn(5)) this.keys.add('ShiftLeft');
-
-    // Crouch on R3 press
-    if (btn(11)) this.keys.add('KeyC');
-
-    // Quick save on L3 press
-    if (btn(10)) this.quickSavePressed = true;
-
-    // Inventory on Share
-    if (btn(8)) this.inventoryPressed = true;
-
-    // Pause on Options
-    if (btn(9)) this.pausePressed = true;
-
-    // D-pad movement fallback
-    if (btn(12)) this.keys.add('KeyW'); // up → forward
-    if (btn(14)) this.keys.add('KeyS'); // down → back
-    if (btn(13)) this.keys.add('KeyA'); // left → left
-    if (btn(15)) this.keys.add('KeyD'); // right → right
+    for (const [idx, mapping] of Object.entries(GAMEPAD_BUTTON_MAP)) {
+      if (!btn(Number(idx))) continue;
+      const action = mapping.action;
+      // D-pad maps to keyboard codes for movement.
+      if (dpadKeys[action]) {
+        this.keys.add(dpadKeys[action]);
+      } else if (actionMap[action]) {
+        actionMap[action]();
+      }
+    }
 
     // Triggers: L2 (axis[2]) can boost sprint, R2 (axis[5]) for fine look
     // L2 as additional forward boost when left stick is small

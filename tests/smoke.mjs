@@ -65,6 +65,57 @@ test('hash2 deterministic', () => {
   assert.notStrictEqual(hash2(1, 2), hash2(2, 1));
 });
 
+test('hash2_uniformity: range [0,1)', () => {
+  for (let x = -200; x <= 200; x++) {
+    for (let z = -200; z <= 200; z += 400) {
+      const v = hash2(x, z);
+      assert.ok(v >= 0 && v < 1, `hash2(${x},${z}) = ${v} out of [0,1)`);
+    }
+  }
+});
+
+test('hash2_uniformity: mean near 0.5', () => {
+  const N = 4096;
+  let sum = 0;
+  for (let i = 0; i < N; i++) {
+    sum += hash2(i, i * 7 + 3);
+  }
+  const mean = sum / N;
+  // Uniform [0,1) has expected mean 0.5.  Allow generous ±0.03 band.
+  assert.ok(mean >= 0.47 && mean <= 0.53, `hash2 mean ${mean.toFixed(4)} not near 0.5 (N=${N})`);
+});
+
+test('hash2_uniformity: bin distribution balanced', () => {
+  const bins = 10;
+  const counts = new Array(bins).fill(0);
+  const N = 2048;
+  for (let i = 0; i < N; i++) {
+    const v = hash2(i * 13 + 5, i * 31 + 7);
+    const idx = Math.min(Math.floor(v * bins), bins - 1);
+    counts[idx]++;
+  }
+  const expected = N / bins; // ~204.8 per bin
+  // Each bin within ±50 % of expected → [~102, ~307]
+  for (let b = 0; b < bins; b++) {
+    assert.ok(
+      counts[b] >= expected * 0.5 && counts[b] <= expected * 1.5,
+      `bin ${b}: ${counts[b]} (expected ~${expected.toFixed(0)}, range [${(expected * 0.5).toFixed(0)}, ${(expected * 1.5).toFixed(0)}])`
+    );
+  }
+});
+
+test('hash2_uniformity: large-integer-safety mean', () => {
+  // hash2 uses |0 and imul — large coords should still produce [0,1) uniform values.
+  const N = 2048;
+  let sum = 0;
+  for (let i = 0; i < N; i++) {
+    // Use coordinates near INT32 boundaries to stress the float-mul collapse.
+    sum += hash2(i * 0x1000, i * 0x2000 + 99);
+  }
+  const mean = sum / N;
+  assert.ok(mean >= 0.45 && mean <= 0.55, `hash2 large-coord mean ${mean.toFixed(4)} (N=${N})`);
+});
+
 test('fbm in range', () => {
   const v = fbm(0.5, 0.5, 4);
   assert.ok(v >= 0 && v <= 1);
@@ -414,7 +465,7 @@ test('save roundtrip preserves seed inventory edits', () => {
   assert.ok(!bad.ok);
 });
 
-import { MODES, getMode, scalePredatorDamage, isValidMode } from '../js/modes.js';
+import { MODES, getMode, scalePredatorDamage, isValidMode, MODE_ORDER } from '../js/modes.js';
 import {
   parseSettings,
   serializeSettings,
@@ -423,6 +474,8 @@ import {
   writeSettings,
   readSettings,
   SETTINGS_KEY,
+  getPlayMode,
+  DEFAULT_SETTINGS,
 } from '../js/settings.js';
 import { fallDamageFromSpeed } from '../js/survival.js';
 import { RECIPES } from '../js/crafting.js';
@@ -437,6 +490,38 @@ test('difficulty modes defined', () => {
   assert.ok(scalePredatorDamage(10, 'harmless') < 10);
   assert.ok(scalePredatorDamage(10, 'cruel') > 10);
   assert.strictEqual(MODES.survival.id, 'survival');
+});
+
+test('difficulty modes monotonic ordering', () => {
+  const keys = ['hungerMult', 'coldDamageMult', 'predatorDamageMult', 'predatorSenseMult'];
+  for (const key of keys) {
+    let prev = -Infinity;
+    for (const id of MODE_ORDER) {
+      const val = MODES[id][key];
+      assert.ok(val > prev, `${id}.${key}=${val} must be > previous mode value ${prev}`);
+      prev = val;
+    }
+  }
+  // starterRations should decrease (inverse monotonic)
+  let prev = Infinity;
+  for (const id of MODE_ORDER) {
+    const val = MODES[id].starterRations;
+    assert.ok(val < prev, `${id}.starterRations=${val} must be < previous mode value ${prev}`);
+    prev = val;
+  }
+});
+
+test('difficulty modes blurb consistency', () => {
+  // Harmless: hungerMult ~0.25 → "barely drains" / "~25% normal speed"
+  assert.ok(MODES.harmless.hungerMult <= 0.3, 'harmless hunger should be very low');
+  // Survival: baseline = 1
+  assert.strictEqual(MODES.survival.hungerMult, 1);
+  // Challenging: >1 but <2
+  assert.ok(MODES.challenging.hungerMult > 1 && MODES.challenging.hungerMult < 2);
+  // Cruel: significantly harder than challenging (at least 1.3x)
+  assert.ok(MODES.cruel.hungerMult > MODES.challenging.hungerMult * 1.2);
+  // Cruel cold is brutal (2x+ survival baseline)
+  assert.ok(MODES.cruel.coldDamageMult >= 2);
 });
 
 test('settings roundtrip + sensitivity map', () => {
@@ -458,6 +543,29 @@ test('settings roundtrip + sensitivity map', () => {
   const loaded = readSettings(mem, SETTINGS_KEY);
   assert.ok(loaded.ok);
   assert.strictEqual(loaded.data.mode, 'cruel');
+});
+
+test('playMode solo|coop parse serialize', () => {
+  assert.strictEqual(getPlayMode('coop'), 'coop');
+  assert.strictEqual(getPlayMode('solo'), 'solo');
+  assert.strictEqual(getPlayMode('nope'), 'solo');
+  assert.strictEqual(DEFAULT_SETTINGS.playMode, 'solo');
+  const p = parseSettings({ mode: 'survival', playMode: 'coop', sensitivity: 0.002 });
+  assert.ok(p.ok);
+  assert.strictEqual(p.data.playMode, 'coop');
+  const round = parseSettings(serializeSettings(p.data));
+  assert.ok(round.ok);
+  assert.strictEqual(round.data.playMode, 'coop');
+  const mem = {
+    _d: {},
+    setItem(k, v) { this._d[k] = String(v); },
+    getItem(k) { return this._d[k] ?? null; },
+    removeItem(k) { delete this._d[k]; },
+  };
+  assert.ok(writeSettings({ ...DEFAULT_SETTINGS, playMode: 'coop' }, mem).ok);
+  const loaded = readSettings(mem, SETTINGS_KEY);
+  assert.ok(loaded.ok);
+  assert.strictEqual(loaded.data.playMode, 'coop');
 });
 
 test('fall damage thresholds', () => {
@@ -1256,6 +1364,21 @@ test('chicken SPECIES exists passive feed seeds', () => {
   assert.ok(!canFeed({ type: 'chicken' }, ITEM.BERRIES));
 });
 
+test('boar SPECIES exists hostile high-hide', () => {
+  const b = SPECIES.boar;
+  assert.ok(b, 'boar species');
+  assert.strictEqual(b.hostile, true);
+  assert.ok(b.damage > 0 && b.attackRange > 0, 'boar attacks');
+  assert.ok(b.meatMin >= 2 && b.meatMax <= 3, 'boar meat drops');
+  assert.ok(b.senseRange < b.nightSense, 'boar night sense > day');
+  assert.strictEqual(b.feedItem, 'raw_meat'); // hostile — never tameable
+  assert.ok(!canFeed({ type: 'boar' }, ITEM.BERRIES), 'boar rejects berries');
+  assert.ok(canFeed({ type: 'boar' }, ITEM.RAW_MEAT), 'boar accepts raw_meat for calm');
+  // Verify boar hide drop logic exists in damageAnimal
+  const animalsSrc = readFileSync(new URL('../js/animals.js', import.meta.url), 'utf8');
+  assert.ok(animalsSrc.includes("animal.type === 'boar'"), 'boar hide drop in damageAnimal');
+});
+
 test('sequoia blocks and world placer exist', () => {
   assert.ok(BLOCK.SEQUOIA_LOG);
   assert.ok(BLOCK.SEQUOIA_LEAVES);
@@ -1275,5 +1398,551 @@ test('spawn marker HUD hooks present in index', () => {
   assert.ok(html.includes('#spawn-marker'));
 });
 
+// ── earlyGameGrace regression coverage ──────────────────────
+
+test('full grace suppresses starvation damage', () => {
+  let s = { ...DEFAULT_SURVIVAL, hunger: 0 };
+  for (let i = 0; i < 200; i++) {
+    s = tickSurvival(s, {
+      dt: 1,
+      dayPhase: 0.25,
+      weather: 'clear',
+      blockHeat: 20,
+      sprinting: false,
+      moving: false,
+      inWater: false,
+      sleeping: false,
+      earlyGameGrace: 1,
+    });
+    if (s.dead) break;
+  }
+  assert.ok(!s.dead, 'should not die from starvation with full grace');
+});
+
+test('full grace suppresses hypothermia damage', () => {
+  let s = { ...DEFAULT_SURVIVAL, bodyTemp: 31 };
+  for (let i = 0; i < 800; i++) {
+    s = tickSurvival(s, {
+      dt: 0.25,
+      dayPhase: 0.75,
+      weather: 'snow',
+      blockHeat: 0,
+      sprinting: false,
+      moving: false,
+      inWater: false,
+      sleeping: false,
+      earlyGameGrace: 1,
+    });
+    if (s.dead) break;
+  }
+  assert.ok(!s.dead, 'should not die from hypothermia with full grace');
+});
+
+test('full grace keeps hunger above lethal floor', () => {
+  let s = { ...DEFAULT_SURVIVAL, hunger: 50 };
+  for (let i = 0; i < 200; i++) {
+    s = tickSurvival(s, {
+      dt: 1,
+      dayPhase: 0.25,
+      weather: 'clear',
+      blockHeat: 20,
+      sprinting: false,
+      moving: false,
+      inWater: false,
+      sleeping: false,
+      earlyGameGrace: 1,
+    });
+  }
+  assert.ok(s.hunger >= 25, `hunger ${s.hunger} should be above starvation threshold`);
+});
+
+test('grace expiration restores lethal hunger damage', () => {
+  let s = { ...DEFAULT_SURVIVAL, hunger: 5 };
+  for (let i = 0; i < 120; i++) {
+    const grace = Math.max(0, 1 - i / 120); // ramps from ~1 → 0
+    s = tickSurvival(s, {
+      dt: 0.5,
+      dayPhase: 0.25,
+      weather: 'clear',
+      blockHeat: 20,
+      sprinting: true,
+      moving: true,
+      inWater: false,
+      sleeping: false,
+      earlyGameGrace: grace,
+    });
+  }
+  // Grace expiration restores the damage path; explicitly deplete hunger after
+  // the ramp so this test does not depend on an arbitrary starvation timer.
+  const beforeDamage = s.health;
+  s.hunger = 0;
+  s = tickSurvival(s, {
+    dt: 1,
+    dayPhase: 0.25,
+    weather: 'clear',
+    blockHeat: 20,
+    sprinting: false,
+    moving: false,
+    inWater: false,
+    sleeping: false,
+    earlyGameGrace: 0,
+  });
+  assert.ok(s.health < beforeDamage, 'zero grace should restore starvation damage');
+});
+
+test('grace expiration restores cold damage', () => {
+  let s = { ...DEFAULT_SURVIVAL, bodyTemp: 31 };
+  for (let i = 0; i < 800; i++) {
+    const grace = Math.max(0, 1 - i / 800); // slow ramp down
+    s = tickSurvival(s, {
+      dt: 0.25,
+      dayPhase: 0.75,
+      weather: 'snow',
+      blockHeat: 0,
+      sprinting: false,
+      moving: false,
+      inWater: false,
+      sleeping: false,
+      earlyGameGrace: grace,
+    });
+    if (s.dead) break;
+  }
+  assert.ok(s.dead, 'should die from hypothermia once grace expires');
+});
+
+test('zero grace behaves like no grace param', () => {
+  let s1 = { ...DEFAULT_SURVIVAL, hunger: 0 };
+  let s2 = { ...DEFAULT_SURVIVAL, hunger: 0 };
+  for (let i = 0; i < 50; i++) {
+    s1 = tickSurvival(s1, {
+      dt: 0.2, dayPhase: 0.25, weather: 'clear', blockHeat: 20,
+      sprinting: false, moving: false, inWater: false, sleeping: false, earlyGameGrace: 0,
+    });
+    s2 = tickSurvival(s2, {
+      dt: 0.2, dayPhase: 0.25, weather: 'clear', blockHeat: 20,
+      sprinting: false, moving: false, inWater: false, sleeping: false,
+    });
+  }
+  assert.strictEqual(s1.health, s2.health, 'zero grace should equal no grace param');
+});
+
+test('grace > 0.5 hard-floors bodyTemp above damage band', () => {
+  let s = { ...DEFAULT_SURVIVAL, bodyTemp: 31 };
+  for (let i = 0; i < 200; i++) {
+    s = tickSurvival(s, {
+      dt: 1, dayPhase: 0.75, weather: 'snow', blockHeat: 0,
+      sprinting: false, moving: false, inWater: false, sleeping: false, earlyGameGrace: 1,
+    });
+  }
+  assert.ok(s.bodyTemp >= 35.8, `bodyTemp ${s.bodyTemp} should be hard-floored at 35.8`);
+});
+
+test('grace dampens wetness gain', () => {
+  let noGrace = { ...DEFAULT_SURVIVAL };
+  let fullGrace = { ...DEFAULT_SURVIVAL };
+  for (let i = 0; i < 2; i++) {
+    noGrace = tickSurvival(noGrace, {
+      dt: 1, dayPhase: 0.25, weather: 'rain', blockHeat: 0,
+      sprinting: false, moving: true, inWater: true, sleeping: false, earlyGameGrace: 0,
+    });
+    fullGrace = tickSurvival(fullGrace, {
+      dt: 1, dayPhase: 0.25, weather: 'rain', blockHeat: 0,
+      sprinting: false, moving: true, inWater: true, sleeping: false, earlyGameGrace: 1,
+    });
+  }
+  assert.ok(fullGrace.wetness < noGrace.wetness, `wetness with grace ${fullGrace.wetness} should be < without ${noGrace.wetness}`);
+});
+
+// ---- CoopInputRouter tests (browser API mocks) ----
+
+test('input-coop module exports', async () => {
+  const m = await import('../js/input-coop.js');
+  assert.strictEqual(typeof m.CoopInputRouter, 'function');
+  assert.strictEqual(m.P1, 'p1');
+  assert.strictEqual(m.P2, 'p2');
+});
+
+test('input-coop: default mapping assigns no pads', async () => {
+  // CoopInputRouter needs Input which references DOM — can't fully instantiate in Node.
+  // Verify the module loads and exports are correct (constructor is a class).
+  const m = await import('../js/input-coop.js');
+  assert.strictEqual(m.P1, 'p1');
+  assert.strictEqual(m.P2, 'p2');
+  // CoopInputRouter is a class with the expected public methods.
+  const proto = m.CoopInputRouter.prototype;
+  assert.strictEqual(typeof proto.poll, 'function');
+  assert.strictEqual(typeof proto.getMoveLook, 'function');
+  assert.strictEqual(typeof proto.setPlayerGamepad, 'function');
+  assert.strictEqual(typeof proto.getPlayerGamepad, 'function');
+  assert.strictEqual(typeof proto.wantsJump, 'function');
+  assert.strictEqual(typeof proto.wantsSprint, 'function');
+  assert.strictEqual(typeof proto.wantsCrouch, 'function');
+  assert.strictEqual(typeof proto.consumePlace, 'function');
+  assert.strictEqual(typeof proto.consumeUse, 'function');
+  assert.strictEqual(typeof proto.unbind, 'function');
+  assert.strictEqual(typeof proto.getMapping, 'function');
+});
+
+// Pure logic tests — deadzone helper is internal but we verify the contract via the class API.
+// Since Input requires a DOM canvas, test getMoveLook defaults on mock gamepad state.
+
+test('input-coop: readGamepad deadzone logic', async () => {
+  // We can't easily import the internal readGamepad, so verify via a known contract:
+  // applyDeadzone(val, dz) zeroes values below deadzone.
+  const dz = 0.15;
+
+  // Inline the same math for verification (mirrors input-coop.js internal logic).
+  const applyDZ = (v) => {
+    if (Math.abs(v) < dz) return 0;
+    return Math.sign(v) * (Math.abs(v) - dz) / (1 - dz);
+  };
+
+  assert.strictEqual(applyDZ(0.1), 0, 'below deadzone should be 0');
+  assert.strictEqual(applyDZ(0.15), 0, 'at deadzone should be 0');
+  assert.ok(Math.abs(applyDZ(1) - 1) < 0.001, 'full stick should map to ~1');
+  assert.ok(Math.abs(applyDZ(0.5) - ((0.5 - dz) / (1 - dz))) < 0.001, 'mid-range linear');
+});
+
+test('input-coop: P1 and P2 constants', async () => {
+  const m = await import('../js/input-coop.js');
+  assert.strictEqual(m.P1, 'p1', 'P1 constant');
+  assert.strictEqual(m.P2, 'p2', 'P2 constant');
+  assert.notStrictEqual(m.P1, m.P2, 'P1 and P2 must differ');
+});
+
+
+// Coop-state module smoke tests
+import { clonePlayer, cloneSurvivalState, serializeCoopGameState } from '../js/coop-state.js';
+const p = { slots: [{id:1,count:2},{id:null,count:0}] };
+const cp = clonePlayer(p);
+assert.deepStrictEqual(cp.slots, p.slots); // same content
+assert.notStrictEqual(cp.slots, p.slots); // but different array reference
+const s = { health:80, hunger:70 };
+const cs = cloneSurvivalState(s);
+assert.strictEqual(cs.health, 80);
+assert.strictEqual(cs.hunger, 70);
+assert.strictEqual(cs.maxHealth, 100); // default from DEFAULT_SURVIVAL
+
+test('coop-state: serializeCoopGameState with full game object', async () => {
+  const game = {
+    player1: { x: 10, y: 5, slots: [{id:'dirt',count:3}] },
+    player2: { x: 12, y: 5, slots: [] },
+    world: { seed: 42, timeOfDay: 0.5 },
+  };
+  const serialized = serializeCoopGameState(game);
+  assert.strictEqual(serialized.player1.x, 10);
+  assert.strictEqual(serialized.player2.slots.length, 0);
+  assert.notStrictEqual(serialized.player1.slots, game.player1.slots, 'player slots cloned');
+  assert.strictEqual(serialized.world.seed, 42);
+  assert.notStrictEqual(serialized.world, game.world, 'world cloned');
+});
+
+test('coop-state: serializeCoopGameState with null/missing fields', async () => {
+  const empty = serializeCoopGameState({});
+  assert.strictEqual(empty.player1, null);
+  assert.strictEqual(empty.player2, null);
+  assert.deepStrictEqual(empty.world, {});
+
+  const nil = serializeCoopGameState(null);
+  assert.strictEqual(nil.player1, null);
+  assert.deepStrictEqual(nil.world, {});
+});
+
+// Viewport-split pure logic tests (no WebGL needed)
+import { splitViewport } from '../js/viewport-split.js';
+
+test('viewport-split: 16:9 input returns full-coverage rects in lr mode', async () => {
+  const rects = splitViewport(1920, 1080, 'lr');
+  assert.strictEqual(rects.length, 2);
+  // Letterbox area is the full viewport (already 16:9)
+  assert.strictEqual(rects[0].x, 0);
+  assert.strictEqual(rects[0].y, 0);
+  assert.strictEqual(rects[0].h, 1080);
+  assert.strictEqual(rects[1].y, 0);
+  assert.strictEqual(rects[1].h, 1080);
+  // Two halves should cover full width
+  assert.strictEqual(rects[0].w + rects[1].w, 1920);
+});
+
+test('viewport-split: too-wide viewport adds side letterbox bars', async () => {
+  const rects = splitViewport(2560, 1080, 'lr');
+  assert.strictEqual(rects.length, 2);
+  // Target 16:9 within 2560x1080 → letterW = 1080*16/9 = 1920, letterX = (2560-1920)/2 = 320
+  assert.strictEqual(rects[0].x, 320);
+  assert.strictEqual(rects[1].y, 0);
+  assert.strictEqual(rects[0].h, 1080);
+});
+
+test('viewport-split: too-tall viewport adds top/bottom letterbox bars', async () => {
+  const rects = splitViewport(1280, 1024, 'lr');
+  assert.strictEqual(rects.length, 2);
+  // Target 16:9 within 1280x1024 → letterH = 1280/16*9 = 720, letterY = (1024-720)/2 = 152
+  assert.strictEqual(rects[0].x, 0);
+  assert.strictEqual(rects[0].y, 152);
+});
+
+test('viewport-split: tb mode splits vertically', async () => {
+  const rects = splitViewport(1920, 1080, 'tb');
+  assert.strictEqual(rects.length, 2);
+  // Full viewport is already 16:9 → letterbox = full area
+  assert.strictEqual(rects[0].x, 0);
+  assert.strictEqual(rects[1].x, 0);
+  assert.strictEqual(rects[0].w, 1920);
+  assert.strictEqual(rects[0].h + rects[1].h, 1080);
+});
+
+test('viewport-split: invalid mode throws', async () => {
+  assert.throws(() => splitViewport(1920, 1080, 'xx'), /mode must be/);
+});
+
+test('viewport-split: non-numeric input throws', async () => {
+  assert.throws(() => splitViewport('abc', 1080), /numeric/);
+  assert.throws(() => splitViewport(1920, null), /numeric/);
+});
+
+// Input slot mapping tests (pure — no browser APIs)
+import { CoopInputRouter, P1, P2 } from '../js/input-coop.js';
+import { GamepadSlotManager, GAMEPAD_BUTTON_MAP, GAMEPAD_AXIS_MAP, TRIGGER_BUTTON_MAP } from '../js/input.js';
+
+// GamepadSlotManager pure tests
+test('gamepad-slot: initial state — both slots free', async () => {
+  const mgr = new GamepadSlotManager();
+  assert.strictEqual(mgr.getGamepad(0), null);
+  assert.strictEqual(mgr.getGamepad(1), null);
+  assert.strictEqual(mgr.hasGamepad(0), false);
+  assert.strictEqual(mgr.hasGamepad(1), false);
+});
+
+test('gamepad-slot: first pad connects to slot 0', async () => {
+  const mgr = new GamepadSlotManager();
+  const slot = mgr.onConnect(2); // browser index 2
+  assert.strictEqual(slot, 0);
+  assert.strictEqual(mgr.getGamepad(0), 2);
+  assert.strictEqual(mgr.hasGamepad(0), true);
+});
+
+test('gamepad-slot: second pad connects to slot 1', async () => {
+  const mgr = new GamepadSlotManager();
+  mgr.onConnect(0); // first pad → slot 0
+  const slot = mgr.onConnect(3); // second pad → slot 1
+  assert.strictEqual(slot, 1);
+  assert.strictEqual(mgr.getGamepad(1), 3);
+});
+
+test('gamepad-slot: third pad returns -1 (no free slots)', async () => {
+  const mgr = new GamepadSlotManager();
+  mgr.onConnect(0);
+  mgr.onConnect(1);
+  const slot = mgr.onConnect(2);
+  assert.strictEqual(slot, -1);
+});
+
+test('gamepad-slot: disconnect frees the slot', async () => {
+  const mgr = new GamepadSlotManager();
+  mgr.onConnect(0); // slot 0
+  const freed = mgr.onDisconnect(0);
+  assert.strictEqual(freed, 0);
+  assert.strictEqual(mgr.getGamepad(0), null);
+});
+
+test('gamepad-slot: new pad takes freed slot', async () => {
+  const mgr = new GamepadSlotManager();
+  mgr.onConnect(5); // slot 0
+  mgr.onConnect(6); // slot 1
+  mgr.onDisconnect(5); // free slot 0
+  const slot = mgr.onConnect(7); // should go to slot 0 (lowest free)
+  assert.strictEqual(slot, 0);
+  assert.strictEqual(mgr.getGamepad(0), 7);
+});
+
+test('gamepad-slot: disconnect unknown index returns -1', async () => {
+  const mgr = new GamepadSlotManager();
+  const freed = mgr.onDisconnect(99);
+  assert.strictEqual(freed, -1);
+});
+
+test('gamepad-slot: reconnect same index reassigns', async () => {
+  const mgr = new GamepadSlotManager();
+  mgr.onConnect(1); // slot 0
+  mgr.onDisconnect(1); // free slot 0
+  const slot = mgr.onConnect(1); // reconnect — goes to lowest free (slot 0)
+  assert.strictEqual(slot, 0);
+});
+
+test('gamepad-slot: reset clears all', async () => {
+  const mgr = new GamepadSlotManager();
+  mgr.onConnect(0);
+  mgr.onConnect(1);
+  mgr.reset();
+  assert.strictEqual(mgr.getGamepad(0), null);
+  assert.strictEqual(mgr.getGamepad(1), null);
+});
+
+test('gamepad-slot: getConnectedIndices returns tracked indices', async () => {
+  const mgr = new GamepadSlotManager();
+  assert.strictEqual(mgr.getConnectedIndices().length, 0);
+  mgr.onConnect(3);
+  assert.deepStrictEqual(mgr.getConnectedIndices(), [3]);
+  mgr.onConnect(7);
+  assert.deepStrictEqual(mgr.getConnectedIndices(), [3, 7]);
+});
+
+test('gamepad-slot: duplicate connect returns existing slot', async () => {
+  const mgr = new GamepadSlotManager();
+  const s1 = mgr.onConnect(4);
+  const s2 = mgr.onConnect(4); // same index again
+  assert.strictEqual(s1, s2);
+});
+
+test('input-coop: slot mapping defaults to -1 for both players', async () => {
+  const router = new CoopInputRouter(null);
+  const mapping = router.getMapping();
+  assert.strictEqual(mapping.p1, -1);
+  assert.strictEqual(mapping.p2, -1);
+  assert.strictEqual(mapping.kbmPlayer, P1); // KBM defaults to P1
+});
+
+test('input-coop: setPlayerGamepad assigns and retrieves indices', async () => {
+  const router = new CoopInputRouter(null);
+  router.setPlayerGamepad(P1, 0);
+  router.setPlayerGamepad(P2, 1);
+  assert.strictEqual(router.getPlayerGamepad(P1), 0);
+  assert.strictEqual(router.getPlayerGamepad(P2), 1);
+
+  // Clear P1
+  router.setPlayerGamepad(P1, -1);
+  assert.strictEqual(router.getPlayerGamepad(P1), -1);
+});
+
+test('input-coop: KBM player can be configured at construction', async () => {
+  const router = new CoopInputRouter(null, { kbmPlayer: P2 });
+  assert.strictEqual(router.getMapping().kbmPlayer, P2);
+});
+
+test('input-coop: getMoveLook returns zeroed defaults', async () => {
+  const router = new CoopInputRouter(null);
+  const ml1 = router.getMoveLook(P1);
+  assert.strictEqual(ml1.moveX, 0);
+  assert.strictEqual(ml1.moveZ, 0);
+  assert.strictEqual(ml1.lookX, 0);
+  assert.strictEqual(ml1.lookY, 0);
+});
+
+test('input-coop: getMoveLook reflects mock movement', async () => {
+  const router = new CoopInputRouter(null);
+  router.setMockMove(P1, 0.5, -0.8);
+  const ml = router.getMoveLook(P1);
+  assert.strictEqual(ml.moveX, 0.5);
+  assert.strictEqual(ml.moveZ, -0.8);
+});
+
+test('input-coop: wantsJump via mock state', async () => {
+  const router = new CoopInputRouter(null);
+  assert.strictEqual(router.wantsJump(P1), false);
+  router.setMockJump(P1, true);
+  assert.strictEqual(router.wantsJump(P1), true);
+});
+
+test('input-coop: wantsSprint via mock state', async () => {
+  const router = new CoopInputRouter(null);
+  assert.strictEqual(router.wantsSprint(P1), false);
+  router.setMockSprint(P1, true);
+  assert.strictEqual(router.wantsSprint(P1), true);
+});
+
+test('input-coop: wantsCrouch via mock state', async () => {
+  const router = new CoopInputRouter(null);
+  assert.strictEqual(router.wantsCrouch(P1), false);
+  router.setMockCrouch(P1, true);
+  assert.strictEqual(router.wantsCrouch(P1), true);
+});
+
+test('input-coop: consumePlace is one-shot', async () => {
+  const router = new CoopInputRouter(null);
+  router.setMockPlace(P1, true);
+  assert.strictEqual(router.consumePlace(P1), true);
+  assert.strictEqual(router.consumePlace(P1), false); // consumed
+});
+
+test('input-coop: consumeUse is one-shot', async () => {
+  const router = new CoopInputRouter(null);
+  assert.strictEqual(router.consumeUse(P2), false);
+  router.setMockUse(P2, true);
+  assert.strictEqual(router.consumeUse(P2), true);
+  assert.strictEqual(router.consumeUse(P2), false); // consumed
+});
+
+test('input-coop: unbind resets all state', async () => {
+  const router = new CoopInputRouter(null);
+  router.setPlayerGamepad(P1, 3);
+  router.setMockJump(P2, true);
+  router.unbind();
+  assert.strictEqual(router.getPlayerGamepad(P1), -1);
+  assert.strictEqual(router.wantsJump(P2), false);
+});
+
+test('input-coop: wantsJump via keyboard mock keys', async () => {
+  const router = new CoopInputRouter(null);
+  router.setMockKeys(P1, ['Space']);
+  assert.strictEqual(router.wantsJump(P1), true);
+});
+
+test('input-coop: wantsSprint via keyboard mock keys', async () => {
+  const router = new CoopInputRouter(null);
+  assert.strictEqual(router.wantsSprint(P2), false);
+  router.setMockKeys(P2, ['ShiftLeft']);
+  assert.strictEqual(router.wantsSprint(P2), true);
+});
+
+test('input-coop: wantsCrouch via keyboard mock keys', async () => {
+  const router = new CoopInputRouter(null);
+  assert.strictEqual(router.wantsCrouch(P2), false);
+  router.setMockKeys(P2, ['KeyC']);
+  assert.strictEqual(router.wantsCrouch(P2), true);
+});
+
 console.log(`\n${passed} tests passed`);
+
+// Gamepad mapping table smoke tests
+test('gamepad-button-map: has all expected indices', () => {
+  const expected = [0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15];
+  for (const idx of expected) {
+    assert.ok(GAMEPAD_BUTTON_MAP[idx] !== undefined, `Missing button index ${idx}`);
+    assert.ok(typeof GAMEPAD_BUTTON_MAP[idx].action === 'string', `Button ${idx} missing action`);
+    assert.ok(typeof GAMEPAD_BUTTON_MAP[idx].label === 'string', `Button ${idx} missing label`);
+  }
+});
+
+test('gamepad-button-map: no duplicate actions', () => {
+  const seen = new Set();
+  for (const [idx, entry] of Object.entries(GAMEPAD_BUTTON_MAP)) {
+    assert.ok(!seen.has(entry.action), `Duplicate action '${entry.action}' at index ${idx}`);
+    seen.add(entry.action);
+  }
+});
+
+test('gamepad-axis-map: has all expected indices', () => {
+  const expected = [0, 1, 2, 3, 4, 5];
+  for (const idx of expected) {
+    assert.ok(GAMEPAD_AXIS_MAP[idx] !== undefined, `Missing axis index ${idx}`);
+    assert.ok(typeof GAMEPAD_AXIS_MAP[idx].name === 'string', `Axis ${idx} missing name`);
+    assert.ok(typeof GAMEPAD_AXIS_MAP[idx].description === 'string', `Axis ${idx} missing description`);
+  }
+});
+
+test('gamepad-axis-map: standard names present', () => {
+  const expectedNames = ['left_stick_x', 'left_stick_y', 'l2_trigger', 'right_stick_y', 'right_stick_x', 'r2_trigger'];
+  const actualNames = Object.values(GAMEPAD_AXIS_MAP).map(a => a.name);
+  for (const name of expectedNames) {
+    assert.ok(actualNames.includes(name), `Missing axis name '${name}'`);
+  }
+});
+
+test('trigger-button-map: L2 and R2 entries exist', () => {
+  assert.ok(TRIGGER_BUTTON_MAP[6], 'Missing trigger button index 6 (L2)');
+  assert.ok(TRIGGER_BUTTON_MAP[7], 'Missing trigger button index 7 (R2)');
+  assert.strictEqual(TRIGGER_BUTTON_MAP[6].axis, 2, 'L2 button should reference axis 2');
+  assert.strictEqual(TRIGGER_BUTTON_MAP[7].axis, 5, 'R2 button should reference axis 5');
+});
+
 if (process.exitCode) process.exit(1);

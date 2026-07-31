@@ -2,7 +2,7 @@
 
 **Status:** ACTIVE until genre-competitive  
 **Live:** https://wdavidpence.github.io/frontier-survival/  
-**Backlog source of truth:** `docs/roadmap/competitive-backlog.json` (~1700+ atomic items, growing)  
+**Backlog source of truth:** `docs/roadmap/competitive-backlog.json` (~2000+ atomic items; +250 split-screen/competitive 2026-07-31)
 **Bugs:** `docs/bugs/BUGLOG.md`  
 **Mint state:** `docs/roadmap/mint-state.json`  
 **Board:** `frontier-survival`  
@@ -107,19 +107,26 @@ Inspired by genre systems only. No Survivalcraft / Mojang / Iron Gate IP.
 
 ---
 
-## Platform goals (user mandate)
+## Platform goals (user mandate) — P0
+
+Locked 2026-07-31:
+1. Browser/PC only stack; PS5 via **PS5 web browser** + two DualSense (no native SDK).
+2. Competitive bar: **SC systems first**, then MC breadth (phased).
+3. **Local split-screen only** (no online until SP+local coop solid).
+4. Publish every ~20 judge turns if green+better (smoke + browser).
+5. Workers: qwen27s≤4, qwen35≤2, local35≤1 unchanged.
+6. Original IP; genre-feel systems OK.
+7. Unattended permanent loop (docs/overnight-progress.md).
 
 ### PlayStation 5 (browser)
-- Players open GitHub Pages URL in PS5 browser
-- **DualSense** via Gamepad API: move, look, mine/place, inventory, pause
-- TV-safe HUD, large text, performance preset for console GPUs
-- Mouse+keyboard remain first-class on PC
+- GH Pages URL in PS5 browser; dual DualSense via Gamepad API
+- TV-safe HUD, large text, Console perf preset
+- Full UI nav without mouse
 
-### Local split-screen co-op (2 players)
-- Title option: Solo | Local Co-op
-- Shared world, two viewports, two inventories/survival meters
-- P1: KB+M or pad0 · P2: pad1
-- Same machine / same browser tab (no netcode required for v1 coop)
-- Save/load both players
+### Local split-screen co-op (2P) — **current P0 ship goal**
+- Design: `docs/roadmap/splitscreen.md`
+- Title: Solo | Local Co-op · shared world · two viewports
+- P1: KBM or pad0 · P2: pad1 · same tab, no netcode
+- Save/load both players · pure modules first then game wire
 
-These are first-class pillars in `competitive-backlog.json` (`Platform:*`, `Coop:*`) and stay minted until shipped.
+Pillars: `Coop P0:*`, `Platform P0:*` priority ≤12 mint first.

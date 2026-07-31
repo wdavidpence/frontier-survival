@@ -6,9 +6,27 @@ export const SETTINGS_KEY = 'frontier_survival_settings_v1';
 
 export const DEFAULT_SETTINGS = {
   mode: 'survival',
+  /** @type {'solo'|'coop'} local split-screen play mode */
+  playMode: 'solo',
   sensitivity: 0.0022,
   helpVisible: true,
   renderDistance: 5,
+};
+
+export const PLAY_MODE_ORDER = /** @type {const} */ (['solo', 'coop']);
+
+/** @param {string|undefined|null} id */
+export function getPlayMode(id) {
+  return id === 'coop' ? 'coop' : 'solo';
+}
+
+export const PLAY_MODE_META = {
+  solo: { id: 'solo', name: 'Solo', blurb: 'One player — keyboard + mouse or a single gamepad.' },
+  coop: {
+    id: 'coop',
+    name: 'Local Co-op',
+    blurb: 'Split-screen 2P: P1 keyboard/mouse or pad0 · P2 pad1 (DualSense on PS5 browser).',
+  },
 };
 
 /**
@@ -27,6 +45,7 @@ export function parseSettings(raw) {
   }
   if (!data || typeof data !== 'object') return { ok: false, error: 'not object' };
   const mode = typeof data.mode === 'string' ? data.mode : DEFAULT_SETTINGS.mode;
+  const playMode = getPlayMode(/** @type {any} */ (data).playMode);
   let sensitivity = Number(data.sensitivity);
   if (!Number.isFinite(sensitivity)) sensitivity = DEFAULT_SETTINGS.sensitivity;
   sensitivity = Math.max(0.0006, Math.min(0.008, sensitivity));
@@ -38,6 +57,7 @@ export function parseSettings(raw) {
     ok: true,
     data: {
       mode,
+      playMode,
       sensitivity,
       helpVisible,
       renderDistance,
@@ -48,6 +68,7 @@ export function parseSettings(raw) {
 export function serializeSettings(settings) {
   return JSON.stringify({
     mode: settings.mode || DEFAULT_SETTINGS.mode,
+    playMode: getPlayMode(settings.playMode),
     sensitivity: settings.sensitivity ?? DEFAULT_SETTINGS.sensitivity,
     helpVisible: settings.helpVisible !== false,
     renderDistance: settings.renderDistance ?? DEFAULT_SETTINGS.renderDistance,

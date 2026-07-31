@@ -1,10 +1,10 @@
 /**
  * Pure atlas tile math — no DOM/Three (unit-testable).
  */
-import { BLOCK } from './blocks.js?v=190';
+import { BLOCK } from './blocks.js?v=201';
 
 export const TILE_PX = 32;
-export const ATLAS_N = 7;
+export const ATLAS_N = 8;
 export const ATLAS_PX = TILE_PX * ATLAS_N;
 
 export const TILE = {
@@ -57,6 +57,9 @@ export const TILE = {
   SEQUOIA_LOG_SIDE: 46,
   SEQUOIA_LOG_TOP: 47,
   SEQUOIA_LEAVES: 48,
+  SPRUCE_LOG_SIDE: 49,
+  SPRUCE_LOG_TOP: 50,
+  SPRUCE_LEAVES: 51,
 };
 
 /** UV corners: bl, tl, tr, br in atlas space */
@@ -159,6 +162,10 @@ export function tileForBlock(blockId, faceDir) {
       return faceDir === 'top' || faceDir === 'bottom' ? TILE.SEQUOIA_LOG_TOP : TILE.SEQUOIA_LOG_SIDE;
     case BLOCK.SEQUOIA_LEAVES:
       return TILE.SEQUOIA_LEAVES;
+    case BLOCK.SPRUCE_LOG:
+      return faceDir === 'top' || faceDir === 'bottom' ? TILE.SPRUCE_LOG_TOP : TILE.SPRUCE_LOG_SIDE;
+    case BLOCK.SPRUCE_LEAVES:
+      return TILE.SPRUCE_LEAVES;
     default:
       return TILE.STONE;
   }
