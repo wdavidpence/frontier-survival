@@ -2052,6 +2052,13 @@ test('game source has coop death and p2 bow hooks', () => {
   assert.ok(src.includes('bothDead') || src.includes('p2Dead'));
   assert.ok(src.includes("respawn(who"));
   assert.ok(src.includes('both players must stand near the bed'));
+  assert.ok(src.includes('coopMode) rd = Math.max') || src.includes('rd - 2'));
+});
+
+test('coop-perf-budget doc exists', () => {
+  const doc = readFileSync(new URL('../docs/roadmap/coop-perf-budget.md', import.meta.url), 'utf8');
+  assert.ok(doc.includes('30 fps') || doc.includes('≥30'));
+  assert.ok(doc.includes('render distance'));
 });
 
 
