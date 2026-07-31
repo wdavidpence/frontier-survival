@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=207';
-import { Player } from './player.js?v=207';
-import { Input } from './input.js?v=207';
-import { GameTime } from './time.js?v=207';
-import { AudioBus } from './audio.js?v=207';
+import { World } from './world.js?v=208';
+import { Player } from './player.js?v=208';
+import { Input } from './input.js?v=208';
+import { GameTime } from './time.js?v=208';
+import { AudioBus } from './audio.js?v=208';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=207';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=207';
+} from './survival.js?v=208';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=208';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=207';
+} from './items.js?v=208';
 import {
   addItems,
   removeItems,
@@ -31,11 +31,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=207';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=207';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=207';
-import { createBlockAtlas } from './atlas.js?v=207';
-import { BreakFX } from './fx.js?v=207';
+} from './inventory.js?v=208';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=208';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=208';
+import { createBlockAtlas } from './atlas.js?v=208';
+import { BreakFX } from './fx.js?v=208';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -45,35 +45,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=207';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=207';
+} from './equipment.js?v=208';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=208';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=207';
-import { getMode } from './modes.js?v=207';
+} from './save.js?v=208';
+import { getMode } from './modes.js?v=208';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=207';
+} from './settings.js?v=208';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=207';
-import { tickSpoilage } from './spoilage.js?v=207';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=207';
-import { wearTool, durabilityRatio } from './durability.js?v=207';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=207';
-import { tickLogic, COMPONENT } from './logic.js?v=207';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=207';
+} from './achievements.js?v=208';
+import { tickSpoilage } from './spoilage.js?v=208';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=208';
+import { wearTool, durabilityRatio } from './durability.js?v=208';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=208';
+import { tickLogic, COMPONENT } from './logic.js?v=208';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=208';
 import {
   chestKey,
   getChestSlots,
@@ -84,11 +84,11 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=207';
-import { checkTooltip, show as showTooltip } from './tooltips.js?v=207';
-import { splitViewport } from './viewport-split.js?v=207';
-import { readGamepad } from './input-coop.js?v=207';
-import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=207';
+} from './chests.js?v=208';
+import { checkTooltip, show as showTooltip } from './tooltips.js?v=208';
+import { splitViewport } from './viewport-split.js?v=208';
+import { readGamepad } from './input-coop.js?v=208';
+import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=208';
 
 export class Game {
   /**
@@ -807,6 +807,21 @@ export class Game {
         this.scene.remove(mesh);
         continue;
       }
+      // coop teammate: absorb arrow if friendly fire off
+      if (this.coopMode && !this._friendlyFireOn() && this.player2) {
+        const who = proj.ownerId === 'p2' ? 'p2' : 'p1';
+        const other = who === 'p1' ? this.player2 : this.player;
+        if (other) {
+          const cx = other.position.x;
+          const cy = other.position.y + 0.9;
+          const cz = other.position.z;
+          const dx = proj.x - cx, dy = proj.y - cy, dz = proj.z - cz;
+          if (dx * dx + dy * dy + dz * dz < 0.7 * 0.7) {
+            this.scene.remove(mesh);
+            continue;
+          }
+        }
+      }
       // animal hit
       let hit = false;
       if (this.fauna) {
@@ -874,7 +889,7 @@ export class Game {
     origin.x += dir.x * 0.6;
     origin.y += dir.y * 0.6;
     origin.z += dir.z * 0.6;
-    this._projectiles.push(spawnArrow(origin, dir, { damage: 15, speed: 32 }));
+    this._projectiles.push(spawnArrow(origin, dir, { damage: 15, speed: 32, ownerId: 'p1' }));
     this._bowCd = 0.55;
     this._stats.arrowsFired = (this._stats.arrowsFired || 0) + 1;
     this.audio.shoot?.() || this.audio.hit();
@@ -973,7 +988,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=207').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=208').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -1146,6 +1161,62 @@ export class Game {
 
 
   /** Active bag for inventory UI (P1 or P2). */
+
+  _friendlyFireOn() {
+    return this.settings?.friendlyFire === true;
+  }
+
+  /** Sphere hit-test other coop player. Returns 'p1'|'p2'|null */
+  _rayHitTeammate(origin, dir, maxDist = 3.5, fromId = 'p1') {
+    if (!this.coopMode || this._friendlyFireOn()) return null;
+    const targets = [];
+    if (fromId !== 'p1' && this.player) {
+      targets.push({ id: 'p1', p: this.player });
+    }
+    if (fromId !== 'p2' && this.player2) {
+      targets.push({ id: 'p2', p: this.player2 });
+    }
+    let best = null;
+    let bestD = maxDist;
+    const o = origin;
+    const d = dir.clone ? dir.clone().normalize() : dir;
+    const dx = d.x, dy = d.y, dz = d.z;
+    for (const t of targets) {
+      const eye = t.p.eyePosition();
+      // body center approx
+      const cx = t.p.position.x;
+      const cy = t.p.position.y + 0.9;
+      const cz = t.p.position.z;
+      const vx = cx - o.x, vy = cy - o.y, vz = cz - o.z;
+      const tAlong = vx * dx + vy * dy + vz * dz;
+      if (tAlong < 0 || tAlong > bestD) continue;
+      const px = o.x + dx * tAlong - cx;
+      const py = o.y + dy * tAlong - cy;
+      const pz = o.z + dz * tAlong - cz;
+      const rad = 0.55;
+      if (px * px + py * py + pz * pz <= rad * rad) {
+        bestD = tAlong;
+        best = t.id;
+      }
+    }
+    return best;
+  }
+
+  _updateCoopPadPrompt() {
+    const el = document.getElementById('coop-pad-prompt');
+    if (!el) return;
+    if (!this.coopMode || !this.started) {
+      el.classList.remove('show');
+      return;
+    }
+    // Need a dedicated P2 pad: if P1 owns a pad, require second; else require any pad for P2
+    let p2Pad = null;
+    try {
+      p2Pad = getConnectedPad(this.input?._gpConnected ? 1 : 0);
+    } catch (_) {}
+    el.classList.toggle('show', !p2Pad);
+  }
+
   _bagPlayer() {
     if (this._invOwner === 'p2' && this.player2) return this.player2;
     return this.player;
@@ -1951,6 +2022,15 @@ export class Game {
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
 
+    // Friendly-fire off: ignore teammate as melee target
+    if (this.input.breakHeld && this.coopMode && !this._friendlyFireOn()) {
+      const tm = this._rayHitTeammate(origin, dir, 3.6, 'p1');
+      if (tm) {
+        // absorb swing — no damage
+        this._meleeCd = Math.max(this._meleeCd, 0.2);
+        return;
+      }
+    }
     // Melee animals on click-hold with cooldown
     if (this.input.breakHeld && this.fauna && this._meleeCd <= 0) {
       const heldP = propsOf(this.player.heldId());
@@ -2977,7 +3057,7 @@ export class Game {
     if (this.coopMode && !this._coopRouter) {
       try {
         // Lazy import path already static at top for readGamepad; router from same module via dynamic if needed
-        import(`./input-coop.js?v=207`).then((mod) => {
+        import(`./input-coop.js?v=208`).then((mod) => {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);
@@ -3043,6 +3123,7 @@ export class Game {
       ctrlDbg.style.color = this.survival?.dead ? '#f66' : k.length ? '#6f6' : '#9cf';
     }
     this._updateSpawnMarker();
+    this._updateCoopPadPrompt();
 
     const status = document.getElementById('status-line');
     if (status && this.player) {

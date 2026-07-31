@@ -2033,4 +2033,15 @@ test('fauna nearest of two players deals damage to closer', () => {
   assert.ok(typeof solo.player2Damage === 'number');
 });
 
+
+test('friendlyFire default false in settings', () => {
+  assert.strictEqual(DEFAULT_SETTINGS.friendlyFire, false);
+  const p = parseSettings({ mode: 'survival', playMode: 'coop' });
+  assert.ok(p.ok);
+  assert.strictEqual(p.data.friendlyFire, false);
+  const on = parseSettings({ mode: 'survival', friendlyFire: true });
+  assert.ok(on.ok);
+  assert.strictEqual(on.data.friendlyFire, true);
+});
+
 if (process.exitCode) process.exit(1);

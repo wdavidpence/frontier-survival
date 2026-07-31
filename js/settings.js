@@ -11,6 +11,8 @@ export const DEFAULT_SETTINGS = {
   sensitivity: 0.0022,
   helpVisible: true,
   renderDistance: 5,
+  /** Coop: when false (default), players cannot hurt each other with melee/arrows */
+  friendlyFire: false,
 };
 
 export const PLAY_MODE_ORDER = /** @type {const} */ (['solo', 'coop']);
@@ -61,6 +63,7 @@ export function parseSettings(raw) {
       sensitivity,
       helpVisible,
       renderDistance,
+      friendlyFire: data.friendlyFire === true,
     },
   };
 }
@@ -72,6 +75,7 @@ export function serializeSettings(settings) {
     sensitivity: settings.sensitivity ?? DEFAULT_SETTINGS.sensitivity,
     helpVisible: settings.helpVisible !== false,
     renderDistance: settings.renderDistance ?? DEFAULT_SETTINGS.renderDistance,
+    friendlyFire: settings.friendlyFire === true,
   });
 }
 

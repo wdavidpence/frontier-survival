@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frontier Survival v1.10.6</title>
+  <title>Frontier Survival v1.10.7</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -159,6 +159,29 @@
       padding: 4px 10px; border-radius: 12px;
       border: 1px solid rgba(120,160,220,0.45);
     }
+    
+    #coop-pad-prompt {
+      display: none;
+      position: absolute;
+      right: 8%;
+      top: 42%;
+      transform: translateY(-50%);
+      max-width: min(420px, 40vw);
+      padding: 18px 22px;
+      background: rgba(8, 14, 28, 0.92);
+      border: 2px solid rgba(120, 170, 255, 0.55);
+      border-radius: 14px;
+      color: #e8f0ff;
+      font-size: clamp(16px, 2.2vw, 28px);
+      line-height: 1.35;
+      text-align: center;
+      z-index: 12;
+      pointer-events: none;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    }
+    body.coop-mode #coop-pad-prompt.show { display: block; }
+    body.coop-mode #coop-pad-prompt .sub { font-size: 0.72em; color: #9ab; margin-top: 8px; }
+
     body.coop-mode #p1-tag {
       display: block;
       position: absolute; left: 12px; top: 12px;
@@ -674,9 +697,10 @@
     <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.10.6</div>
+    <div id="version-badge">v1.10.7</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
+    <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Second DualSense / pad for right screen. P1 can use keyboard+mouse.</div></div>
     <div id="crosshair-p2"></div>
     <div id="meters-p2">
       <div class="meter"><span>Health</span><div class="track"><div id="bar-health-p2" class="fill"></div></div></div>
@@ -753,7 +777,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.10.6</div>
+      <div class="tag">Browser survival sandbox · v1.10.7</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -820,6 +844,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=207"></script>
+  <script type="module" src="./js/main.js?v=208"></script>
 </body>
 </html>

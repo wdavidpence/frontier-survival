@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=207';
-import { heightAt, hash2, fbm } from './gen.js?v=207';
-import { biomeAt, BIOME } from './biomes.js?v=207';
-import { tileForBlock } from './atlas-core.js?v=207';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=207';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=208';
+import { heightAt, hash2, fbm } from './gen.js?v=208';
+import { biomeAt, BIOME } from './biomes.js?v=208';
+import { tileForBlock } from './atlas-core.js?v=208';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=208';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -56,7 +56,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=207';
+    const workerUrl = './js/chunk-worker.js?v=208';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
