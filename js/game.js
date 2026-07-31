@@ -117,6 +117,9 @@ export class Game {
 
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 200);
 
+    // Apply render distance from settings
+    this._applyRenderDistance();
+
     this.ambient = new THREE.AmbientLight(0x6688aa, 0.35);
     this.sun = new THREE.DirectionalLight(0xfff2d9, 1.1);
     this.sun.position.set(40, 80, 20);
@@ -327,6 +330,43 @@ export class Game {
         const lab = document.getElementById('sens-label');
         if (lab) lab.textContent = String(sens.value);
       });
+    }
+    const rd = document.getElementById('rd-slider');
+    if (rd) {
+      rd.value = String(this.settings.renderDistance ?? 5);
+      rd.addEventListener('input', () => {
+        const v = Number(rd.value);
+        this.settings.renderDistance = v;
+        writeSettings(this.settings);
+        const lab = document.getElementById('rd-label');
+        if (lab) lab.textContent = String(rd.value);
+        this._applyRenderDistance();
+      });
+    }
+  }
+
+  _applyRenderDistance() {
+    const rd = this.settings.renderDistance ?? 5;
+    // Map slider 2–10 to fog near/far: near = rd*5, far = rd*12
+    const near = rd * 5;
+    const far = rd * 12;
+    if (this.scene.fog) {
+      this.scene.fog.near = near;
+      this.scene.fog.far = far;
+    }
+    // Also adjust camera clipping plane to match fog far
+    if (this.camera) {
+      this.camera.far = Math.max(far, 50);
+      this.camera.updateProjectionMatrix();
+    }
+    // Update world chunk radius (each chunk = 16 blocks)
+    const chunks = Math.max(2, Math.min(10, rd));
+    if (this.world) {
+      this.worldRadius = chunks;
+      // Trigger a chunk reload at the new radius
+      if (this.world._requestChunks) {
+        this.world._requestChunks();
+      }
     }
   }
 
@@ -953,6 +993,8 @@ export class Game {
       }
     }
     this._updateClickToPlay?.();
+    // Poll gamepad every frame (DualSense, Xbox, generic)
+    this.input.pollGamepad?.();
     if (!this.paused && this.started) this.update(dt);
     // ALWAYS paint the canvas — update() does not render. Missing this freezes the world
     // while DOM HUD (key debug) still updates — looks exactly like "WASD broken".
@@ -2388,8 +2430,12 @@ export class Game {
     const color = new THREE.Color(sky.r, sky.g, sky.b);
     this.scene.background = color;
     this.scene.fog.color.copy(color);
-    this.scene.fog.near = 45 + sunI * 25;
-    this.scene.fog.far = 110 + sunI * 50;
+    const rd = this.settings.renderDistance ?? 5;
+    // Base fog near/far scaled by render distance, modulated by time of day
+    const baseNear = rd * 5;
+    const baseFar = rd * 12;
+    this.scene.fog.near = Math.max(baseNear, 45 + sunI * 25);
+    this.scene.fog.far = Math.max(baseFar, 110 + sunI * 50);
     if (this.time.isNight()) {
       this.ambient.color.set(0x223355);
       this.sun.intensity = 0.08;
@@ -2453,10 +2499,11 @@ export class Game {
       if (this.input.wantsCrouch()) k.push('C');
       if (this.input.wantsJump()) k.push('Sp');
       const st = this.survival?.dead ? 'DEAD' : this.paused ? 'PAUSED' : this.input.locked ? 'LOCK' : this.input.softLook ? 'LOOK' : 'WAIT';
+      const gp = this.input._gpConnected ? `GP:${this.input._gpIndex}` : '';
       const pos = this.player
         ? `${this.player.position.x.toFixed(0)},${this.player.position.z.toFixed(0)}`
         : '';
-      ctrlDbg.textContent = `${st} keys:${k.join('')||'-'} xyz:${pos}`;
+      ctrlDbg.textContent = `${st} keys:${k.join('')||'-'} ${gp} xyz:${pos}`;
       ctrlDbg.style.color = this.survival?.dead ? '#f66' : k.length ? '#6f6' : '#9cf';
     }
     const status = document.getElementById('status-line');

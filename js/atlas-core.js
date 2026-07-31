@@ -54,6 +54,9 @@ export const TILE = {
   CRACK3: 43,
   CRACK4: 44,
   CRACK5: 45,
+  SEQUOIA_LOG_SIDE: 46,
+  SEQUOIA_LOG_TOP: 47,
+  SEQUOIA_LEAVES: 48,
 };
 
 /** UV corners: bl, tl, tr, br in atlas space */
@@ -152,6 +155,10 @@ export function tileForBlock(blockId, faceDir) {
       return TILE.WALL;
     case BLOCK.LAVA:
       return TILE.LAVA;
+    case BLOCK.SEQUOIA_LOG:
+      return faceDir === 'top' || faceDir === 'bottom' ? TILE.SEQUOIA_LOG_TOP : TILE.SEQUOIA_LOG_SIDE;
+    case BLOCK.SEQUOIA_LEAVES:
+      return TILE.SEQUOIA_LEAVES;
     default:
       return TILE.STONE;
   }

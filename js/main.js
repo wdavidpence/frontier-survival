@@ -204,6 +204,20 @@ if (titleSens) {
   });
 }
 
+const titleRd = document.getElementById('title-rd-slider');
+const titleRdLab = document.getElementById('title-rd-label');
+if (titleRd) {
+  titleRd.value = String(game.settings.renderDistance ?? 5);
+  if (titleRdLab) titleRdLab.textContent = titleRd.value;
+  titleRd.addEventListener('input', () => {
+    const v = Number(titleRd.value);
+    game.settings.renderDistance = v;
+    writeSettings(game.settings);
+    if (titleRdLab) titleRdLab.textContent = titleRd.value;
+    game._applyRenderDistance?.();
+  });
+}
+
 btnStart?.addEventListener('click', (e) => {
   e.stopPropagation();
   startNewWorld();

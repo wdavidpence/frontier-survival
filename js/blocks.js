@@ -42,6 +42,10 @@ export const BLOCK = {
   CLAY_DEEP_ORE: 39,
   SULFUR_ORE: 40,
   OIL_SEEP: 41,
+  SPRUCE_LOG: 42,
+  SPRUCE_LEAVES: 43,
+  SEQUOIA_LOG: 44,
+  SEQUOIA_LEAVES: 45,
 };
 
 /** @type {Record<number, {
@@ -100,6 +104,10 @@ export const BLOCK_PROPS = {
   [BLOCK.CLAY_DEEP_ORE]: { name: 'Deep Clay Ore', solid: true, transparent: false, hardness: 1.8, color: [0.32, 0.28, 0.25], drops: BLOCK.CLAY_DEEP_ORE },
   [BLOCK.SULFUR_ORE]: { name: 'Sulfur Ore', solid: true, transparent: false, hardness: 1.6, color: [0.72, 0.68, 0.28], drops: BLOCK.SULFUR_ORE },
   [BLOCK.OIL_SEEP]: { name: 'Oil Seep', solid: true, transparent: false, hardness: 1.2, color: [0.18, 0.16, 0.14], drops: BLOCK.OIL_SEEP },
+  [BLOCK.SPRUCE_LOG]: { name: 'Spruce Log', solid: true, transparent: false, hardness: 1.0, color: [0.28, 0.18, 0.09], topColor: [0.38, 0.26, 0.14], drops: BLOCK.SPRUCE_LOG },
+  [BLOCK.SPRUCE_LEAVES]: { name: 'Spruce Leaves', solid: true, transparent: true, hardness: 0.2, color: [0.15, 0.38, 0.18], drops: BLOCK.SPRUCE_LEAVES },
+  [BLOCK.SEQUOIA_LOG]: { name: 'Sequoia Log', solid: true, transparent: false, hardness: 1.2, color: [0.42, 0.22, 0.1], topColor: [0.52, 0.35, 0.18], drops: BLOCK.SEQUOIA_LOG },
+  [BLOCK.SEQUOIA_LEAVES]: { name: 'Sequoia Leaves', solid: true, transparent: true, hardness: 0.2, color: [0.18, 0.45, 0.15], drops: BLOCK.SEQUOIA_LEAVES },
 };
 
 export function isSolid(id) {

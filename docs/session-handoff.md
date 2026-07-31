@@ -28,3 +28,9 @@ browser New World: terrain+HUD+controls
 - mesh-pool.js stub present, not wired (card scheduled)
 - Tree species + ore veins serial behind world.js lock
 - Smoke tests serial behind tests/smoke.mjs lock
+
+## Judge handoff 2026-07-30T21:32
+- Workers: qwen27s, qwen35, local35=gpt-oss-20b (WSL bridge :18000→Win :8000)
+- Shipped WIP batch toward v1.8.9: DualSense/gamepad input+docs, render distance slider (dual HTML), sequoia block/atlas IDs + paints (world spawn still open on sequoia card)
+- Overnight: gateway + cron every 45m; Hermes default = judge
+- Caps: 27s≤4, 35≤2, local35≤1, global≤7; enforce file locks

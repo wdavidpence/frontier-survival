@@ -534,6 +534,22 @@ paint(TILE.WALL, drawWall);
   paint(TILE.CRACK3, (c, x, y) => drawCrack(c, x, y, 3));
   paint(TILE.CRACK4, (c, x, y) => drawCrack(c, x, y, 4));
   paint(TILE.CRACK5, (c, x, y) => drawCrack(c, x, y, 5));
+  // Sequoia variants — recolor base log/leaf painters (tiles 46–48; ATLAS_N=7 fits)
+  paint(TILE.SEQUOIA_LOG_SIDE, (c, x, y) => {
+    drawLogSide(c, x, y);
+    c.fillStyle = 'rgba(120,40,10,0.28)';
+    c.fillRect(x, y, TILE_PX, TILE_PX);
+  });
+  paint(TILE.SEQUOIA_LOG_TOP, (c, x, y) => {
+    drawLogTop(c, x, y);
+    c.fillStyle = 'rgba(140,70,30,0.25)';
+    c.fillRect(x, y, TILE_PX, TILE_PX);
+  });
+  paint(TILE.SEQUOIA_LEAVES, (c, x, y) => {
+    drawLeaves(c, x, y);
+    c.fillStyle = 'rgba(20,90,20,0.22)';
+    c.fillRect(x, y, TILE_PX, TILE_PX);
+  });
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = THREE.NearestFilter;

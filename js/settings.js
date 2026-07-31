@@ -8,6 +8,7 @@ export const DEFAULT_SETTINGS = {
   mode: 'survival',
   sensitivity: 0.0022,
   helpVisible: true,
+  renderDistance: 5,
 };
 
 /**
@@ -30,12 +31,16 @@ export function parseSettings(raw) {
   if (!Number.isFinite(sensitivity)) sensitivity = DEFAULT_SETTINGS.sensitivity;
   sensitivity = Math.max(0.0006, Math.min(0.008, sensitivity));
   const helpVisible = data.helpVisible !== false;
+  let renderDistance = Number(data.renderDistance);
+  if (!Number.isFinite(renderDistance)) renderDistance = DEFAULT_SETTINGS.renderDistance;
+  renderDistance = Math.max(2, Math.min(10, Math.round(renderDistance)));
   return {
     ok: true,
     data: {
       mode,
       sensitivity,
       helpVisible,
+      renderDistance,
     },
   };
 }
@@ -45,6 +50,7 @@ export function serializeSettings(settings) {
     mode: settings.mode || DEFAULT_SETTINGS.mode,
     sensitivity: settings.sensitivity ?? DEFAULT_SETTINGS.sensitivity,
     helpVisible: settings.helpVisible !== false,
+    renderDistance: settings.renderDistance ?? DEFAULT_SETTINGS.renderDistance,
   });
 }
 

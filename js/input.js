@@ -189,6 +189,11 @@ export class Input {
     document.addEventListener('mousemove', this._onMouseMove, true);
     window.addEventListener('blur', this._onBlur);
     document.addEventListener('visibilitychange', this._onVisibility);
+    // Gamepad API — connect/disconnect listeners (WebKit/Safari may not support)
+    if (navigator.getGamepads) {
+      window.addEventListener('gamepadconnected', this._onGpConnect);
+      window.addEventListener('gamepaddisconnected', this._onGpDisconnect);
+    }
   }
 
   unbind() {
@@ -207,6 +212,12 @@ export class Input {
     document.removeEventListener('mousemove', this._onMouseMove, true);
     window.removeEventListener('blur', this._onBlur);
     document.removeEventListener('visibilitychange', this._onVisibility);
+    if (navigator.getGamepads) {
+      window.removeEventListener('gamepadconnected', this._onGpConnect);
+      window.removeEventListener('gamepaddisconnected', this._onGpDisconnect);
+    }
+    this._gpIndex = -1;
+    this._gpConnected = false;
     this._bound = false;
     this.captureEnabled = false;
     this.softLook = false;
@@ -229,6 +240,178 @@ export class Input {
       this._heldLmb = false;
     }
   };
+
+  _onGpConnect = (e) => {
+    this._gpIndex = e.gamepad.index;
+    this._gpConnected = true;
+  };
+
+  _onGpDisconnect = () => {
+    this._gpIndex = -1;
+    this._gpConnected = false;
+  };
+
+  /** Poll gamepad state — call from game loop each frame */
+  pollGamepad() {
+    if (!navigator.getGamepads || !this._gpConnected) return;
+    const gamepads = navigator.getGamepads();
+    const gp = gamepads[this._gpIndex];
+    if (!gp) return;
+
+    // DualSense / standard gamepad layout:
+    //   axis[0] = left stick X (left=-1, right=+1)
+    //   axis[1] = left stick Y (up=-1, down=+1)
+    //   axis[2] = left trigger (L2), range 0..1
+    //   axis[3] = right stick Y (up=-1, down=+1)
+    //   axis[4] = right stick X (left=-1, right=+1)
+    //   axis[5] = right trigger (R2), range 0..1
+    //   buttons[0] = Cross (A)
+    //   buttons[1] = Circle (B)
+    //   buttons[2] = Square (X)
+    //   buttons[3] = Triangle (Y)
+    //   buttons[4] = L1, [5] = R1
+    //   buttons[6] = L2 (pressed), [7] = R2 (pressed)
+    //   buttons[8] = Share, [9] = Options
+    //   buttons[10] = Left stick press (L3), [11] = Right stick press (R3)
+    //   buttons[12..15] = D-pad
+
+    const dz = this.deadzone;
+    const sens = this.gpSensitivity;
+
+    // Left stick → movement (inverted Y for forward/back)
+    let lx = gp.axes[0] || 0;
+    let ly = gp.axes[1] || 0;
+
+    // Apply deadzone to left stick
+    if (Math.abs(lx) < dz) lx = 0;
+    else lx = Math.sign(lx) * (Math.abs(lx) - dz) / (1 - dz);
+
+    if (Math.abs(ly) < dz) ly = 0;
+    else ly = Math.sign(ly) * (Math.abs(ly) - dz) / (1 - dz);
+
+    // Update virtual move from gamepad
+    this._vMoveX = lx;
+    this._vMoveZ = -ly; // inverted: stick up (-1) → forward
+
+    // Right stick → look (inverted X for screen-right = look right)
+    let rx = gp.axes[4] || 0;
+    let ry = gp.axes[3] || 0;
+
+    // Apply deadzone to right stick
+    if (Math.abs(rx) < dz) rx = 0;
+    else rx = Math.sign(rx) * (Math.abs(rx) - dz) / (1 - dz);
+
+    if (Math.abs(ry) < dz) ry = 0;
+    else ry = Math.sign(ry) * (Math.abs(ry) - dz) / (1 - dz);
+
+    // Apply sensitivity to look
+    this.lookX -= rx * sens;
+    this.lookY += ry * sens;
+
+    // Clamp pitch
+    const lim = Math.PI / 2 - 0.01;
+    this.lookY = Math.max(-lim, Math.min(lim, this.lookY));
+
+    // Buttons: Cross (0) = jump, Circle (1) = use, Square (2) = drop
+    // Triangle (3) = eat, L1 (4) = place, R1 (5) = sprint
+    // Left stick press (10) = crouch, Right stick press (11) = quick save
+    // D-pad up (12) = forward, down (14) = back, left (13) = left, right (15) = right
+    // Share (8) = inventory, Options (9) = pause
+
+    const btn = (i) => gp.buttons[i] && gp.buttons[i].pressed;
+    const absBtn = (i) => gp.buttons[i] && gp.buttons[i].value;
+
+    // Jump on Cross press
+    if (btn(0)) this._vJump = true;
+
+    // Use on Circle press
+    if (btn(1)) this.usePressed = true;
+
+    // Drop on Square press
+    if (btn(2)) this.dropPressed = true;
+
+    // Eat on Triangle press
+    if (btn(3)) this.eatPressed = true;
+
+    // Place on L1 press
+    if (btn(4)) this.placePressed = true;
+
+    // Sprint on R1 press
+    if (btn(5)) this.keys.add('ShiftLeft');
+
+    // Crouch on R3 press
+    if (btn(11)) this.keys.add('KeyC');
+
+    // Quick save on L3 press
+    if (btn(10)) this.quickSavePressed = true;
+
+    // Inventory on Share
+    if (btn(8)) this.inventoryPressed = true;
+
+    // Pause on Options
+    if (btn(9)) this.pausePressed = true;
+
+    // D-pad movement fallback
+    if (btn(12)) this.keys.add('KeyW'); // up → forward
+    if (btn(14)) this.keys.add('KeyS'); // down → back
+    if (btn(13)) this.keys.add('KeyA'); // left → left
+    if (btn(15)) this.keys.add('KeyD'); // right → right
+
+    // Triggers: L2 (axis[2]) can boost sprint, R2 (axis[5]) for fine look
+    // L2 as additional forward boost when left stick is small
+    const l2 = absBtn(2) || 0;
+    if (l2 > 0.1 && Math.abs(lx) < 0.3) {
+      this.keys.add('KeyW');
+    }
+
+    // R2 fine-tune look (smaller multiplier)
+    const r2 = absBtn(5) || 0;
+    if (r2 > 0.1 && Math.abs(rx) < 0.3) {
+      this.lookX -= r2 * sens * 0.5;
+    }
+
+    // Haptic feedback: if game just started or took damage, rumble briefly
+    if (this._gpVibrate && gp.hapticActuators && gp.hapticActuators[0]) {
+      // Keep vibration handle for future use
+    }
+
+    // Vibration API (Xbox/PS5 controllers support this)
+    if (gp.vibrationActuator && gp.gamepadType === 'Standard gamepad') {
+      // Store for potential rumble calls from game code
+    }
+  }
+
+  /** Trigger controller vibration (if supported) */
+  rumble(duration = 200, intensity = 0.5) {
+    if (!navigator.getGamepads || !this._gpConnected) return;
+    const gamepads = navigator.getGamepads();
+    const gp = gamepads[this._gpIndex];
+    if (!gp || !gp.vibrationActuator) return;
+
+    // DualSense supports dual rumble via effect actuator
+    if (gp.vibrationActuator.type === 'dual-rumble') {
+      gp.vibrationActuator.playEffect('dual-rumble', {
+        startDelay: 0,
+        duration: duration,
+        weakMagnitude: intensity * 0.5,
+        strongMagnitude: intensity,
+      });
+    } else if (gp.vibrationActuator.type === 'trigger' || gp.vibrationActuator.length === 1) {
+      // Single rumble actuator (Xbox, generic)
+      gp.vibrationActuator.playEffect('single-rumble', {
+        startDelay: 0,
+        duration: duration,
+        magnitude: intensity,
+      });
+    }
+
+    // Also try the older GamepadHapticActuator API for Safari/WebKit
+    if (gp.hapticActuators && gp.hapticActuators[0]) {
+      try {
+        gp.hapticActuators[0].pulse(intensity, duration);
+      } catch (_) { /* WebKit may not support pulse */ }
+    }
+  }
 
   _onKeyDown = (e) => {
     const code = normalizeCode(e);
