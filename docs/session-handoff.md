@@ -340,3 +340,8 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 ## SHIP v1.12.4
 - Pure copper-oxidize, lightning-rod, sculk-spread, frogspawn, mangrove-propagule
 - Smoke 268 PASS
+
+## SHIP v1.12.5
+- player honeyMoveMult/honeyJumpMult when under-block name has honey
+- pure sniffer-egg, pitcher-crop, torchflower, calibrated-sculk
+- Smoke 273 PASS

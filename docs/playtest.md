@@ -153,3 +153,8 @@ Pure helpers exist for smoker/blast/campfire-cook/grindstone/stonecutter/hopper/
 ## Furnace speedMult default (v1.12.1+)
 
 \`furnace-tick.tickFurnace(state, units, speedMult=1)\` defaults \`speedMult\` to **1** (normal speed). Passing 2 doubles cook rate for smoker/blast furnace variants. The default is additive — no world-side change until wired up as a block property.
+
+## 1.17+ pure helpers (v1.12.3+)
+
+Pure modules exist for scaffolding, honey-slide, powder-snow, dripstone, amethyst, copper, lightning-rod, sculk, frogspawn, mangrove.
+Honey move/jump mult is applied in player when block under feet name contains "honey" (block id TBD).

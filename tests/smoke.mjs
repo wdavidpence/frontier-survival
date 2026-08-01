@@ -130,6 +130,11 @@ import { lightningRodRedirects, nearestLightningRod } from '../js/lightning-rod.
 import { createSculkCatalyst, sculkAddCharge, sculkTrySpread, sculkCanSpread } from '../js/sculk-spread.js';
 import { frogspawnAdvance, frogspawnHatched, frogspawnTadpoleCount } from '../js/frogspawn.js';
 import { propaguleTryGrow, propaguleIsMature, propaguleCanPlant } from '../js/mangrove-propagule.js';
+import { snifferEggAdvance, snifferEggHatched } from '../js/sniffer-egg.js';
+import { pitcherAdvanceAge, pitcherIsMature } from '../js/pitcher-crop.js';
+import { torchflowerAdvance, torchflowerIsMature } from '../js/torchflower.js';
+import { calibratedSculkAccepts, calibratedSculkPower, sculkEventFrequency } from '../js/calibrated-sculk.js';
+
 
 
 
@@ -2960,7 +2965,37 @@ test('mangrove-propagule grow', () => {
   assert.ok(propaguleCanPlant(4, true));
 });
 
+
+test('sniffer-egg hatch', () => {
+  const r = snifferEggAdvance(0, 300, 200);
+  assert.ok(r.hatched && snifferEggHatched(r.progress));
+});
+
+test('pitcher-crop age', () => {
+  const a = pitcherAdvanceAge(0, 500, 100);
+  assert.ok(pitcherIsMature(a));
+});
+
+test('torchflower age', () => {
+  const a = torchflowerAdvance(0, 100, 50);
+  assert.ok(torchflowerIsMature(a));
+});
+
+test('calibrated-sculk filter', () => {
+  assert.ok(sculkEventFrequency('step') >= 1);
+  assert.ok(calibratedSculkAccepts(1, 'step'));
+  assert.ok(!calibratedSculkAccepts(5, 'step'));
+  assert.ok(calibratedSculkPower(true) > 0);
+});
+
+test('player source wires honey mult', () => {
+  const src = readFileSync(new URL('../js/player.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('honeyMoveMult'));
+  assert.ok(src.includes('honeyJumpMult'));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 

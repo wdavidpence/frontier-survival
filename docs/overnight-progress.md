@@ -811,3 +811,5 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-07-31T22:01:24-0400 | SHIP v1.12.2 game furnace speedMult + barrel/shulker/ender/respawn pure; smoke258; decision ship |
 | 2026-07-31T22:04:49-0400 | SHIP v1.12.3 scaffolding/honey/powder-snow/dripstone/amethyst pure; smoke263; decision ship |
 | 2026-07-31T22:07:50-0400 | SHIP v1.12.4 copper/lightning/sculk/frogspawn/mangrove pure; smoke268; decision ship |
+| 2026-08-01T02:08:56.812Z | watchdog running 7→7 reclaimed none Spawned 0 |
+| 2026-07-31T22:11:25-0400 | SHIP v1.12.5 honey move wire + sniffer/pitcher/torchflower/calibrated-sculk; smoke273; decision ship |

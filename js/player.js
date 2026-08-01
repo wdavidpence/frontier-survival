@@ -1,9 +1,10 @@
 import * as THREE from 'three';
-import { isSolid, BLOCK } from './blocks.js?v=216';
-import { canSprint, moveSpeedMultiplier, fallDamageFromSpeed } from './survival.js?v=216';
-import { createStarterInventory, getHotbarStack } from './inventory.js?v=216';
-import { emptyEquipment } from './equipment.js?v=216';
-import { ITEM } from './items.js?v=216';
+import { isSolid, BLOCK, BLOCK_PROPS } from './blocks.js?v=220';
+import { canSprint, moveSpeedMultiplier, fallDamageFromSpeed } from './survival.js?v=220';
+import { honeyMoveMult, honeyJumpMult } from './honey-slide.js?v=220';
+import { createStarterInventory, getHotbarStack } from './inventory.js?v=220';
+import { emptyEquipment } from './equipment.js?v=220';
+import { ITEM } from './items.js?v=220';
 
 const PLAYER_RADIUS = 0.3;
 const PLAYER_HEIGHT = 1.7;
@@ -68,8 +69,8 @@ export class Player {
   }
 
   /**
-   * @param {import('./world.js').World} world
-   * @param {import('./input.js').Input} input
+   * @param {import('./world.js?v=220').World} world
+   * @param {import('./input.js?v=220').Input} input
    * @param {object} survival state
    * @param {number} dt
    */
@@ -108,6 +109,12 @@ export class Player {
     let speed = BASE_SPEED * moveSpeedMultiplier(survival, sprinting);
     if (crouching) speed *= 0.42;
 
+    // honey block under feet (name match until dedicated BLOCK.HONEY exists)
+    const underId = world.getBlock(this.position.x, this.position.y - 0.05, this.position.z);
+    const underName = (BLOCK_PROPS[underId]?.name || '').toLowerCase();
+    const onHoney = underName.includes('honey');
+    speed *= honeyMoveMult(onHoney);
+
     // water
     const feetY = this.position.y + 0.1;
     const inWater = world.getBlock(this.position.x, feetY, this.position.z) === BLOCK.WATER
@@ -143,7 +150,7 @@ export class Player {
     } else {
       this.velocity.y -= GRAVITY * dt;
       if (this.onGround && input.wantsJump()) {
-        this.velocity.y = JUMP_V * (crouching ? 0.7 : 1);
+        this.velocity.y = JUMP_V * (crouching ? 0.7 : 1) * honeyJumpMult(onHoney);
         this.onGround = false;
       }
       if (this.velocity.y < 0) this._fallVy = Math.max(this._fallVy, -this.velocity.y);
