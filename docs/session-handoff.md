@@ -345,3 +345,8 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 - player honeyMoveMult/honeyJumpMult when under-block name has honey
 - pure sniffer-egg, pitcher-crop, torchflower, calibrated-sculk
 - Smoke 273 PASS
+
+## SHIP v1.12.6
+- player powder-snow sink (name match)
+- pure brushable-block, decorated-pot, chiseled-bookshelf, suspicious-sand
+- Smoke 278 PASS

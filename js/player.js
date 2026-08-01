@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { isSolid, BLOCK, BLOCK_PROPS } from './blocks.js?v=220';
 import { canSprint, moveSpeedMultiplier, fallDamageFromSpeed } from './survival.js?v=220';
 import { honeyMoveMult, honeyJumpMult } from './honey-slide.js?v=220';
+import { powderSnowSinkVy } from './powder-snow.js?v=220';
 import { createStarterInventory, getHotbarStack } from './inventory.js?v=220';
 import { emptyEquipment } from './equipment.js?v=220';
 import { ITEM } from './items.js?v=220';
@@ -115,6 +116,17 @@ export class Player {
     const onHoney = underName.includes('honey');
     speed *= honeyMoveMult(onHoney);
 
+    // powder snow at feet/body (name match until BLOCK.POWDER_SNOW)
+    const feetId = world.getBlock(this.position.x, this.position.y + 0.1, this.position.z);
+    const bodyId = world.getBlock(this.position.x, this.position.y + 1.0, this.position.z);
+    const feetName = (BLOCK_PROPS[feetId]?.name || '').toLowerCase();
+    const bodyName = (BLOCK_PROPS[bodyId]?.name || '').toLowerCase();
+    const inPowderSnow =
+      feetName.includes('powder') && feetName.includes('snow') ||
+      bodyName.includes('powder') && bodyName.includes('snow') ||
+      feetName.includes('powdersnow') ||
+      bodyName.includes('powdersnow');
+
     // water
     const feetY = this.position.y + 0.1;
     const inWater = world.getBlock(this.position.x, feetY, this.position.z) === BLOCK.WATER
@@ -146,6 +158,12 @@ export class Player {
     } else if (inWater) {
       this.velocity.y += (input.wantsJump() ? (boat ? 14 : 12) : -6) * dt;
       this.velocity.y *= (1 - Math.min(1, 4 * dt));
+      this._fallVy = 0;
+    } else if (inPowderSnow) {
+      // sink slowly; jump still works but reduced
+      const sink = powderSnowSinkVy(true, false);
+      this.velocity.y = sink;
+      if (input.wantsJump()) this.velocity.y = Math.max(this.velocity.y, JUMP_V * 0.35);
       this._fallVy = 0;
     } else {
       this.velocity.y -= GRAVITY * dt;

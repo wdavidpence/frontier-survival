@@ -215,3 +215,5 @@ Total new JS modules landed v1.11.5–v1.11.7: 9
 (`stair-place`, `slab-place`, `bow-draw`, `crop-growth`, `door-hinge`,
 `sign-text`, `fence-gate`, `ladder-climb`, `chest-lock`, `torch-falloff`,
 `compass-bearing`, `bed-facing`).
+
+- Player wires: honey move/jump; powder-snow sink (block name match until ids exist).

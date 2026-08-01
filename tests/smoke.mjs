@@ -134,6 +134,11 @@ import { snifferEggAdvance, snifferEggHatched } from '../js/sniffer-egg.js';
 import { pitcherAdvanceAge, pitcherIsMature } from '../js/pitcher-crop.js';
 import { torchflowerAdvance, torchflowerIsMature } from '../js/torchflower.js';
 import { calibratedSculkAccepts, calibratedSculkPower, sculkEventFrequency } from '../js/calibrated-sculk.js';
+import { createBrushable, brushStep, brushStage } from '../js/brushable-block.js';
+import { createDecoratedPot, setPotSherd, potSherdCount } from '../js/decorated-pot.js';
+import { createChiseledBookshelf, bookshelfInsert, bookshelfSignal } from '../js/chiseled-bookshelf.js';
+import { createSuspiciousBlock, suspiciousBrush, suspiciousStage } from '../js/suspicious-sand.js';
+
 
 
 
@@ -2994,7 +2999,45 @@ test('player source wires honey mult', () => {
   assert.ok(src.includes('honeyJumpMult'));
 });
 
+
+test('brushable-block progress', () => {
+  let s = createBrushable(ITEM.COAL);
+  let r = brushStep(s, 0.5);
+  assert.ok(!r.done);
+  r = brushStep(r.state, 0.5);
+  assert.ok(r.done && r.extracted === ITEM.COAL);
+  assert.ok(brushStage(0.3) >= 0);
+});
+
+test('decorated-pot sherds', () => {
+  let p = createDecoratedPot();
+  p = setPotSherd(p, 0, 'arms_up');
+  assert.strictEqual(potSherdCount(p), 1);
+});
+
+test('chiseled-bookshelf slots', () => {
+  const b = createChiseledBookshelf();
+  assert.ok(bookshelfInsert(b, ITEM.COAL));
+  assert.strictEqual(bookshelfSignal(b), 1);
+});
+
+test('suspicious-sand brush', () => {
+  let s = createSuspiciousBlock(ITEM.COAL);
+  let r = suspiciousBrush(s);
+  r = suspiciousBrush(r.state);
+  r = suspiciousBrush(r.state);
+  assert.ok(r.done && r.loot === ITEM.COAL);
+  assert.strictEqual(suspiciousStage(r.state), 3);
+});
+
+test('player powder-snow wire', () => {
+  const src = readFileSync(new URL('../js/player.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('powderSnowSinkVy'));
+  assert.ok(src.includes('inPowderSnow'));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 
