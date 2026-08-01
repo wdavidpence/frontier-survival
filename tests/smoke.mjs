@@ -1,7 +1,8 @@
 import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
 import { heightAt, fbm, hash2 } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
-import { getPlayMode, DEFAULT_SETTINGS, parseSettings, serializeSettings, SETTINGS_KEY } from '../js/settings.js';
+import { getPlayMode, DEFAULT_SETTINGS, parseSettings, serializeSettings, SETTINGS_KEY, sensitivityFromSlider, sliderFromSensitivity, writeSettings, readSettings } from '../js/settings.js';
+import { MODES, getMode, scalePredatorDamage, isValidMode, MODE_ORDER } from '../js/modes.js';
 import { clonePlayer, cloneSurvivalState, serializeCoopGameState } from '../js/coop-state.js';
 import {
   stairShape,
@@ -94,6 +95,7 @@ import {
   moveSpeedMultiplier,
   eatFood,
   applyDamage,
+  fallDamageFromSpeed,
 } from '../js/survival.js';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js';
 import { ITEM, mineMultiplier, dropForBlock, isPlaceable, propsOf } from '../js/items.js';
@@ -545,20 +547,6 @@ test('save roundtrip preserves seed inventory edits', () => {
   const bad = parseSavePayload('{"v":999}');
   assert.ok(!bad.ok);
 });
-
-import { MODES, getMode, scalePredatorDamage, isValidMode, MODE_ORDER } from '../js/modes.js';
-import {
-  parseSettings,
-  serializeSettings,
-  sensitivityFromSlider,
-  sliderFromSensitivity,
-  writeSettings,
-  readSettings,
-  SETTINGS_KEY,
-  getPlayMode,
-  DEFAULT_SETTINGS,
-} from '../js/settings.js';
-import { fallDamageFromSpeed } from '../js/survival.js';
 
 test('difficulty modes defined', () => {
   assert.ok(isValidMode('survival'));
@@ -1692,7 +1680,6 @@ test('input-coop: P1 and P2 constants', async () => {
 
 
 // Coop-state module smoke tests
-import { clonePlayer, cloneSurvivalState, serializeCoopGameState } from '../js/coop-state.js';
 const p = { slots: [{id:1,count:2},{id:null,count:0}] };
 const cp = clonePlayer(p);
 assert.deepStrictEqual(cp.slots, p.slots); // same content
