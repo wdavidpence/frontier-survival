@@ -102,6 +102,12 @@ import { createHopperBuffer, hopperInsert, hopperExtract, hopperItemCount } from
 import { pistonPushCount, pistonStickyPull } from '../js/piston-push.js';
 import { daylightSensorPower, sun01FromDayFrac } from '../js/daylight-sensor.js';
 import { toggleTrapdoor, trapdoorHalfFromPitch } from '../js/trapdoor.js';
+import { clampCauldronLevel, cauldronFill, cauldronDrain, cauldronIsFull } from '../js/cauldron-level.js';
+import { enchantLevelCost, canPayEnchant, payEnchantLevels } from '../js/enchant-cost.js';
+import { brewStep, canBrew, brewProgress } from '../js/brewing-step.js';
+import { beaconTierFromEdge, beaconRange, beaconHasSecondary } from '../js/beacon-pyramid.js';
+import { clampNote, noteFrequencyHz, cycleNote, noteInstrument } from '../js/noteblock-pitch.js';
+
 
 
 
@@ -2706,7 +2712,46 @@ test('game compass HUD uses bearing helpers', () => {
   assert.ok(src.includes('spawn ${'));
 });
 
+
+test('cauldron-level fill drain', () => {
+  assert.strictEqual(clampCauldronLevel(9), 3);
+  const f = cauldronFill(2, 2);
+  assert.strictEqual(f.level, 3);
+  assert.strictEqual(f.leftover, 1);
+  const d = cauldronDrain(3, 1);
+  assert.strictEqual(d.level, 2);
+  assert.ok(cauldronIsFull(3));
+});
+
+test('enchant-cost curve', () => {
+  assert.ok(enchantLevelCost(15, 2) > enchantLevelCost(0, 0));
+  assert.ok(canPayEnchant(30, 10));
+  assert.strictEqual(payEnchantLevels(10, 3), 7);
+});
+
+test('brewing-step chain', () => {
+  assert.strictEqual(brewStep('nether_wart', 'water'), 'awkward');
+  assert.ok(canBrew('awkward', 'sugar'));
+  assert.strictEqual(brewStep('awkward', 'sugar'), 'swiftness');
+  assert.ok(brewProgress(200, 400) === 0.5);
+});
+
+test('beacon-pyramid tiers', () => {
+  assert.strictEqual(beaconTierFromEdge(3), 1);
+  assert.strictEqual(beaconTierFromEdge(9), 4);
+  assert.ok(beaconHasSecondary(4));
+  assert.ok(beaconRange(4) >= 50);
+});
+
+test('noteblock-pitch', () => {
+  assert.strictEqual(clampNote(30), 24);
+  assert.ok(noteFrequencyHz(12) > 100);
+  assert.strictEqual(cycleNote(24, 1), 0);
+  assert.strictEqual(noteInstrument('planks'), 'bass');
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 

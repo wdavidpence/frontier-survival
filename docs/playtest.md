@@ -98,6 +98,20 @@ WASD move, mouse look (click canvas), Space jump, Shift sprint, LMB mine, RMB pl
 2. If spawn known: also `spawn &lt;m&gt;m ±deg` via `compass-bearing` helpers.
 3. Map still adds chunk coords.
 
+## Compass spawn bearing (v1.11.9+)
+
+1. Craft a compass from iron ingots + redstone dust (iron in cross pattern, redstone center).
+2. Ensure spawn is known (spawn point set on first world join or via command).
+3. Hold compass in any hotbar slot → status line should show xyz coordinates.
+4. If spawn is known: status line also shows `spawn <m>m ±deg` with distance and bearing angle.
+5. Walk in a straight line toward spawn — verify distance decreases monotonically.
+## Compass / map HUD (v1.11.9+)
+
+1. Hold **compass** or **map** → status shows xyz.
+2. If spawn known: also `spawn <m>m ±deg` via `compass-bearing` helpers.
+3. Map still adds chunk coords.
+4. Verify: walk away from spawn with compass selected — distance should rise; turn until ±deg near 0 when facing spawn.
+
 ## Bed facing (v1.11.8+)
 
 1. Craft a bed from wool + wood planks (3 wool across top row, 3 planks below).

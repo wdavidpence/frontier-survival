@@ -313,3 +313,7 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 - Compass/map HUD: spawn distance + relative bearing
 - Pure hopper-buffer, piston-push, daylight-sensor, trapdoor
 - Smoke 238 PASS
+
+## SHIP v1.11.10
+- Pure cauldron-level, enchant-cost, brewing-step, beacon-pyramid, noteblock-pitch
+- Smoke 243 PASS
