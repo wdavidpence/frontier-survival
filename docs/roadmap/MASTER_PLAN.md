@@ -28,6 +28,8 @@ Additive only (no feature removal):
 - Coop: `hotbar-cycle`, `input-coop.cycleHotbar`, pad D-pad scroll via `pad-input` + `player` hotbar
 - Game wires: `resolveBlockDrop` P1/P2; furnace-tick use+tick; slab half / stair face / bed face on place; door `toggleDoor`; crop `advanceCropGrowth`; compass spawn bearing HUD; furnace-tick/game speedMult (smoker/blast-ready)
 
+- Newer pure (v1.12.3–1.12.4): `scaffolding`, `honey-slide`, `powder-snow`, `dripstone-fall`, `amethyst-grow`, `copper-oxidize`, `lightning-rod`, `sculk-spread`, `frogspawn`, `mangrove-propagule`
+
 Still open: mesh for slab/stair/bed meta, wire stations into world blocks, SC body-systems depth, more ecology.
 
 ---

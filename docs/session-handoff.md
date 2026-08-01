@@ -336,3 +336,7 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 ## SHIP v1.12.3
 - Pure scaffolding, honey-slide, powder-snow, dripstone-fall, amethyst-grow
 - Smoke 263 PASS
+
+## SHIP v1.12.4
+- Pure copper-oxidize, lightning-rod, sculk-spread, frogspawn, mangrove-propagule
+- Smoke 268 PASS

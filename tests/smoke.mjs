@@ -125,6 +125,12 @@ import { honeyMoveMult, honeyJumpMult } from '../js/honey-slide.js';
 import { powderSnowSinkVy, powderSnowFreezeProgress, powderSnowFrozen } from '../js/powder-snow.js';
 import { dripstoneFallDamage, dripstoneStalactiteDamage } from '../js/dripstone-fall.js';
 import { amethystTryGrow, amethystIsCluster, amethystShardDrops } from '../js/amethyst-grow.js';
+import { copperTryOxidize, copperScrape, copperStageName, copperIsFullyOxidized } from '../js/copper-oxidize.js';
+import { lightningRodRedirects, nearestLightningRod } from '../js/lightning-rod.js';
+import { createSculkCatalyst, sculkAddCharge, sculkTrySpread, sculkCanSpread } from '../js/sculk-spread.js';
+import { frogspawnAdvance, frogspawnHatched, frogspawnTadpoleCount } from '../js/frogspawn.js';
+import { propaguleTryGrow, propaguleIsMature, propaguleCanPlant } from '../js/mangrove-propagule.js';
+
 
 
 
@@ -2919,7 +2925,43 @@ test('amethyst-grow stages', () => {
   assert.ok(amethystShardDrops(3) >= 4);
 });
 
+
+test('copper-oxidize stages', () => {
+  assert.strictEqual(copperTryOxidize(2, false, 1, () => 0), 3);
+  assert.ok(copperIsFullyOxidized(3));
+  assert.strictEqual(copperScrape(2), 1);
+  assert.strictEqual(copperStageName(0), 'copper');
+  assert.strictEqual(copperTryOxidize(1, true, 1, () => 0), 1);
+});
+
+test('lightning-rod redirect', () => {
+  assert.ok(lightningRodRedirects(0, 0, 10, 0, 128));
+  const n = nearestLightningRod({ x: 0, z: 0 }, [{ x: 5, z: 0 }, { x: 50, z: 0 }], 128);
+  assert.ok(n && n.x === 5);
+});
+
+test('sculk-spread charge', () => {
+  let c = createSculkCatalyst(0);
+  c = sculkAddCharge(c, 3);
+  assert.ok(sculkCanSpread(c));
+  const r = sculkTrySpread(c, 1);
+  assert.ok(r.ok);
+});
+
+test('frogspawn hatch', () => {
+  const p = frogspawnAdvance(0, 200, 100, true);
+  assert.ok(frogspawnHatched(p));
+  assert.ok(frogspawnTadpoleCount(() => 0.1) >= 1);
+});
+
+test('mangrove-propagule grow', () => {
+  assert.strictEqual(propaguleTryGrow(3, 1, () => 0), 4);
+  assert.ok(propaguleIsMature(4));
+  assert.ok(propaguleCanPlant(4, true));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 
