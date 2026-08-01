@@ -83,6 +83,11 @@ import {
 import { CoopInputRouter, P1, P2 } from '../js/input-coop.js';
 import { canAnvilRepair, anvilRepair } from '../js/anvil-repair.js';
 import { slabHalfFromPitch, slabYOffset, slabHalfMeta, slabHalfFromMeta } from '../js/slab-place.js';
+import { stairFacingFromYaw, stairFacingMeta, stairFacingFromMeta } from '../js/stair-place.js';
+import { bowDrawCharge, bowPowerFromCharge, isBowFullyDrawn } from '../js/bow-draw.js';
+import { advanceCropGrowth, cropStageAt, isCropRipe, CROP_MATURE_SECONDS } from '../js/crop-growth.js';
+import { toggleDoor, isDoorBlock, doorFacingFromYaw } from '../js/door-hinge.js';
+
 
 /**
  * Pure-logic smoke tests (no browser/Three).
@@ -2426,6 +2431,134 @@ test('game source wires resolveBlockDrop and furnace-tick', () => {
   assert.ok(src.includes('createFurnaceState'));
 });
 
+
+test('stair-place facing from yaw', () => {
+  assert.ok(['north','south','east','west'].includes(stairFacingFromYaw(0)));
+  assert.strictEqual(stairFacingFromMeta(stairFacingMeta('east')), 'east');
+});
+
+test('bow-draw charge curve', () => {
+  assert.strictEqual(bowDrawCharge(0), 0);
+  assert.strictEqual(bowDrawCharge(1), 1);
+  assert.ok(bowPowerFromCharge(1) > bowPowerFromCharge(0));
+  assert.ok(isBowFullyDrawn(1));
+});
+
+test('crop-growth advance and stages', () => {
+  assert.ok(advanceCropGrowth(0, 45, 90) > 0.4);
+  assert.ok(isCropRipe(1));
+  assert.ok(cropStageAt(0.1).id);
+  assert.ok(CROP_MATURE_SECONDS >= 60);
+});
+
+test('door-hinge toggle', () => {
+  assert.ok(isDoorBlock(BLOCK.DOOR_CLOSED, BLOCK.DOOR_CLOSED, BLOCK.DOOR_OPEN));
+  assert.strictEqual(toggleDoor(BLOCK.DOOR_CLOSED, BLOCK.DOOR_CLOSED, BLOCK.DOOR_OPEN), BLOCK.DOOR_OPEN);
+  assert.strictEqual(toggleDoor(BLOCK.DOOR_OPEN, BLOCK.DOOR_CLOSED, BLOCK.DOOR_OPEN), BLOCK.DOOR_CLOSED);
+  assert.ok(doorFacingFromYaw(0) >= 0);
+});
+
+test('game wires slab half place', () => {
+  const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('slabHalfFromPitch'));
+  assert.ok(src.includes('_slabHalf'));
+});
+
+test('coop_mode_flag: getPlayMode validates solo/coop', () => {
+  // Valid values return themselves or default to 'solo'.
+  assert.strictEqual(getPlayMode('coop'), 'coop');
+  assert.strictEqual(getPlayMode('solo'), 'solo');
+  // Anything else -> solo (safe default).
+  assert.strictEqual(getPlayMode(null), 'solo');
+  assert.strictEqual(getPlayMode(undefined), 'solo');
+  assert.strictEqual(getPlayMode(''), 'solo');
+  assert.strictEqual(getPlayMode('co-op'), 'solo');
+  assert.strictEqual(getPlayMode(1), 'solo');
+});
+
+test('coop_mode_flag: DEFAULT_SETTINGS playMode is solo', () => {
+  assert.strictEqual(DEFAULT_SETTINGS.playMode, 'solo');
+});
+
+test('coop_mode_flag: parseSettings preserves coop mode', () => {
+  const parsed = parseSettings({ playMode: 'coop' });
+  assert.strictEqual(parsed.ok, true);
+  assert.strictEqual(parsed.data.playMode, 'coop');
+});
+
+test('coop_mode_flag: parseSettings invalid playMode defaults to solo', () => {
+  const parsed = parseSettings({ playMode: 'multiplayer' });
+  assert.strictEqual(parsed.ok, true);
+  assert.strictEqual(parsed.data.playMode, 'solo');
+});
+
+test('coop_mode_flag: parseSettings missing playMode defaults to solo', () => {
+  const parsed = parseSettings({});
+  assert.strictEqual(parsed.ok, true);
+  assert.strictEqual(parsed.data.playMode, 'solo');
+});
+
+test('coop_mode_flag: serializeSettings round-trips coop mode', () => {
+  const settings = { ...DEFAULT_SETTINGS, playMode: 'coop' };
+  const serialized = serializeSettings(settings);
+  const parsed = parseSettings(serialized);
+  assert.strictEqual(parsed.ok, true);
+  assert.strictEqual(parsed.data.playMode, 'coop');
+});
+
+test('coop_mode_flag: serializeSettings round-trips solo mode', () => {
+  const settings = { ...DEFAULT_SETTINGS, playMode: 'solo' };
+  const serialized = serializeSettings(settings);
+  const parsed = parseSettings(serialized);
+  assert.strictEqual(parsed.ok, true);
+  assert.strictEqual(parsed.data.playMode, 'solo');
+});
+
+test('coop_mode_flag: SETTINGS_KEY is defined', () => {
+  assert.ok(typeof SETTINGS_KEY === 'string' && SETTINGS_KEY.length > 0);
+});
+
+test('coop_state: clonePlayer shallow copies slots', () => {
+  const player = { x: 1, y: 2, z: 3, slots: ['log', 'stone'] };
+  const cloned = clonePlayer(player);
+  assert.strictEqual(cloned.x, 1);
+  assert.deepStrictEqual(cloned.slots, ['log', 'stone']);
+  assert.notStrictEqual(cloned.slots, player.slots); // different array reference
+});
+
+test('coop_state: clonePlayer null returns null', () => {
+  assert.strictEqual(clonePlayer(null), null);
+});
+
+test('coop_state: cloneSurvivalState merges over DEFAULT_SURVIVAL', () => {
+  const result = cloneSurvivalState({ health: 50 });
+  assert.strictEqual(result.health, 50);
+});
+
+test('coop_state: cloneSurvivalState null uses defaults', () => {
+  const result = cloneSurvivalState(null);
+  assert.ok(typeof result.health === 'number');
+});
+
+test('coop_state: serializeCoopGameState serializes player1 and player2', () => {
+  const game = {
+    player1: { x: 0, y: 10, z: 0, slots: ['log'] },
+    player2: { x: 5, y: 10, z: 5, slots: [] },
+    world: { seed: 42 },
+  };
+  const serialized = serializeCoopGameState(game);
+  assert.strictEqual(serialized.player1.x, 0);
+  assert.strictEqual(serialized.player2.x, 5);
+  assert.deepStrictEqual(serialized.world, { seed: 42 });
+});
+
+test('coop_state: serializeCoopGameState handles null game', () => {
+  const serialized = serializeCoopGameState(null);
+  assert.strictEqual(serialized.player1, null);
+  assert.strictEqual(serialized.player2, null);
+});
+
 if (process.exitCode) process.exit(1);
+
 
 

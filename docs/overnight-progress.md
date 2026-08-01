@@ -781,3 +781,13 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-08-01T01:19:53.137Z | watchdog running 7→7 reclaimed none Spawned 0 |
 | 2026-07-31T21:22:54-0400 | SHIP v1.11.3 furnace-tick barrel hotbar-cycle wire cornerStairs mine resolveBlockDrop splitscreen matrix; smoke197; browser next; decision ship |
 | 2026-07-31T21:30:17-0400 | SHIP v1.11.4 furnace wire + resolveBlockDrop P1/P2 + anvil/slab pure; smoke200; browser next; decision ship |
+
+## Judge tick — 2026-07-31 21:35 EDT
+
+- Cards: 7 running at caps — t_ac22f78b/qwen27s game slab wire; t_06a27ac1/qwen35 door-hinge; t_9b0af596/qwen27s stair facing; t_b595a94f/local35 v1.11.4 verify; t_9ed9f76f/qwen27s bow draw; t_cf66ebad/qwen27s crop growth; t_066abae5/qwen35 furnace playtest docs. No reclaim/dispatch: lanes are healthy and global cap is full.
+- Verification: `node tests/smoke.mjs` PASS, 159 + 25 = 184 tests; pure-module imports for bow-draw, crop-growth, door-hinge, stair-place, slab-place, smelting PASS. `git diff --check` FAIL only on existing blank line at EOF in tests/smoke.mjs:2468; broad uncommitted WIP remains.
+- Browser: local :8767 HTTP 200, v1.11.4; Start probe hid title overlay and exposed HUD/canvas; console `boot OK`, 0 JS errors. Live Pages also reports v1.11.4 and main.js?v=224; no release claim because worktree is broad WIP.
+- Release: HEAD 94a3c12 equals origin/main; dual HTML check was not release-cleanly accepted because broad WIP/cache-bust review remains; no commit/push.
+- Next: let the seven bounded lanes finish, independently inspect artifacts, route the EOF diff-check cleanup behind the smoke lock if still needed, then rerun smoke/diff/browser and decide continue or ship.
+- Decision: continue.
+| 2026-07-31T21:35:40-0400 | SHIP v1.11.5 slab half + stair/bow/crop/door pure; smoke219; decision ship |

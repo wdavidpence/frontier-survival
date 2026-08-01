@@ -29,6 +29,7 @@ import {
   takeOutput,
 } from './furnace-tick.js?v=220';
 import { isFuel, canSmelt } from './smelting.js?v=220';
+import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=220';
 import {
   addItems,
   removeItems,
@@ -197,6 +198,8 @@ export class Game {
     this._fishCd = 0;
     this._campFuel = new Map(); // "x,y,z" -> fuel 0..100
     this._furnaces = new Map(); // "x,y,z" -> furnace-tick state
+    /** Slab half meta "x,y,z" -> 0 bottom / 1 top (additive until mesh uses it). */
+    this._slabHalf = new Map();
     this._lastWeather = 'clear';
     this._roofed = false;
     this._drinkCd = 0;
@@ -2373,6 +2376,12 @@ export class Game {
 
     if (this.world.setBlock(px, py, pz, blockId)) {
       this.audio.placeBlock();
+      if (blockId === BLOCK.SLAB_WOOD) {
+        const half = slabHalfFromPitch(this.player.pitch);
+        const meta = slabHalfMeta(half);
+        this._slabHalf.set(`${px|0},${py|0},${pz|0}`, meta);
+        this.player.notify(half === 'top' ? 'Top slab placed.' : 'Bottom slab placed.', 1.6);
+      }
       if (blockId === BLOCK.CAMPFIRE) {
         this.player.notify('Campfire lit. Feed sticks/coal/charcoal (F) or it dies out.');
         this._scanLights(true);

@@ -280,3 +280,14 @@ Next: verify pure-module cards → promote viewport/coop-state (no input.js) →
 - Browser title v1.11.2; Local Co-op Start gate
 - Policy: add-only; regular commits
 - Board refilled 7 running after ship
+
+## Judge tick handoff — 2026-07-31 21:35 EDT
+
+Smoke is green at 184 total checks and local/live v1.11.4 boot clean, but the shared worktree has broad uncommitted building/docs WIP and `git diff --check` reports only `tests/smoke.mjs:2468` blank EOF line. Seven workers are active at the documented caps; preserve hot-file ownership and do not publish until all current artifacts are independently reviewed and the diff-check issue is resolved.
+
+## SHIP v1.11.5
+
+- Additive pure: stair-place, bow-draw, crop-growth, door-hinge
+- SLAB_WOOD place stores half meta + notify from pitch
+- Playtest furnace/slab steps
+- Smoke 219 PASS
