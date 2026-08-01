@@ -1,6 +1,39 @@
 import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
 import { heightAt, fbm, hash2 } from '../js/gen.js';
-import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp } from '../js/coop-proximity.js';
+import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
+import {
+  stairShape,
+  slabShape,
+  doorShape,
+  fenceShape,
+  shapeType,
+  isShapeBlock,
+  shapeBlockIds,
+  shapeRecipes,
+  STAIRS_RECIPE,
+  SLAB_RECIPE,
+  DOOR_RECIPE,
+  FENCE_RECIPE,
+} from '../js/building-shapes.js';
+import {
+  TIER_ORDER,
+  HARVEST_LEVEL,
+  TOOL_SPEED_MULTIPLIER,
+  tierForItem,
+  tierIndex,
+  tierMeetsRequirement,
+  speedForItem,
+} from '../js/tool-tiers.js';
+import {
+  FUEL_VALUES,
+  fuelValue,
+  isFuel,
+  smeltRecipe,
+  canSmelt,
+  canAffordSmelt,
+  listSmeltRecipes,
+  SMELTING_GAPS,
+} from '../js/smelting.js';
 /**
  * Pure-logic smoke tests (no browser/Three).
  * Run: node tests/smoke.mjs
@@ -2175,6 +2208,79 @@ test('lerp uses clamp01 for t', () => {
   // Non-finite t -> clamp01 returns 0, so lerp returns a
   assert.strictEqual(lerp(3, 7, NaN), 3);
   assert.strictEqual(lerp(3, 7, Infinity), 3);
+});
+
+test('invLerp basic round-trip with lerp', () => {
+  // invLerp(0, 10, v) should map 0→0, 5→0.5, 10→1
+  assert.strictEqual(invLerp(0, 10, 0), 0);
+  assert.strictEqual(invLerp(0, 10, 5), 0.5);
+  assert.strictEqual(invLerp(0, 10, 10), 1);
+  // out of range values are clamped to [0,1]
+  assert.strictEqual(invLerp(0, 10, -5), 0);
+  assert.strictEqual(invLerp(0, 10, 15), 1);
+  // a == b returns 0 (safe division)
+  assert.strictEqual(invLerp(5, 5, 3), 0);
+  // non-finite inputs return 0
+  assert.strictEqual(invLerp(NaN, 10, 5), 0);
+  assert.strictEqual(invLerp(0, NaN, 5), 0);
+  assert.strictEqual(invLerp(0, 10, NaN), 0);
+  assert.strictEqual(invLerp(0, 10, Infinity), 0); // clamp01 rejects non-finite
+});
+
+test('building-shapes: stair/slab/door/fence pure recipes and lookups', () => {
+  assert.ok(Array.isArray(stairShape()) && stairShape().length > 0);
+  assert.ok(Array.isArray(slabShape()) && slabShape().length > 0);
+  assert.ok(Array.isArray(doorShape()) && doorShape().length > 0);
+  assert.ok(Array.isArray(fenceShape()) && fenceShape().length > 0);
+  assert.strictEqual(shapeType(BLOCK.STAIRS_WOOD), 'stairs');
+  assert.strictEqual(shapeType(BLOCK.SLAB_WOOD), 'slab');
+  assert.strictEqual(shapeType(BLOCK.DOOR_CLOSED), 'door');
+  assert.strictEqual(shapeType(BLOCK.DOOR_OPEN), 'door');
+  assert.strictEqual(shapeType(BLOCK.FENCE), 'fence');
+  assert.strictEqual(shapeType(BLOCK.DIRT), null);
+  assert.ok(isShapeBlock(BLOCK.STAIRS_WOOD));
+  assert.ok(isShapeBlock(BLOCK.FENCE));
+  assert.ok(!isShapeBlock(BLOCK.STONE));
+  assert.ok(STAIRS_RECIPE?.ingredients?.length >= 1);
+  assert.ok(SLAB_RECIPE?.results?.length >= 1);
+  assert.ok(DOOR_RECIPE?.results?.[0]?.id === BLOCK.DOOR_CLOSED);
+  assert.ok(FENCE_RECIPE?.results?.[0]?.id === BLOCK.FENCE);
+  assert.deepStrictEqual(shapeBlockIds(), [
+    BLOCK.STAIRS_WOOD,
+    BLOCK.SLAB_WOOD,
+    BLOCK.DOOR_CLOSED,
+    BLOCK.FENCE,
+  ]);
+  assert.strictEqual(shapeRecipes().length, 4);
+});
+
+test('tool-tiers: order harvest speed and item mapping', () => {
+  assert.deepStrictEqual(TIER_ORDER, ['wood', 'stone', 'iron']);
+  assert.ok(HARVEST_LEVEL.iron > HARVEST_LEVEL.stone);
+  assert.ok(HARVEST_LEVEL.stone > HARVEST_LEVEL.wood);
+  assert.ok(TOOL_SPEED_MULTIPLIER.iron > TOOL_SPEED_MULTIPLIER.wood);
+  assert.strictEqual(tierForItem(ITEM.WOOD_PICK), 'wood');
+  assert.strictEqual(tierForItem(ITEM.IRON_AXE), 'iron');
+  assert.strictEqual(tierForItem(ITEM.COAL), null);
+  assert.strictEqual(tierIndex('stone'), 1);
+  assert.ok(tierMeetsRequirement('iron', 'wood'));
+  assert.ok(!tierMeetsRequirement('wood', 'iron'));
+  assert.ok(speedForItem(ITEM.IRON_PICK) > speedForItem(ITEM.WOOD_PICK));
+  assert.strictEqual(speedForItem(ITEM.COAL), 1);
+});
+
+test('smelting: fuel and recipes pure table', () => {
+  assert.ok(isFuel(ITEM.COAL));
+  assert.ok(fuelValue(ITEM.COAL) > 0);
+  assert.ok(fuelValue(BLOCK.DIRT) === 0);
+  assert.ok(canSmelt(BLOCK.IRON_ORE));
+  const iron = smeltRecipe(BLOCK.IRON_ORE);
+  assert.strictEqual(iron.output, ITEM.IRON_INGOT);
+  assert.ok(canAffordSmelt(BLOCK.IRON_ORE, iron.fuelCost));
+  assert.ok(!canAffordSmelt(BLOCK.IRON_ORE, 0));
+  assert.ok(listSmeltRecipes().length >= 4);
+  assert.ok(Array.isArray(SMELTING_GAPS) && SMELTING_GAPS.length >= 1);
+  assert.ok(Object.keys(FUEL_VALUES).length >= 3);
 });
 
 if (process.exitCode) process.exit(1);

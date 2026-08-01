@@ -103,6 +103,27 @@ for (const item of wave) {
     continue;
   }
   console.log('OK', taskId || 'ok', title.slice(0, 70));
+  // Park immediately as scheduled buffer so gateway cannot thrash depth caps.
+  // Orchestrator unblocks only under free lane capacity.
+  if (taskId) {
+    const s = spawnSync(
+      'hermes',
+      [
+        'kanban',
+        '--board',
+        BOARD,
+        'schedule',
+        taskId,
+        'lane-cap-hold mint_buffer auto_park',
+      ],
+      { encoding: 'utf8', cwd: root, maxBuffer: 2_000_000 },
+    );
+    if (s.status !== 0) {
+      console.warn('WARN schedule', taskId, ((s.stdout || '') + (s.stderr || '')).slice(0, 200));
+    } else {
+      console.log('PARK', taskId);
+    }
+  }
   state.mintedIds.push(item.id);
   state.totalMinted = (state.totalMinted || 0) + 1;
   const it = data.items.find((x) => x.id === item.id);

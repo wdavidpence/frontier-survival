@@ -2,15 +2,20 @@
 
 Status: ACTIVE P0 — browser/PC + PS5 browser. No online netcode.
 
-## Locked decisions (2026-07-31)
+## Locked decisions (2026-07-31; refreshed orchestrator 2026-07-31 evening)
 
 - Platform: HTML5 browser only (PC + PS5 browser mode)
 - Mode: local split-screen, same tab, shared world
-- P1: keyboard+mouse OR gamepad0 (first connected pad)
-- P2: gamepad1 (second DualSense on PS5, or second pad on PC)
-- Competitive bar: SurvivalCraft systems first, then Minecraft breadth
-- Original IP (systems feel OK; no trademarked names/assets)
-- Publish: every ~20 judge turns if smoke+browser green and net better
+- P0 input matrix THIS MONTH (all three):
+  1. PC: P1 keyboard+mouse + P2 Bluetooth gamepad
+  2. PC: two Bluetooth gamepads
+  3. PS5 browser: two DualSense controllers
+- Competitive bar near-term primary: **Minecraft-breadth** (building/tools/stations/mining)
+- Secondary feel: match Survivalcraft systems/feel closely (systems may mirror tightly)
+- Original IP: no trademarked names/assets/code
+- Publish: every ~20 judge turns any verified green incremental plateau
+- Mint: aggressive scheduled buffer; auto-park after mint; depth caps 4+2+1
+- Competitor deep-research deferred until workers recovered (card t_c7057b26 scheduled)
 
 ## Architecture v2 (design doc update 2026-07-31)
 

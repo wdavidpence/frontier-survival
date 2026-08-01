@@ -221,3 +221,44 @@ Next: verify pure-module cards → promote viewport/coop-state (no input.js) →
 - Solo|Local Co-op + dual scissor cameras (P2 freecam pad1)
 - smoke 159; ?v=201 full bust
 - next: dual HUD, bind P1/P2, P2 body entity
+
+## Judge tick update — 2026-07-31 20:11 EDT
+
+- Smoke: `node tests/smoke.mjs` PASS (177 assertions); `git diff --check` PASS.
+- Browser: local :8767 v1.11.0 Start probe reached HUD with title overlay hidden and console error count 0; live Pages v1.11.0 booted with console error count 0.
+- Board: 6 running within caps: qwen27s 4 (`t_cabce7eb`, `t_be677c9d`, `t_db1c949`, `t_0713566e`), qwen35 1 (`t_e73a34f5`), local35 1 (`t_ee697345`). No dispatch spawn needed; scheduled hot-file siblings remain serialized.
+- Release: HEAD/origin `866fc59`; dual HTML parity PASS; working-tree cache-bust `?v=220`; broad uncommitted WIP, no ship.
+- Next: inspect completed artifacts, preserve hot locks, rerun smoke/browser at the next green plateau.
+
+## Recovery update — 2026-07-31 20:46 EDT
+
+- Board briefly oversubscribed to 45 running after a concurrent mint/dispatch wave. Excess worker sessions were terminated, cards reclaimed and parked with `lane-cap-hold`, and gateways restarted.
+- Current board: 4 running within policy (qwen27s 2, qwen35 1, local35 1), 0 ready, 143 scheduled, 67 blocked, 122 done.
+- Verification remains green: smoke 177 assertions, diff-check PASS, local/live v1.11.0 browser boot clean. No release while WIP remains uncommitted.
+
+## Orchestrator kickoff — 2026-07-31 20:56 EDT (user clarifying answers)
+
+### Locked decisions
+- Near-term primary: **Minecraft-breadth** (building / tools / stations / mining)
+- SC feel: match Survivalcraft systems/feel closely (systems may mirror tightly); original names/art/code only
+- Co-op P0 this month — **all three**: PC KBM+pad, PC dual pad, PS5 dual DualSense split-screen
+- Ship: any verified green incremental plateau every ~20 turns
+- Mint aggressively into **scheduled** buffer; depth-cap park; no bare mass-ready mint
+- Competitor deep research **deferred** (card `t_c7057b26` scheduled); recover workers + test first
+
+### This tick actions
+- Recovered idle board; fixed mint thrash (45→4) with reclaim+`lane-cap-hold`
+- Patched `scripts/mint-kanban-wave.mjs` to **auto-schedule** after create (117/120 PARK on next wave)
+- Minted cumulative **357** backlog items; board **scheduled ≈260**, ready 0, running 4, done 123
+- Running: `t_db1c9499` tool-tier pure · `t_0713566e` smelting pure · `t_8a31a59c` door/fence pure · `t_ee697345` local35 MC-breadth audit
+- Judge completed `t_e73a34f5` stairs pure (`js/building-shapes.js` + smoke)
+- Smoke: **184 PASS**; dual HTML parity OK; local :8767 v1.11.0
+- Browser: DOM Start after Local Co-op → title `overlay hidden`, HUD present, console errors 0
+- **Ship: NO** — broad uncommitted WIP; workers mid-lane; not a clean 20-turn plateau ship yet
+
+### Next
+1. Verify pure MC modules as they finish; promote craft/place wire cards only with sole hot-file owners
+2. Re-queue coop P0 pad hotbar + gamepad inventory when game.js/input free (parked thrash reclaim)
+3. Keep depth: qwen27s≤4 qwen35≤2 local35≤1; never bare mint without auto-park
+4. Unblock deferred SC/MC research after next green ship or stable 3-lane run
+5. Publish only at independent green plateau (smoke+browser+diff+full ?v= bust+dual HTML)

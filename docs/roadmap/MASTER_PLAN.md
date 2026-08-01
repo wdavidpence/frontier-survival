@@ -6,7 +6,15 @@
 **Bugs:** `docs/bugs/BUGLOG.md`  
 **Mint state:** `docs/roadmap/mint-state.json`  
 **Board:** `frontier-survival`  
-**Workers:** `qwen27s` (strongest shared 27B), `qwen35` (shared 35B), `local35` (local 35B-MTP)
+**Workers:** `qwen27s` (strongest shared 27B), `qwen35` (shared 35B), `local35` (local gpt-oss-20b)
+
+### Near-term priority lock (2026-07-31 evening orchestrator)
+
+1. **Primary:** Minecraft-breadth — building expressiveness, tool tiers, stations, mining/smelting loop
+2. **Co-op P0 (all three configs this month):** PC KBM+pad, PC dual pad, PS5 dual DualSense local split-screen
+3. **Feel:** Survivalcraft-depth systems may mirror closely; original IP only (no trademarked names/assets)
+4. **Ship cadence:** every ~20 judge turns on any verified green incremental plateau
+5. **Ops:** aggressive mint into scheduled buffer (auto-park); depth 4+2+1; workers implement, Hermes judges/publishes
 
 ---
 
