@@ -355,3 +355,7 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 - scaffolding climb in player (name match)
 - pure crafter-recipe, vault-reward, trial-spawner, ominous-bottle
 - Smoke 283 PASS
+
+## SHIP v1.12.8
+- Pure breeze-charge, wind-charge, mace-smash, wolf-armor, armadillo-scute
+- Smoke 288 PASS

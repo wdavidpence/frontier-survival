@@ -142,6 +142,12 @@ import { crafterMatch, crafterShouldCraft } from '../js/crafter-recipe.js';
 import { createVaultState, vaultCanUnlock, vaultUnlock } from '../js/vault-reward.js';
 import { createTrialSpawner, trialSpawnerStartWave, trialSpawnerMobDied } from '../js/trial-spawner.js';
 import { ominousBottleEffect, clampOminousAmplifier } from '../js/ominous-bottle.js';
+import { breezeKnockback, breezeDamage } from '../js/breeze-charge.js';
+import { windChargeHits, windChargeKnockStrength } from '../js/wind-charge.js';
+import { maceSmashDamage, maceSmashTriggers } from '../js/mace-smash.js';
+import { createWolfArmor, wolfArmorDamage, wolfArmorAbsorb, wolfArmorBroken } from '../js/wolf-armor.js';
+import { armadilloScuteDrop, canCraftWolfArmor } from '../js/armadillo-scute.js';
+
 
 
 
@@ -3077,7 +3083,40 @@ test('player scaffolding climb wire', () => {
   assert.ok(src.includes('onScaffolding'));
 });
 
+
+test('breeze-charge knockback', () => {
+  const k = breezeKnockback({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+  assert.ok(k.x > 0);
+  assert.ok(breezeDamage() > 0);
+});
+
+test('wind-charge burst', () => {
+  assert.ok(windChargeHits({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, 2.5));
+  assert.ok(windChargeKnockStrength({ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }) > 0);
+  assert.strictEqual(windChargeKnockStrength({ x: 0, y: 0, z: 0 }, { x: 10, y: 0, z: 0 }), 0);
+});
+
+test('mace-smash fall bonus', () => {
+  assert.ok(maceSmashTriggers(3));
+  assert.ok(maceSmashDamage(5) > maceSmashDamage(0));
+});
+
+test('wolf-armor durability', () => {
+  let a = createWolfArmor(10);
+  a = wolfArmorDamage(a, 3);
+  assert.strictEqual(a.dur, 7);
+  assert.ok(wolfArmorAbsorb(10, a) < 10);
+  assert.ok(!wolfArmorBroken(a));
+});
+
+test('armadillo-scute drop', () => {
+  assert.strictEqual(armadilloScuteDrop(1, () => 0), 1);
+  assert.ok(canCraftWolfArmor(6));
+  assert.ok(!canCraftWolfArmor(2));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 

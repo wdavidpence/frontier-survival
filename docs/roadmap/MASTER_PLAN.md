@@ -30,6 +30,9 @@ Additive only (no feature removal):
 
 - Newer pure (v1.12.3–1.12.4): `scaffolding`, `honey-slide`, `powder-snow`, `dripstone-fall`, `amethyst-grow`, `copper-oxidize`, `lightning-rod`, `sculk-spread`, `frogspawn`, `mangrove-propagule`
 
+- Player wires (v1.12.5–7): honey move/jump; powder-snow sink; scaffolding climb (name match until blocks exist)
+- 1.21 pure (v1.12.7–8): `crafter-recipe`, `vault-reward`, `trial-spawner`, `ominous-bottle`, `breeze-charge`, `wind-charge`, `mace-smash`, `wolf-armor`, `armadillo-scute`
+
 Still open: mesh for slab/stair/bed meta, wire stations into world blocks, SC body-systems depth, more ecology.
 
 ---
