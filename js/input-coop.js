@@ -1,7 +1,21 @@
-import { GamepadSlotManager } from './input.js?v=216';
+import { GamepadSlotManager } from './input.js?v=220';
+import {
+  applyDualHotbarEdge,
+  createDualHotbarState,
+  cycleHotbarIndex,
+  hotbarFromPadEdges,
+} from './hotbar-cycle.js?v=220';
 
 export const P1 = 'p1';
 export const P2 = 'p2';
+
+// Re-export pure hotbar helpers for callers/tests.
+export {
+  applyDualHotbarEdge,
+  createDualHotbarState,
+  cycleHotbarIndex,
+  hotbarFromPadEdges,
+};
 
 /** Minimal deadzone helper – mirrors Input.pollGamepad logic. */
 function applyDeadzone(value, dz) {
@@ -48,6 +62,9 @@ export class CoopInputRouter {
 
     this.deadzone = opts.deadzone ?? 0.15;
     this.gpSensitivity = opts.gpSensitivity ?? 0.03;
+
+    /** Per-player hotbar index state (pure helper; game wires held item). */
+    this._hotbar = createDualHotbarState(opts.hotbarSize ?? 9);
 
     /** KBM Input instance (for the keyboard/mouse player). */
     this._kbmInput = null;
@@ -315,5 +332,32 @@ export class CoopInputRouter {
   /** Set mock use state for a player (for pure tests). */
   setMockUse(slot, v) {
     this._mockUse[slot] = !!v;
+  }
+
+  /** Current hotbar index for slot ('p1'|'p2'). */
+  getHotbarIndex(slot) {
+    const key = slot === P2 ? 'p2' : 'p1';
+    return this._hotbar[key] | 0;
+  }
+
+  /** Set hotbar index directly (clamped via cycle 0). */
+  setHotbarIndex(slot, index) {
+    const key = slot === P2 ? 'p2' : 'p1';
+    const n = this._hotbar.size;
+    let i = index | 0;
+    i = ((i % n) + n) % n;
+    this._hotbar[key] = i;
+    return i;
+  }
+
+  /**
+   * Apply edge-triggered pad hotbar cycle (D-pad / shoulders).
+   * Call only on button-down edges from the input layer.
+   * @param {'p1'|'p2'} slot
+   * @param {{ left?: boolean, right?: boolean, up?: boolean, down?: boolean, lb?: boolean, rb?: boolean }} edges
+   */
+  cycleHotbar(slot, edges = {}) {
+    applyDualHotbarEdge(this._hotbar, slot === P2 ? 'p2' : 'p1', edges);
+    return this.getHotbarIndex(slot);
   }
 }

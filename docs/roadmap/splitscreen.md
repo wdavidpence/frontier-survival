@@ -357,3 +357,22 @@ Derived from `docs/playtest-ps5-browser.md` + live v1.10+ coop.
 - No DualSense haptics/adaptive triggers in browser
 - Tab suspend may drop WebGL context after idle
 
+## P0 input matrix acceptance (2026-07-31 lock)
+
+All three configs are P0 this month. Local split-screen only (no netcode).
+
+| Config | P1 | P2 | Accept when |
+|--------|----|----|-------------|
+| PC KBM + pad | Keyboard+mouse (WASD/look/mine/place) | Bluetooth gamepad1 | Dual viewports; P2 body moves/looks/mines; independent hotbar cycle |
+| PC dual pad | gamepad0 | gamepad1 | No KBM required; both sticks+triggers; hotbar D-pad/shoulders edge-trigger |
+| PS5 dual DualSense | pad0 (or KBM if exposed) | pad1 | Same as dual pad; large HUD; TV safe margins |
+
+### Shared button map (Standard Gamepad)
+- Left stick move · Right stick look
+- R2 mine/attack · L2/L1 place · A/cross jump · B/circle use · Y/triangle eat · Share/View inventory · Options/Menu pause
+- D-pad / LB-RB: hotbar cycle via `hotbar-cycle.js` + `CoopInputRouter.cycleHotbar` (edge only)
+
+### Pure helpers landed
+- `js/hotbar-cycle.js`, `js/input-coop.js` cycleHotbar API
+- Follow-up: game.js per-frame edge detect from pad buttons → cycleHotbar
+

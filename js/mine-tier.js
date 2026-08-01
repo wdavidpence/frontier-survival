@@ -3,7 +3,7 @@
  * Additive — does not change game mine path until a wire card imports it.
  */
 import { tierForItem, HARVEST_LEVEL, speedForItem, tierMeetsRequirement } from './tool-tiers.js?v=220';
-import { oreDropEntry } from './ore-drops.js?v=220';
+import { oreDropEntry, primaryOreDropId } from './ore-drops.js?v=220';
 
 /**
  * Effective mine speed multiplier for a held item id.
@@ -40,4 +40,16 @@ export function harvestLevelForHeld(itemId) {
 
 export function preferredToolForOre(blockId) {
   return oreDropEntry(blockId)?.tool ?? null;
+}
+
+/**
+ * Prefer pure ore-drops catalog, else call legacyDropFn(blockId).
+ * Game/mine path should call this to avoid circular imports with items.js.
+ * @param {number} blockId
+ * @param {(id:number)=>any} legacyDropFn
+ */
+export function resolveBlockDrop(blockId, legacyDropFn) {
+  const ore = primaryOreDropId(blockId);
+  if (ore != null) return ore;
+  return typeof legacyDropFn === 'function' ? legacyDropFn(blockId) : blockId;
 }

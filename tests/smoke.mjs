@@ -1,6 +1,8 @@
 import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
 import { heightAt, fbm, hash2 } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
+import { getPlayMode, DEFAULT_SETTINGS, parseSettings, serializeSettings, SETTINGS_KEY } from '../js/settings.js';
+import { clonePlayer, cloneSurvivalState, serializeCoopGameState } from '../js/coop-state.js';
 import {
   stairShape,
   slabShape,
@@ -49,10 +51,12 @@ import {
   mineSpeedForHeld,
   canHarvestBlock,
   harvestLevelForHeld,
+  resolveBlockDrop,
 } from '../js/mine-tier.js';
 import {
   rampShape,
   roofPeakShape,
+  cornerStairsShape,
   getRoofShape,
   listRoofShapeNames,
 } from '../js/roof-shapes.js';
@@ -62,6 +66,20 @@ import {
   createDualHotbarState,
   applyDualHotbarEdge,
 } from '../js/hotbar-cycle.js';
+import {
+  createFurnaceState,
+  insertFuel,
+  insertInput,
+  tickFurnace,
+  takeOutput,
+} from '../js/furnace-tick.js';
+import {
+  createBarrel,
+  barrelAdd,
+  barrelRemove,
+  barrelCount,
+} from '../js/barrel-storage.js';
+import { CoopInputRouter, P1, P2 } from '../js/input-coop.js';
 /**
  * Pure-logic smoke tests (no browser/Three).
  * Run: node tests/smoke.mjs
@@ -1763,7 +1781,6 @@ test('viewport-split: non-numeric input throws', async () => {
 });
 
 // Input slot mapping tests (pure — no browser APIs)
-import { CoopInputRouter, P1, P2 } from '../js/input-coop.js';
 import { GamepadSlotManager, GAMEPAD_BUTTON_MAP, GAMEPAD_AXIS_MAP, TRIGGER_BUTTON_MAP } from '../js/input.js';
 
 // GamepadSlotManager pure tests
@@ -2355,6 +2372,43 @@ test('hotbar-cycle dual pad edges', () => {
   applyDualHotbarEdge(st, 'p2', { left: true });
   assert.strictEqual(st.p1, 1);
   assert.strictEqual(st.p2, 8);
+});
+
+test('roof corner stairs shape', () => {
+  assert.ok(cornerStairsShape(3).length >= 3);
+  assert.ok(listRoofShapeNames().includes('cornerStairs'));
+  assert.ok(getRoofShape('cornerStairs', 3).length > 0);
+});
+
+test('mine-tier resolveBlockDrop prefers ore catalog', () => {
+  const legacy = (id) => (id === BLOCK.COAL_ORE ? ITEM.COAL : id);
+  assert.strictEqual(resolveBlockDrop(BLOCK.COAL_ORE, legacy), ITEM.COAL);
+  assert.strictEqual(resolveBlockDrop(BLOCK.DIRT, legacy), BLOCK.DIRT);
+});
+
+test('furnace-tick smelts with fuel', () => {
+  const f = createFurnaceState();
+  assert.strictEqual(insertFuel(f, ITEM.COAL, 1), 0);
+  assert.strictEqual(insertInput(f, BLOCK.IRON_ORE, 1), 0);
+  tickFurnace(f, 40);
+  const out = takeOutput(f);
+  assert.ok(out && out.id === ITEM.IRON_INGOT && out.count >= 1);
+});
+
+test('barrel-storage add remove count', () => {
+  const b = createBarrel(9);
+  assert.strictEqual(barrelAdd(b, ITEM.COAL, 10), 0);
+  assert.strictEqual(barrelCount(b, ITEM.COAL), 10);
+  assert.strictEqual(barrelRemove(b, ITEM.COAL, 3), 3);
+  assert.strictEqual(barrelCount(b, ITEM.COAL), 7);
+});
+
+test('input-coop cycleHotbar API', () => {
+  const r = new CoopInputRouter(null);
+  assert.strictEqual(r.getHotbarIndex(P1), 0);
+  assert.strictEqual(r.cycleHotbar(P1, { rb: true }), 1);
+  assert.strictEqual(r.cycleHotbar(P2, { left: true }), 8);
+  assert.strictEqual(r.setHotbarIndex(P1, 5), 5);
 });
 
 if (process.exitCode) process.exit(1);

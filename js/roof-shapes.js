@@ -42,12 +42,26 @@ export function roofFlatRing(size = 4) {
 }
 
 export function listRoofShapeNames() {
-  return ['ramp', 'roofPeak', 'roofFlatRing'];
+  return ['ramp', 'roofPeak', 'roofFlatRing', 'cornerStairs'];
+}
+
+/** L-shaped corner stair solid voxels (pure placement data). */
+export function cornerStairsShape(size = 4) {
+  const n = Math.max(2, size | 0);
+  const shape = [];
+  for (let i = 0; i < n; i++) {
+    for (let y = 0; y <= i; y++) {
+      shape.push({ x: i, y, z: 0 });
+      shape.push({ x: 0, y, z: i });
+    }
+  }
+  return shape;
 }
 
 export function getRoofShape(name, arg) {
   if (name === 'ramp') return rampShape(arg ?? 4);
   if (name === 'roofPeak') return roofPeakShape(arg ?? 3);
   if (name === 'roofFlatRing') return roofFlatRing(arg ?? 4);
+  if (name === 'cornerStairs') return cornerStairsShape(arg ?? 4);
   return null;
 }
