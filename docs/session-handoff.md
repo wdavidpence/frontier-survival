@@ -332,3 +332,7 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 - game _tickFurnaces honors st.speedMult
 - pure barrel-open, shulker-box, ender-chest, respawn-anchor
 - Smoke 258 PASS
+
+## SHIP v1.12.3
+- Pure scaffolding, honey-slide, powder-snow, dripstone-fall, amethyst-grow
+- Smoke 263 PASS

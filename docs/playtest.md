@@ -149,3 +149,7 @@ These are additive, pure helpers with no world-side plumbing yet. Wire them up a
 
 Pure helpers exist for smoker/blast/campfire-cook/grindstone/stonecutter/hopper/piston/daylight/loom/cartography/smithing/composter.
 \`furnace-tick.tickFurnace(state, units, speedMult=1)\` supports smoker/blast (pass 2). World block UI wire is follow-up.
+
+## Furnace speedMult default (v1.12.1+)
+
+\`furnace-tick.tickFurnace(state, units, speedMult=1)\` defaults \`speedMult\` to **1** (normal speed). Passing 2 doubles cook rate for smoker/blast furnace variants. The default is additive — no world-side change until wired up as a block property.

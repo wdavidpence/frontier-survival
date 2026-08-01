@@ -120,6 +120,12 @@ import { toggleBarrelOpen, isBarrelOpen, createBarrelOpenState } from '../js/bar
 import { createShulkerSlots, shulkerAdd, shulkerCount, shulkerIsEmpty } from '../js/shulker-box.js';
 import { createEnderStore, getEnderSlots, enderPlayerCount } from '../js/ender-chest.js';
 import { anchorCharge, anchorDischarge, anchorCanRespawn, clampAnchorCharge } from '../js/respawn-anchor.js';
+import { scaffoldingShouldFall, scaffoldingWithinFloat, scaffoldingClimbVy } from '../js/scaffolding.js';
+import { honeyMoveMult, honeyJumpMult } from '../js/honey-slide.js';
+import { powderSnowSinkVy, powderSnowFreezeProgress, powderSnowFrozen } from '../js/powder-snow.js';
+import { dripstoneFallDamage, dripstoneStalactiteDamage } from '../js/dripstone-fall.js';
+import { amethystTryGrow, amethystIsCluster, amethystShardDrops } from '../js/amethyst-grow.js';
+
 
 
 
@@ -2881,7 +2887,40 @@ test('game furnace tick uses speedMult', () => {
   assert.ok(src.includes('tickFurnace(st, step'));
 });
 
+
+test('scaffolding helpers', () => {
+  assert.ok(scaffoldingShouldFall(false));
+  assert.ok(scaffoldingWithinFloat(3, 6));
+  assert.ok(scaffoldingClimbVy(true) > 0);
+});
+
+test('honey-slide mult', () => {
+  assert.ok(honeyMoveMult(true) < 1);
+  assert.ok(honeyJumpMult(true) < 1);
+  assert.strictEqual(honeyMoveMult(false), 1);
+});
+
+test('powder-snow sink freeze', () => {
+  assert.ok(powderSnowSinkVy(true, false) < 0);
+  assert.strictEqual(powderSnowSinkVy(true, true), 0);
+  const f = powderSnowFreezeProgress(0, 10, true, 5);
+  assert.ok(f >= 1);
+  assert.ok(powderSnowFrozen(1));
+});
+
+test('dripstone-fall damage', () => {
+  assert.ok(dripstoneFallDamage(10, true) > dripstoneFallDamage(10, false));
+  assert.ok(dripstoneStalactiteDamage(5) > 0);
+});
+
+test('amethyst-grow stages', () => {
+  assert.strictEqual(amethystTryGrow(2, 1, () => 0), 3);
+  assert.ok(amethystIsCluster(3));
+  assert.ok(amethystShardDrops(3) >= 4);
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 
