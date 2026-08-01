@@ -272,3 +272,11 @@ Next: verify pure-module cards → promote viewport/coop-state (no input.js) →
 - Policy: add features only (no removals); commit regularly at green plateaus
 - Workers still running (7): craft wire, ore-drops, station-catalog, roof/ramp, hotbar pad, mine-tier, local35 verify
 - Live GH Pages may lag CDN; local ship gate green
+
+## SHIP v1.11.2 — 2026-07-31 ~21:20 EDT
+
+- commit `2395186` pushed main
+- Additive: ore-drops, station-catalog, mine-tier, roof-shapes, hotbar-cycle; craft stairs/slab; smoke **192 PASS**
+- Browser title v1.11.2; Local Co-op Start gate
+- Policy: add-only; regular commits
+- Board refilled 7 running after ship
