@@ -262,3 +262,13 @@ Next: verify pure-module cards → promote viewport/coop-state (no input.js) →
 3. Keep depth: qwen27s≤4 qwen35≤2 local35≤1; never bare mint without auto-park
 4. Unblock deferred SC/MC research after next green ship or stable 3-lane run
 5. Publish only at independent green plateau (smoke+browser+diff+full ?v= bust+dual HTML)
+
+## SHIP v1.11.1 — 2026-07-31 21:13 EDT
+
+- commit `14cc8ac` pushed `main`
+- Additive MC pure: `js/building-shapes.js`, `js/tool-tiers.js`, `js/smelting.js` + smoke (186 PASS)
+- Dual HTML marker v1.11.1; mint auto-park
+- Browser :8767 Local Co-op Start → title hidden, HUD, console 0
+- Policy: add features only (no removals); commit regularly at green plateaus
+- Workers still running (7): craft wire, ore-drops, station-catalog, roof/ramp, hotbar pad, mine-tier, local35 verify
+- Live GH Pages may lag CDN; local ship gate green
