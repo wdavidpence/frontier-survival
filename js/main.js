@@ -390,4 +390,4 @@ engageControls = function() {
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.11.0');
+console.info('Frontier Survival boot OK · v1.11.2');
