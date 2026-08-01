@@ -33,6 +33,7 @@ import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=220';
 import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=220';
 import { advanceCropGrowth } from './crop-growth.js?v=220';
 import { toggleDoor } from './door-hinge.js?v=220';
+import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=220';
 import {
   addItems,
   removeItems,
@@ -205,6 +206,8 @@ export class Game {
     this._slabHalf = new Map();
     /** Stair facing meta "x,y,z" -> 0..3 (additive until mesh uses it). */
     this._stairFace = new Map();
+    /** Bed facing meta "x,y,z" -> 0..3 */
+    this._bedFace = new Map();
     this._lastWeather = 'clear';
     this._roofed = false;
     this._drinkCd = 0;
@@ -2414,7 +2417,16 @@ export class Game {
         this.player.notify('Lamp placed. Needs wire to power it.');
         this._scanLights(true);
       }
-      if (blockId === BLOCK.BED) this.player.notify(this.coopMode ? 'Bed placed. Both players near bed + F/Circle at night.' : 'Bed placed. Look at it and press F at night to sleep.');
+      if (blockId === BLOCK.BED) {
+        const face = bedFacingFromYaw(this.player.yaw);
+        const meta = bedFacingMeta(face);
+        this._bedFace.set(`${px|0},${py|0},${pz|0}`, meta);
+        this.player.notify(
+          this.coopMode
+            ? `Bed faces ${face}. Both players near bed + F/Circle at night.`
+            : `Bed faces ${face}. Look at it and press F at night to sleep.`,
+        );
+      }
       if (blockId === BLOCK.CHEST) {
         this.player.notify('Chest placed. Look and press F to open.');
         this._unlock('first_chest');

@@ -94,6 +94,11 @@ import { canOpenChest, toggleChestLock, createChestLock } from '../js/chest-lock
 import { torchFalloff, isTorchLit, torchLightSum } from '../js/torch-falloff.js';
 import { bearingTo, horizDistance, compassNeedleAngle } from '../js/compass-bearing.js';
 import { bedFacingFromYaw, bedFacingMeta, bedHeadOffset } from '../js/bed-facing.js';
+import { clampWaterLevel, flowOutLevel, isWaterSource, waterFillFraction } from '../js/water-level.js';
+import { createItemFrame, setFrameItem, rotateFrame, frameHasItem } from '../js/item-frame.js';
+import { createLever, toggleLever, leverOutputsPower } from '../js/lever-power.js';
+import { createPressurePlate, updatePressurePlate, pressurePlatePressedEdge } from '../js/pressure-plate.js';
+
 
 
 
@@ -2627,7 +2632,44 @@ test('game uses toggleDoor helper', () => {
   assert.ok(src.includes('door-hinge.js'));
 });
 
+
+test('water-level helpers', () => {
+  assert.strictEqual(clampWaterLevel(9), 7);
+  assert.strictEqual(flowOutLevel(0), 1);
+  assert.ok(isWaterSource(0));
+  assert.ok(waterFillFraction(0) > waterFillFraction(7));
+});
+
+test('item-frame rotate', () => {
+  let f = createItemFrame(ITEM.COAL);
+  assert.ok(frameHasItem(f));
+  f = rotateFrame(f, 1);
+  assert.strictEqual(f.rotation, 1);
+  f = setFrameItem(f, null);
+  assert.ok(!frameHasItem(f));
+});
+
+test('lever-power toggle', () => {
+  let L = createLever(false);
+  L = toggleLever(L);
+  assert.ok(leverOutputsPower(L));
+});
+
+test('pressure-plate edges', () => {
+  const a = createPressurePlate();
+  const b = updatePressurePlate(a, true);
+  assert.ok(pressurePlatePressedEdge(a, b));
+  assert.ok(b.power > 0);
+});
+
+test('game wires bed facing', () => {
+  const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('bedFacingFromYaw'));
+  assert.ok(src.includes('_bedFace'));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 

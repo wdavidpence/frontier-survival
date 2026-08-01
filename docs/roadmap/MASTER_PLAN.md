@@ -16,16 +16,18 @@
 4. **Ship cadence:** every ~20 judge turns on any verified green incremental plateau
 5. **Ops:** aggressive mint into scheduled buffer (auto-park); depth 4+2+1; workers implement, Hermes judges/publishes
 
-### MC pure / coop modules landed (v1.11.1–v1.11.4)
+### MC pure / coop modules landed (v1.11.1–v1.11.8)
 
 Additive only (no feature removal):
 
-- Shapes: `building-shapes`, `roof-shapes` (+ corner stairs), `slab-place`
-- Progression: `tool-tiers`, `smelting`, `furnace-tick`, `ore-drops`, `mine-tier`, `station-catalog`, `anvil-repair`, `barrel-storage`
+- Shapes: `building-shapes`, `roof-shapes` (+ corner stairs), `slab-place`, `stair-place`, `bed-facing`, `door-hinge`, `fence-gate`
+- Progression: `tool-tiers`, `smelting`, `furnace-tick`, `ore-drops`, `mine-tier`, `station-catalog`, `anvil-repair`, `barrel-storage`, `crop-growth`, `bow-draw`
+- Redstone-ish: `lever-power`, `pressure-plate`, `torch-falloff`, `water-level`
+- Misc pure: `sign-text`, `ladder-climb`, `chest-lock`, `compass-bearing`, `item-frame`
 - Coop: `hotbar-cycle`, `input-coop.cycleHotbar`, pad D-pad scroll via `pad-input` + `player` hotbar
-- Game wires: `resolveBlockDrop` on P1/P2 break; furnace use feeds `furnace-tick` state + tick
+- Game wires: `resolveBlockDrop` P1/P2; furnace-tick use+tick; slab half / stair face / bed face on place; door `toggleDoor`; crop `advanceCropGrowth`
 
-Still open: stair place orientation in world, full furnace UI, game.js pad shoulders if not on D-pad, SC body systems depth.
+Still open: mesh for slab/stair/bed meta, full furnace UI, SC body-systems depth, more ecology.
 
 ---
 
@@ -180,3 +182,33 @@ All additive; no feature removal. Smoke tests green throughout.
 Total new JS modules landed: 10 (`building-shapes`, `tool-tiers`, `smelting`,
 `ore-drops`, `station-catalog`, `mine-tier`, `roof-shapes`, `hotbar-cycle`,
 `furnace-tick`, `barrel-storage`, `cornerStairs`).
+
+### v1.11.5 — MC pure wave 3 (slab half place + stair/bow/crop/door helpers)
+
+- **stair-place** (`js/stair-place.js`): stair facing/orientation in world
+- **slab-half** (`js/slab-place.js`): slab half/full place logic
+- **bow-draw** (`js/bow-draw.js`): bow draw pure helper
+- **crop-growth** (`js/crop-growth.js`): crop growth cycle pure helper
+- **door-hinge** (`js/door-hinge.js`): door hinge orientation pure helper
+- Smoke: 219 tests PASS
+
+### v1.11.6 — MC pure wave 4 (stair facing wire + sign/fence/ladder helpers)
+
+- **sign-text** (`js/sign-text.js`): sign text display pure helper
+- **fence-gate** (`js/fence-gate.js`): fence gate open/close pure helper
+- **ladder-climb** (`js/ladder-climb.js`): ladder climb pure helper
+- Smoke: 223 tests PASS
+
+### v1.11.7 — MC pure wave 5 (door toggle wire + chest/torch/compass/bed helpers)
+
+- **toggleDoor** (`js/game.js`): door toggle wire (game integration)
+- **chest-lock** (`js/chest-lock.js`): chest lock pure helper
+- **torch-falloff** (`js/torch-falloff.js`): torch light falloff pure helper
+- **compass-bearing** (`js/compass-bearing.js`): compass bearing pure helper
+- **bed-facing** (`js/bed-facing.js`): bed facing/sleep pure helper
+- Smoke: 228 tests PASS
+
+Total new JS modules landed v1.11.5–v1.11.7: 9
+(`stair-place`, `slab-place`, `bow-draw`, `crop-growth`, `door-hinge`,
+`sign-text`, `fence-gate`, `ladder-climb`, `chest-lock`, `torch-falloff`,
+`compass-bearing`, `bed-facing`).
