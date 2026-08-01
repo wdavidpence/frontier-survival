@@ -803,3 +803,4 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-07-31T21:39:39-0400 | SHIP v1.11.6 stair face+crop wire + sign/fence/ladder pure; smoke223; decision ship |
 | 2026-07-31T21:43:09-0400 | SHIP v1.11.7 toggleDoor wire + chest/torch/compass/bed pure; smoke228; decision ship |
 | 2026-07-31T21:46:14-0400 | SHIP v1.11.8 bed face wire + water/item-frame/lever/plate pure; smoke233; decision ship |
+| 2026-07-31T21:49:29-0400 | SHIP v1.11.9 compass HUD spawn bearing + hopper/piston/daylight/trapdoor pure; smoke238; decision ship |

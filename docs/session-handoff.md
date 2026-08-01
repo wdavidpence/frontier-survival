@@ -308,3 +308,8 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 ## SHIP v1.11.8
 - Bed place stores facing; pure water-level/item-frame/lever-power/pressure-plate
 - Smoke 233 PASS
+
+## SHIP v1.11.9
+- Compass/map HUD: spawn distance + relative bearing
+- Pure hopper-buffer, piston-push, daylight-sensor, trapdoor
+- Smoke 238 PASS

@@ -34,6 +34,7 @@ import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=220';
 import { advanceCropGrowth } from './crop-growth.js?v=220';
 import { toggleDoor } from './door-hinge.js?v=220';
 import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=220';
+import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=220';
 import {
   addItems,
   removeItems,
@@ -3374,6 +3375,13 @@ export class Game {
       } catch (_) {}
       if (this.player.heldId() === ITEM.COMPASS || this.player.heldId() === ITEM.MAP) {
         bits.push(`xyz ${this.player.position.x.toFixed(0)},${this.player.position.y.toFixed(0)},${this.player.position.z.toFixed(0)}`);
+        if (this._spawnPos) {
+          const from = { x: this.player.position.x, z: this.player.position.z };
+          const to = { x: this._spawnPos.x, z: this._spawnPos.z };
+          const d = horizDistance(from, to);
+          const deg = Math.round((compassNeedleAngle(this.player.yaw, from, to) * 180) / Math.PI);
+          bits.push(`spawn ${Math.round(d)}m ${deg >= 0 ? '+' : ''}${deg}°`);
+        }
         if (this.player.heldId() === ITEM.MAP) bits.push(`chunk ${Math.floor(this.player.position.x/16)},${Math.floor(this.player.position.z/16)}`);
       }
       if (this._roofed) bits.push('Sheltered');

@@ -98,6 +98,11 @@ import { clampWaterLevel, flowOutLevel, isWaterSource, waterFillFraction } from 
 import { createItemFrame, setFrameItem, rotateFrame, frameHasItem } from '../js/item-frame.js';
 import { createLever, toggleLever, leverOutputsPower } from '../js/lever-power.js';
 import { createPressurePlate, updatePressurePlate, pressurePlatePressedEdge } from '../js/pressure-plate.js';
+import { createHopperBuffer, hopperInsert, hopperExtract, hopperItemCount } from '../js/hopper-buffer.js';
+import { pistonPushCount, pistonStickyPull } from '../js/piston-push.js';
+import { daylightSensorPower, sun01FromDayFrac } from '../js/daylight-sensor.js';
+import { toggleTrapdoor, trapdoorHalfFromPitch } from '../js/trapdoor.js';
+
 
 
 
@@ -2668,7 +2673,41 @@ test('game wires bed facing', () => {
   assert.ok(src.includes('_bedFace'));
 });
 
+
+test('hopper-buffer insert extract', () => {
+  const h = createHopperBuffer(3);
+  assert.strictEqual(hopperInsert(h, ITEM.COAL, 5), 0);
+  assert.strictEqual(hopperItemCount(h), 5);
+  const out = hopperExtract(h, 2);
+  assert.ok(out && out.count === 2);
+});
+
+test('piston-push count', () => {
+  assert.strictEqual(pistonPushCount([true, true, false]), 2);
+  assert.strictEqual(pistonPushCount([true, true, true], 2), -1);
+  assert.ok(pistonStickyPull(true, true));
+});
+
+test('daylight-sensor power', () => {
+  assert.strictEqual(daylightSensorPower(1), 15);
+  assert.strictEqual(daylightSensorPower(0), 0);
+  assert.ok(sun01FromDayFrac(0.5) > 0.9);
+});
+
+test('trapdoor toggle', () => {
+  assert.strictEqual(toggleTrapdoor(1, 1, 2), 2);
+  assert.strictEqual(trapdoorHalfFromPitch(-0.5), 'top');
+});
+
+test('game compass HUD uses bearing helpers', () => {
+  const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('compassNeedleAngle'));
+  assert.ok(src.includes('horizDistance'));
+  assert.ok(src.includes('spawn ${'));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 

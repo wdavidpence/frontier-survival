@@ -86,3 +86,23 @@ WASD move, mouse look (click canvas), Space jump, Shift sprint, LMB mine, RMB pl
 ## Door toggle (v1.11.7+)
 
 1. Place wooden door; look at it; press **F** → opens/closes via `toggleDoor` helper.
+
+## Bed facing (v1.11.8+)
+
+1. Craft/place bed while facing a direction → toast includes \"Bed faces &lt;cardinal&gt;\".
+2. Meta stored in `_bedFace` (mesh follow-up). Coop sleep rules unchanged.
+
+## Compass / map HUD (v1.11.9+)
+
+1. Hold **compass** or **map** → status shows xyz.
+2. If spawn known: also `spawn &lt;m&gt;m ±deg` via `compass-bearing` helpers.
+3. Map still adds chunk coords.
+
+## Bed facing (v1.11.8+)
+
+1. Craft a bed from wool + wood planks (3 wool across top row, 3 planks below).
+2. Select bed in hotbar, hold empty hand.
+3. Look at a flat surface (ground or block top face) and place → bed appears, facing the direction you were looking.
+4. The bed's headboard faces your viewing direction; foot extends away from you.
+5. Meta stored in `BED` face property; mesh orientation follows the cardinal direction.
+6. Verify by walking around the bed — headboard should be on the side you were facing when placed.
