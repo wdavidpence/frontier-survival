@@ -35,6 +35,7 @@ import { advanceCropGrowth } from './crop-growth.js?v=220';
 import { toggleDoor } from './door-hinge.js?v=220';
 import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=220';
 import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=220';
+import { maceSmashDamage } from './mace-smash.js?v=220';
 import {
   addItems,
   removeItems,
@@ -2199,7 +2200,14 @@ export class Game {
       if (ah) {
         this.player.breaking = null;
         const held = heldP;
-        const dmg = held?.melee || 4;
+        let dmg = held?.melee || 4;
+        // Mace smash bonus from recent fall speed (name/tool match until ITEM.MACE exists)
+        const heldName = (displayName(this.player.heldId()) || '').toLowerCase();
+        const toolName = String(held?.tool || '').toLowerCase();
+        if (heldName.includes('mace') || toolName === 'mace') {
+          const fallDist = Math.max(0, (this.player._fallVy || 0) * 0.45);
+          dmg = maceSmashDamage(fallDist, dmg);
+        }
         const res = this.fauna.damageAnimal(ah.animal, dmg);
         this.audio.breakBlock();
         this._meleeCd = held?.tool === 'weapon' ? 0.42 : 0.35;

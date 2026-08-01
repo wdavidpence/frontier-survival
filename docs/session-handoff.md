@@ -359,3 +359,8 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 ## SHIP v1.12.8
 - Pure breeze-charge, wind-charge, mace-smash, wolf-armor, armadillo-scute
 - Smoke 288 PASS
+
+## SHIP v1.12.9
+- maceSmashDamage on fauna melee when held mace-named
+- pure bogged-arrow, crafter-enabled, heavy-core, flow-armor-trim
+- Smoke 293 PASS

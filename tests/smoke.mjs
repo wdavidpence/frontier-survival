@@ -147,6 +147,11 @@ import { windChargeHits, windChargeKnockStrength } from '../js/wind-charge.js';
 import { maceSmashDamage, maceSmashTriggers } from '../js/mace-smash.js';
 import { createWolfArmor, wolfArmorDamage, wolfArmorAbsorb, wolfArmorBroken } from '../js/wolf-armor.js';
 import { armadilloScuteDrop, canCraftWolfArmor } from '../js/armadillo-scute.js';
+import { boggedArrowTip, boggedArrowDamage } from '../js/bogged-arrow.js';
+import { createCrafterEnable, crafterSetPowered, crafterCanCraft } from '../js/crafter-enabled.js';
+import { hasHeavyCore, canCraftMace } from '../js/heavy-core.js';
+import { applyArmorTrim, isFlowTrim, isValidArmorTrim } from '../js/flow-armor-trim.js';
+
 
 
 
@@ -3115,7 +3120,39 @@ test('armadillo-scute drop', () => {
   assert.ok(!canCraftWolfArmor(2));
 });
 
+
+test('bogged-arrow tip', () => {
+  assert.ok(boggedArrowTip(1, () => 0).poison);
+  assert.ok(boggedArrowDamage() > 0);
+});
+
+test('crafter-enabled latch', () => {
+  let s = createCrafterEnable(false);
+  s = crafterSetPowered(s, true);
+  assert.ok(crafterCanCraft(s));
+});
+
+test('heavy-core craft gate', () => {
+  assert.ok(hasHeavyCore([{ name: 'heavy_core' }]));
+  assert.ok(canCraftMace([{ name: 'heavy_core' }, { name: 'breeze_rod' }]));
+  assert.ok(!canCraftMace([{ name: 'heavy_core' }]));
+});
+
+test('flow-armor-trim', () => {
+  assert.ok(isValidArmorTrim('flow'));
+  assert.ok(isFlowTrim('flow'));
+  const r = applyArmorTrim({ id: 1 }, 'flow', 'copper');
+  assert.ok(r.ok && r.result.trim === 'flow');
+});
+
+test('game mace smash wire', () => {
+  const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('maceSmashDamage'));
+  assert.ok(src.includes('mace'));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 

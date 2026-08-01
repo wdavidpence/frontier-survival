@@ -168,3 +168,12 @@ Honey move/jump mult is applied in player when block under feet name contains "h
 
 1. Scaffolding-named blocks act like climbable (scaffoldingClimbVy).
 2. Forward/jump climb up; crouch/back climb down.
+
+## 1.21 pure combat backlog (v1.12.8+)
+
+Pure: breeze-charge, wind-charge, mace-smash, wolf-armor, armadillo-scute, bogged-arrow, crafter-enabled, heavy-core, flow-armor-trim.
+
+## Mace smash melee (v1.12.9+)
+
+1. Holding a mace-named tool applies maceSmashDamage using recent fall speed as distance proxy.
+2. No-op bonus until fall speed builds or a mace item exists.
