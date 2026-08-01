@@ -41,9 +41,48 @@ WASD move, mouse look (click canvas), Space jump, Shift sprint, LMB mine, RMB pl
 5. Empty hand + **F** on furnace → take output (ingot/glass/brick/charcoal).
 6. Coop: same world block; prefer one player operating the furnace at a time.
 
+## Session 2026-07-31 (v1.11.6)
+### Stair facing + crop growth wires
+
+- [ ] Place a stair block (craft from wood planks)
+- [ ] **Face meta:** look at different faces of a block and place stairs — verify stair orientation matches the face (top, bottom, side)
+- [ ] Walk up/down stairs to confirm collision and step height feel correct
+- [ ] **Crop growth:** plant seeds on tilled soil, water if applicable
+- [ ] Wait or leave/return — verify crops advance through growth stages (seed → sprout → growing → ready)
+- [ ] Harvest fully grown crops by breaking them (should drop the crop item)
+- [ ] Verify growth is additive — multiple stages visible, not just binary on/off
+
+## Stair facing (v1.11.6+)
+
+1. Craft stairs from wood planks (4 planks in 2×3 crafting grid).
+2. Select stairs in hotbar, hold empty hand.
+3. Look at the **top face** of a placed block and place → stair sits on top, facing your direction.
+4. Look at the **side face** of a block and place → stair attaches to that side, vertical rise toward you.
+5. Look **down** at ground and place → stair sits on the ground, facing your direction.
+6. Meta stored in `STAIRS_WOOD` face property; mesh orientation follows.
+
+## Crop growth (v1.11.6+)
+
+1. Craft a hoe; till dirt to farmland (dirt must be adjacent to water).
+2. Select seeds in hotbar, right-click farmland → seed planted.
+3. Crops advance through growth stages via `advanceCropGrowth` each tick.
+4. Wait (or leave/return) — watch crops grow taller through stages.
+5. Fully grown crops drop the crop item when broken (empty hand + LMB).
+6. Replant after harvest for continuous growth cycle.
+
 ## Slab half place (v1.11.5+)
 
 1. Craft wood slabs; select hotbar.
 2. Look **up** slightly and place → "Top slab placed."
 3. Look level/down and place → "Bottom slab placed."
 4. Meta stored in `_slabHalf` map (mesh half still follow-up).
+
+## Stairs facing (v1.11.6+)
+
+1. Craft wood stairs; select hotbar.
+2. Face a direction and place → toast \"Stairs face &lt;cardinal&gt;.\"
+3. Meta stored in `_stairFace` map (mesh rotation follow-up).
+
+## Door toggle (v1.11.7+)
+
+1. Place wooden door; look at it; press **F** → opens/closes via `toggleDoor` helper.

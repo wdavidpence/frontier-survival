@@ -801,3 +801,4 @@ PASS trigger-button-map: L2 and R2 entries exist
 - Verification correction 2026-07-31 21:37 EDT: subsequent `git diff --check` is clean (the transient smoke EOF warning disappeared during the worker wave); independent smoke rerun exits 0 and reports 159 core tests plus the coop/building assertion tail. Recovery audit t_e572e063 remains running.
 | 2026-08-01T01:36:59.022Z | watchdog running 7→7 reclaimed none Spawned 0 |
 | 2026-07-31T21:39:39-0400 | SHIP v1.11.6 stair face+crop wire + sign/fence/ladder pure; smoke223; decision ship |
+| 2026-07-31T21:43:09-0400 | SHIP v1.11.7 toggleDoor wire + chest/torch/compass/bed pure; smoke228; decision ship |

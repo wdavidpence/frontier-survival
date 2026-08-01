@@ -300,3 +300,7 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 - Stair facing + crop-growth advance wired in game.js
 - Pure sign-text, fence-gate, ladder-climb
 - Smoke 223 PASS
+
+## SHIP v1.11.7
+- Door F uses toggleDoor; pure chest-lock/torch-falloff/compass-bearing/bed-facing
+- Smoke 228 PASS

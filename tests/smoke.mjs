@@ -90,6 +90,11 @@ import { toggleDoor, isDoorBlock, doorFacingFromYaw } from '../js/door-hinge.js'
 import { sanitizeSignLine, sanitizeSignText } from '../js/sign-text.js';
 import { toggleFenceGate, gateFacingFromYaw } from '../js/fence-gate.js';
 import { ladderClimbVy, ladderSuppressGravity, shouldDetachLadder } from '../js/ladder-climb.js';
+import { canOpenChest, toggleChestLock, createChestLock } from '../js/chest-lock.js';
+import { torchFalloff, isTorchLit, torchLightSum } from '../js/torch-falloff.js';
+import { bearingTo, horizDistance, compassNeedleAngle } from '../js/compass-bearing.js';
+import { bedFacingFromYaw, bedFacingMeta, bedHeadOffset } from '../js/bed-facing.js';
+
 
 
 
@@ -2588,7 +2593,42 @@ test('game wires stair face and crop-growth', () => {
   assert.ok(src.includes('advanceCropGrowth'));
 });
 
+
+test('chest-lock owner rules', () => {
+  const L = createChestLock('p1');
+  const set = toggleChestLock(L, 'p1');
+  assert.ok(set.ok && set.lock.locked);
+  assert.ok(!canOpenChest(set.lock, 'p2'));
+  assert.ok(canOpenChest(set.lock, 'p1'));
+});
+
+test('torch-falloff distance', () => {
+  assert.strictEqual(torchFalloff(0), 1);
+  assert.strictEqual(torchFalloff(99, 8), 0);
+  assert.ok(isTorchLit(1, 8));
+  assert.ok(torchLightSum([1, 2], 8) > 0);
+});
+
+test('compass-bearing basics', () => {
+  assert.ok(Number.isFinite(bearingTo({x:0,z:0},{x:1,z:0})));
+  assert.ok(horizDistance({x:0,z:0},{x:3,z:4}) === 5);
+  assert.ok(Number.isFinite(compassNeedleAngle(0,{x:0,z:0},{x:1,z:1})));
+});
+
+test('bed-facing from yaw', () => {
+  assert.ok(['north','south','east','west'].includes(bedFacingFromYaw(0)));
+  assert.ok(bedHeadOffset('north').z === -1);
+  assert.strictEqual(bedFacingMeta('south'), 0);
+});
+
+test('game uses toggleDoor helper', () => {
+  const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('toggleDoor'));
+  assert.ok(src.includes('door-hinge.js'));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 

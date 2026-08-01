@@ -32,6 +32,7 @@ import { isFuel, canSmelt } from './smelting.js?v=220';
 import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=220';
 import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=220';
 import { advanceCropGrowth } from './crop-growth.js?v=220';
+import { toggleDoor } from './door-hinge.js?v=220';
 import {
   addItems,
   removeItems,
@@ -2556,7 +2557,8 @@ export class Game {
 
     // Toggle door
     if (hit && (hit.id === BLOCK.DOOR_CLOSED || hit.id === BLOCK.DOOR_OPEN)) {
-      const next = hit.id === BLOCK.DOOR_CLOSED ? BLOCK.DOOR_OPEN : BLOCK.DOOR_CLOSED;
+      const next = toggleDoor(hit.id, BLOCK.DOOR_CLOSED, BLOCK.DOOR_OPEN);
+      if (next == null) return;
       this.world.setBlock(hit.x, hit.y, hit.z, next);
       this.audio.placeBlock();
       this.player.notify(next === BLOCK.DOOR_CLOSED ? 'Door closed.' : 'Door opened.');
