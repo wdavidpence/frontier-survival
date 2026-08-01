@@ -34,6 +34,34 @@ import {
   listSmeltRecipes,
   SMELTING_GAPS,
 } from '../js/smelting.js';
+import {
+  isOreBlock,
+  listOreBlockIds,
+  oreDropEntry,
+  primaryOreDropId,
+} from '../js/ore-drops.js';
+import {
+  listStationIds,
+  stationById,
+  stationsWithTag,
+} from '../js/station-catalog.js';
+import {
+  mineSpeedForHeld,
+  canHarvestBlock,
+  harvestLevelForHeld,
+} from '../js/mine-tier.js';
+import {
+  rampShape,
+  roofPeakShape,
+  getRoofShape,
+  listRoofShapeNames,
+} from '../js/roof-shapes.js';
+import {
+  cycleHotbarIndex,
+  hotbarFromPadEdges,
+  createDualHotbarState,
+  applyDualHotbarEdge,
+} from '../js/hotbar-cycle.js';
 /**
  * Pure-logic smoke tests (no browser/Three).
  * Run: node tests/smoke.mjs
@@ -59,7 +87,7 @@ import {
   hasIngredients,
   craftWith,
 } from '../js/inventory.js';
-import { craftRecipe, visibleRecipes } from '../js/crafting.js';
+import { craftRecipe, visibleRecipes, RECIPES } from '../js/crafting.js';
 import { FaunaSystem,  meatDropCount, SPECIES, canFeed, tryFeed } from '../js/animals.js';
 import { tickLogic, isPowered, COMPONENT } from '../js/logic.js';
 import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
@@ -513,7 +541,6 @@ import {
   DEFAULT_SETTINGS,
 } from '../js/settings.js';
 import { fallDamageFromSpeed } from '../js/survival.js';
-import { RECIPES } from '../js/crafting.js';
 
 test('difficulty modes defined', () => {
   assert.ok(isValidMode('survival'));
@@ -2281,6 +2308,53 @@ test('smelting: fuel and recipes pure table', () => {
   assert.ok(listSmeltRecipes().length >= 4);
   assert.ok(Array.isArray(SMELTING_GAPS) && SMELTING_GAPS.length >= 1);
   assert.ok(Object.keys(FUEL_VALUES).length >= 3);
+});
+
+test('crafting lists shape building recipes', () => {
+  const ids = RECIPES.map((r) => r.id);
+  for (const id of ['stairs_wood', 'slab_wood', 'door', 'fence']) {
+    assert.ok(ids.includes(id), `missing recipe ${id}`);
+  }
+  assert.ok(visibleRecipes().some((r) => r.id === 'stairs_wood'));
+});
+
+test('ore-drops pure catalog', () => {
+  assert.ok(isOreBlock(BLOCK.IRON_ORE));
+  assert.ok(listOreBlockIds().includes(BLOCK.COAL_ORE));
+  assert.strictEqual(primaryOreDropId(BLOCK.COAL_ORE), ITEM.COAL);
+  assert.ok(oreDropEntry(BLOCK.IRON_ORE)?.minHarvestTier === 'stone');
+});
+
+test('station-catalog pure tags', () => {
+  assert.ok(listStationIds().includes('furnace'));
+  assert.strictEqual(stationById('furnace')?.blockId, BLOCK.FURNACE);
+  assert.ok(stationsWithTag('smelting').length >= 1);
+});
+
+test('mine-tier helpers', () => {
+  assert.ok(mineSpeedForHeld(ITEM.IRON_PICK) > mineSpeedForHeld(ITEM.WOOD_PICK));
+  assert.ok(harvestLevelForHeld(ITEM.IRON_PICK) >= 3);
+  assert.ok(canHarvestBlock(BLOCK.IRON_ORE, ITEM.STONE_PICK));
+  assert.ok(!canHarvestBlock(BLOCK.IRON_ORE, ITEM.WOOD_PICK));
+});
+
+test('roof-shapes pure', () => {
+  assert.ok(rampShape(3).length >= 3);
+  assert.ok(roofPeakShape(2).length >= 2);
+  assert.ok(listRoofShapeNames().includes('ramp'));
+  assert.ok(getRoofShape('ramp', 2).length > 0);
+});
+
+test('hotbar-cycle dual pad edges', () => {
+  assert.strictEqual(cycleHotbarIndex(0, -1), 8);
+  assert.strictEqual(cycleHotbarIndex(8, 1), 0);
+  assert.strictEqual(hotbarFromPadEdges(3, { right: true }), 4);
+  assert.strictEqual(hotbarFromPadEdges(0, { lb: true }), 8);
+  const st = createDualHotbarState();
+  applyDualHotbarEdge(st, 'p1', { rb: true });
+  applyDualHotbarEdge(st, 'p2', { left: true });
+  assert.strictEqual(st.p1, 1);
+  assert.strictEqual(st.p2, 8);
 });
 
 if (process.exitCode) process.exit(1);

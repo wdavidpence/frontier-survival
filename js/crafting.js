@@ -1,7 +1,7 @@
 /** Crafting recipes — pure data + craft helper */
-import { BLOCK } from './blocks.js?v=216';
-import { ITEM } from './items.js?v=216';
-import { craftWith } from './inventory.js?v=216';
+import { BLOCK } from './blocks.js?v=220';
+import { ITEM } from './items.js?v=220';
+import { craftWith } from './inventory.js?v=220';
 
 /**
  * @typedef {{ id: string, name: string, desc?: string, ingredients: {id:number,count:number}[], results: {id:number,count:number}[] }} Recipe
@@ -375,6 +375,9 @@ export const RECIPES = [
   { id:'ice_box', name:'Ice Box', desc:'Slows spoilage nearby. 4 Ice + 4 Planks', ingredients:[{id:BLOCK.ICE,count:4},{id:BLOCK.PLANKS,count:4}], results:[{id:ITEM.ICE_BOX,count:1}] },
   { id:'wall', name:'Cobble Wall', desc:'6 Cobble → 6 Walls', ingredients:[{id:BLOCK.COBBLE,count:6}], results:[{id:BLOCK.WALL,count:6}] },
   { id:'generator', name:'Generator', desc:'Power source. 4 Iron + 1 Coal', ingredients:[{id:ITEM.IRON_INGOT,count:4},{id:ITEM.COAL,count:1}], results:[{id:BLOCK.GENERATOR,count:1}] },
+  { id:'stairs_wood', name:'Wood Stairs', desc:'3 Planks → 2 Wood Stairs (climbable)', ingredients:[{id:BLOCK.PLANKS,count:3}], results:[{id:BLOCK.STAIRS_WOOD,count:2}] },
+  { id:'slab_wood', name:'Wood Slabs', desc:'6 Planks → 3 Wood Slabs (half-block)', ingredients:[{id:BLOCK.PLANKS,count:6}], results:[{id:BLOCK.SLAB_WOOD,count:3}] },
+  { id:'glass_pane_thin', name:'Thin Glass Pane', desc:'1 Glass → 4 Thin Glass Panes (transparent barrier)', ingredients:[{id:BLOCK.GLASS,count:1}], results:[{id:BLOCK.GLASS_PANE_THIN,count:4}] },
 ];
 
 export function visibleRecipes() {
