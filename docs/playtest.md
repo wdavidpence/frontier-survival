@@ -120,3 +120,32 @@ WASD move, mouse look (click canvas), Space jump, Shift sprint, LMB mine, RMB pl
 4. The bed's headboard faces your viewing direction; foot extends away from you.
 5. Meta stored in `BED` face property; mesh orientation follows the cardinal direction.
 6. Verify by walking around the bed — headboard should be on the side you were facing when placed.
+
+## Station pure modules (v1.12.0+) — pending world wire
+
+The following station helper modules are implemented and smoke-tested but not yet wired into the world (no block placement, no right-click interaction):
+
+- **Smoker** — `smoke` helper (v1.12.0)
+- **Blast Furnace** — `blast` helper (v1.12.0)
+- **Campfire cook** — `campfire-cook` helper (v1.12.0)
+- **Grindstone** — `grindstone` helper (v1.12.0)
+- **Stonecutter** — `stonecutter` helper (v1.12.0)
+
+These are additive, pure helpers with no world-side plumbing yet. Wire them up as blocks when ready for playtest.
+
+## Cauldron, Enchanting Table, Brewing Stand, Beacon, Noteblock pure helpers (v1.11.10+)
+
+The following pure helper modules are implemented and smoke-tested but not yet wired into the world (no block placement, no right-click interaction):
+
+- **Cauldron** — `cauldron` helper (v1.11.10)
+- **Enchanting Table** — `enchant` helper (v1.11.10)
+- **Brewing Stand** — `brew` helper (v1.11.10)
+- **Beacon** — `beacon` helper (v1.11.10)
+- **Noteblock** — `noteblock` helper (v1.11.10)
+
+These are additive, pure helpers with no world-side plumbing yet. Wire them up as blocks when ready for playtest.
+
+## Station pure backlog (v1.12.0+)
+
+Pure helpers exist for smoker/blast/campfire-cook/grindstone/stonecutter/hopper/piston/daylight/loom/cartography/smithing/composter.
+\`furnace-tick.tickFurnace(state, units, speedMult=1)\` supports smoker/blast (pass 2). World block UI wire is follow-up.

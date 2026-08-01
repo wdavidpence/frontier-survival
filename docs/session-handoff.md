@@ -322,3 +322,8 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 - Station pure: smoker-speed, blast-furnace-speed, campfire-cook, grindstone-repair, stonecutter-recipe
 - MASTER_PLAN module inventory updated
 - Smoke 248 PASS
+
+## SHIP v1.12.1
+- furnace-tick speedMult for smoker/blast
+- pure loom-pattern, cartography-zoom, smithing-upgrade, composter-fill
+- Smoke 253 PASS

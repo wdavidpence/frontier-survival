@@ -27,7 +27,7 @@ import {
   insertInput,
   tickFurnace,
   takeOutput,
-} from './furnace-tick.js?v=220';
+} from './furnace-tick.js?v=232';
 import { isFuel, canSmelt } from './smelting.js?v=220';
 import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=220';
 import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=220';

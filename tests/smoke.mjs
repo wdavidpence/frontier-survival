@@ -112,6 +112,11 @@ import { blastFurnaceCookTicks, isBlastFurnaceInput } from '../js/blast-furnace-
 import { createCampfireSlots, campfirePlace, campfireTick, campfireOccupied } from '../js/campfire-cook.js';
 import { grindstoneCombine, grindstoneDisenchant, canGrindstoneCombine } from '../js/grindstone-repair.js';
 import { stonecutterOutputs, canStonecut, stonecutterPick } from '../js/stonecutter-recipe.js';
+import { addBannerLayer, removeTopBannerLayer, bannerLayerCount, LOOM_MAX_LAYERS } from '../js/loom-pattern.js';
+import { clampMapZoom, cartographyZoomOut, mapScaleBlocks, canZoomOut } from '../js/cartography-zoom.js';
+import { smithingUpgrade, canSmithingUpgrade, DEFAULT_SMITHING_MAP } from '../js/smithing-upgrade.js';
+import { compostAdd, clampCompostLevel, composterIsFull } from '../js/composter-fill.js';
+
 
 
 
@@ -2793,7 +2798,50 @@ test('stonecutter-recipe picks', () => {
   assert.ok(stonecutterPick('planks', 0));
 });
 
+
+test('loom-pattern layers', () => {
+  let r = addBannerLayer([], 'stripe', 'red');
+  assert.ok(r.ok && bannerLayerCount(r.layers) === 1);
+  r = removeTopBannerLayer(r.layers);
+  assert.ok(r.ok && bannerLayerCount(r.layers) === 0);
+  assert.ok(LOOM_MAX_LAYERS >= 6);
+});
+
+test('cartography-zoom', () => {
+  assert.strictEqual(clampMapZoom(9), 4);
+  assert.ok(canZoomOut(0));
+  assert.strictEqual(mapScaleBlocks(cartographyZoomOut(0)), 2);
+});
+
+test('smithing-upgrade stub', () => {
+  const base = { id: ITEM.IRON_PICK, count: 1, material: 'diamond' };
+  assert.ok(canSmithingUpgrade(base, 'netherite_upgrade', 'diamond', DEFAULT_SMITHING_MAP));
+  const r = smithingUpgrade(base, 'netherite_upgrade', 'diamond', DEFAULT_SMITHING_MAP);
+  assert.ok(r.ok && r.result.material === 'netherite');
+});
+
+test('composter-fill levels', () => {
+  assert.strictEqual(clampCompostLevel(9), 7);
+  const r = compostAdd(6, 1, () => 0);
+  assert.ok(r.added && r.producedBoneMeal);
+  assert.ok(!composterIsFull(0));
+});
+
+test('furnace-tick speedMult cooks faster', () => {
+  const a = createFurnaceState();
+  insertFuel(a, ITEM.COAL, 1);
+  insertInput(a, BLOCK.IRON_ORE, 1);
+  tickFurnace(a, 5, 1);
+  const slowProg = a.progress;
+  const b = createFurnaceState();
+  insertFuel(b, ITEM.COAL, 1);
+  insertInput(b, BLOCK.IRON_ORE, 1);
+  tickFurnace(b, 5, 2);
+  assert.ok(b.progress > slowProg || takeOutput(b));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 

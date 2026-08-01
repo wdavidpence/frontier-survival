@@ -63,10 +63,12 @@ export function insertInput(state, itemId, count = 1) {
  * Advance furnace by dt-like units (1 unit ~= 1 fuel unit / cook step).
  * @param {FurnaceState} state
  * @param {number} units
+ * @param {number} [speedMult=1] cook speed (smoker/blast use 2)
  */
-export function tickFurnace(state, units = 1) {
+export function tickFurnace(state, units = 1, speedMult = 1) {
   const s = state;
   let left = Math.max(0, Number(units) || 0);
+  const mult = Math.max(0.01, Number(speedMult) || 1);
   while (left > 0) {
     if (s.inputCount <= 0 || s.inputId == null) {
       s.progress = 0;
@@ -87,7 +89,7 @@ export function tickFurnace(state, units = 1) {
     }
     const step = Math.min(left, 1);
     s.fuelUnits = Math.max(0, s.fuelUnits - step);
-    s.progress += step;
+    s.progress += step * mult;
     left -= step;
     const need = recipe.fuelCost || s.cookTime || 20;
     if (s.progress >= need) {
