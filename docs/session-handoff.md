@@ -327,3 +327,8 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 - furnace-tick speedMult for smoker/blast
 - pure loom-pattern, cartography-zoom, smithing-upgrade, composter-fill
 - Smoke 253 PASS
+
+## SHIP v1.12.2
+- game _tickFurnaces honors st.speedMult
+- pure barrel-open, shulker-box, ender-chest, respawn-anchor
+- Smoke 258 PASS

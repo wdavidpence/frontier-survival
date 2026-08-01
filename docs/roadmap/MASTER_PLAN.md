@@ -26,7 +26,7 @@ Additive only (no feature removal):
 - Redstone-ish: `lever-power`, `pressure-plate`, `torch-falloff`, `water-level`
 - Misc pure: `sign-text`, `ladder-climb`, `chest-lock`, `compass-bearing`, `item-frame`, `cauldron`, `enchant`, `brew`, `beacon`, `noteblock`
 - Coop: `hotbar-cycle`, `input-coop.cycleHotbar`, pad D-pad scroll via `pad-input` + `player` hotbar
-- Game wires: `resolveBlockDrop` P1/P2; furnace-tick use+tick; slab half / stair face / bed face on place; door `toggleDoor`; crop `advanceCropGrowth`; compass spawn bearing HUD
+- Game wires: `resolveBlockDrop` P1/P2; furnace-tick use+tick; slab half / stair face / bed face on place; door `toggleDoor`; crop `advanceCropGrowth`; compass spawn bearing HUD; furnace-tick/game speedMult (smoker/blast-ready)
 
 Still open: mesh for slab/stair/bed meta, wire stations into world blocks, SC body-systems depth, more ecology.
 

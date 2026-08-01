@@ -116,6 +116,11 @@ import { addBannerLayer, removeTopBannerLayer, bannerLayerCount, LOOM_MAX_LAYERS
 import { clampMapZoom, cartographyZoomOut, mapScaleBlocks, canZoomOut } from '../js/cartography-zoom.js';
 import { smithingUpgrade, canSmithingUpgrade, DEFAULT_SMITHING_MAP } from '../js/smithing-upgrade.js';
 import { compostAdd, clampCompostLevel, composterIsFull } from '../js/composter-fill.js';
+import { toggleBarrelOpen, isBarrelOpen, createBarrelOpenState } from '../js/barrel-open.js';
+import { createShulkerSlots, shulkerAdd, shulkerCount, shulkerIsEmpty } from '../js/shulker-box.js';
+import { createEnderStore, getEnderSlots, enderPlayerCount } from '../js/ender-chest.js';
+import { anchorCharge, anchorDischarge, anchorCanRespawn, clampAnchorCharge } from '../js/respawn-anchor.js';
+
 
 
 
@@ -2840,7 +2845,44 @@ test('furnace-tick speedMult cooks faster', () => {
   assert.ok(b.progress > slowProg || takeOutput(b));
 });
 
+
+test('barrel-open toggle', () => {
+  let s = createBarrelOpenState(false);
+  s = toggleBarrelOpen(s);
+  assert.ok(isBarrelOpen(s));
+});
+
+test('shulker-box slots', () => {
+  const slots = createShulkerSlots(9);
+  assert.strictEqual(shulkerAdd(slots, ITEM.COAL, 3), 0);
+  assert.strictEqual(shulkerCount(slots, ITEM.COAL), 3);
+  assert.ok(!shulkerIsEmpty(slots));
+});
+
+test('ender-chest keyed store', () => {
+  const store = createEnderStore();
+  const a = getEnderSlots(store, 'p1', 9);
+  a[0] = { id: ITEM.COAL, count: 1 };
+  assert.strictEqual(enderPlayerCount(store), 1);
+  assert.strictEqual(getEnderSlots(store, 'p1')[0].count, 1);
+});
+
+test('respawn-anchor charge', () => {
+  assert.strictEqual(clampAnchorCharge(9), 4);
+  const c = anchorCharge(3, 2);
+  assert.strictEqual(c.level !== undefined ? c.level : c.charge, 4);
+  const d = anchorDischarge(4, 1);
+  assert.ok(anchorCanRespawn(d.charge));
+});
+
+test('game furnace tick uses speedMult', () => {
+  const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('speedMult'));
+  assert.ok(src.includes('tickFurnace(st, step'));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 

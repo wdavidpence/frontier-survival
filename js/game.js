@@ -828,7 +828,8 @@ export class Game {
     if (!this._furnaces || this._furnaces.size === 0) return;
     const step = Math.max(0, Number(dt) || 0) * 12; // ~12 cook units / second
     for (const [, st] of this._furnaces) {
-      tickFurnace(st, step);
+      const mult = st.speedMult != null ? st.speedMult : 1;
+      tickFurnace(st, step, mult);
     }
   }
 
@@ -2669,7 +2670,11 @@ export class Game {
     // Feed furnace fuel / smelt input via pure furnace-tick (keeps campfire heat map for warmth)
     if (hit && hit.id === BLOCK.FURNACE) {
       const k = `${hit.x|0},${hit.y|0},${hit.z|0}`;
-      if (!this._furnaces.has(k)) this._furnaces.set(k, createFurnaceState());
+      if (!this._furnaces.has(k)) {
+        const st0 = createFurnaceState();
+        st0.speedMult = 1; // smoker/blast can set 2 later
+        this._furnaces.set(k, st0);
+      }
       const st = this._furnaces.get(k);
       // Empty hand: take finished output
       if (held.id == null || held.count <= 0) {

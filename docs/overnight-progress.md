@@ -808,3 +808,4 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-08-01T01:52:56.642Z | watchdog running 7→7 reclaimed none Spawned 0 |
 | 2026-07-31T21:55:21-0400 | SHIP v1.12.0 station pure smoker/blast/campfire/grindstone/stonecutter; smoke248; decision ship |
 | 2026-07-31T21:58:33-0400 | SHIP v1.12.1 furnace-tick speedMult + loom/cartography/smithing/composter; smoke253; decision ship |
+| 2026-07-31T22:01:24-0400 | SHIP v1.12.2 game furnace speedMult + barrel/shulker/ender/respawn pure; smoke258; decision ship |
