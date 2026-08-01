@@ -107,6 +107,12 @@ import { enchantLevelCost, canPayEnchant, payEnchantLevels } from '../js/enchant
 import { brewStep, canBrew, brewProgress } from '../js/brewing-step.js';
 import { beaconTierFromEdge, beaconRange, beaconHasSecondary } from '../js/beacon-pyramid.js';
 import { clampNote, noteFrequencyHz, cycleNote, noteInstrument } from '../js/noteblock-pitch.js';
+import { smokerCookTicks, isSmokerFood, SMOKER_SPEED_MULT } from '../js/smoker-speed.js';
+import { blastFurnaceCookTicks, isBlastFurnaceInput } from '../js/blast-furnace-speed.js';
+import { createCampfireSlots, campfirePlace, campfireTick, campfireOccupied } from '../js/campfire-cook.js';
+import { grindstoneCombine, grindstoneDisenchant, canGrindstoneCombine } from '../js/grindstone-repair.js';
+import { stonecutterOutputs, canStonecut, stonecutterPick } from '../js/stonecutter-recipe.js';
+
 
 
 
@@ -2750,7 +2756,45 @@ test('noteblock-pitch', () => {
   assert.strictEqual(noteInstrument('planks'), 'bass');
 });
 
+
+test('smoker-speed faster than furnace', () => {
+  assert.ok(smokerCookTicks(200) < 200);
+  assert.ok(SMOKER_SPEED_MULT >= 2);
+  assert.ok(isSmokerFood('raw beef'));
+});
+
+test('blast-furnace-speed ore', () => {
+  assert.ok(blastFurnaceCookTicks(200) < 200);
+  assert.ok(isBlastFurnaceInput('iron ore'));
+});
+
+test('campfire-cook slots', () => {
+  const s = createCampfireSlots(4);
+  assert.ok(campfirePlace(s, ITEM.COAL));
+  assert.strictEqual(campfireOccupied(s), 1);
+  // long tick finishes
+  const done = campfireTick(s, 9999, 10);
+  assert.ok(done.length >= 1);
+});
+
+test('grindstone-repair combine', () => {
+  const maxFn = () => 100;
+  const a = { id: ITEM.IRON_PICK, count: 1, dur: 40, enchants: ['x'] };
+  const b = { id: ITEM.IRON_PICK, count: 1, dur: 50 };
+  assert.ok(canGrindstoneCombine(a, b, maxFn));
+  const r = grindstoneCombine(a, b, maxFn);
+  assert.ok(r.ok && r.result.dur === 90 && r.result.enchants === undefined);
+  assert.ok(grindstoneDisenchant(a).ok);
+});
+
+test('stonecutter-recipe picks', () => {
+  assert.ok(canStonecut('cobble'));
+  assert.ok(stonecutterOutputs('stone').length >= 1);
+  assert.ok(stonecutterPick('planks', 0));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 

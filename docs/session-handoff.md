@@ -317,3 +317,8 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 ## SHIP v1.11.10
 - Pure cauldron-level, enchant-cost, brewing-step, beacon-pyramid, noteblock-pitch
 - Smoke 243 PASS
+
+## SHIP v1.12.0
+- Station pure: smoker-speed, blast-furnace-speed, campfire-cook, grindstone-repair, stonecutter-recipe
+- MASTER_PLAN module inventory updated
+- Smoke 248 PASS

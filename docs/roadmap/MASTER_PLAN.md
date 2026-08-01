@@ -16,18 +16,19 @@
 4. **Ship cadence:** every ~20 judge turns on any verified green incremental plateau
 5. **Ops:** aggressive mint into scheduled buffer (auto-park); depth 4+2+1; workers implement, Hermes judges/publishes
 
-### MC pure / coop modules landed (v1.11.1–v1.11.8)
+### MC pure / coop modules landed (v1.11.1–v1.12.0)
 
 Additive only (no feature removal):
 
-- Shapes: `building-shapes`, `roof-shapes` (+ corner stairs), `slab-place`, `stair-place`, `bed-facing`, `door-hinge`, `fence-gate`
-- Progression: `tool-tiers`, `smelting`, `furnace-tick`, `ore-drops`, `mine-tier`, `station-catalog`, `anvil-repair`, `barrel-storage`, `crop-growth`, `bow-draw`
+- Shapes: `building-shapes`, `roof-shapes` (+ corner stairs), `slab-place`, `stair-place`, `bed-facing`, `door-hinge`, `fence-gate`, `trapdoor`
+- Progression: `tool-tiers`, `smelting`, `furnace-tick`, `ore-drops`, `mine-tier`, `station-catalog`, `anvil-repair`, `barrel-storage`, `crop-growth`, `bow-draw`, `cauldron-level`, `enchant-cost`, `brewing-step`, `beacon-pyramid`, `noteblock-pitch`
+- Stations: `smoker-speed`, `blast-furnace-speed`, `campfire-cook`, `grindstone-repair`, `stonecutter-recipe`, `hopper-buffer`, `piston-push`, `daylight-sensor`
 - Redstone-ish: `lever-power`, `pressure-plate`, `torch-falloff`, `water-level`
-- Misc pure: `sign-text`, `ladder-climb`, `chest-lock`, `compass-bearing`, `item-frame`
+- Misc pure: `sign-text`, `ladder-climb`, `chest-lock`, `compass-bearing`, `item-frame`, `cauldron`, `enchant`, `brew`, `beacon`, `noteblock`
 - Coop: `hotbar-cycle`, `input-coop.cycleHotbar`, pad D-pad scroll via `pad-input` + `player` hotbar
-- Game wires: `resolveBlockDrop` P1/P2; furnace-tick use+tick; slab half / stair face / bed face on place; door `toggleDoor`; crop `advanceCropGrowth`
+- Game wires: `resolveBlockDrop` P1/P2; furnace-tick use+tick; slab half / stair face / bed face on place; door `toggleDoor`; crop `advanceCropGrowth`; compass spawn bearing HUD
 
-Still open: mesh for slab/stair/bed meta, full furnace UI, SC body-systems depth, more ecology.
+Still open: mesh for slab/stair/bed meta, wire stations into world blocks, SC body-systems depth, more ecology.
 
 ---
 

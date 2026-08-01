@@ -805,3 +805,5 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-07-31T21:46:14-0400 | SHIP v1.11.8 bed face wire + water/item-frame/lever/plate pure; smoke233; decision ship |
 | 2026-07-31T21:49:29-0400 | SHIP v1.11.9 compass HUD spawn bearing + hopper/piston/daylight/trapdoor pure; smoke238; decision ship |
 | 2026-07-31T21:52:34-0400 | SHIP v1.11.10 cauldron/enchant/brew/beacon/note pure; smoke243; decision ship |
+| 2026-08-01T01:52:56.642Z | watchdog running 7→7 reclaimed none Spawned 0 |
+| 2026-07-31T21:55:21-0400 | SHIP v1.12.0 station pure smoker/blast/campfire/grindstone/stonecutter; smoke248; decision ship |
