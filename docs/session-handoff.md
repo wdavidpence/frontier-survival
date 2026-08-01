@@ -350,3 +350,8 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 - player powder-snow sink (name match)
 - pure brushable-block, decorated-pot, chiseled-bookshelf, suspicious-sand
 - Smoke 278 PASS
+
+## SHIP v1.12.7
+- scaffolding climb in player (name match)
+- pure crafter-recipe, vault-reward, trial-spawner, ominous-bottle
+- Smoke 283 PASS

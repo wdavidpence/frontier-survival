@@ -814,3 +814,4 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-08-01T02:08:56.812Z | watchdog running 7→7 reclaimed none Spawned 0 |
 | 2026-07-31T22:11:25-0400 | SHIP v1.12.5 honey move wire + sniffer/pitcher/torchflower/calibrated-sculk; smoke273; decision ship |
 | 2026-07-31T22:15:01-0400 | SHIP v1.12.6 powder-snow sink + archaeology pure; smoke278; decision ship |
+| 2026-07-31T22:17:30-0400 | SHIP v1.12.7 scaffolding climb + 1.21 pure crafter/vault/trial/ominous; smoke283; decision ship |

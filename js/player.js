@@ -3,6 +3,7 @@ import { isSolid, BLOCK, BLOCK_PROPS } from './blocks.js?v=220';
 import { canSprint, moveSpeedMultiplier, fallDamageFromSpeed } from './survival.js?v=220';
 import { honeyMoveMult, honeyJumpMult } from './honey-slide.js?v=220';
 import { powderSnowSinkVy } from './powder-snow.js?v=220';
+import { scaffoldingClimbVy } from './scaffolding.js?v=220';
 import { createStarterInventory, getHotbarStack } from './inventory.js?v=220';
 import { emptyEquipment } from './equipment.js?v=220';
 import { ITEM } from './items.js?v=220';
@@ -137,22 +138,40 @@ export class Player {
     const boat = held === ITEM.BOAT;
     const waterMul = inWater ? (boat ? 1.35 : 0.55) : 1;
 
-    // ladder climb
+    // ladder / scaffolding climb
     const bx = Math.floor(this.position.x);
     const by = Math.floor(this.position.y + 0.5);
     const bz = Math.floor(this.position.z);
+    const idHere = world.getBlock(bx, by, bz);
+    const idUp = world.getBlock(bx, by + 1, bz);
+    const idFeet = world.getBlock(bx, Math.floor(this.position.y), bz);
+    const nameHere = (BLOCK_PROPS[idHere]?.name || '').toLowerCase();
+    const nameUp = (BLOCK_PROPS[idUp]?.name || '').toLowerCase();
+    const nameFeet = (BLOCK_PROPS[idFeet]?.name || '').toLowerCase();
+    const onScaffolding =
+      nameHere.includes('scaffold') ||
+      nameUp.includes('scaffold') ||
+      nameFeet.includes('scaffold');
     const onLadder =
-      world.getBlock(bx, by, bz) === BLOCK.LADDER ||
-      world.getBlock(bx, by + 1, bz) === BLOCK.LADDER ||
-      world.getBlock(bx, Math.floor(this.position.y), bz) === BLOCK.LADDER;
+      idHere === BLOCK.LADDER ||
+      idUp === BLOCK.LADDER ||
+      idFeet === BLOCK.LADDER ||
+      onScaffolding;
 
     this.velocity.x = wish.x * speed * waterMul;
     this.velocity.z = wish.z * speed * waterMul;
 
     if (onLadder) {
       this.velocity.y = 0;
-      if (input.wantsJump() || input.wantsForward()) this.velocity.y = 4.2;
-      if (crouching || input.wantsBack()) this.velocity.y = -3.5;
+      if (onScaffolding) {
+        const up = !!(input.wantsJump() || input.wantsForward());
+        const down = !!(crouching || input.wantsBack());
+        this.velocity.y = scaffoldingClimbVy(up && !down) || (down ? -scaffoldingClimbVy(true) * 0.85 : 0);
+        if (up && down) this.velocity.y = 0;
+      } else {
+        if (input.wantsJump() || input.wantsForward()) this.velocity.y = 4.2;
+        if (crouching || input.wantsBack()) this.velocity.y = -3.5;
+      }
       this._fallVy = 0;
       this.onGround = true;
     } else if (inWater) {

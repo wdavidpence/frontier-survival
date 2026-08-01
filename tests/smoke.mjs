@@ -138,6 +138,11 @@ import { createBrushable, brushStep, brushStage } from '../js/brushable-block.js
 import { createDecoratedPot, setPotSherd, potSherdCount } from '../js/decorated-pot.js';
 import { createChiseledBookshelf, bookshelfInsert, bookshelfSignal } from '../js/chiseled-bookshelf.js';
 import { createSuspiciousBlock, suspiciousBrush, suspiciousStage } from '../js/suspicious-sand.js';
+import { crafterMatch, crafterShouldCraft } from '../js/crafter-recipe.js';
+import { createVaultState, vaultCanUnlock, vaultUnlock } from '../js/vault-reward.js';
+import { createTrialSpawner, trialSpawnerStartWave, trialSpawnerMobDied } from '../js/trial-spawner.js';
+import { ominousBottleEffect, clampOminousAmplifier } from '../js/ominous-bottle.js';
+
 
 
 
@@ -3036,7 +3041,44 @@ test('player powder-snow wire', () => {
   assert.ok(src.includes('inPowderSnow'));
 });
 
+
+test('crafter-recipe match', () => {
+  const recipes = [{ pattern: [1,null,null, null,null,null, null,null,null], output: { id: 2, count: 1 } }];
+  assert.ok(crafterMatch([1,null,null,null,null,null,null,null,null], recipes)?.id === 2);
+  assert.ok(crafterShouldCraft(true, false));
+  assert.ok(!crafterShouldCraft(true, true));
+});
+
+test('vault-reward once', () => {
+  const v = createVaultState();
+  assert.ok(vaultCanUnlock(v, 'p1'));
+  const r = vaultUnlock(v, 'p1', 'chest');
+  assert.ok(r.ok && r.reward === 'chest');
+  assert.ok(!vaultCanUnlock(v, 'p1'));
+});
+
+test('trial-spawner waves', () => {
+  let s = createTrialSpawner(false);
+  const w = trialSpawnerStartWave(s, 2);
+  assert.ok(w.ok && w.spawnCount === 2);
+  s = trialSpawnerMobDied(w.state);
+  s = trialSpawnerMobDied(s);
+  assert.strictEqual(s.mobsAlive, 0);
+});
+
+test('ominous-bottle amp', () => {
+  assert.strictEqual(clampOminousAmplifier(9), 4);
+  assert.strictEqual(ominousBottleEffect(2).amplifier, 2);
+});
+
+test('player scaffolding climb wire', () => {
+  const src = readFileSync(new URL('../js/player.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('scaffoldingClimbVy'));
+  assert.ok(src.includes('onScaffolding'));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 

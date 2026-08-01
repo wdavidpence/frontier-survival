@@ -158,3 +158,13 @@ Pure helpers exist for smoker/blast/campfire-cook/grindstone/stonecutter/hopper/
 
 Pure modules exist for scaffolding, honey-slide, powder-snow, dripstone, amethyst, copper, lightning-rod, sculk, frogspawn, mangrove.
 Honey move/jump mult is applied in player when block under feet name contains "honey" (block id TBD).
+
+## Powder snow sink (v1.12.6+)
+
+1. When a powder-snow-named block exists at feet/body, player sinks via powderSnowSinkVy.
+2. Jump while sinking is reduced. No-op until block id/name exists in world.
+
+## Scaffolding climb (v1.12.7+)
+
+1. Scaffolding-named blocks act like climbable (scaffoldingClimbVy).
+2. Forward/jump climb up; crouch/back climb down.
