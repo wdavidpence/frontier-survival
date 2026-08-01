@@ -791,3 +791,13 @@ PASS trigger-button-map: L2 and R2 entries exist
 - Next: let the seven bounded lanes finish, independently inspect artifacts, route the EOF diff-check cleanup behind the smoke lock if still needed, then rerun smoke/diff/browser and decide continue or ship.
 - Decision: continue.
 | 2026-07-31T21:35:40-0400 | SHIP v1.11.5 slab half + stair/bow/crop/door pure; smoke219; decision ship |
+
+## Judge tick recovery — 2026-07-31 21:36 EDT
+
+- Watchdog drained the prior seven sessions before dispatch; observed running=0, ready=0, done=155. Bounded recovery card t_e572e063 was created for healthy local35 and dispatched successfully; current running=1, within caps.
+- No release action: broad WIP persists and diff-check still reports only tests/smoke.mjs EOF whitespace.
+- Decision: recover then continue; independently inspect t_e572e063 artifact on completion before any release decision.
+
+- Verification correction 2026-07-31 21:37 EDT: subsequent `git diff --check` is clean (the transient smoke EOF warning disappeared during the worker wave); independent smoke rerun exits 0 and reports 159 core tests plus the coop/building assertion tail. Recovery audit t_e572e063 remains running.
+| 2026-08-01T01:36:59.022Z | watchdog running 7→7 reclaimed none Spawned 0 |
+| 2026-07-31T21:39:39-0400 | SHIP v1.11.6 stair face+crop wire + sign/fence/ladder pure; smoke223; decision ship |

@@ -376,3 +376,7 @@ All three configs are P0 this month. Local split-screen only (no netcode).
 - `js/hotbar-cycle.js`, `js/input-coop.js` cycleHotbar API
 - Follow-up: game.js per-frame edge detect from pad buttons → cycleHotbar
 
+## Session note (2026-07-31)
+- Pad D-pad already cycles hotbar via pad-input. No additional work needed for this path.
+- **Pad D-pad already cycles hotbar in-game:** `pad-input.js` edges D-pad L/R → `consumeHotbarScroll()` → `player.js` updates `hotbarIndex`. No extra game.js path required for P2 pad.
+

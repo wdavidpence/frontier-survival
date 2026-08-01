@@ -30,6 +30,8 @@ import {
 } from './furnace-tick.js?v=220';
 import { isFuel, canSmelt } from './smelting.js?v=220';
 import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=220';
+import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=220';
+import { advanceCropGrowth } from './crop-growth.js?v=220';
 import {
   addItems,
   removeItems,
@@ -200,6 +202,8 @@ export class Game {
     this._furnaces = new Map(); // "x,y,z" -> furnace-tick state
     /** Slab half meta "x,y,z" -> 0 bottom / 1 top (additive until mesh uses it). */
     this._slabHalf = new Map();
+    /** Stair facing meta "x,y,z" -> 0..3 (additive until mesh uses it). */
+    this._stairFace = new Map();
     this._lastWeather = 'clear';
     this._roofed = false;
     this._drinkCd = 0;
@@ -767,7 +771,7 @@ export class Game {
     if (!this._crops.size) return;
     const grow = [];
     for (const [key, g] of this._crops) {
-      const ng = Math.min(1, g + dt / 90); // ~90s to mature
+      const ng = advanceCropGrowth(g, dt);
       if (ng >= 1) grow.push(key);
       else this._crops.set(key, ng);
     }
@@ -2381,6 +2385,12 @@ export class Game {
         const meta = slabHalfMeta(half);
         this._slabHalf.set(`${px|0},${py|0},${pz|0}`, meta);
         this.player.notify(half === 'top' ? 'Top slab placed.' : 'Bottom slab placed.', 1.6);
+      }
+      if (blockId === BLOCK.STAIRS_WOOD) {
+        const face = stairFacingFromYaw(this.player.yaw);
+        const meta = stairFacingMeta(face);
+        this._stairFace.set(`${px|0},${py|0},${pz|0}`, meta);
+        this.player.notify(`Stairs face ${face}.`, 1.6);
       }
       if (blockId === BLOCK.CAMPFIRE) {
         this.player.notify('Campfire lit. Feed sticks/coal/charcoal (F) or it dies out.');

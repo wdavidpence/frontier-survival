@@ -291,3 +291,12 @@ Smoke is green at 184 total checks and local/live v1.11.4 boot clean, but the sh
 - SLAB_WOOD place stores half meta + notify from pitch
 - Playtest furnace/slab steps
 - Smoke 219 PASS
+
+## Judge recovery handoff — 2026-07-31 21:36 EDT
+
+The board briefly reached running=0 after the watchdog drained the previous wave. Recovery card t_e572e063 (local35, read-only unique docs/reviews audit) was created and dispatch spawned it; running=1 now. Do not publish; inspect its artifact and rerun the release gate after completion.
+
+## SHIP v1.11.6
+- Stair facing + crop-growth advance wired in game.js
+- Pure sign-text, fence-gate, ladder-climb
+- Smoke 223 PASS

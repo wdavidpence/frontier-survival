@@ -87,6 +87,10 @@ import { stairFacingFromYaw, stairFacingMeta, stairFacingFromMeta } from '../js/
 import { bowDrawCharge, bowPowerFromCharge, isBowFullyDrawn } from '../js/bow-draw.js';
 import { advanceCropGrowth, cropStageAt, isCropRipe, CROP_MATURE_SECONDS } from '../js/crop-growth.js';
 import { toggleDoor, isDoorBlock, doorFacingFromYaw } from '../js/door-hinge.js';
+import { sanitizeSignLine, sanitizeSignText } from '../js/sign-text.js';
+import { toggleFenceGate, gateFacingFromYaw } from '../js/fence-gate.js';
+import { ladderClimbVy, ladderSuppressGravity, shouldDetachLadder } from '../js/ladder-climb.js';
+
 
 
 /**
@@ -2558,7 +2562,34 @@ test('coop_state: serializeCoopGameState handles null game', () => {
   assert.strictEqual(serialized.player2, null);
 });
 
+
+test('sign-text sanitize', () => {
+  assert.strictEqual(sanitizeSignLine('  hi\x00  '), 'hi');
+  const lines = sanitizeSignText('a\nb\nc\nd\ne');
+  assert.strictEqual(lines.length, 4);
+});
+
+test('fence-gate toggle', () => {
+  assert.strictEqual(toggleFenceGate(1, 1, 2), 2);
+  assert.strictEqual(toggleFenceGate(2, 1, 2), 1);
+  assert.ok(gateFacingFromYaw(0) >= 0);
+});
+
+test('ladder-climb helpers', () => {
+  assert.ok(ladderClimbVy({ onLadder: true, climbUp: true, climbDown: false }) > 0);
+  assert.ok(ladderSuppressGravity(true, false));
+  assert.ok(shouldDetachLadder(1.0, 0.65));
+});
+
+test('game wires stair face and crop-growth', () => {
+  const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('stairFacingFromYaw'));
+  assert.ok(src.includes('_stairFace'));
+  assert.ok(src.includes('advanceCropGrowth'));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 
