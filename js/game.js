@@ -20,6 +20,15 @@ import {
   mineMultiplier,
   dropForBlock,
 } from './items.js?v=220';
+import { resolveBlockDrop } from './mine-tier.js?v=220';
+import {
+  createFurnaceState,
+  insertFuel,
+  insertInput,
+  tickFurnace,
+  takeOutput,
+} from './furnace-tick.js?v=220';
+import { isFuel, canSmelt } from './smelting.js?v=220';
 import {
   addItems,
   removeItems,
@@ -187,6 +196,7 @@ export class Game {
     this._recipeFilter = '';
     this._fishCd = 0;
     this._campFuel = new Map(); // "x,y,z" -> fuel 0..100
+    this._furnaces = new Map(); // "x,y,z" -> furnace-tick state
     this._lastWeather = 'clear';
     this._roofed = false;
     this._drinkCd = 0;
@@ -799,6 +809,15 @@ export class Game {
       }
     }
     return best;
+  }
+
+  /** Advance furnace-tick SM for nearby furnaces (additive; does not remove campfire heat). */
+  _tickFurnaces(dt) {
+    if (!this._furnaces || this._furnaces.size === 0) return;
+    const step = Math.max(0, Number(dt) || 0) * 12; // ~12 cook units / second
+    for (const [, st] of this._furnaces) {
+      tickFurnace(st, step);
+    }
   }
 
   _tickProjectiles(dt) {
@@ -1440,6 +1459,7 @@ export class Game {
     );
     // campfire fuel decay nearby
     heat = this._tickCampfires(dt, heat);
+    this._tickFurnaces(dt);
     this._lastHeat = heat;
     this.survival.warmthFromClothes = equipmentWarmth(this.player.equipment);
 
@@ -2219,7 +2239,7 @@ export class Game {
       this.player.breaking.progress += (this._breakSpeed * mult * dt) / hard;
       this.fx.setCrack(hit, this.player.breaking.progress);
       if (this.player.breaking.progress >= 1) {
-        let drop = dropForBlock(hit.id);
+        let drop = resolveBlockDrop(hit.id, dropForBlock);
         let dropCount = 1;
         if (hit.id === BLOCK.LEAVES) {
           const r = Math.random();
@@ -2612,14 +2632,52 @@ export class Game {
       }
     }
 
-    // Feed furnace fuel (same as campfire)
+    // Feed furnace fuel / smelt input via pure furnace-tick (keeps campfire heat map for warmth)
     if (hit && hit.id === BLOCK.FURNACE) {
+      const k = `${hit.x|0},${hit.y|0},${hit.z|0}`;
+      if (!this._furnaces.has(k)) this._furnaces.set(k, createFurnaceState());
+      const st = this._furnaces.get(k);
+      // Empty hand: take finished output
+      if (held.id == null || held.count <= 0) {
+        const out = takeOutput(st);
+        if (out) {
+          const add = addItems(this.player.slots, out.id, out.count);
+          this.player.slots = add.slots;
+          this.player.notify(`Furnace → +${out.count} ${displayName(out.id)}`, 2.2);
+          this.audio.ui?.() || this.audio.placeBlock();
+          return;
+        }
+      }
+      if (held.id != null && isFuel(held.id)) {
+        const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+        if (cons.ok) {
+          this.player.slots = cons.slots;
+          insertFuel(st, held.id, 1);
+          // keep legacy warmth fuel map so nearby heat still works
+          let f = this._campFuel.get(k) ?? 40;
+          f += held.id === BLOCK.LOG ? 50 : held.id === ITEM.STICK ? 14 : 32;
+          this._campFuel.set(k, Math.min(150, f));
+          this.audio.placeBlock();
+          this.player.notify('You fed the furnace.', 1.8);
+          return;
+        }
+      }
+      if (held.id != null && canSmelt(held.id)) {
+        const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+        if (cons.ok) {
+          this.player.slots = cons.slots;
+          insertInput(st, held.id, 1);
+          this.audio.placeBlock();
+          this.player.notify(`Furnace: smelting ${displayName(held.id)}…`, 2);
+          return;
+        }
+      }
+      // legacy stick/coal set still handled above via isFuel; fall through if nothing matched
       const fuelIds = new Set([ITEM.STICK, ITEM.COAL, ITEM.CHARCOAL, BLOCK.LOG]);
       if (held.id != null && fuelIds.has(held.id)) {
         const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
         if (cons.ok) {
           this.player.slots = cons.slots;
-          const k = `${hit.x|0},${hit.y|0},${hit.z|0}`;
           let f = this._campFuel.get(k) ?? 40;
           f += held.id === BLOCK.LOG ? 50 : held.id === ITEM.STICK ? 14 : 32;
           this._campFuel.set(k, Math.min(150, f));
@@ -3129,7 +3187,7 @@ export class Game {
         const mult = mineMultiplier(p.heldId(), hit.id);
         p.breaking.progress += (this._breakSpeed * mult * dt) / hard;
         if (p.breaking.progress >= 1) {
-          let drop = dropForBlock(hit.id);
+          let drop = resolveBlockDrop(hit.id, dropForBlock);
           this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR);
           if (drop != null) {
             const add = addItems(p.slots, drop, 1);

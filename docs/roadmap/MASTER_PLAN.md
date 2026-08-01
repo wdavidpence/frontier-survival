@@ -16,6 +16,17 @@
 4. **Ship cadence:** every ~20 judge turns on any verified green incremental plateau
 5. **Ops:** aggressive mint into scheduled buffer (auto-park); depth 4+2+1; workers implement, Hermes judges/publishes
 
+### MC pure / coop modules landed (v1.11.1–v1.11.4)
+
+Additive only (no feature removal):
+
+- Shapes: `building-shapes`, `roof-shapes` (+ corner stairs), `slab-place`
+- Progression: `tool-tiers`, `smelting`, `furnace-tick`, `ore-drops`, `mine-tier`, `station-catalog`, `anvil-repair`, `barrel-storage`
+- Coop: `hotbar-cycle`, `input-coop.cycleHotbar`, pad D-pad scroll via `pad-input` + `player` hotbar
+- Game wires: `resolveBlockDrop` on P1/P2 break; furnace use feeds `furnace-tick` state + tick
+
+Still open: stair place orientation in world, full furnace UI, game.js pad shoulders if not on D-pad, SC body systems depth.
+
 ---
 
 ## North-star definition of “complete”
@@ -138,3 +149,34 @@ Locked 2026-07-31:
 - Save/load both players · pure modules first then game wire
 
 Pillars: `Coop P0:*`, `Platform P0:*` priority ≤12 mint first.
+
+---
+
+## Progress log — pure modules landed (v1.11.1–1.11.3)
+
+All additive; no feature removal. Smoke tests green throughout.
+
+### v1.11.1 — MC-breadth pure modules (shapes, tool tiers, smelting)
+- **building-shapes** (`js/building-shapes.js`): stairs, slab, door, fence block shapes
+- **tool-tiers** (`js/tool-tiers.js`): tiered tool system (wood → stone → iron)
+- **smelting** (`js/smelting.js`): fuel + recipe smelting loop
+- Smoke: 197 tests PASS
+
+### v1.11.2 — MC pure wave 2 + craft shape recipes
+- **ore-drops** (`js/ore-drops.js`): ore-specific drop tables
+- **station-catalog** (`js/station-catalog.js`): crafting station registry
+- **mine-tier** (`js/mine-tier.js`): mine-tier resolveBlockDrop
+- **roof-shapes** (`js/roof-shapes.js`): roof and ramp shape helpers
+- **hotbar-cycle** (`js/hotbar-cycle.js`): hotbar cycle select per pad (P1/P2 isolation)
+- Crafting wire: stairs/slab/door/fence recipes in RECIPES
+- Smoke: 192 tests PASS
+
+### v1.11.3 — furnace-tick, barrel-storage, corner stairs
+- **furnace-tick**: furnace progress tick wired into game loop
+- **barrel-storage** (`js/barrel-storage.js`): barrel storage module
+- **cornerStairs**: pure corner stair shape helpers
+- Smoke: 197 tests PASS
+
+Total new JS modules landed: 10 (`building-shapes`, `tool-tiers`, `smelting`,
+`ore-drops`, `station-catalog`, `mine-tier`, `roof-shapes`, `hotbar-cycle`,
+`furnace-tick`, `barrel-storage`, `cornerStairs`).

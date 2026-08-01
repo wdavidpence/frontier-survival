@@ -81,6 +81,9 @@ import {
   barrelCount,
 } from '../js/barrel-storage.js';
 import { CoopInputRouter, P1, P2 } from '../js/input-coop.js';
+import { canAnvilRepair, anvilRepair } from '../js/anvil-repair.js';
+import { slabHalfFromPitch, slabYOffset, slabHalfMeta, slabHalfFromMeta } from '../js/slab-place.js';
+
 /**
  * Pure-logic smoke tests (no browser/Three).
  * Run: node tests/smoke.mjs
@@ -2398,5 +2401,31 @@ test('input-coop cycleHotbar API', () => {
   assert.strictEqual(r.setHotbarIndex(P1, 5), 5);
 });
 
+
+test('anvil-repair combines durability', () => {
+  const a = { id: ITEM.IRON_PICK, count: 1, dur: 40 };
+  const b = { id: ITEM.IRON_PICK, count: 1, dur: 50 };
+  assert.ok(canAnvilRepair(a, b));
+  const r = anvilRepair(a, b);
+  assert.ok(r.ok && r.result.dur > 40);
+  assert.ok(!canAnvilRepair(a, { id: ITEM.WOOD_PICK, count: 1, dur: 10 }));
+});
+
+test('slab-place half from pitch', () => {
+  assert.strictEqual(slabHalfFromPitch(-0.5), 'top');
+  assert.strictEqual(slabHalfFromPitch(0.2), 'bottom');
+  assert.strictEqual(slabYOffset('top'), 0.5);
+  assert.strictEqual(slabHalfFromMeta(slabHalfMeta('top')), 'top');
+});
+
+test('game source wires resolveBlockDrop and furnace-tick', () => {
+  const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('resolveBlockDrop'));
+  assert.ok(src.includes('furnace-tick'));
+  assert.ok(src.includes('_tickFurnaces'));
+  assert.ok(src.includes('createFurnaceState'));
+});
+
 if (process.exitCode) process.exit(1);
+
 
