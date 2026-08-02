@@ -1,0 +1,32 @@
+FIX ONLY in /mnt/c/Users/wdavi/Projects/Frontier-Survival/js/game.js place-block section (~line 2420-2460).
+
+BUG: Honey/PowderSnow/Scaffolding/Smoker checks were wrongly nested INSIDE `if (blockId === BLOCK.CAMPFIRE)` so they never run. Also duplicate campfire notify. Also `createFurnaceState(this.world, { speedMult: 2 })` is WRONG — createFurnaceState() takes no args; set speedMult after.
+
+REQUIRED final structure (siblings, not nested):
+
+```
+if (blockId === BLOCK.CAMPFIRE) {
+  this.player.notify('Campfire lit...');
+  this._scanLights(true);
+  this._unlock('first_fire');
+  this._campFuel.set(...);
+}
+if (blockId === BLOCK.HONEY_BLOCK || blockId === BLOCK.POWDER_SNOW || blockId === BLOCK.SCAFFOLDING) {
+  this.player.notify(`${displayName(blockId)} placed.`, 1.6);
+}
+if (blockId === BLOCK.SMOKER) {
+  const key = `${px|0},${py|0},${pz|0}`;
+  const st = createFurnaceState();
+  st.speedMult = 2;
+  this._furnaces.set(key, st);
+  this.player.notify('Smoker placed. F to feed fuel/food (2× cook).', 2);
+  this._scanLights(true);
+}
+```
+
+Also finish if incomplete:
+- preferredTool: BLOCK.SMOKER like FURNACE (pick) in items.js
+- smoke tests for new BLOCK ids + ITEM.MACE + recipes
+- version v1.13.0 dual HTML + main.js boot + ?v=250 cache bust
+- node tests/smoke.mjs PASS
+- surgical Edit only; no git reset; no commit required

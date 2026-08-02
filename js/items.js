@@ -2,7 +2,7 @@
  * Unified item/block IDs for inventory stacks.
  * Blocks: 0–99 (see blocks.js). Items: 100+.
  */
-import { BLOCK, BLOCK_PROPS } from './blocks.js?v=216';
+import { BLOCK, BLOCK_PROPS } from './blocks.js?v=250';
 
 export const ITEM = {
   STICK: 100,
@@ -53,6 +53,7 @@ export const ITEM = {
   WATER_BUCKET: 145,
   MAP: 146,
   ICE_BOX: 147,
+  MACE: 148,
 };
 
 /** @type {Record<number, {
@@ -226,6 +227,14 @@ export const ITEM_PROPS = {
   [ITEM.WATER_BUCKET]: { name: 'Water Bucket', color: [0.25, 0.45, 0.85], maxStack: 1 },
   [ITEM.MAP]: { name: 'Map', color: [0.75, 0.7, 0.5], maxStack: 1 },
   [ITEM.ICE_BOX]: { name: 'Ice Box', color: [0.7, 0.85, 0.95], maxStack: 8, placeable: true, placeAs: BLOCK.ICE_BOX },
+  [ITEM.MACE]: {
+    name: 'Mace',
+    color: [0.45, 0.42, 0.48],
+    tool: 'mace',
+    melee: 12,
+    meleeRange: 3.5,
+    maxStack: 1,
+  },
 };
 
 export function propsOf(id) {
@@ -280,7 +289,7 @@ export function preferredTool(blockId) {
     blockId === BLOCK.SANDSTONE
   )
     return 'pick';
-  if (blockId === BLOCK.BRICKS || blockId === BLOCK.FURNACE || blockId === BLOCK.CLAY) return 'pick';
+  if (blockId === BLOCK.BRICKS || blockId === BLOCK.FURNACE || blockId === BLOCK.SMOKER || blockId === BLOCK.CLAY) return 'pick';
   if (blockId === BLOCK.DOOR_CLOSED || blockId === BLOCK.DOOR_OPEN) return 'axe';
   return 'hand';
 }
@@ -324,6 +333,7 @@ export function dropForBlock(blockId) {
   if (blockId === BLOCK.WALL) return BLOCK.WALL;
   if (blockId === BLOCK.WIRE) return BLOCK.WIRE;
   if (blockId === BLOCK.LAMP) return BLOCK.LAMP;
+  if (blockId === BLOCK.GLASS_PANE_THIN) return BLOCK.GLASS_PANE_THIN;
   const d = BLOCK_PROPS[blockId]?.drops;
   if (d === undefined) return blockId;
   return d;

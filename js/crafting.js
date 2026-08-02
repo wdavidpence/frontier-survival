@@ -1,7 +1,7 @@
 /** Crafting recipes — pure data + craft helper */
-import { BLOCK } from './blocks.js?v=220';
-import { ITEM } from './items.js?v=220';
-import { craftWith } from './inventory.js?v=220';
+import { BLOCK } from './blocks.js?v=250';
+import { ITEM } from './items.js?v=250';
+import { craftWith } from './inventory.js?v=240';
 
 /**
  * @typedef {{ id: string, name: string, desc?: string, ingredients: {id:number,count:number}[], results: {id:number,count:number}[] }} Recipe
@@ -378,6 +378,11 @@ export const RECIPES = [
   { id:'stairs_wood', name:'Wood Stairs', desc:'3 Planks → 2 Wood Stairs (climbable)', ingredients:[{id:BLOCK.PLANKS,count:3}], results:[{id:BLOCK.STAIRS_WOOD,count:2}] },
   { id:'slab_wood', name:'Wood Slabs', desc:'6 Planks → 3 Wood Slabs (half-block)', ingredients:[{id:BLOCK.PLANKS,count:6}], results:[{id:BLOCK.SLAB_WOOD,count:3}] },
   { id:'glass_pane_thin', name:'Thin Glass Pane', desc:'1 Glass → 4 Thin Glass Panes (transparent barrier)', ingredients:[{id:BLOCK.GLASS,count:1}], results:[{id:BLOCK.GLASS_PANE_THIN,count:4}] },
+  { id:'honey_block', name:'Honey Block', desc:'Slow walk / short jump. 4 Berries → Honey Block', ingredients:[{id:ITEM.BERRIES,count:4}], results:[{id:BLOCK.HONEY_BLOCK,count:1}] },
+  { id:'powder_snow', name:'Powder Snow', desc:'Sinks players. 4 Snow → Powder Snow', ingredients:[{id:BLOCK.SNOW,count:4}], results:[{id:BLOCK.POWDER_SNOW,count:2}] },
+  { id:'scaffolding', name:'Scaffolding', desc:'Climbable tower. 3 Bamboo-like: 6 Sticks + 1 Planks → 6 Scaffolding', ingredients:[{id:ITEM.STICK,count:6},{id:BLOCK.PLANKS,count:1}], results:[{id:BLOCK.SCAFFOLDING,count:6}] },
+  { id:'smoker', name:'Smoker', desc:'Faster food smelting (2×). Furnace + 4 Logs', ingredients:[{id:BLOCK.FURNACE,count:1},{id:BLOCK.LOG,count:4}], results:[{id:BLOCK.SMOKER,count:1}] },
+  { id:'mace', name:'Mace', desc:'Fall-smash melee. 3 Iron + 2 Sticks', ingredients:[{id:ITEM.IRON_INGOT,count:3},{id:ITEM.STICK,count:2}], results:[{id:ITEM.MACE,count:1}] },
 ];
 
 export function visibleRecipes() {

@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import { isSolid, BLOCK, BLOCK_PROPS } from './blocks.js?v=220';
-import { canSprint, moveSpeedMultiplier, fallDamageFromSpeed } from './survival.js?v=220';
-import { honeyMoveMult, honeyJumpMult } from './honey-slide.js?v=220';
-import { powderSnowSinkVy } from './powder-snow.js?v=220';
-import { scaffoldingClimbVy } from './scaffolding.js?v=220';
-import { createStarterInventory, getHotbarStack } from './inventory.js?v=220';
-import { emptyEquipment } from './equipment.js?v=220';
-import { ITEM } from './items.js?v=220';
+import { isSolid, BLOCK, BLOCK_PROPS } from './blocks.js?v=250';
+import { canSprint, moveSpeedMultiplier, fallDamageFromSpeed } from './survival.js?v=240';
+import { honeyMoveMult, honeyJumpMult } from './honey-slide.js?v=240';
+import { powderSnowSinkVy } from './powder-snow.js?v=240';
+import { scaffoldingClimbVy } from './scaffolding.js?v=240';
+import { createStarterInventory, getHotbarStack } from './inventory.js?v=240';
+import { emptyEquipment } from './equipment.js?v=240';
+import { ITEM } from './items.js?v=250';
 
 const PLAYER_RADIUS = 0.3;
 const PLAYER_HEIGHT = 1.7;
@@ -71,8 +71,8 @@ export class Player {
   }
 
   /**
-   * @param {import('./world.js?v=220').World} world
-   * @param {import('./input.js?v=220').Input} input
+   * @param {import('./world.js?v=240').World} world
+   * @param {import('./input.js?v=240').Input} input
    * @param {object} survival state
    * @param {number} dt
    */

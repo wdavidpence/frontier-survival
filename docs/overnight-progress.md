@@ -817,3 +817,597 @@ PASS trigger-button-map: L2 and R2 entries exist
 | 2026-07-31T22:17:30-0400 | SHIP v1.12.7 scaffolding climb + 1.21 pure crafter/vault/trial/ominous; smoke283; decision ship |
 | 2026-07-31T22:19:50-0400 | SHIP v1.12.8 breeze/wind/mace/wolf/armadillo pure; smoke288; decision ship |
 | 2026-07-31T22:22:24-0400 | SHIP v1.12.9 mace smash melee wire + bogged/crafter/heavy/flow pure; smoke293; decision ship |
+
+## Judge tick — 2026-07-31 23:13 EDT
+
+- Cards: zero-running recovery completed; started bounded read-only audits `t_8964c49f` (qwen27s, release artifact/cache-bust) and `t_dce9e7c5` (local35, pure-module lifecycle). Both are running within caps; qwen35 remains stopped.
+- Verification: `node tests/smoke.mjs` PASS (293 assertions in the current output); `git diff --check` PASS; local :8767 HTTP 200, v1.12.9 title, Start probe reached the HUD/canvas with 0 browser console errors. Live Pages also reports v1.12.9 and the start screen is reachable.
+- Release: broad uncommitted WIP remains (45 changed/untracked paths); `index.html` and `public/index.html` compare equal; local HEAD `9e29f82` matches `origin/main`; no new commit/push this tick.
+- Next action: independently inspect both audit artifacts when complete, then rerun smoke/diff/browser and decide whether the current plateau is safe to publish.
+- Decision: **continue**.
+
+| 2026-08-01T02:42:57.292Z | watchdog running 3→0 reclaimed t_0c014398,t_d63265c3,t_bae30447 Spawned 0 |
+| 2026-08-01T02:58:57.709Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T03:14:57.869Z | watchdog running 2→2 reclaimed none Spawned 0 |
+| 2026-08-01T03:30:58.103Z | watchdog running 1→0 reclaimed t_8964c49f Spawned 0 |
+| 2026-08-01T03:46:58.486Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T00:03:00-04:00
+- Cards: recovered and started `t_d63265c3` (qwen27s, pure crafter-result) and `t_e572e063` (local35, read-only release audit) after zero-running; created `t_6d6d2819` (qwen35, cache-bust correction), ready but dispatch spawned 0 after retry (capacity-held).
+- Board: 2 running, 1 ready, 264 scheduled, 68 blocked, 264 done; lane caps respected.
+- Verification: `node tests/smoke.mjs` PASS, 293 assertions; `git diff --check` PASS; dual HTML byte parity PASS. Local :8767 v1.12.9 Start DOM probe hid title overlay, HUD/status visible, console errors 0. Live Pages HTTP 200 v1.12.9 / `main.js?v=240`.
+- Release: NO SHIP. Working tree has 20 modified files plus 26 review/new artifacts; relative-import scan found 99 imports with mixed cache versions 220/232/238/240, so full cache-bust gate is red.
+- Next: keep the two bounded workers running, get qwen35 cache-bust correction claimed, independently rerun smoke/diff/browser and inspect artifacts before any publish.
+- Decision: **continue**.
+
+- Follow-up 2026-08-01T00:04:00-04:00: gateway eventually claimed `t_6d6d2819` for qwen35; board is now 3 running (qwen27s 1, qwen35 1, local35 1), 0 ready. The earlier zero-spawn was capacity-held, not a stuck card.
+| 2026-08-01T04:03:39.036Z | watchdog running 3→2 reclaimed t_d63265c3 Spawned 0 |
+| 2026-08-01T04:18:59.038Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T04:34:59.433Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## 2026-08-01T00:50:40-04:00 — zero-running recovery / v1.12.9 runtime gate
+- Completed: no new card completed this tick. Started bounded pure-module worker `t_d63265c3` on `qwen27s` after detecting running=0; dispatch spawned 1 and caps are respected. local35 remains gateway-available but its selected audit cards have repeated no-artifact history, so no blind retry was made.
+- Verification: `node tests/smoke.mjs` PASS (295 PASS lines); `git diff --check` PASS; `index.html` and `public/index.html` byte-identical. Recursive JS import scan found 99 relative imports, all cache-busted at `?v=240`.
+- Browser: local `http://127.0.0.1:8767/` served v1.12.9. Native accessibility click did not transition; authoritative DOM `#btn-start.click()` hid the title overlay and exposed HUD/status, with browser console 0 errors. Record as playable via DOM probe, accessibility interaction discrepancy remains follow-up.
+- Release: broad uncommitted WIP remains; HEAD `9e29f82` equals `origin/main`; no commit/push this tick.
+- Next action: independently inspect `t_d63265c3` artifact when done, rerun smoke/diff/browser, and keep release closed until a green plateau is intentionally assembled. Decision: **continue**.
+| 2026-08-01T04:51:48.354Z | watchdog running 1→0 reclaimed t_d63265c3 Spawned 0 |
+| 2026-08-01T05:06:59.997Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T05:23:00.311Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+
+## Judge tick — 2026-08-01T01:15:00-04:00
+- Cards: zero-running recovery corrected; started `t_bae30447` (qwen27s, pure `trial-key` helper) and `t_d0000c0b` (local35, bounded read-only hook verification). Board now has 2 running, 263 scheduled, 68 blocked, 266 done; caps respected; qwen35 remains stopped.
+- Verification: `node tests/smoke.mjs` PASS (**295 PASS lines**); `git diff --check` PASS. `index.html` and `public/index.html` are byte-identical. Recursive JS relative-import scan reports 0 missing cache-busts and a single version `?v=240`.
+- Browser/live: local :8767 HTTP 200, v1.12.9; authoritative DOM Start probe hid the title overlay and exposed HUD/status, browser console had 0 errors. Live Pages reports v1.12.9 and `main.js?v=240`.
+- Release: broad uncommitted WIP remains (61 changed/untracked paths); no commit/push this tick.
+- Next: independently inspect the two running card artifacts, rerun smoke/diff/browser, and keep release closed until a deliberate green plateau is reviewed.
+- Decision: **continue**.
+| 2026-08-01T05:40:03.417Z | watchdog running 2→1 reclaimed t_bae30447 Spawned 0 |
+| 2026-08-01T05:56:00.713Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T06:12:01.085Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T02:28Z
+- Board: running=2 (t_a477e441 local35, t_8964c49f qwen27s), scheduled=262, blocked=68, done=267; qwen35 stopped; caps respected.
+- Smoke: node tests/smoke.mjs exit 0; 248 tests passed. git diff --check: clean.
+- Browser: local :8767 HTTP 200, v1.12.9; DOM Start probe hid title overlay and exposed canvas/HUD; browser console 0 JS errors. Existing server was already bound. Live Pages: v1.12.9, ?v=240.
+- Release: broad uncommitted WIP; no commit/push.
+- Action: recovered zero-running board by unblocking two bounded non-overlapping read-only release audits; verify artifacts on completion, then dispatch next safe lane. Decision: continue.
+
+- Verification correction: the smoke harness exits 0 and its final emitted line is `PASS game mace smash wire`; this harness does not emit a total-count footer, so no numeric count is claimed.
+| 2026-08-01T06:29:30.624Z | watchdog running 2→0 reclaimed t_a477e441,t_8964c49f Spawned 0 |
+| 2026-08-01T06:45:01.771Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T07:01:02.024Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## 2026-08-01 03:17 EDT — zero-running recovery and release hold
+
+- Completed/started: no new card completed; recovered from `running=0` by dispatching bounded read-only audits `t_8964c49f` (qwen27s, release-artifact review) and `t_a477e441` (local35, cache-bust/browser review). Both are now running; qwen35 remains stopped. Hot-file ownership and depth caps are respected.
+- Verification: `node tests/smoke.mjs` PASS (exit 0; final emitted line `PASS game mace smash wire`); `git diff --check` PASS; local :8767 HTTP 200, title v1.12.9, DOM Start probe reached the in-game HUD/canvas with authoritative overlay transition; no browser console errors observed. `index.html` equals `public/index.html`; relative ES import scan found 0 unbusted imports.
+- Release: broad uncommitted WIP remains; live Pages serves v1.12.9 but was not treated as a new ship. No commit/push performed.
+- Next action: independently inspect both audit artifacts when they finish, then decide whether this WIP can be narrowed to a green release plateau or needs redirection. Decision: **continue**.
+| 2026-08-01T07:18:55.321Z | watchdog running 2→0 reclaimed t_a477e441,t_8964c49f Spawned 0 |
+| 2026-08-01T07:35:02.666Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T07:51:02.916Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01 04:06 EDT
+
+- Cards: zero-running recovery started `t_b1d39100` on `local35` (bounded TB viewport split polish; preferred `js/viewport-split.js` + `js/game.js`); dispatch `--max 1` spawned 1, now running. No completed implementation card this tick.
+- Smoke: `node tests/smoke.mjs` PASS — 159 baseline + 108 follow-on assertions (267 total PASS lines observed); `git diff --check` PASS.
+- Browser: local `:8767` booted v1.12.9; Start probe hid title overlay and exposed survival HUD, console errors 0. Live Pages v1.12.9 booted; DOM Start probe hid title overlay and exposed HUD, console errors 0.
+- Board: 1 running (`t_b1d39100` local35), 263 scheduled, 68 blocked, 267 done; qwen27s gateway healthy but qwen35 gateway stopped.
+- Git/release: broad uncommitted WIP (35 tracked files changed plus review/pure-module artifacts), dual HTML parity PASS, full relative import cache-bust scan PASS for current JS graph, local/live v1.12.9 aligned; no commit/push.
+- Next action: let the bounded local35 card produce an artifact, then independently inspect its diff and rerun smoke/browser; keep release closed while broad WIP remains. Decision: **continue**.
+| 2026-08-01T08:07:03.116Z | watchdog running 1→0 reclaimed t_b1d39100 Spawned 0 |
+| 2026-08-01T08:23:03.455Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T08:39:03.697Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01 04:53 EDT
+- Cards: board was at running=0; recovered by unblocking and dispatching `t_0c014398` (qwen27s, bounded add-only pure `js/bundle-slots.js` lane, no hot-file overlap). Dispatch `--max 1` spawned 1; current board is running=1, scheduled=263, blocked=68, done=267. qwen35 is stopped; local35 remains parked after repeated heartbeat-only/no-artifact recoveries.
+- Verification: `node tests/smoke.mjs` PASS (exit 0; final emitted line `PASS game mace smash wire`); `git diff --check` PASS. `index.html` and `public/index.html` are byte-identical; relative ES import scan reports 0 unbusted imports and only cache version `?v=240`.
+- Browser: local `:8767` served v1.12.9. DOM Start click reached authoritative in-game body text with SPAWN/HEALTH/HUNGER/STAMINA HUD and canvas; console probe reported no JS errors. Accessibility snapshot remained title-form stale, so DOM evidence is the authoritative activation result.
+- Release: broad uncommitted WIP remains; no commit/push. Live release not claimed.
+- Next action: let `t_0c014398` produce its artifact, inspect it independently, rerun smoke, and keep release closed until the WIP narrows to a deliberate green plateau. Decision: **continue**.
+| 2026-08-01T08:55:03.833Z | watchdog running 1→0 reclaimed t_0c014398 Spawned 0 |
+| 2026-08-01T09:11:04.194Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T09:27:04.455Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T09:41:46Z
+- Cards: zero-running recovery dispatched fresh bounded `t_7c15ef9b` (qwen27s, gamepad title navigation); `running=1`, `scheduled=263`, `blocked=68`, `done=267`. qwen35 gateway remains stopped; local35 remains parked after repeated heartbeat-only/no-artifact audit runs.
+- Verification: `node tests/smoke.mjs` PASS (exit 0; final emitted line `PASS game mace smash wire`); `git diff --check` PASS. Broad uncommitted WIP remains across 35 tracked files plus review/pure-module artifacts.
+- Browser/release: no new UI/runtime artifact completed this tick, so no browser rerun; prior local/live v1.12.9 evidence remains unchanged and release stays closed with no commit/push.
+- Next action: let `t_7c15ef9b` run without premature reclaim; independently inspect any artifact, then rerun smoke and browser if UI/runtime files changed. Decision: **continue**.
+| 2026-08-01T09:43:04.607Z | watchdog running 1→1 reclaimed none Spawned 0 |
+| 2026-08-01T09:59:04.834Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T10:15:05.193Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T10:30:03Z
+- Cards: zero-running recovery completed; `t_60092a4d` (qwen27s, animals-only bee slice owning `js/animals.js`) and fresh `t_ab4e1d1d` (local35, read-only WIP/release audit) are running. qwen35 gateway is stopped. Caps respected: global 2/7, qwen27s 1/4, qwen35 0/2, local35 1/1.
+- Verification: `node tests/smoke.mjs` exit 0; final emitted line `PASS game mace smash wire`; `git diff --check` PASS. Broad uncommitted WIP remains; dual HTML parity not re-established as a ship gate this tick because existing WIP is broad.
+- Browser: local :8767 HTTP 200, title v1.12.9. DOM `#btn-start.click()` returned `display: none` and HUD text with SPAWN/HEALTH/HUNGER/STAMINA; no console errors observed. Accessibility snapshot click remained stale, so DOM probe is authoritative and the interaction discrepancy remains follow-up.
+- Release: no commit/push; live release not claimed. Next: inspect both fresh worker artifacts independently, rerun smoke/diff/browser, and only then consider a narrowed green plateau. Decision: **continue**.
+|| 2026-08-01T10:31:55.989Z | watchdog running 2→2 reclaimed none Spawned 0 |
+|| 2026-08-01T10:47:05.659Z | watchdog running 0→0 reclaimed none Spawned 0 |
+|| 2026-08-01T11:03:06.037Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01 07:19 EDT
+- Cards: zero-running recovery dispatched `t_0c014398` (qwen27s, pure bundle-slots helper) and `t_a477e441` (local35, bounded cache-bust/browser release audit); running=2, scheduled=260, blocked=68, done=270. qwen35 gateway is stopped; caps respected (qwen27s 1/4, local35 1/1, global 2/7).
+- Verification: `node tests/smoke.mjs` PASS (exit 0; 293 assertions), `git diff --check` PASS. Dual HTML parity PASS. Full relative JS import scan reports 0 unbusted imports; current cache version is `?v=240`.
+- Browser: local :8767 HTTP 200, title v1.12.9. Direct `#btn-start.click()` hid `#title-screen` and exposed HUD/canvas; post-start console reports 0 errors. Native accessibility click remained stale, so DOM probe is authoritative.
+- Release: broad uncommitted WIP remains; no commit/push and no live release claim. Next: independently inspect both running artifacts, rerun smoke/browser after any UI/runtime diff, and keep publication closed until a narrowed green plateau. Decision: **continue**.| 2026-08-01T11:22:24.328Z | watchdog running 2→0 reclaimed t_0c014398,t_a477e441 Spawned 0 |
+| 2026-08-01T11:38:06.812Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T11:54:07.068Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T12:09:56Z
+- Cards: board was running=0; recovered by unblocking and dispatching `t_a477e441` on healthy `local35` as a bounded read-only cache-bust/browser audit. Dispatch `--max 1` spawned 1; current running=1, scheduled=261, blocked=68, done=270. qwen27s gateway is healthy but no concurrent card was added; qwen35 is stopped. Caps and hot locks are respected.
+- Verification: `node tests/smoke.mjs` exited 0 with all emitted assertions passing (including final `PASS game mace smash wire`); `git diff --check` PASS. `index.html` and `public/index.html` are byte-identical. Local entry scan shows `./js/main.js?v=240`; current source diff is broad/uncommitted across 37 tracked paths plus review/pure-module artifacts.
+- Browser: local `http://127.0.0.1:8767/` returned HTTP 200 and title `Frontier Survival v1.12.9`; browser boot console had 0 JS errors. Native browser click remained visually stale, but direct DOM `#btn-start.click()` hid `#title-screen` and exposed authoritative in-game HUD/canvas (`SPAWN`, `HEALTH`, `HUNGER`, `STAMINA`). Treat DOM probe as verified activation; accessibility discrepancy remains follow-up.
+- Release: no commit/push; live release not claimed because WIP is broad and the worker audit is still running. Next: wait for `t_a477e441` artifact, inspect it independently, then rerun smoke/diff/browser if it reports a concrete defect. Decision: **continue**.
+| 2026-08-01T12:11:01.364Z | watchdog running 1→0 reclaimed t_a477e441 Spawned 0 |
+| 2026-08-01T12:27:07.674Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T12:43:07.936Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## 2026-08-01T08:58:10-04:00 — judge tick
+- Completed: no worker card completed this tick; independently verified `node tests/smoke.mjs` exit 0 (all emitted assertions passed; final `PASS game mace smash wire`) and `git diff --check` PASS.
+- Started: zero-running recovery created and dispatched `t_52ccdd46` qwen27s (read-only release-diff audit) and `t_5ec12793` local35 (read-only browser/cache-bust audit); running=2, scheduled=262, blocked=68, done=270; qwen35 stopped.
+- Browser: local :8767 HTTP 200, title v1.12.9; DOM `#btn-start.click()` hid title overlay and exposed HUD/canvas; browser console reported 0 JS errors. Accessibility click was inconclusive and is not counted as authoritative transition.
+- Release: broad uncommitted WIP remains; no commit/push/live release claim. Dual HTML/cache-bust full gate not re-opened for ship because WIP remains broad.
+- Next action: inspect both unique audit artifacts when done, then rerun independent release gates and keep hot locks/caps enforced. Decision: **continue**.
+| 2026-08-01T12:59:08.090Z | watchdog running 2→2 reclaimed none Spawned 0 |
+| 2026-08-01T13:15:08.354Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T13:31:08.720Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## 2026-08-01T09:46:12-04:00 — judge tick
+- Completed: no worker card completed this tick. Recovered the zero-running board by unblocking and dispatching `t_8964c49f` qwen27s (read-only release-artifact audit) and `t_1249a7cc` local35 (bounded co-op browser verification); dispatch `--max 2` spawned 2, current running=2, scheduled=260, blocked=68, done=272; qwen35 stopped.
+- Verification: `node tests/smoke.mjs` exited 0 with all assertions passing; `git diff --check` PASS. `index.html` and `public/index.html` are byte-identical; relative-import scan reports 0 unbusted imports. Broad uncommitted WIP remains across 37 tracked files plus review/pure-module artifacts.
+- Browser: local :8767 served `Frontier Survival v1.12.9`; native click was inconclusive, but direct DOM `#btn-start.click()` hid the title overlay and exposed authoritative HUD/canvas; browser console had 0 JS errors.
+- Release: no commit/push/live release claim; release gate remains closed by broad WIP and pending audit artifacts. Next action: independently inspect both running audit artifacts, rerun the full release gate, and preserve hot-file ownership. Decision: **continue**.
+| 2026-08-01T13:47:12.871Z | watchdog running 2→1 reclaimed t_8964c49f Spawned 0 |
+| 2026-08-01T14:03:09.231Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T14:19:09.624Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T14:30Z
+- Cards: board recovered from `running=0` by creating and dispatching `t_3a990e5a` (qwen27s, read-only release parity audit) and `t_45e75823` (local35, read-only lifecycle audit). Both are running; qwen35 remains stopped. Current counts: running=2, ready=0, scheduled=261, blocked=68, done=273; caps and hot locks respected.
+- Verification: `node tests/smoke.mjs` exit 0; final emitted line `PASS game mace smash wire`; `git diff --check` PASS. Dual HTML parity was not made a ship claim this tick because the working tree is broad; visible entry markers are v1.12.9 and `?v=240`.
+- Browser: local `:8767` HTTP 200, title v1.12.9. Native accessibility click remained inconclusive; authoritative DOM `#btn-start.click()` hid `#title-screen`, exposed HUD/canvas and `SPAWN/HEALTH/HUNGER/STAMINA`; browser console had 0 JS errors.
+- Release: no commit/push/live-release claim; broad uncommitted WIP remains. The two fresh audit artifacts are pending independent inspection.
+- Next action: inspect both reports when done, rerun the full parity/cache-bust/diff/smoke/browser gate, and only then narrow to a deliberate release plateau. Decision: **continue**.
+| 2026-08-01T14:37:56.553Z | watchdog running 2→2 reclaimed none Spawned 0 |
+| 2026-08-01T14:53:10.137Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T15:09:10.513Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T11:25:18-04:00
+- Cards: recovered running=0 by unblocking and dispatching t_0c014398 qwen27s (pure bundle-slots helper) and t_a477e441 local35 (read-only cache-bust/browser audit); dispatch initially spawned 0 while cards were scheduled, then spawned 2 after explicit unblock. Current counts: running=2, scheduled=259, blocked=68, done=275; qwen35 stopped; caps and hot locks respected.
+- Verification: node tests/smoke.mjs exit 0 with all emitted assertions passing; git diff --check PASS; served local root HTTP 200 with expected markers.
+- Browser: local :8767 v1.12.9 booted with 0 JS errors. Native accessibility click was inconclusive; direct DOM #btn-start.click() hid #title-screen (display:none, overlay hidden) and exposed authoritative HUD/canvas text (SPAWN, HEALTH, HUNGER, STAMINA).
+- Release: broad uncommitted WIP remains across 37 tracked files plus review/pure-module artifacts; no commit/push/live release claim. Next action: inspect both running artifacts independently, rerun the full release gate, and preserve hot locks. Decision: continue.
+| 2026-08-01T15:27:27.047Z | watchdog running 2→0 reclaimed t_0c014398,t_a477e441 Spawned 0 |
+| 2026-08-01T15:43:11.166Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T15:59:11.397Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T12:16:00-04:00
+- Cards: board was at running=0; dispatch of scheduled work spawned 0, so created and dispatched bounded read-only audit t_297bf4f5 on healthy local35. Current board: running=1 (t_297bf4f5 local35), ready=0, scheduled=261, blocked=68, done=275; qwen35 stopped; caps and hot locks respected.
+- Verification: node tests/smoke.mjs exited 0 with all emitted assertions passing; final line PASS game mace smash wire; git diff --check PASS. Broad uncommitted WIP remains across 37 tracked files plus review/pure-module artifacts.
+- Browser: local :8767 HTTP 200, title Frontier Survival v1.12.9; authoritative DOM #btn-start.click() hid #title-screen and exposed HUD/canvas status including SPAWN, HEALTH, HUNGER, and STAMINA; browser console reported 0 JS errors. Native accessibility click was inconclusive.
+- Release: no commit/push/live release claim; release gate remains closed by broad WIP and pending audit. Next action: independently inspect t_297bf4f5 unique report when complete, then rerun release parity/cache-bust gates and route only a concrete non-overlapping correction. Decision: continue.
+| 2026-08-01T16:17:46.881Z | watchdog running 1→1 reclaimed none Spawned 0 |
+| 2026-08-01T16:33:11.883Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T16:49:12.412Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T17:05:13Z
+- Completed/verified: `node tests/smoke.mjs` PASS (all emitted assertions; final `PASS game mace smash wire`); `git diff --check` PASS; `index.html` and `public/index.html` byte-identical; relative JS import scan found 0 unbusted refs.
+- Browser: local :8767 HTTP 200, v1.12.9; DOM `#btn-start.click()` hid `#title-screen` and exposed authoritative HUD/canvas status (SPAWN, HEALTH, HUNGER, STAMINA); browser console 0 JS errors. Native accessibility click remained inconclusive.
+- Board/recovery: zero-running dispatch spawned 0 from the scheduled backlog, so created and dispatched fresh bounded cards `t_a2239df2` (qwen27s, `js/crafter-result.js` pure module) and `t_c690021c` (local35, unique read-only release audit). Running=2, scheduled=261, blocked=68, done=276; caps/hot locks respected; qwen35 stopped.
+- Release: broad uncommitted WIP remains; no commit/push/live release claim. Next: independently inspect both artifacts, rerun smoke/diff/browser gates, then route only concrete non-overlapping corrections. Decision: **continue**.
+| 2026-08-01T17:05:53.593Z | watchdog running 2→2 reclaimed none Spawned 0 |
+| 2026-08-01T17:21:12.753Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T17:37:13.112Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T13:53:55-04:00
+- Completed: no worker card completed this tick. Independently reran node tests/smoke.mjs (exit 0; all emitted assertions passed, final PASS game mace smash wire) and git diff --check (PASS). Dual HTML parity is equal; both entrypoints have 0 unbusted relative JS imports.
+- Browser: local :8767 and live Pages both served v1.12.9 with 0 console errors. Native accessibility Start click was inconclusive; direct DOM #btn-start.click() on each hid #title-screen and exposed the HUD/canvas authoritative started state.
+- Board/recovery: board was at running=0 with qwen35 stopped. Unblocked and dispatched t_b1d39100 (local35, bounded read-only aspect-stack audit; no hot-file source edits); dispatch spawned 1. Current running=1, scheduled=260, blocked=68, done=278; caps and hot locks respected.
+- Release: broad uncommitted WIP remains across 37 tracked files plus review/pure-module artifacts; no commit/push/live-release claim.
+- Next action: inspect t_b1d39100 artifact when complete, rerun the release gate, and route only concrete non-overlapping corrections. Decision: continue.
+| 2026-08-01T17:55:46.693Z | watchdog running 1→0 reclaimed t_b1d39100 Spawned 0 |
+| 2026-08-01T18:11:13.753Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T18:27:13.999Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T14:43:14-04:00
+- Completed: no new worker card completed this tick. Independently ran `node tests/smoke.mjs` (exit 0; all emitted assertions passed, final PASS game mace smash wire) and `git diff --check` (PASS). Local HTTP :8767 returned 200; title is v1.12.9.
+- Browser: direct DOM `#btn-start.click()` hid `#title-screen` (`display:none`) and exposed authoritative HUD/canvas status including SPAWN, HEALTH, HUNGER, and STAMINA; browser console reported 0 JS errors. Native accessibility click was inconclusive.
+- Board/recovery: running=0 initially; created and dispatched `t_7b4f4c09` (`local35`, bounded read-only served-root/cache-bust audit writing one unique report). Current running=1, scheduled=261, blocked=68, done=278; qwen27s/qwen35 lanes are parked, caps and hot locks respected.
+- Release: broad uncommitted WIP remains across 37 tracked files plus review/pure-module artifacts; no commit/push/live release claim. Next action: inspect `t_7b4f4c09` artifact when complete, rerun parity/cache-bust/release gates, and route only concrete non-overlapping corrections. Decision: **continue**.
+| 2026-08-01T18:45:24.094Z | watchdog running 1→1 reclaimed none Spawned 0 |
+| 2026-08-01T19:01:14.669Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T19:17:14.933Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+
+## Judge tick — 2026-08-01T15:34:21-04:00
+- Verification: `node tests/smoke.mjs` exited 0 (all emitted assertions passed; final emitted assertion `PASS game mace smash wire`); `git diff --check` PASS. Current working tree remains broad WIP (37 tracked files plus untracked modules/review artifacts).
+- Browser: local `http://127.0.0.1:8767/` HTTP 200, title `Frontier Survival v1.12.9`; direct DOM `#btn-start.click()` hid `#title-screen` and exposed authoritative HUD/canvas (`SPAWN`, `HEALTH`, `HUNGER`, `STAMINA`); console 0 JS errors. Native accessibility click remained inconclusive.
+- Board/recovery: board started at running=0. Unblocked `t_0c014398` qwen27s (bounded pure bundle-slots slice) and created/dispatched `t_2a9b08a1` local35 (read-only served-root parity audit); `dispatch --max 2` spawned 2. Current counts: running=2, scheduled=260, blocked=68, done=279; depth caps and hot locks respected. Created and dispatched correction `t_986e6dde` for dead pure-module runtime reachability found by the independent release audit; it is now running on qwen27s.
+- Release: no commit/push/live-release claim; parity/cache-bust scan is currently clean (`index.html == public/index.html`, 0 unbusted relative imports), but release gate remains closed by broad WIP and independently reported dead-code/untracked-test gaps.
+- Next action: inspect the two active artifacts independently, verify the pure helper result, then route/verify the runtime wiring correction and rerun smoke + browser. Decision: **continue**.
+| 2026-08-01T19:35:20.130Z | watchdog running 3→2 reclaimed t_0c014398 Spawned 0 |
+| 2026-08-01T19:51:15.474Z | watchdog running 1→0 reclaimed t_986e6dde Spawned 0 |
+| 2026-08-01T20:07:15.887Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T16:24:41-04:00
+- Cards: zero-running recovery completed. Unblocked `t_986e6dde` (`qwen27s`, bounded trial-key runtime wiring) and created/dispatched `t_a66b83bc` (`local35`, read-only served-root parity audit). Current running=2, scheduled=261, blocked=69, done=279; caps qwen27s=1/local35=1/global=2, no hot-lock conflict observed.
+- Verification: `node tests/smoke.mjs` exit 0 with 295 PASS lines; `git diff --check` PASS. Targeted diff inspection confirms current WIP includes trial-key/ominous-key/bolt-trim imports and state wiring in `js/game.js`; no worker completion was accepted yet.
+- Browser/live: local :8767 HTTP 200, v1.12.9; direct DOM Start probe hid `#title-screen` and exposed HUD/status (`SPAWN`, `HEALTH`, `HUNGER`, `STAMINA`); console 0 JS errors. Live Pages HTTP 200 and v1.12.9 marker, but no release claim.
+- Release: `index.html` and `public/index.html` byte-identical; current scan found 0 unbusted relative imports. Broad uncommitted WIP remains; no commit/push.
+- Next action: independently inspect both active card artifacts when they complete, rerun smoke/diff/browser if runtime changes land, then decide whether a green release gate exists. Decision: **continue**.
+| 2026-08-01T20:24:58.256Z | watchdog running 2→1 reclaimed t_986e6dde Spawned 0 |
+| 2026-08-01T20:40:16.439Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T20:56:16.821Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T17:13:14-04:00
+- Cards: recovered zero-running board with two fresh bounded read-only audits: `t_900a1e32` qwen27s (release parity/cache-bust) and `t_e6358b2b` local35 (runtime lifecycle). Both claimed and running; qwen35 stopped. Counts at dispatch: running=2, scheduled=262, blocked=69, done=280; depth/hot-lock caps respected.
+- Verification: `node tests/smoke.mjs` exit 0; all emitted assertions passed (including final `PASS game mace smash wire`); `git diff --check` PASS. Working tree remains broad WIP (76 changed/untracked paths); no commit/push.
+- Browser: local `http://127.0.0.1:8767/` HTTP 200, title v1.12.9. Direct DOM `#btn-start.click()` hid `#title-screen`, exposed authoritative HUD/canvas status (`SPAWN`, `HEALTH`, `HUNGER`, `STAMINA`), and browser console reported 0 JS errors. Native accessibility click remained inconclusive.
+- Release: `index.html` and `public/index.html` are byte-identical; relative ES import scan found 0 unbusted refs; no live-release claim because broad WIP and pending audits keep the gate closed.
+- Next action: inspect both audit artifacts when complete, rerun smoke/diff/browser as needed, then route only concrete non-overlapping corrections. Decision: **continue**.
+| 2026-08-01T21:13:25.756Z | watchdog running 2→2 reclaimed none Spawned 0 |
+| 2026-08-01T21:29:17.474Z | watchdog running 1→0 reclaimed t_e6358b2b Spawned 0 |
+| 2026-08-01T21:45:17.798Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T18:01:49-04:00
+- Cards: started t_2e6870d6 (qwen27s, read-only release parity audit); no completions this tick.
+- Board envelope: 0 running at triage, then bounded dispatch spawned t_2e6870d6; afterward 1 running, 263 scheduled, 69 blocked, 281 done. Caps respected.
+- Verification: node tests/smoke.mjs PASS — 293 tests passed; git diff --check PASS.
+- Browser/local: :8767 HTTP 200, served v1.12.9; boot console 0 errors; DOM Start probe hid title screen and exposed HUD/status. Live Pages not checked/treated as shipped.
+- Git/release: broad uncommitted WIP; index.html/public/index.html byte-identical; scanned entry relative JS import uses ?v=240; no commit/push.
+- Next action: let t_2e6870d6 produce its unique audit artifact, then independently inspect it and dispatch the next non-overlapping bounded lane. Decision: continue.
+| 2026-08-01T22:03:18.213Z | watchdog running 1→2 reclaimed none Spawned 1 |
+| 2026-08-01T18:13:36-0400 | oss20b queue: 20 pure modules judge-landed+completed; smoke315; worker thrash empty on first card; qwen left alone |
+| 2026-08-01T22:19:18.243Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T22:35:18.688Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T18:50:08-04:00
+- Cards: zero-running recovery dispatched t_986e6dde (qwen27s, bounded trial-key/ominous-key runtime wiring; js/game.js hot lock). It is running with run 1673; no completion accepted. qwen35 is stopped; oss20b profile is not independently running.
+- Board envelope: after dispatch running=1, scheduled=262, blocked=69, done=302; caps respected and no competing hot owner.
+- Verification: node tests/smoke.mjs PASS (293 PASS lines in current suite); git diff --check reports the pre-existing tests/smoke.mjs blank line at EOF.
+- Browser/local: http://127.0.0.1:8767/ HTTP 200, served title v1.12.9; console 0 JS errors. DOM #btn-start.click() hid #title-screen and exposed authoritative HUD/status (SPAWN, HEALTH, HUNGER, STAMINA). Live not treated as shipped.
+- Release: index.html and public/index.html byte-identical (33,015 bytes), working-tree cache-bust marker ?v=240; broad uncommitted WIP remains, no commit/push.
+- Next action: let t_986e6dde finish, independently inspect its diff and rerun smoke/diff/browser; route a surgical correction if the observed game.js accessor wiring defect remains. Decision: **continue**.
+| 2026-08-01T22:52:02.395Z | watchdog running 1→0 reclaimed t_986e6dde Spawned 0 |
+| 2026-08-01T23:07:19.177Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T23:23:19.416Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01T19:39:27-04:00
+- Board: recovered zero-running state by unblocking and dispatching t_986e6dde to qwen27s; running=1, scheduled=262, blocked=69, done=302. qwen35 and oss20b gateways are stopped; no conflicting second lane dispatched.
+- Cards: t_986e6dde active bounded correction for unresolved trial-key/armor-trim identifiers in js/game.js; current hot-path owner is qwen27s.
+- Verification: PASS hash2 deterministic
+PASS hash2_uniformity: range [0,1)
+PASS hash2_uniformity: mean near 0.5
+PASS hash2_uniformity: bin distribution balanced
+PASS hash2_uniformity: large-integer-safety mean
+PASS fbm in range
+PASS heightAt finite
+PASS blocks solid flags
+PASS noon warmer than midnight
+PASS snow colder ambient
+PASS starvation damages over time
+PASS cold night without fire kills eventually
+PASS campfire heat prevents freeze in same scenario window
+PASS sprint requires stamina
+PASS eat food restores hunger
+PASS applyDamage can kill
+PASS starter inventory has rations
+PASS add and remove items
+PASS craft planks from log
+PASS craft campfire chain
+PASS craft fails without ingredients
+PASS visible recipes non-empty
+PASS tools speed matching blocks
+PASS coal ore drops coal item
+PASS raw meat cookable and risky
+PASS cook meat recipe needs heat context
+PASS fauna species and meat drops
+PASS atlas tiles map blocks and cracks
+PASS equipment warmth and equip
+PASS sleep gates and rest
+PASS cloth and bed recipes
+PASS ambient mix day vs night fire rain
+PASS greedy mesh merges flat top faces
+PASS save roundtrip preserves seed inventory edits
+PASS difficulty modes defined
+PASS difficulty modes monotonic ordering
+PASS difficulty modes blurb consistency
+PASS settings roundtrip + sensitivity map
+PASS playMode solo|coop parse serialize
+PASS fall damage thresholds
+PASS spear and stone axe craftable
+PASS cold damage mult slows harmless hypothermia
+PASS starter inventory respects ration count
+PASS v1.2 bow and spoilage
+PASS v1.3 chest boat fishing
+PASS v1.4 exposure armor spoil fish
+PASS v1.5 blocks items bleed
+PASS bear SPECIES exists hostile damage>10
+PASS splitStack from inventory: add 10 sticks, split → two stacks
+PASS DEFAULT_SURVIVAL has bleed field
+PASS craft glass needs heat — fails without heat
+PASS BLOCK.CLAY drop is CLAY_BALL
+PASS desertHeat raises feelsLike and bodyTemp
+PASS feedItem fields set on hare deer wolf
+PASS canFeed returns true for matching feed item
+PASS canFeed returns false for wrong feed item
+PASS canFeed returns false for dead animal
+PASS tryFeed hare with berries progresses tame 0→15
+PASS tryFeed reaches tamed at 100
+PASS tryFeed wolf never becomes tamed
+PASS tryFeed wrong item returns fed:false
+PASS tryFeed non-existent animal type returns fed:false
+PASS tryFeed dead animal returns fed:false
+PASS deer tame progression
+PASS tickLogic: simple line SOURCE→WIRE→LAMP all powered
+PASS tickLogic: branch SOURCE→WIRE with two LAMPs
+PASS tickLogic: unpowered lamp when disconnected
+PASS tickLogic: no sources means nothing powered
+PASS biomeAt deterministic
+PASS biomeAt returns known biome strings
+PASS biomeAt origin sample
+PASS biomeAt shore near sea-level seed
+PASS ambientTempOffset desert +8
+PASS ambientTempOffset tundra -10
+PASS ambientTempOffset shore +2
+PASS ambientTempOffset forest 0
+PASS biome_temp_table complete mapping
+PASS biome_temp_table unknown biome returns default 0
+PASS biome_temp_table all BIOME constants have entries
+PASS biome_temp_table values are distinct
+PASS biome_temp_table desert + shore offset interaction
+PASS BIOME constant values
+PASS tickSurvival ambientTempOffset desert makes it hotter
+PASS tickSurvival ambientTempOffset tundra makes it colder
+PASS biomeAt returns valid biome for any coordinate
+PASS biomeAt produces multiple biome types across map
+PASS tamed non-hostile animal does not flee
+PASS tamed flag persists after tryFeed
+PASS canFeed works for wolf with raw_meat
+PASS canFeed returns false for species without feedItem (bear)
+PASS tryFeed wolf gets calm but no tame progress
+PASS ITEM.BERRIES and ITEM.RAW_MEAT values match _FEED_ID
+PASS emptyAchievements starts with no unlocks
+PASS unlockAchievement on valid id sets changed:true and queues
+PASS unlockAchievement idempotent — second call returns changed:false
+PASS unlockAchievement ignores empty/null/undefined ids
+PASS unlockAchievement ignores unknown achievement ids
+PASS unlockAchievement queues multiple distinct achievements
+PASS popAchievementToast returns null when queue empty
+PASS popAchievementToast drains queue in FIFO order
+PASS popAchievementToast preserves unlocked record after drain
+PASS achievementTitle returns known title for valid id
+PASS achievementTitle falls back to id for unknown
+PASS achievementDesc returns known description
+PASS achievementDesc returns empty string for unknown id
+PASS ACHIEVEMENTS array has expected count and structure
+PASS ACHIEVEMENTS ids are unique
+PASS v1.8 bucket map wall generator recipes
+PASS v1.8 spoilage slows with rateMult
+PASS v1.8 tickLogic Map form with generator
+PASS chicken SPECIES exists passive feed seeds
+PASS boar SPECIES exists hostile high-hide
+PASS sequoia blocks and world placer exist
+PASS spawn marker HUD hooks present in index
+PASS full grace suppresses starvation damage
+PASS full grace suppresses hypothermia damage
+PASS full grace keeps hunger above lethal floor
+PASS grace expiration restores lethal hunger damage
+PASS grace expiration restores cold damage
+PASS zero grace behaves like no grace param
+PASS grace > 0.5 hard-floors bodyTemp above damage band
+PASS grace dampens wetness gain
+PASS input-coop module exports
+PASS input-coop: default mapping assigns no pads
+PASS input-coop: readGamepad deadzone logic
+PASS input-coop: P1 and P2 constants
+PASS coop-state: serializeCoopGameState with full game object
+PASS coop-state: serializeCoopGameState with null/missing fields
+PASS viewport-split: 16:9 input returns full-coverage rects in lr mode
+PASS viewport-split: too-wide viewport adds side letterbox bars
+PASS viewport-split: too-tall viewport adds top/bottom letterbox bars
+PASS viewport-split: tb mode splits vertically
+PASS viewport-split: invalid mode throws
+PASS viewport-split: non-numeric input throws
+PASS gamepad-slot: initial state — both slots free
+PASS gamepad-slot: first pad connects to slot 0
+PASS gamepad-slot: second pad connects to slot 1
+PASS gamepad-slot: third pad returns -1 (no free slots)
+PASS gamepad-slot: disconnect frees the slot
+PASS gamepad-slot: new pad takes freed slot
+PASS gamepad-slot: disconnect unknown index returns -1
+PASS gamepad-slot: reconnect same index reassigns
+PASS gamepad-slot: reset clears all
+PASS gamepad-slot: getConnectedIndices returns tracked indices
+PASS gamepad-slot: duplicate connect returns existing slot
+PASS input-coop: slot mapping defaults to -1 for both players
+PASS input-coop: setPlayerGamepad assigns and retrieves indices
+PASS input-coop: KBM player can be configured at construction
+PASS input-coop: getMoveLook returns zeroed defaults
+PASS input-coop: getMoveLook reflects mock movement
+PASS input-coop: wantsJump via mock state
+PASS input-coop: wantsSprint via mock state
+PASS input-coop: wantsCrouch via mock state
+PASS input-coop: consumePlace is one-shot
+PASS input-coop: consumeUse is one-shot
+PASS input-coop: unbind resets all state
+PASS input-coop: wantsJump via keyboard mock keys
+PASS input-coop: wantsSprint via keyboard mock keys
+PASS input-coop: wantsCrouch via keyboard mock keys
+
+159 tests passed
+PASS gamepad-button-map: has all expected indices
+PASS gamepad-button-map: no duplicate actions
+PASS gamepad-axis-map: has all expected indices
+PASS gamepad-axis-map: standard names present
+PASS trigger-button-map: L2 and R2 entries exist
+PASS PadInputAdapter movement thresholds
+PASS coop save player2 roundtrip v2
+PASS fauna nearest of two players deals damage to closer
+PASS friendlyFire default false in settings
+PASS game source has coop death and p2 bow hooks
+PASS coop-perf-budget doc exists
+PASS wouldPartnerNearForSleep near and far
+PASS effectiveCoopRenderDistance bias
+PASS isBothPlayersDown both and partial
+PASS livingPartnerCount counts
+PASS coopPixelRatioCap caps DPR
+PASS clamp01 clamps to [0,1] and rejects non-finite
+PASS forest tree density constant half of prior 0.08
+PASS BIOME.OCEAN is "ocean"
+PASS BIOME.TROPICAL is "tropical"
+PASS ambientTempOffset tropical > forest
+PASS ocean and tropical biomes exist
+PASS lerp uses clamp01 for t
+PASS invLerp basic round-trip with lerp
+PASS building-shapes: stair/slab/door/fence pure recipes and lookups
+PASS tool-tiers: order harvest speed and item mapping
+PASS smelting: fuel and recipes pure table
+PASS crafting lists shape building recipes
+PASS ore-drops pure catalog
+PASS station-catalog pure tags
+PASS mine-tier helpers
+PASS roof-shapes pure
+PASS hotbar-cycle dual pad edges
+PASS roof corner stairs shape
+PASS mine-tier resolveBlockDrop prefers ore catalog
+PASS furnace-tick smelts with fuel
+PASS barrel-storage add remove count
+PASS input-coop cycleHotbar API
+PASS anvil-repair combines durability
+PASS slab-place half from pitch
+PASS game source wires resolveBlockDrop and furnace-tick
+PASS stair-place facing from yaw
+PASS bow-draw charge curve
+PASS crop-growth advance and stages
+PASS door-hinge toggle
+PASS game wires slab half place
+PASS coop_mode_flag: getPlayMode validates solo/coop
+PASS coop_mode_flag: DEFAULT_SETTINGS playMode is solo
+PASS coop_mode_flag: parseSettings preserves coop mode
+PASS coop_mode_flag: parseSettings invalid playMode defaults to solo
+PASS coop_mode_flag: parseSettings missing playMode defaults to solo
+PASS coop_mode_flag: serializeSettings round-trips coop mode
+PASS coop_mode_flag: serializeSettings round-trips solo mode
+PASS coop_mode_flag: SETTINGS_KEY is defined
+PASS coop_state: clonePlayer shallow copies slots
+PASS coop_state: clonePlayer null returns null
+PASS coop_state: cloneSurvivalState merges over DEFAULT_SURVIVAL
+PASS coop_state: cloneSurvivalState null uses defaults
+PASS coop_state: serializeCoopGameState serializes player1 and player2
+PASS coop_state: serializeCoopGameState handles null game
+PASS sign-text sanitize
+PASS fence-gate toggle
+PASS ladder-climb helpers
+PASS game wires stair face and crop-growth
+PASS chest-lock owner rules
+PASS torch-falloff distance
+PASS compass-bearing basics
+PASS bed-facing from yaw
+PASS game uses toggleDoor helper
+PASS water-level helpers
+PASS item-frame rotate
+PASS lever-power toggle
+PASS pressure-plate edges
+PASS game wires bed facing
+PASS hopper-buffer insert extract
+PASS piston-push count
+PASS daylight-sensor power
+PASS trapdoor toggle
+PASS game compass HUD uses bearing helpers
+PASS cauldron-level fill drain
+PASS enchant-cost curve
+PASS brewing-step chain
+PASS beacon-pyramid tiers
+PASS noteblock-pitch
+PASS smoker-speed faster than furnace
+PASS blast-furnace-speed ore
+PASS campfire-cook slots
+PASS grindstone-repair combine
+PASS stonecutter-recipe picks
+PASS loom-pattern layers
+PASS cartography-zoom
+PASS smithing-upgrade stub
+PASS composter-fill levels
+PASS furnace-tick speedMult cooks faster
+PASS barrel-open toggle
+PASS shulker-box slots
+PASS ender-chest keyed store
+PASS respawn-anchor charge
+PASS game furnace tick uses speedMult
+PASS scaffolding helpers
+PASS honey-slide mult
+PASS powder-snow sink freeze
+PASS dripstone-fall damage
+PASS amethyst-grow stages
+PASS copper-oxidize stages
+PASS lightning-rod redirect
+PASS sculk-spread charge
+PASS frogspawn hatch
+PASS mangrove-propagule grow
+PASS sniffer-egg hatch
+PASS pitcher-crop age
+PASS torchflower age
+PASS calibrated-sculk filter
+PASS player source wires honey mult
+PASS brushable-block progress
+PASS decorated-pot sherds
+PASS chiseled-bookshelf slots
+PASS suspicious-sand brush
+PASS player powder-snow wire
+PASS crafter-recipe match
+PASS vault-reward once
+PASS trial-spawner waves
+PASS ominous-bottle amp
+PASS player scaffolding climb wire
+PASS breeze-charge knockback
+PASS wind-charge burst
+PASS mace-smash fall bonus
+PASS wolf-armor durability
+PASS armadillo-scute drop
+PASS bogged-arrow tip
+PASS crafter-enabled latch
+PASS heavy-core craft gate
+PASS flow-armor-trim
+PASS ominous-trial-key flag
+PASS trial-key vault flag
+PASS game mace smash wire
+PASS oss20b banner-pattern
+PASS oss20b composter-chance
+PASS oss20b jukebox-song
+PASS oss20b respawn-anchor-explode
+PASS oss20b lodestone-compass
+PASS oss20b spyglass-zoom
+PASS oss20b goat-horn
+PASS oss20b brush-wear
+PASS oss20b pottery-sherd
+PASS oss20b sniffer-seed
+PASS oss20b camel-dash
+PASS oss20b warden-anger
+PASS oss20b sculk-shrieker
+PASS oss20b allay-duplication
+PASS oss20b axolotl-variant
+PASS oss20b frog-variant
+PASS oss20b tadpole-age
+PASS oss20b boat-chest
+PASS oss20b hanging-sign
+PASS oss20b chiseled-bookshelf-signal PASS, 293? emitted PASS lines plus final  summary (exit 0); tests/smoke.mjs:3279: new blank line at EOF. FAIL only on  blank line at EOF.
+- Browser: local :8767 HTTP 200, title v1.12.9; direct  hid title overlay and exposed HUD/canvas; console 0 errors. Native accessibility click was inconclusive.
+- Release: broad uncommitted WIP; dual HTML parity not re-claimed this tick; no commit/push/live release claim.
+- Next: wait for t_986e6dde artifact, independently inspect game.js call sites, rerun smoke/diff-check, then route a surgical EOF cleanup if still needed.
+- Decision: continue.
+
+## Judge tick correction — 2026-08-01T19:40:10-04:00
+- The immediately preceding append was malformed by shell backtick expansion; this append is the authoritative record for the tick and preserves the prior append-only history.
+- Board recovery: t_986e6dde dispatched to qwen27s; running=1, scheduled=262, blocked=69, done=302.
+- Verification: node tests/smoke.mjs exit 0; git diff --check has one existing blank EOF line at tests/smoke.mjs:3279.
+- Browser: local 8767 HTTP 200, v1.12.9; DOM start probe hid title overlay and exposed HUD/canvas; browser console 0 errors.
+- Release: broad uncommitted WIP; no commit, push, or live release claim.
+- Next action: inspect t_986e6dde output, rerun independent gates, then route surgical EOF correction if still present.
+- Decision: continue.
+| 2026-08-01T23:42:26.424Z | watchdog running 1→0 reclaimed t_986e6dde Spawned 0 |
+| 2026-08-01T23:58:20.026Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-01T20:13:09-0400 | SHIP v1.13.0 honey/powder-snow/scaffolding/smoker/mace playable + recipes; luna worker created; smoke316 |

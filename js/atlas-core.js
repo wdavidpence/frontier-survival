@@ -1,7 +1,7 @@
 /**
  * Pure atlas tile math — no DOM/Three (unit-testable).
  */
-import { BLOCK } from './blocks.js?v=216';
+import { BLOCK } from './blocks.js?v=250';
 
 export const TILE_PX = 32;
 export const ATLAS_N = 8;
@@ -60,6 +60,7 @@ export const TILE = {
   SPRUCE_LOG_SIDE: 49,
   SPRUCE_LOG_TOP: 50,
   SPRUCE_LEAVES: 51,
+  GLASS_PANE_THIN: 52,
 };
 
 /** UV corners: bl, tl, tr, br in atlas space */
@@ -166,6 +167,18 @@ export function tileForBlock(blockId, faceDir) {
       return faceDir === 'top' || faceDir === 'bottom' ? TILE.SPRUCE_LOG_TOP : TILE.SPRUCE_LOG_SIDE;
     case BLOCK.SPRUCE_LEAVES:
       return TILE.SPRUCE_LEAVES;
+    case BLOCK.GLASS_PANE_THIN:
+      return TILE.GLASS_PANE_THIN;
+    case BLOCK.STAIRS_WOOD:
+    case BLOCK.SLAB_WOOD:
+    case BLOCK.SCAFFOLDING:
+      return TILE.PLANKS;
+    case BLOCK.HONEY_BLOCK:
+      return TILE.SANDSTONE;
+    case BLOCK.POWDER_SNOW:
+      return TILE.SNOW;
+    case BLOCK.SMOKER:
+      return TILE.FURNACE;
     default:
       return TILE.STONE;
   }

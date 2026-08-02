@@ -1,0 +1,24 @@
+You are coding ONLY in /mnt/c/Users/wdavi/Projects/Frontier-Survival.
+
+GOAL: Finish playable v1.13.0 feature pack. Parts may already exist — check before rewriting.
+
+ALREADY LIKELY PRESENT (do not break; extend if incomplete):
+- BLOCK.HONEY_BLOCK=49, POWDER_SNOW=50, SCAFFOLDING=51, SMOKER=52 in js/blocks.js + BLOCK_PROPS
+- atlas-core.js tileForBlock maps for those + stairs/slab
+- ITEM.MACE=148 + ITEM_PROPS
+- crafting recipes honey_block, powder_snow, scaffolding, smoker, mace
+- game.js furnace F-use also handles BLOCK.SMOKER with speedMult=2
+
+YOUR JOB (surgical Edit only; NO whole-file rewrite of game.js/items.js):
+1) game.js place path after setBlock: notify for HONEY_BLOCK, POWDER_SNOW, SCAFFOLDING, SMOKER; on SMOKER place create furnace state with speedMult=2 in this._furnaces
+2) preferredTool in items.js: smoker like furnace (pick); honey/scaffolding axe-friendly optional
+3) tests/smoke.mjs: add tests that BLOCK.HONEY_BLOCK/POWDER_SNOW/SCAFFOLDING/SMOKER exist with correct name substrings (honey, powder+snow, scaffold); ITEM.MACE name includes mace; recipes honey_block/smoker/mace exist via visibleRecipes or RECIPES export
+4) Bump version to v1.13.0: index.html + public/index.html title/version + main.js boot string + game.js?v= and main.js?v= cache bust (use ?v=250)
+5) Run: node tests/smoke.mjs — must PASS
+6) NO git commit/push unless smoke green and you only changed needed files
+7) Never git reset/clean/checkout
+
+Constraints:
+- ADD-ONLY, no feature removal
+- Prefer Edit/Patch not full Write on large files
+- Sync index.html and public/index.html when HTML changes

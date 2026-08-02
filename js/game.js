@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=220';
-import { Player } from './player.js?v=238';
-import { Input } from './input.js?v=220';
-import { GameTime } from './time.js?v=220';
-import { AudioBus } from './audio.js?v=220';
+import { World } from './world.js?v=240';
+import { Player } from './player.js?v=250';
+import { Input } from './input.js?v=240';
+import { GameTime } from './time.js?v=240';
+import { AudioBus } from './audio.js?v=240';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=220';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=220';
+} from './survival.js?v=240';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=250';
 import {
   ITEM,
   propsOf,
@@ -19,23 +19,23 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=220';
-import { resolveBlockDrop } from './mine-tier.js?v=220';
+} from './items.js?v=250';
+import { resolveBlockDrop } from './mine-tier.js?v=240';
 import {
   createFurnaceState,
   insertFuel,
   insertInput,
   tickFurnace,
   takeOutput,
-} from './furnace-tick.js?v=232';
-import { isFuel, canSmelt } from './smelting.js?v=220';
-import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=220';
-import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=220';
-import { advanceCropGrowth } from './crop-growth.js?v=220';
-import { toggleDoor } from './door-hinge.js?v=220';
-import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=220';
-import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=220';
-import { maceSmashDamage } from './mace-smash.js?v=220';
+} from './furnace-tick.js?v=240';
+import { isFuel, canSmelt } from './smelting.js?v=240';
+import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=240';
+import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=240';
+import { advanceCropGrowth } from './crop-growth.js?v=240';
+import { toggleDoor } from './door-hinge.js?v=240';
+import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=240';
+import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=240';
+import { maceSmashDamage } from './mace-smash.js?v=240';
 import {
   addItems,
   removeItems,
@@ -47,11 +47,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=220';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=220';
-import { createBlockAtlas } from './atlas.js?v=220';
-import { BreakFX } from './fx.js?v=220';
+} from './inventory.js?v=240';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=240';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=240';
+import { createBlockAtlas } from './atlas.js?v=240';
+import { BreakFX } from './fx.js?v=240';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -61,35 +61,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=220';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=220';
+} from './equipment.js?v=240';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=240';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=220';
-import { getMode } from './modes.js?v=220';
+} from './save.js?v=240';
+import { getMode } from './modes.js?v=240';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=220';
+} from './settings.js?v=240';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=220';
-import { tickSpoilage } from './spoilage.js?v=220';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=220';
-import { wearTool, durabilityRatio } from './durability.js?v=220';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=220';
-import { tickLogic, COMPONENT } from './logic.js?v=220';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=220';
+} from './achievements.js?v=240';
+import { tickSpoilage } from './spoilage.js?v=240';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=240';
+import { wearTool, durabilityRatio } from './durability.js?v=240';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=240';
+import { tickLogic, COMPONENT } from './logic.js?v=240';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=240';
 import {
   chestKey,
   getChestSlots,
@@ -100,12 +100,15 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=220';
-import { checkTooltip, show as showTooltip } from './tooltips.js?v=220';
-import { splitViewport } from './viewport-split.js?v=220';
-import { readGamepad } from './input-coop.js?v=220';
-import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=220';
-import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=220';
+} from './chests.js?v=240';
+import { checkTooltip, show as showTooltip } from './tooltips.js?v=240';
+import { splitViewport } from './viewport-split.js?v=240';
+import { readGamepad } from './input-coop.js?v=240';
+import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=240';
+import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=240';
+import { createTrialKey, trialKeyPickup, hasTrialKey as hasTrialKeyFn } from './trial-key.js?v=240';
+import { createOminousTrialKey, hasOminousTrialKey as hasOminousTrialKeyFn, useOminousTrialKey, grantOminousTrialKey as grantOminousTrialKeyFn } from './ominous-trial-key.js?v=240';
+import { BOLT_TRIM_ID, ARMOR_TRIM_PATTERNS, isValidArmorTrim as isValidArmorTrimFn, applyArmorTrim as applyArmorTrimFn, isBoltTrim } from './bolt-armor-trim.js?v=240';
 
 export class Game {
   /**
@@ -189,6 +192,12 @@ export class Game {
     this._crops = new Map(); // "x,y,z" -> growth 0..1
     this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0 };
     this._achievements = emptyAchievements();
+    /** Trial key state (MC 1.21). */
+    this._trialKey = createTrialKey();
+    /** Ominous trial key state (MC 1.21). */
+    this._ominousTrialKey = createOminousTrialKey();
+    /** Bolt armor trim reference. */
+    this._boltTrimId = BOLT_TRIM_ID;
     this._toastId = null;
     this._toastT = 0;
     this._debugOpen = false;
@@ -551,6 +560,8 @@ export class Game {
       this.time = new GameTime({ dayLengthSec: 420 });
       this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0 };
       this._achievements = emptyAchievements();
+      this._trialKey = createTrialKey();
+      this._ominousTrialKey = createOminousTrialKey();
       this._crops = new Map();
       this._spawnCoopP2(spawn);
     } else {
@@ -609,6 +620,9 @@ export class Game {
       }
       this._crops = new Map(Array.isArray(saveData.crops) ? saveData.crops : []);
       this._chests = importChests(saveData.chests || []);
+      // restore trial key states (MC 1.21)
+      this._trialKey = saveData.trialKey ? { ...saveData.trialKey } : createTrialKey();
+      this._ominousTrialKey = saveData.ominousTrialKey ? { ...saveData.ominousTrialKey } : createOminousTrialKey();
       // restore starter spawn pin (fallback to world spawn for older saves)
       if (saveData.spawnPos && Number.isFinite(saveData.spawnPos.x)) {
         this._spawnPos = {
@@ -714,6 +728,18 @@ export class Game {
       case 'first_bucket': this._firstBucketSeen = true; break;
     }
   }
+
+  // Trial key runtime accessors (MC 1.21).
+  pickupTrialKey() { this._trialKey = trialKeyPickup(this._trialKey); }
+  useTrialKeyVault(vaultId) { return trialKeyUse(this._trialKey, vaultId); }
+  hasTrialKey() { return hasTrialKey(this._trialKey); }
+
+  grantOminousTrialKey() { this._ominousTrialKey = grantOminousTrialKeyFn(this._ominousTrialKey); }
+  consumeOminousTrialKey() { this._ominousTrialKey = useOminousTrialKey(this._ominousTrialKey); }
+  hasOminousTrialKey() { return hasOminousTrialKey(this._ominousTrialKey); }
+
+  applyArmorTrim(item, patternId, material) { return applyArmorTrim(item, patternId, material); }
+  isValidArmorTrim(pid) { return isValidArmorTrim(pid); }
 
   _surfaceName(blockId) {
     if (blockId === BLOCK.GRASS) return 'grass';
@@ -1043,7 +1069,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=220').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=240').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -1092,6 +1118,8 @@ export class Game {
       achievements: this._achievements?.unlocked || {},
       crops: [...(this._crops || new Map()).entries()],
       chests: exportChests(this._chests),
+      trialKey: this._trialKey ? { ...this._trialKey } : null,
+      ominousTrialKey: this._ominousTrialKey ? { ...this._ominousTrialKey } : null,
     };
   }
 
@@ -2412,6 +2440,17 @@ export class Game {
         this._unlock('first_fire');
         this._campFuel.set(`${px|0},${py|0},${pz|0}`, 80);
       }
+      if (blockId === BLOCK.HONEY_BLOCK || blockId === BLOCK.POWDER_SNOW || blockId === BLOCK.SCAFFOLDING) {
+        this.player.notify(`${displayName(blockId)} placed.`, 1.6);
+      }
+      if (blockId === BLOCK.SMOKER) {
+        const key = `${px|0},${py|0},${pz|0}`;
+        const st = createFurnaceState();
+        st.speedMult = 2;
+        this._furnaces.set(key, st);
+        this.player.notify('Smoker placed. F to feed fuel/food (2× cook).', 2);
+        this._scanLights(true);
+      }
       if (blockId === BLOCK.DOOR_CLOSED || blockId === BLOCK.DOOR_OPEN) {
         this._unlock('first_door');
       }
@@ -2675,22 +2714,24 @@ export class Game {
       }
     }
 
-    // Feed furnace fuel / smelt input via pure furnace-tick (keeps campfire heat map for warmth)
-    if (hit && hit.id === BLOCK.FURNACE) {
+    // Feed furnace/smoker fuel / smelt input via pure furnace-tick (keeps campfire heat map for warmth)
+    if (hit && (hit.id === BLOCK.FURNACE || hit.id === BLOCK.SMOKER)) {
       const k = `${hit.x|0},${hit.y|0},${hit.z|0}`;
+      const isSmoker = hit.id === BLOCK.SMOKER;
       if (!this._furnaces.has(k)) {
         const st0 = createFurnaceState();
-        st0.speedMult = 1; // smoker/blast can set 2 later
+        st0.speedMult = isSmoker ? 2 : 1;
         this._furnaces.set(k, st0);
       }
       const st = this._furnaces.get(k);
+      if (st.speedMult == null) st.speedMult = isSmoker ? 2 : 1;
       // Empty hand: take finished output
       if (held.id == null || held.count <= 0) {
         const out = takeOutput(st);
         if (out) {
           const add = addItems(this.player.slots, out.id, out.count);
           this.player.slots = add.slots;
-          this.player.notify(`Furnace → +${out.count} ${displayName(out.id)}`, 2.2);
+          this.player.notify(`${isSmoker ? 'Smoker' : 'Furnace'} → +${out.count} ${displayName(out.id)}`, 2.2);
           this.audio.ui?.() || this.audio.placeBlock();
           return;
         }
@@ -2705,7 +2746,7 @@ export class Game {
           f += held.id === BLOCK.LOG ? 50 : held.id === ITEM.STICK ? 14 : 32;
           this._campFuel.set(k, Math.min(150, f));
           this.audio.placeBlock();
-          this.player.notify('You fed the furnace.', 1.8);
+          this.player.notify(isSmoker ? 'You fed the smoker.' : 'You fed the furnace.', 1.8);
           return;
         }
       }
@@ -2715,7 +2756,7 @@ export class Game {
           this.player.slots = cons.slots;
           insertInput(st, held.id, 1);
           this.audio.placeBlock();
-          this.player.notify(`Furnace: smelting ${displayName(held.id)}…`, 2);
+          this.player.notify(`${isSmoker ? 'Smoker' : 'Furnace'}: smelting ${displayName(held.id)}…`, 2);
           return;
         }
       }
@@ -2729,7 +2770,7 @@ export class Game {
           f += held.id === BLOCK.LOG ? 50 : held.id === ITEM.STICK ? 14 : 32;
           this._campFuel.set(k, Math.min(150, f));
           this.audio.placeBlock();
-          this.player.notify('You fed the furnace.', 1.8);
+          this.player.notify(isSmoker ? 'You fed the smoker.' : 'You fed the furnace.', 1.8);
           return;
         }
       }
@@ -3308,7 +3349,7 @@ export class Game {
     if (this.coopMode && !this._coopRouter) {
       try {
         // Lazy import path already static at top for readGamepad; router from same module via dynamic if needed
-        import(`./input-coop.js?v=220`).then((mod) => {
+        import(`./input-coop.js?v=240`).then((mod) => {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frontier Survival v1.12.9</title>
+  <title>Frontier Survival v1.13.0</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -659,6 +659,21 @@
       line-height: 1;
     }
     .tooltip-dismiss:hover { color: #e8e4dc; }
+
+    /* Gamepad title navigation highlight */
+    .title-btn-gp {
+      outline: 2px solid rgba(212,165,116,0.85);
+      outline-offset: 2px;
+    }
+
+    #gamepad-hint {
+      display: none;
+      margin-top: 10px;
+      font-size: 11px;
+      color: #8a8378;
+    }
+
+    body.gamepad-connected #gamepad-hint { display: block; }
   </style>
   <script type="importmap">
   {
@@ -697,7 +712,7 @@
     <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.12.9</div>
+    <div id="version-badge">v1.13.0</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Second DualSense / pad for right screen. P1 can use keyboard+mouse.</div></div>
@@ -777,7 +792,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.12.9</div>
+      <div class="tag">Browser survival sandbox · v1.13.0</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -801,6 +816,7 @@
       <button id="btn-continue" type="button" style="display:none">Continue save</button>
       <button id="btn-start" type="button">Start surviving</button>
       <button id="btn-new-world" type="button" style="display:none;margin-left:8px;background:linear-gradient(180deg,#8a909a,#5a6068);color:#f0f0f0">New world</button>
+      <div id="gamepad-hint">D-pad navigate · Cross confirm · Circle back to title</div>
     </div>
   </div>
 
@@ -844,6 +860,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=240"></script>
+  <script type="module" src="./js/main.js?v=250"></script>
 </body>
 </html>
