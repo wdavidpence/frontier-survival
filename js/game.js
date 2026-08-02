@@ -51,7 +51,7 @@ import {
   splitStack,
 } from './inventory.js?v=254';
 import { visibleRecipes, craftRecipe } from './crafting.js?v=254';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=254';
+import { FaunaSystem, SPECIES, canFeed, tryFeed, shearAnimal } from './animals.js?v=254';
 import { createBlockAtlas } from './atlas.js?v=254';
 import { BreakFX } from './fx.js?v=254';
 import {
@@ -111,9 +111,16 @@ import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDow
 import { BOAT_CONFIG, boatAimDistance, buoyancyY, canPlaceBoat, createBoat, dismountBoat, mountBoat, riderPosition, stepBoat } from './boat-entity.js?v=254';
 import { createTrialKey, trialKeyPickup, hasTrialKey as hasTrialKeyFn } from './trial-key.js?v=254';
 import { createOminousTrialKey, hasOminousTrialKey as hasOminousTrialKeyFn, useOminousTrialKey, grantOminousTrialKey as grantOminousTrialKeyFn } from './ominous-trial-key.js?v=254';
-import { BOLT_TRIM_ID, ARMOR_TRIM_PATTERNS, isValidArmorTrim as isValidArmorTrimFn, applyArmorTrim as applyArmorTrimFn, isBoltTrim } from './bolt-armor-trim.js?v=' + VERSION;
+import { BOLT_TRIM_ID, ARMOR_TRIM_PATTERNS, isValidArmorTrim as isValidArmorTrimFn, applyArmorTrim as applyArmorTrimFn, isBoltTrim } from './bolt-armor-trim.js?v=254';
 import { createFishingState, startCast, tickFishing, rollFishingCatch } from './fishing-cast.js?v=254';
-import { FaunaSystem, SPECIES, canFeed, tryFeed, shearAnimal } from './animals.js?v=254';
+import { createMountState } from './mount.js?v=254';
+import { feedWolf } from './wolf-tame.js?v=254';
+import { harvestHoney } from './honey-harvest.js?v=254';
+import { createFurnaceUiState } from './furnace-ui.js?v=254';
+import { transferOne } from './container-ui.js?v=254';
+import { createCraftGrid } from './craft-grid.js?v=254';
+import { clampAquaticMove, isWaterVoxel } from './aquatic-move.js?v=254';
+import { hydrateNearWater, isHydratedFarmland, clampMoisture } from './farmland.js?v=254';
 
 export class Game {
   /**

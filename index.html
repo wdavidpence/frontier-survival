@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frontier Survival v1.13.3</title>
+  <title>Frontier Survival v1.13.4</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -159,7 +159,7 @@
       padding: 4px 10px; border-radius: 12px;
       border: 1px solid rgba(120,160,220,0.45);
     }
-    
+
     #coop-pad-prompt {
       display: none;
       position: absolute;
@@ -420,6 +420,12 @@
       letter-spacing: 0.04em;
     }
     .panel button:hover { filter: brightness(1.06); }
+
+    #overlay-bg {
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    }
     #death-screen {
       background: radial-gradient(ellipse at center, rgba(40,10,10,0.92), rgba(5,2,2,0.97));
       z-index: 30;
@@ -801,7 +807,7 @@
     <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.13.3</div>
+    <div id="version-badge">v1.13.4</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Second DualSense / pad for right screen. P1 can use keyboard+mouse.</div></div>
@@ -881,7 +887,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.13.3</div>
+      <div class="tag">Browser survival sandbox · v1.13.4</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -909,7 +915,7 @@
     </div>
   </div>
 
-  
+
   <div id="chest-screen" class="overlay hidden">
     <div class="inv-panel">
       <h2>Chest</h2>
@@ -961,6 +967,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=254"></script>
+  <script type="module" src="./js/main.js?v=255"></script>
 </body>
 </html>

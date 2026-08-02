@@ -430,5 +430,66 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 
 ## Judge tick update — 2026-08-01T22:07:54-04:00
 - Smoke, syntax, diff-check, and local browser Start→HUD gates passed after integrating Luna's solo boat slice (`js/boat-entity.js`, `js/game.js`, `js/player.js`, `tests/smoke.mjs`).
-- Board is serialized at Luna depth 1 on `t_964a6a77` (temperature/clothing); duplicate oss20b boat writer was reclaimed and parked.
+- Board is serialized at Luna depth 1 on `t_964a6a77` (temperature/clothing); duplicate ornith9b boat writer was reclaimed and parked.
 - No release: broad uncommitted WIP remains. Next judge should independently review the Luna completion, rerun smoke/browser, and only then consider a green plateau.
+
+
+## Judge tick update — 2026-08-02T04:21:25-04:00
+- Independent smoke: FAIL; node tests/smoke.mjs stops at tests/smoke.mjs:38 with SyntaxError Unexpected reserved word (await import in a non-async loop). git diff --check: FAIL on uncommitted index.html:423 trailing whitespace.
+- Board: profiles grounded; ornith9b is the sole running worker on t_1d2c5f53 (farmland hydrate), ready=0. Luna was not assigned or unblocked after midnight. Dispatch --max 1 spawned 0 because the depth-1 lane is occupied.
+- Recovery: created gated ornith9b smoke correction t_216cb07b behind t_1d2c5f53; no commit/push. Release decision: continue, then repair smoke and independently re-run all gates; no ship.
+
+
+## Judge tick update — 2026-08-02T05:14:57-04:00
+- Profiles: ornith9b (`ornith-1.0-9b-mtp`) is the only active implementation lane; Luna was not assigned or unblocked after midnight. Luna todo/triage cards were parked where the CLI permits; scheduled Luna cards remain non-dispatchable.
+- Independent gates: `node tests/smoke.mjs` FAILS because the current malformed smoke harness references missing `js/atlas-main.js` and `js/atlas-game-loop.js`; `git diff --check` FAILS at `index.html:423` and multiple `tests/smoke.mjs` lines. No browser or release check was attempted.
+- Recovery: created and dispatched `t_3c805bd9` (ornith9b, shared dir workspace) as the sole smoke writer, with surgical scope and no commit/push. Board evidence after dispatch: running=1, ready=0. Release decision: continue/recover, no ship.
+
+## Judge recovery update — 2026-08-02T05:31:00-04:00
+- The ornith9b Kanban run for `t_3c805bd9` crashed before completion because the Ornith endpoint rejected its oversized injected prompt (39,165 tokens vs 32,768 context). The exact failure was commented on the card; no reclaim loop.
+- A bounded OpenCode Ornith fallback was used with a narrow prompt and snapshot. It edited only `tests/smoke.mjs`; independent `node tests/smoke.mjs` now passes 8/8.
+- Independent `git diff --check` now reports only the pre-existing `index.html:423` trailing whitespace. Broad WIP remains uncommitted; no browser check, commit, push, or release.
+
+
+## Judge tick update — 2026-08-02T11:34:56+00:00
+- Recovery verified: `node tests/smoke.mjs` passes 10/10 after bounded OpenCode Ornith edits limited to `js/fishing-cast.js` and `tests/smoke.mjs`.
+- `git diff --check` still reports only existing `index.html:423` trailing whitespace; broad uncommitted WIP remains.
+- Board routing: Luna remains unassigned/unblocked after midnight; ornith9b is running exactly one bounded card, `t_48f3d6eb` (aquatic move clamp), dispatched with `--max 1`. No browser check or release claim; next decision remains continue and re-verify after worker completion.
+
+
+## Judge follow-up — 2026-08-02T11:45:57+00:00
+- Independent probe found a remaining fishing pure-module edge case: consumeResource deletes a zero-valued property rather than retaining numeric zero.
+- OpenCode Ornith was retried twice with surgical prompts (including pure mode); both hit context-size 500 before editing. No Hermes direct code fallback was used.
+- Required smoke still passes 10/10; diff-check only flags existing index.html:423 whitespace. Board remains on one ornith9b running card, t_48f3d6eb; no browser or release gate.
+
+
+## Judge correction — 2026-08-02T11:47:08+00:00
+- t_48f3d6eb completed after the prior snapshot; recovery dispatched t_0c394525 (wolf tame FSM) to ornith9b and verified it running as the sole active lane.
+- No release action; smoke remains last independently verified 10/10, while diff-check has pre-existing index whitespace plus OpenCode-added trailing whitespace in js/fishing-cast.js.
+
+
+## Judge tick — 2026-08-02T08:35:50-04:00
+- Profiles: `ornith9b` (`ornith-1.0-9b-mtp`) is the only active implementation lane and is running exactly one card, `t_89d1b590`; Luna has no running or ready implementation card and was not assigned or unblocked after midnight.
+- Independent gates: `node tests/smoke.mjs` FAILS (3 passed, 7 failed) because `js/fishing-cast.js` has a malformed arrow function parameter list; the current smoke contract also rejects its `consumeResource` false return. `git diff --check` completed without reported whitespace errors. No browser or release check was attempted.
+- Recovery: created `t_51a54036` as a bounded ornith9b surgical correction, shared `dir` workspace, exact `js/fishing-cast.js` lock, and scheduled it behind `t_89d1b590`; dispatch `--max 1` spawned 0 because the sole lane is occupied. No reclaim, commit, push, or ship.
+- Decision: continue/recover; after `t_89d1b590` completes, unblock only `t_51a54036`, rerun smoke and diff-check independently, then consider browser verification.
+
+
+## Judge follow-up — 2026-08-02T08:37:00-04:00
+- `git diff --check` independently reports trailing whitespace in `public/js/fishing.js` and a blank line at EOF in `tests/smoke.mjs`; this is now an active release-gate failure, not a clean diff-check.
+- Created and scheduled `t_c7cf8ccc` (ornith9b, shared dir workspace) behind fishing correction `t_51a54036`, with strict scope limited to those reported whitespace hunks. No direct Hermes code edits, commit, push, browser check, or ship.
+
+
+### 2026-08-02 09:30 EDT overnight judge handoff
+- Independent `node tests/smoke.mjs`: PASS (exit 0; all reported assertions passed).
+- `git diff --check`: FAIL on existing shared WIP whitespace in `public/js/fishing.js` and EOF blank line in `tests/smoke.mjs`.
+- Board routing: `ornith9b` is the sole running implementation lane (`t_ee3b99c4`, bounded pure `js/mine-tier.js` slice, shared `dir` workspace); Luna implementation remains parked after midnight; qwen lanes stopped.
+- Release state: no browser gate, commit, push, or ship; broad uncommitted WIP remains. Next judge action is to inspect the ornith9b diff on completion, rerun smoke and diff-check, then decide whether to recover whitespace or continue.
+
+
+### Judge tick — 2026-08-02T10:25:55-04:00
+- Independent smoke: `node tests/smoke.mjs` PASS (exit 0; all reported assertions passed).
+- `git diff --check`: FAIL on four trailing-whitespace hunks in `public/js/fishing.js`; no ship.
+- Browser: local :8767 HTTP/static fetch 200, title v1.13.3; Start click reproduced one blank browser exception and did not reach an in-game accessibility snapshot.
+- Routing: `ornith9b` is the sole running implementation lane (`t_ee3b99c4`, bounded pure tool-tier slice, shared `dir` workspace). Luna implementation remains parked after midnight; qwen lanes stopped.
+- Release state: broad uncommitted WIP; no commit/push/ship. Next action is independent diff review after t_ee3b99c4, then surgical whitespace/runtime correction via Kanban/OpenCode.

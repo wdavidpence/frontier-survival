@@ -1,53 +1,47 @@
-import { randomItem, getWeight } from './utils.js';
+/** Pure fishing cast state + deterministic catch table helpers. */
 
-const CAST_ROD_COST = 5;
-const CAST_LINE_COST = 0.2;
-const CAST_BAIT_COST = 1;
-const MIN_ROD_DURABILITY = 5;
-const MAX_ROD_DURABILITY_COST = 8;
-const LINE_BREAK_CHANCE_BASE = 0.35;
+export const FISHING_CAST_SECONDS = 2.2;
 
-export function cast(state, input) {
-    if (!input || !state) return false;
-    
-    const rodDurabilityCost = Math.floor(input.weight * (CAST_ROD_COST / MAX_WEIGHT));
-    state.rods = (state.rods - rodDurabilityCost).clamp(0);
-    if (rodDurabilityCost >= CAST_ROD_MAX_DURABILITY) {
-        state.rods = 0;
-        return false;
-    }
+/** Weighted outcomes. A miss is intentional: fishing should cost time and rod durability. */
+export const FISH_CATCH_TABLE = Object.freeze([
+  Object.freeze({ id: 'raw_fish', count: 1, weight: 0.55 }),
+  Object.freeze({ id: 'raw_fish', count: 2, weight: 0.25 }),
+  Object.freeze({ id: null, count: 0, weight: 0.2 }),
+]);
 
-    let lineIntact = true;
-    if (state.lines > 0) {
-        const lineBreakChance = Math.min(1, LINE_BREAK_CHANCE_BASE * (1 - state.lines));
-        if (Math.random() < lineBreakChance) {
-            state.lines = 0;
-            return false; // Line broke! Bad luck.
-        } else {
-            state.lines += CAST_LINES_PER_CAST;
-        }
-    }
-
-    const caughtItem = randomCatch(input.weight);
-    if (caughtItem && input.bait) {
-        caughtItem.quantity += Math.floor(2 * (1 - lineBreakChance));
-    }
-
-    // Return catch to player only if something was actually caught
-    if (!caughtItem || caughtItem.fish === 0 && caughtItem.shrimp === 0) {
-        return false;
-    }
-
-    return caughtItem;
+export function createFishingState() {
+  return { phase: 'ready', timer: 0, casts: 0 };
 }
 
-function randomCatch(weight) {
-    const rand = weight;
-    const rolls = [];
-    
-    for (let i = 0; i < CATCH_ROLLOUTS.length; i++) {
-        rolls.push(rolls[rolls.length - 1] + Math.random() * rand);
-    }
-    
-    return rolls[CATCH_ROLL_INDEX];
+export function canCast(state) {
+  return state?.phase === 'ready';
+}
+
+export function startCast(state, duration = FISHING_CAST_SECONDS) {
+  if (!canCast(state)) return state;
+  return {
+    phase: 'waiting',
+    timer: Math.max(0, Number(duration) || FISHING_CAST_SECONDS),
+    casts: (state.casts || 0) + 1,
+  };
+}
+
+/** Advance a cast without mutating the input state. */
+export function tickFishing(state, dt) {
+  if (!state || state.phase !== 'waiting') return { state, caught: false };
+  const timer = Math.max(0, state.timer - Math.max(0, Number(dt) || 0));
+  if (timer > 0) return { state: { ...state, timer }, caught: false };
+  return { state: { ...state, phase: 'ready', timer: 0 }, caught: true };
+}
+
+/** Roll one weighted outcome using a supplied [0, 1) random value. */
+export function rollFishingCatch(randomValue = Math.random) {
+  const sample = typeof randomValue === 'function' ? randomValue() : randomValue;
+  const r = Math.max(0, Math.min(0.999999999, Number(sample) || 0));
+  let cursor = r;
+  for (const outcome of FISH_CATCH_TABLE) {
+    cursor -= outcome.weight;
+    if (cursor < 0) return { ...outcome };
+  }
+  return { ...FISH_CATCH_TABLE[FISH_CATCH_TABLE.length - 1] };
 }

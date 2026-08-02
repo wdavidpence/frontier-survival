@@ -2,6 +2,7 @@
  * Survival body simulation — the SC differentiator vs soft mining sandboxes.
  * Pure logic; no DOM/Three dependency (unit-testable).
  */
+import { powderSnowFreezeProgress, powderSnowFrozen } from './powder-snow.js?v=255';
 
 export const DEFAULT_SURVIVAL = {
   health: 100,
@@ -13,6 +14,7 @@ export const DEFAULT_SURVIVAL = {
   bodyTemp: 37.0, // °C
   sleep: 0, // 0 rested → 100 collapsing
   wetness: 0,
+  powderSnowFreeze: 0,
   warmthFromClothes: 0,
   bleed: 0,
   dead: false,
@@ -52,6 +54,7 @@ export function tickSurvival(state, env) {
 
   const dt = env.dt;
   const next = { ...state };
+  next.powderSnowFreeze = powderSnowFreezeProgress(next.powderSnowFreeze, dt, !!env.inPowderSnow);
   const grace = Math.max(0, Math.min(1, env.earlyGameGrace ?? 0));
   let ambient = ambientTempC(env.dayPhase, env.weather);
   // Apply biome temperature bias (desert +8, tundra -10, etc.)
@@ -142,6 +145,11 @@ export function tickSurvival(state, env) {
   // Damage conditions — fully suppressed during grace, ramp only after grace < 0.5
   let dps = 0;
   let cause = null;
+
+  if (powderSnowFrozen(next.powderSnowFreeze) && grace < 0.5) {
+    dps += 1.5 * (1 - grace * 2);
+    cause = 'freezing';
+  }
 
   if (grace < 0.5) {
     const dmgScale = (1 - grace * 2); // 0 at full grace → 1 when grace=0

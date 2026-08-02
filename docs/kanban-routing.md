@@ -2,7 +2,7 @@
 
 Hermes **default profile** = SWE manager + orchestrator + **code judge**.
 Workers (`qwen27s`, `qwen35`, `local35`) = implementers only.
-`local35` = **gpt-oss-20b** on Windows 127.0.0.1:8000 via WSL bridge :18000.
+`ornith9b` = **ornith-1.0-9b-mtp** on Windows 127.0.0.1:8000 via WSL bridge :18000.
 
 ## Reduced frontier-token protocol
 

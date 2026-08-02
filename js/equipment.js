@@ -23,6 +23,14 @@ export function equipmentWarmth(equipment) {
   return w;
 }
 
+/** Effective insulation after water exposure. */
+export function equipmentInsulation(equipment, { wetness = 0, inWater = false } = {}) {
+  const warmth = equipmentWarmth(equipment);
+  if (inWater) return 0;
+  const wet = Math.max(0, Math.min(100, Number(wetness) || 0));
+  return warmth * (1 - wet * 0.006);
+}
+
 /** Total armor from equipped items (reduces physical damage). */
 export function equipmentArmor(equipment) {
   if (!equipment) return 0;
