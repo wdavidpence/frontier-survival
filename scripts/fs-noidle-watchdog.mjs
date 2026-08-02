@@ -8,7 +8,7 @@
  *
  * Usage (repo root):
  *   node scripts/fs-noidle-watchdog.mjs
- *   node scripts/fs-noidle-watchdog.mjs --reclaim-minutes 18 --dispatch-max 2
+ *   node scripts/fs-noidle-watchdog.mjs --reclaim-minutes 45 --dispatch-max 2
  *   node scripts/fs-noidle-watchdog.mjs --dry-run
  */
 import { spawnSync } from 'child_process';
@@ -24,7 +24,7 @@ function flag(name, def) {
   return v;
 }
 
-const RECLAIM_MIN = Number(flag('reclaim-minutes', 18)) || 18;
+const RECLAIM_MIN = Number(flag('reclaim-minutes', 45)) || 45;
 const DISPATCH_MAX = Number(flag('dispatch-max', 2)) || 2;
 const DRY = !!flag('dry-run', false);
 const LOG = resolve('docs/overnight-progress.md');
@@ -157,6 +157,7 @@ if (lunaStill === 0) {
   }
 }
 
+// Second chance: if still no luna after unblock attempt, try todo→ nothing; dispatch handles ready
 // Dispatch — prefer 2 so luna+oss can both run when ready
 if (!DRY) {
   const d = hermes(`kanban dispatch --max ${DISPATCH_MAX}`);
