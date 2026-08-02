@@ -1701,3 +1701,29 @@ Oldest ready task age: 100160s
 ## 2026-08-02 11:49 EDT — agent startup brief
 - Added docs/AGENT-STARTUP-BRIEF.md + root AGENTS.md / CLAUDE.md / .cursorrules so new sessions load brief first.
 - session-handoff + frontier skills point at brief. Memory note saved.
+
+## 2026-08-02 12:15 EDT — post-midnight oss20b recovery tick
+
+- Board evidence: `frontier-survival` had 0 running / 0 ready before recovery; 475 scheduled, 109 blocked, 323 done. Luna implementation work remained scheduled only; no Luna card was assigned or unblocked.
+- Recovery: unblocked bounded pure card `t_9c290f0d` (oss20b, `js/cooldown.js` plus the single smoke writer) and ran `hermes kanban dispatch --max 1`; dispatch spawned exactly 1 worker. Fresh stats/show confirmed `t_9c290f0d` running as `oss20b` at 12:13, depth 1.
+- Verification: `node tests/smoke.mjs` PASS, 159 tests passed; `git diff --check` PASS; `index.html` and `public/index.html` compare equal. No ship attempted: current worktree has 22 status entries, primarily dirty task worktrees plus `docs/_prompt-animal-visuals-1.12.11.txt`; no release commit/push.
+- Browser/release: browser gate not run because this tick made no UI/release change. Current entry marker remains v1.12.10 with `main.js?v=241`; only one versioned relative entry reference was found by the narrow HTML scan.
+- Decision: **continue/recover** — keep the single oss20b lane warm, independently review its diff and rerun smoke when it reaches terminal state; do not mint or dispatch Luna implementation cards, and do not ship broad dirty WIP.
+
+
+## 2026-08-02 13:09 EDT — overnight judge tick
+
+- Board: `frontier-survival` had 0 running before recovery; Luna has no running/ready cards and remains parked/scheduled. Unblocked exactly one bounded `oss20b` card (`t_f459f0e1`, pure wetness helper) and `hermes kanban dispatch --max 1` spawned exactly 1; fresh show confirms `oss20b`, shared dir workspace, run 2230 active.
+- Verification: `node tests/smoke.mjs` PASS (full output; 159+ assertions including latest pure helpers); `git diff --check` PASS; `index.html` and `public/index.html` byte-identical; relative JS cache-bust scan found 0 unversioned local JS refs in both HTML files.
+- Browser/local: existing tracked server was already listening on `127.0.0.1:8767` (new server attempt correctly refused with EADDRINUSE). Local page served v1.12.11; boot console had 0 JS errors. DOM Start probe set `window.__FS.started === true` and changed `#title-screen` to `overlay hidden`/`display:none`; accessibility click was inconclusive, so DOM probe is the authoritative activation evidence.
+- Release: NO SHIP. Worktree remains broad dirty WIP (game/main/dual HTML/smoke plus animal-visuals and task-worktree metadata); no commit/push attempted.
+- Decision: **continue/recover** — keep one depth-1 `oss20b` lane warm, independently review `t_f459f0e1` at terminal state and rerun smoke; do not assign or unblock Luna.
+
+## 2026-08-02 — ship v1.12.11 multi-part animal graphics
+
+- Candidate: multi-box fauna silhouettes + limb walk/fly anim via `js/animal-visuals.js` wired in `game.js` `_makeAnimalMesh` / `_syncAnimalMeshes`.
+- Also includes additive pure helpers already green in smoke: `js/cooldown.js`, `js/wetness.js` (not gameplay-wired).
+- Verify: `node tests/smoke.mjs` 159 tests passed; dual HTML synced; local Start → `started===true`, 0 JS errors, multi-part meshes + limb rot observed.
+- Version markers: title/badge/boot `v1.12.11`, entry `main.js?v=242`, `animal-visuals.js?v=242`.
+- Decision: **ship** local candidate to origin/main + prove live Pages.
+

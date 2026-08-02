@@ -50,6 +50,7 @@ import {
 } from './inventory.js?v=220';
 import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=220';
+import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=242';
 import { createBlockAtlas } from './atlas.js?v=220';
 import { BreakFX } from './fx.js?v=220';
 import {
@@ -2870,31 +2871,32 @@ export class Game {
 
   _makeAnimalMesh(type) {
     const spec = SPECIES[type] || SPECIES.hare;
+    const layout = animalPartLayout(type, spec);
     const g = new THREE.Group();
-    const col = new THREE.Color(spec.color[0], spec.color[1], spec.color[2]);
-    const mat = new THREE.MeshLambertMaterial({ color: col });
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(spec.scale[0], spec.scale[1] * 0.55, spec.scale[2]),
-      mat,
-    );
-    body.position.y = spec.scale[1] * 0.35;
-    const head = new THREE.Mesh(
-      new THREE.BoxGeometry(spec.scale[0] * 0.55, spec.scale[1] * 0.4, spec.scale[0] * 0.55),
-      mat,
-    );
-    head.position.set(0, spec.scale[1] * 0.7, spec.scale[2] * 0.35);
-    g.add(body, head);
-    if (type === 'wolf') {
-      const ear = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.18, 0.08), mat);
-      ear.position.set(0.12, spec.scale[1] * 0.95, spec.scale[2] * 0.3);
-      g.add(ear);
+    for (const part of layout.parts) {
+      const mat = new THREE.MeshLambertMaterial({
+        color: new THREE.Color(part.color[0], part.color[1], part.color[2]),
+      });
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(part.sx, part.sy, part.sz),
+        mat,
+      );
+      mesh.position.set(part.x, part.y, part.z);
+      mesh.name = part.name;
+      mesh.userData.role = part.role || part.name;
+      mesh.userData.baseColor = [part.color[0], part.color[1], part.color[2]];
+      g.add(mesh);
     }
     g.userData.type = type;
+    g.userData.legNames = layout.legNames || [];
+    g.userData.wingNames = layout.wingNames || [];
+    g.userData.phase = 0;
     return g;
   }
 
   _syncAnimalMeshes() {
     if (!this.fauna) return;
+    this._animClock = (this._animClock || 0) + 0.016;
     const living = this.fauna.living();
     const seen = new Set();
     for (const a of living) {
@@ -2907,12 +2909,24 @@ export class Game {
       }
       mesh.position.set(a.x, a.y, a.z);
       mesh.rotation.y = a.yaw || 0;
-      // hurt flash
+      const spec = SPECIES[a.type] || SPECIES.hare;
+      const spd = Math.hypot(a.vx || 0, a.vz || 0);
+      const speed01 = Math.max(0, Math.min(1, spd / Math.max(0.1, spec.speed || 1)));
+      mesh.userData.phase = (mesh.userData.phase || 0) + 0.016 * (6 + speed01 * 10);
+      const legs = mesh.userData.legNames || [];
+      const wings = mesh.userData.wingNames || [];
+      const pose = animalLimbPose({}, legs, wings, mesh.userData.phase, speed01, a.type);
+      for (const child of mesh.children) {
+        const pr = pose[child.name];
+        if (pr) {
+          child.rotation.x = pr.rx || 0;
+          child.rotation.z = pr.rz || 0;
+        }
+      }
       const hurt = a.hp < a.maxHp * 0.5;
       mesh.traverse((c) => {
         if (c.isMesh && c.material?.color) {
-          const spec = SPECIES[a.type];
-          const base = spec?.color || [0.5, 0.5, 0.5];
+          const base = c.userData.baseColor || spec.color || [0.5, 0.5, 0.5];
           c.material.color.setRGB(
             hurt ? Math.min(1, base[0] + 0.25) : base[0],
             hurt ? base[1] * 0.7 : base[1],

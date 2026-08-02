@@ -151,6 +151,7 @@ import { boggedArrowTip, boggedArrowDamage } from '../js/bogged-arrow.js';
 import { createCrafterEnable, crafterSetPowered, crafterCanCraft } from '../js/crafter-enabled.js';
 import { hasHeavyCore, canCraftMace } from '../js/heavy-core.js';
 import { applyArmorTrim, isFlowTrim, isValidArmorTrim } from '../js/flow-armor-trim.js';
+import { clamp01 as wetnessClamp01, applyRain, dryNearFire, movePenalty } from '../js/wetness.js';
 
 
 
@@ -196,6 +197,7 @@ import {
 } from '../js/inventory.js';
 import { craftRecipe, visibleRecipes, RECIPES } from '../js/crafting.js';
 import { FaunaSystem,  meatDropCount, SPECIES, canFeed, tryFeed } from '../js/animals.js';
+import { animalPartLayout, animalLimbPose, accentColor } from '../js/animal-visuals.js';
 import { tickLogic, isPowered, COMPONENT } from '../js/logic.js';
 import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
 import {
@@ -3151,6 +3153,62 @@ test('game mace smash wire', () => {
   assert.ok(src.includes('mace'));
 });
 
+
+// ── animal-visuals v1.12.11 ──────────────────────────────
+test('animal-visuals accentColor belly lightens', () => {
+  const b = accentColor([0.4, 0.3, 0.2], 'belly');
+  assert.ok(b[0] >= 0.4 && b[0] <= 1);
+  assert.ok(b.every((v) => v >= 0 && v <= 1));
+});
+
+test('animal-visuals layouts for all SPECIES', () => {
+  for (const [id, spec] of Object.entries(SPECIES)) {
+    const L = animalPartLayout(id, spec);
+    assert.ok(L.parts.length >= 5, id + ' parts');
+    for (const part of L.parts) {
+      assert.ok(part.sx > 0 && part.sy > 0 && part.sz > 0, id + part.name);
+      assert.ok(Number.isFinite(part.x + part.y + part.z), id + part.name + ' pos');
+      assert.strictEqual(part.color.length, 3);
+    }
+  }
+});
+
+test('animal-visuals wolf silhouette parts', () => {
+  const L = animalPartLayout('wolf', SPECIES.wolf);
+  const names = L.parts.map((p) => p.name);
+  const roles = L.parts.map((p) => p.role);
+  assert.ok(names.includes('snout') || roles.includes('snout'));
+  assert.ok(L.legNames.length >= 4);
+  assert.ok(L.parts.some((p) => p.role === 'tail' || p.name === 'tail'));
+  assert.ok(L.parts.filter((p) => p.role === 'ear' || /^ear/i.test(p.name)).length >= 2);
+});
+
+test('animal-visuals bird bat wings', () => {
+  for (const id of ['bird', 'bat']) {
+    const L = animalPartLayout(id, SPECIES[id]);
+    assert.ok(L.wingNames.includes('wingL') && L.wingNames.includes('wingR'), id);
+  }
+});
+
+test('animal-visuals limb pose opposite diagonals', () => {
+  const pose = animalLimbPose({}, ['legFL', 'legFR', 'legBL', 'legBR'], [], Math.PI / 2, 1, 'wolf');
+  assert.ok(pose.legFL.rx * pose.legFR.rx < 0);
+  const pose2 = animalLimbPose({}, ['legFL', 'legFR', 'legBL', 'legBR'], [], Math.PI / 2, 1, 'wolf');
+  assert.strictEqual(pose.legFL.rx, pose2.legFL.rx);
+});
+
+test('animal-visuals alligator long', () => {
+  const L = animalPartLayout('alligator', SPECIES.alligator);
+  const body = L.parts.find((p) => p.name === 'body' || p.role === 'body') || L.parts[0];
+  let z0 = Infinity;
+  let z1 = -Infinity;
+  for (const part of L.parts) {
+    z0 = Math.min(z0, part.z - part.sz / 2);
+    z1 = Math.max(z1, part.z + part.sz / 2);
+  }
+  assert.ok(z1 - z0 > body.sy * 0.9);
+});
+
 if (process.exitCode) process.exit(1);
 
 
@@ -3170,3 +3228,54 @@ if (process.exitCode) process.exit(1);
 
 
 
+
+
+// ── Cooldown smoke ──────────────────────────────────────────────────────────
+import { createCooldown, tryFire } from '../js/cooldown.js';
+
+test('cooldown create + tryFire happy path', () => {
+    const cd = createCooldown(1000);
+    assert.deepEqual(cd, { ms: 1000, readyAt: 0 });
+
+    const r1 = tryFire(cd, 100);
+    assert.equal(r1.ok, true);
+    assert.equal(r1.state.readyAt, 1100);
+
+    const r2 = tryFire(r1.state, 100);
+    assert.equal(r2.ok, false);
+
+    const r3 = tryFire(r1.state, 2000);
+    assert.equal(r3.ok, true);
+    assert.equal(r3.state.readyAt, 3000);
+});
+
+
+
+test('wetness clamp01', () => {
+    assert.strictEqual(wetnessClamp01(0), 0);
+    assert.strictEqual(wetnessClamp01(0.5), 0.5);
+    assert.strictEqual(wetnessClamp01(1), 1);
+    assert.strictEqual(wetnessClamp01(1.5), 1);
+    assert.strictEqual(wetnessClamp01(-0.5), 0);
+});
+
+test('wetness applyRain increases', () => {
+    const w = applyRain(0, 10, 0.05);
+    assert.ok(w > 0 && w < 1, `rain wetness ${w}`);
+    const w2 = applyRain(0, 100, 0.05);
+    assert.strictEqual(w2, 1, 'full saturation after 100s');
+});
+
+test('wetness dryNearFire decreases', () => {
+    const w = dryNearFire(1, 5, 0.1);
+    assert.ok(w > 0 && w < 1, `dry wetness ${w}`);
+    const w2 = dryNearFire(1, 100, 0.1);
+    assert.strictEqual(w2, 0, 'fully dry after 100s');
+});
+
+test('wetness movePenalty', () => {
+    assert.strictEqual(movePenalty(0), 1);
+    assert.strictEqual(movePenalty(1), 0.7);
+    const mid = movePenalty(0.5);
+    assert.ok(mid > 0.7 && mid < 1, `mid penalty ${mid}`);
+});
