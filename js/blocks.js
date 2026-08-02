@@ -57,6 +57,8 @@ export const BLOCK = {
   SCAFFOLDING: 51,
   /** Furnace variant with speedMult 2 */
   SMOKER: 52,
+  /** Ore furnace variant with speedMult 2 */
+  BLAST_FURNACE: 53,
 };
 
 /** @type {Record<number, {
@@ -158,6 +160,16 @@ export const BLOCK_PROPS = {
     heat: 14,
     light: 10,
     drops: BLOCK.SMOKER,
+  },
+  [BLOCK.BLAST_FURNACE]: {
+    name: 'Blast Furnace',
+    solid: true,
+    transparent: true,
+    hardness: 1.5,
+    color: [0.24, 0.26, 0.3],
+    heat: 16,
+    light: 11,
+    drops: BLOCK.BLAST_FURNACE,
   },
 };
 

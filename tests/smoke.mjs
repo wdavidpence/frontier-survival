@@ -3289,7 +3289,18 @@ test('v1130 honey powder scaffold smoker mace', () => {
   }
 });
 
+
+test('v1131 blast furnace', () => {
+  assert.ok(BLOCK.BLAST_FURNACE);
+  assert.ok(String(BLOCK_PROPS[BLOCK.BLAST_FURNACE].name).toLowerCase().includes('blast'));
+  assert.ok(visibleRecipes().some((r) => r.id === 'blast_furnace'));
+  const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('BLAST_FURNACE'));
+  assert.ok(src.includes('isBlastFurnace'));
+});
+
 if (process.exitCode) process.exit(1);
+
 
 
 

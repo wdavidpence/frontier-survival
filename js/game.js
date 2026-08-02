@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { World } from './world.js?v=240';
-import { Player } from './player.js?v=250';
+import { Player } from './player.js?v=251';
 import { Input } from './input.js?v=240';
 import { GameTime } from './time.js?v=240';
 import { AudioBus } from './audio.js?v=240';
@@ -10,7 +10,7 @@ import {
   eatFood,
   applyDamage,
 } from './survival.js?v=240';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=250';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=251';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=250';
+} from './items.js?v=251';
 import { resolveBlockDrop } from './mine-tier.js?v=240';
 import {
   createFurnaceState,
@@ -2448,7 +2448,15 @@ export class Game {
         const st = createFurnaceState();
         st.speedMult = 2;
         this._furnaces.set(key, st);
-        this.player.notify('Smoker placed. F to feed fuel/food (2× cook).', 2);
+        this.player.notify('Smoker placed. F to feed fuel/food (2× cook).', 2.4);
+        this._scanLights(true);
+      }
+      if (blockId === BLOCK.BLAST_FURNACE) {
+        const key = `${px|0},${py|0},${pz|0}`;
+        const st = createFurnaceState();
+        st.speedMult = 2;
+        this._furnaces.set(key, st);
+        this.player.notify('Blast Furnace placed. F to feed fuel/ore (2× cook).', 2.4);
         this._scanLights(true);
       }
       if (blockId === BLOCK.DOOR_CLOSED || blockId === BLOCK.DOOR_OPEN) {
@@ -2714,24 +2722,26 @@ export class Game {
       }
     }
 
-    // Feed furnace/smoker fuel / smelt input via pure furnace-tick (keeps campfire heat map for warmth)
-    if (hit && (hit.id === BLOCK.FURNACE || hit.id === BLOCK.SMOKER)) {
+    // Feed furnace variants fuel / smelt input via pure furnace-tick (keeps campfire heat map for warmth)
+    if (hit && (hit.id === BLOCK.FURNACE || hit.id === BLOCK.SMOKER || hit.id === BLOCK.BLAST_FURNACE)) {
       const k = `${hit.x|0},${hit.y|0},${hit.z|0}`;
       const isSmoker = hit.id === BLOCK.SMOKER;
+      const isBlastFurnace = hit.id === BLOCK.BLAST_FURNACE;
+      const stationName = isBlastFurnace ? 'Blast Furnace' : isSmoker ? 'Smoker' : 'Furnace';
       if (!this._furnaces.has(k)) {
         const st0 = createFurnaceState();
-        st0.speedMult = isSmoker ? 2 : 1;
+        st0.speedMult = isSmoker || isBlastFurnace ? 2 : 1;
         this._furnaces.set(k, st0);
       }
       const st = this._furnaces.get(k);
-      if (st.speedMult == null) st.speedMult = isSmoker ? 2 : 1;
+      if (st.speedMult == null) st.speedMult = isSmoker || isBlastFurnace ? 2 : 1;
       // Empty hand: take finished output
       if (held.id == null || held.count <= 0) {
         const out = takeOutput(st);
         if (out) {
           const add = addItems(this.player.slots, out.id, out.count);
           this.player.slots = add.slots;
-          this.player.notify(`${isSmoker ? 'Smoker' : 'Furnace'} → +${out.count} ${displayName(out.id)}`, 2.2);
+          this.player.notify(`${stationName} → +${out.count} ${displayName(out.id)}`, 2.2);
           this.audio.ui?.() || this.audio.placeBlock();
           return;
         }
@@ -2750,15 +2760,19 @@ export class Game {
           return;
         }
       }
-      if (held.id != null && canSmelt(held.id)) {
+      if (held.id != null && canSmelt(held.id) && (!isBlastFurnace || isBlastFurnaceInput(displayName(held.id)))) {
         const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
         if (cons.ok) {
           this.player.slots = cons.slots;
           insertInput(st, held.id, 1);
           this.audio.placeBlock();
-          this.player.notify(`${isSmoker ? 'Smoker' : 'Furnace'}: smelting ${displayName(held.id)}…`, 2);
+          this.player.notify(`${stationName}: smelting ${displayName(held.id)}${isSmoker ? ' (food speed 2×)' : isBlastFurnace ? ' (ore speed 2×)' : ''}…`, 2.4);
           return;
         }
+      }
+      if (isBlastFurnace && held.id != null && canSmelt(held.id)) {
+        this.player.notify('Blast Furnace only accepts ore or metal inputs.', 2.2);
+        return;
       }
       // legacy stick/coal set still handled above via isFuel; fall through if nothing matched
       const fuelIds = new Set([ITEM.STICK, ITEM.COAL, ITEM.CHARCOAL, BLOCK.LOG]);

@@ -2,7 +2,7 @@
  * Unified item/block IDs for inventory stacks.
  * Blocks: 0–99 (see blocks.js). Items: 100+.
  */
-import { BLOCK, BLOCK_PROPS } from './blocks.js?v=250';
+import { BLOCK, BLOCK_PROPS } from './blocks.js?v=251';
 
 export const ITEM = {
   STICK: 100,
@@ -289,7 +289,7 @@ export function preferredTool(blockId) {
     blockId === BLOCK.SANDSTONE
   )
     return 'pick';
-  if (blockId === BLOCK.BRICKS || blockId === BLOCK.FURNACE || blockId === BLOCK.SMOKER || blockId === BLOCK.CLAY) return 'pick';
+  if (blockId === BLOCK.BRICKS || blockId === BLOCK.FURNACE || blockId === BLOCK.SMOKER || blockId === BLOCK.BLAST_FURNACE || blockId === BLOCK.CLAY) return 'pick';
   if (blockId === BLOCK.DOOR_CLOSED || blockId === BLOCK.DOOR_OPEN) return 'axe';
   return 'hand';
 }
@@ -328,6 +328,7 @@ export function dropForBlock(blockId) {
   if (blockId === BLOCK.GLASS) return BLOCK.GLASS;
   if (blockId === BLOCK.BRICKS) return BLOCK.BRICKS;
   if (blockId === BLOCK.FURNACE) return BLOCK.FURNACE;
+  if (blockId === BLOCK.BLAST_FURNACE) return BLOCK.BLAST_FURNACE;
   if (blockId === BLOCK.GENERATOR) return BLOCK.GENERATOR;
   if (blockId === BLOCK.ICE_BOX) return BLOCK.ICE_BOX;
   if (blockId === BLOCK.WALL) return BLOCK.WALL;

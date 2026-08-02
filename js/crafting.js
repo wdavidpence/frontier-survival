@@ -1,6 +1,6 @@
 /** Crafting recipes — pure data + craft helper */
-import { BLOCK } from './blocks.js?v=250';
-import { ITEM } from './items.js?v=250';
+import { BLOCK } from './blocks.js?v=251';
+import { ITEM } from './items.js?v=251';
 import { craftWith } from './inventory.js?v=240';
 
 /**
@@ -382,6 +382,7 @@ export const RECIPES = [
   { id:'powder_snow', name:'Powder Snow', desc:'Sinks players. 4 Snow → Powder Snow', ingredients:[{id:BLOCK.SNOW,count:4}], results:[{id:BLOCK.POWDER_SNOW,count:2}] },
   { id:'scaffolding', name:'Scaffolding', desc:'Climbable tower. 3 Bamboo-like: 6 Sticks + 1 Planks → 6 Scaffolding', ingredients:[{id:ITEM.STICK,count:6},{id:BLOCK.PLANKS,count:1}], results:[{id:BLOCK.SCAFFOLDING,count:6}] },
   { id:'smoker', name:'Smoker', desc:'Faster food smelting (2×). Furnace + 4 Logs', ingredients:[{id:BLOCK.FURNACE,count:1},{id:BLOCK.LOG,count:4}], results:[{id:BLOCK.SMOKER,count:1}] },
+  { id:'blast_furnace', name:'Blast Furnace', desc:'Faster ore smelting (2×). Furnace + 5 Cobble + 1 Iron', ingredients:[{id:BLOCK.FURNACE,count:1},{id:BLOCK.COBBLE,count:5},{id:ITEM.IRON_INGOT,count:1}], results:[{id:BLOCK.BLAST_FURNACE,count:1}] },
   { id:'mace', name:'Mace', desc:'Fall-smash melee. 3 Iron + 2 Sticks', ingredients:[{id:ITEM.IRON_INGOT,count:3},{id:ITEM.STICK,count:2}], results:[{id:ITEM.MACE,count:1}] },
 ];
 

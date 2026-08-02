@@ -1,7 +1,7 @@
 /**
  * Pure atlas tile math — no DOM/Three (unit-testable).
  */
-import { BLOCK } from './blocks.js?v=250';
+import { BLOCK } from './blocks.js?v=251';
 
 export const TILE_PX = 32;
 export const ATLAS_N = 8;
@@ -178,6 +178,7 @@ export function tileForBlock(blockId, faceDir) {
     case BLOCK.POWDER_SNOW:
       return TILE.SNOW;
     case BLOCK.SMOKER:
+    case BLOCK.BLAST_FURNACE:
       return TILE.FURNACE;
     default:
       return TILE.STONE;
