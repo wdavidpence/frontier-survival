@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=241';
-import { heightAt, hash2, fbm } from './gen.js?v=241';
+import { heightAt, hash2, fbm, caveDensityAt, oreVeinAt } from './gen.js?v=241';
 import { biomeAt, BIOME } from './biomes.js?v=241';
 import { tileForBlock } from './atlas-core.js?v=241';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=241';
@@ -202,6 +202,7 @@ export class World {
     }
 
     this._carveLavaTubesSync(data, baseX, baseZ);
+    this._carveCavesAndDistributeOres(data, baseX, baseZ);
     return data;
   }
 
@@ -402,6 +403,7 @@ export class World {
 
     // Lava tube generation — carve tubular passages deep underground, fill with lava
     this._carveLavaTubes(data, baseX, baseZ);
+    this._carveCavesAndDistributeOres(data, baseX, baseZ);
 
     this.chunks.set(this.key(cx, cz), data);
   }
@@ -458,6 +460,39 @@ export class World {
           }
 
           // Edge glow reserved for future light bleed; lava BLOCK_PROPS.light handles emission.
+        }
+      }
+    }
+  }
+
+  /**
+   * Add connected cave galleries/chambers, then seed small ore clusters on
+   * their exposed stone walls. Work stays inside the existing chunk buffer.
+   */
+  _carveCavesAndDistributeOres(data, baseX, baseZ) {
+    for (let lz = 0; lz < CHUNK_SIZE; lz++) {
+      for (let lx = 0; lx < CHUNK_SIZE; lx++) {
+        const x = baseX + lx;
+        const z = baseZ + lz;
+        for (let y = 4; y < WORLD_HEIGHT - 2; y++) {
+          const i = this._idx(lx, y, lz);
+          const block = data[i];
+          if (block !== BLOCK.STONE && block !== BLOCK.DIRT) continue;
+
+          // Keep most underground solid; the broad score creates sparse,
+          // connected galleries rather than noisy single-block holes.
+          if (caveDensityAt(x, y, z, this.seed) > 0.70) {
+            data[i] = BLOCK.AIR;
+            continue;
+          }
+
+          // Only intact stone receives new ore, leaving pockets visible from
+          // nearby gallery surfaces while preserving existing ore rolls.
+          if (block === BLOCK.STONE) {
+            const ore = oreVeinAt(x, y, z, this.seed);
+            if (ore === 'coal') data[i] = BLOCK.COAL_ORE;
+            else if (ore === 'iron') data[i] = BLOCK.IRON_ORE;
+          }
         }
       }
     }
