@@ -85,21 +85,21 @@ const allRunning = [
   ]),
 ];
 for (const id of allRunning) {
-  const show = hermes(`kanban show ${id}`);
-  // started timestamp
-  const sm = show.out.match(/started:\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2})/);
-  let elapsedMin = 0;
-  if (sm) {
-    const started = Date.parse(sm[1].replace(' ', 'T'));
-    if (Number.isFinite(started)) elapsedMin = (Date.now() - started) / 60000;
-  }
-  // also try runs elapsed
+  // Use ONLY current run elapsed from `kanban runs` — never card-level started
+  // (old cards keep ancient started timestamps and get false thrash reclaim).
   const runs = hermes(`kanban runs ${id}`);
-  const em = runs.out.match(/(\d+)m/);
-  const eh = runs.out.match(/(\d+)h/);
-  if (eh) elapsedMin = Math.max(elapsedMin, Number(eh[1]) * 60);
-  if (em) elapsedMin = Math.max(elapsedMin, Number(em[1]));
-
+  let elapsedMin = 0;
+  const lines = runs.out.split('\n');
+  // Prefer a line that mentions running
+  const runLine =
+    lines.find((l) => /\(running\)|running\s+@/i.test(l)) ||
+    [...lines].reverse().find((l) => /\d+m|\d+h/.test(l));
+  if (runLine) {
+    const eh = runLine.match(/(\d+)h/);
+    const em = runLine.match(/(\d+)m/);
+    if (eh) elapsedMin = Number(eh[1]) * 60;
+    else if (em) elapsedMin = Number(em[1]);
+  }
   if (elapsedMin >= RECLAIM_MIN) {
     if (!DRY) {
       hermes(`kanban reclaim ${id}`);
@@ -136,12 +136,11 @@ if (lunaStill === 0) {
   const hasReady = /\b(t_[a-f0-9]+)\b/.test(readyL.out) && !/no matching/i.test(readyL.out);
 
   if (!hasReady) {
-    // review-required blocked cards that are "done work" stay blocked for judge —
-    // only auto-unblock scheduled (parked capacity), never sticky human blocked.
+    // only auto-unblock scheduled luna cards whose parents are all done
     const schedL = hermes('kanban list --assignee luna --status scheduled');
     const lines = schedL.out.split('\n').filter((l) => /\b(t_[a-f0-9]+)\b/.test(l));
     const prefer = (l) =>
-      /ocean:|world:|stream|tropical|biome|reef|aquatic|island|coast|gen\.js|palm/i.test(l);
+      /ocean:|world:|stream|tropical|biome|reef|aquatic|island|coast|gen\.js|palm|breath|coconut|fog|furnace|campfire|cook/i.test(l);
     const ordered = [
       ...lines.filter(prefer),
       ...lines.filter((l) => !prefer(l) && /FS:luna|luna:/i.test(l)),
@@ -150,6 +149,21 @@ if (lunaStill === 0) {
       const idm = line.match(/\b(t_[a-f0-9]+)\b/);
       if (!idm) continue;
       const id = idm[1];
+      const show = hermes(`kanban show ${id}`);
+      const pm = show.out.match(/parents:\s*([^\n]+)/);
+      let parentsOk = true;
+      if (pm && !/none|^\s*$/i.test(pm[1])) {
+        const parents = [...pm[1].matchAll(/t_[a-f0-9]+/g)].map((m) => m[0]);
+        for (const pid of parents) {
+          const ps = hermes(`kanban show ${pid}`);
+          const st = (ps.out.match(/status:\s*(\w+)/) || [])[1];
+          if (st && st !== 'done' && st !== 'archived') {
+            parentsOk = false;
+            break;
+          }
+        }
+      }
+      if (!parentsOk) continue;
       if (!DRY) hermes(`kanban unblock ${id}`);
       summary.unblocked.push({ id, lane: 'luna-serial' });
       break; // depth 1 luna
