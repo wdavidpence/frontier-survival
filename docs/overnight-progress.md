@@ -1736,3 +1736,11 @@ Oldest ready task age: 100160s
 - Smoke 309 PASS; browser Harmless Start: forced wolf dmg 0, thirst bar present.
 - Decision: **ship**
 
+## 2026-08-02 — ship v1.12.13 tropical starter coast
+
+- starterCoastBlend + tropical land bias near origin; shore lip; denser palms on tropical/shore
+- warm sand spawn preference; chunk-worker parity; gen/biomes/world ?v=222
+- ornith: js/fauna-parts/accent-color.js + smoke (wave continuing serial)
+- Browser: Start OK, spawn under sand, logs/palms nearby, 0 JS errors
+- Decision: **ship** local tropical default candidate
+

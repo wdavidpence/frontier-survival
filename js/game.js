@@ -91,7 +91,7 @@ import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=220';
 import { wearTool, durabilityRatio } from './durability.js?v=220';
 import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=220';
 import { tickLogic, COMPONENT } from './logic.js?v=220';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=220';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=222';
 import {
   chestKey,
   getChestSlots,

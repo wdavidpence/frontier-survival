@@ -1,5 +1,5 @@
 /** Pure biome classifier — no game.js coupling. */
-import { heightAt, fbm, WORLD_SCALE } from './gen.js?v=220';
+import { heightAt, fbm, WORLD_SCALE, starterCoastBlend } from './gen.js?v=222';
 
 export const BIOME = {
   OCEAN: 'ocean',
@@ -26,6 +26,13 @@ export function biomeAt(x, z, seed = 0) {
 
   // Open ocean basins
   if (h < SEA - 1) return BIOME.OCEAN;
+
+  // Starter island shelf: warm tropical land + wet beach lip (palms, sand, coast first)
+  const starter = starterCoastBlend(x, z);
+  if (starter > 0.12 && h >= SEA) {
+    if (h <= SEA + 1) return BIOME.SHORE;
+    return BIOME.TROPICAL;
+  }
 
   // Tropical islands: modest land bumps in wet coastal noise
   if (

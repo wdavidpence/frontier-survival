@@ -46,6 +46,11 @@ export const GEN_SEA_LEVEL = 16;
 /** <1 stretches continents so travel covers more varied terrain before looping patterns. */
 export const WORLD_SCALE = 0.5; // ~2x larger landforms (4x area feel of noise)
 
+/** Blend the first few chunks toward a low, wet island shelf. */
+export function starterCoastBlend(x, z) {
+  return Math.max(0, Math.min(1, 1 - Math.hypot(x, z) / 168));
+}
+
 export function heightAt(x, z, seed = 0) {
   const sx = x * 0.03 * WORLD_SCALE + seed * 17.1;
   const sz = z * 0.03 * WORLD_SCALE + seed * 9.7;
@@ -67,6 +72,12 @@ export function heightAt(x, z, seed = 0) {
       const peak = GEN_SEA_LEVEL + 1 + Math.floor((isle - 0.7) * 28);
       y = Math.max(y, peak);
     }
+  }
+
+  const starterBlend = starterCoastBlend(x, z);
+  if (starterBlend > 0) {
+    const shelf = 8 + fbm(x * 0.018 * WORLD_SCALE + 41, z * 0.018 * WORLD_SCALE - 17, 3) * 16;
+    y = y * (1 - starterBlend) + shelf * starterBlend;
   }
 
   return Math.floor(y);

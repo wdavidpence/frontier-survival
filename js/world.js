@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=220';
-import { heightAt, hash2, fbm } from './gen.js?v=220';
-import { biomeAt, BIOME } from './biomes.js?v=220';
+import { heightAt, hash2, fbm } from './gen.js?v=222';
+import { biomeAt, BIOME } from './biomes.js?v=222';
 import { tileForBlock } from './atlas-core.js?v=220';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=220';
 
@@ -56,7 +56,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=220';
+    const workerUrl = './js/chunk-worker.js?v=222';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -144,9 +144,9 @@ export class World {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
           let treeChance = 0;
           if (biome === BIOME.FOREST) treeChance = 0.04; // half prior density for navigability
-          else if (biome === BIOME.SHORE) treeChance = 0.012;
+          else if (biome === BIOME.SHORE) treeChance = 0.028; // coastal palms/scrub
           else if (biome === BIOME.TUNDRA) treeChance = 0.02;
-          else if (biome === BIOME.TROPICAL) treeChance = 0.03; // palm-like sparse canopy
+          else if (biome === BIOME.TROPICAL) treeChance = 0.06; // readable palm canopy on starter islands
           else if (biome === BIOME.OCEAN) treeChance = 0;
           if (th > 1 - treeChance) {
             // Tree species selection by biome
@@ -160,7 +160,7 @@ export class World {
             } else if (biome === BIOME.FOREST && spruceRoll > 0.85) {
               // Forest: ~15% of non-sequoia trees are spruce
               this._placeSpruce(data, lx, h + 1, lz);
-            } else if (biome === BIOME.TROPICAL) {
+            } else if (biome === BIOME.TROPICAL || biome === BIOME.SHORE) {
               this._placePalm(data, lx, h + 1, lz);
             } else {
               this._placeTree(data, lx, h + 1, lz);
@@ -326,9 +326,9 @@ export class World {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
           let treeChance = 0;
           if (biome === BIOME.FOREST) treeChance = 0.04; // ~4% surface — half prior density
-          else if (biome === BIOME.SHORE) treeChance = 0.012;
+          else if (biome === BIOME.SHORE) treeChance = 0.028; // coastal palms/scrub
           else if (biome === BIOME.TUNDRA) treeChance = 0.02;
-          else if (biome === BIOME.TROPICAL) treeChance = 0.03; // palm-like sparse canopy
+          else if (biome === BIOME.TROPICAL) treeChance = 0.06; // readable palm canopy on starter islands
           else if (biome === BIOME.OCEAN) treeChance = 0;
           if (th > 1 - treeChance) {
             // Tree species selection by biome
@@ -342,7 +342,7 @@ export class World {
             } else if (biome === BIOME.FOREST && spruceRoll > 0.85) {
               // Forest: ~15% of non-sequoia trees are spruce
               this._placeSpruce(data, lx, h + 1, lz);
-            } else if (biome === BIOME.TROPICAL) {
+            } else if (biome === BIOME.TROPICAL || biome === BIOME.SHORE) {
               this._placePalm(data, lx, h + 1, lz);
             } else {
               this._placeTree(data, lx, h + 1, lz);
@@ -817,7 +817,7 @@ export class World {
   }
 
   findSpawn() {
-    // Prefer dry land well above sea level, near origin band
+    // Prefer warm sand above sea level, near the tropical starter coast.
     let best = null;
     for (let i = 0; i < 400; i++) {
       const x = Math.floor((hash2(i, this.seed) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.6);
@@ -832,8 +832,10 @@ export class World {
       const above2 = this.getBlock(x, h + 2, z);
       if (above1 !== BLOCK.AIR || above2 !== BLOCK.AIR) continue;
       const candidate = { x: x + 0.5, y: h + 1.01, z: z + 0.5, h };
-      // score: higher and closer to origin is better
-      const score = h * 2 - Math.hypot(x, z) * 0.15;
+      const biome = biomeAt(x, z, this.seed);
+      const warmSurface = surface === BLOCK.SAND && (biome === BIOME.TROPICAL || biome === BIOME.SHORE);
+      // Warm sand wins; retain a high-land fallback if a seed has sparse coast.
+      const score = (warmSurface ? 220 : 0) + h * 2 - Math.hypot(x, z) * 0.15;
       if (!best || score > best.score) best = { ...candidate, score };
     }
     if (best) return { x: best.x, y: best.y, z: best.z };

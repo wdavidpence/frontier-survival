@@ -42,6 +42,9 @@ function fbm(x, z, octaves = 4) {
 }
 
 const WORLD_SCALE = 0.5;
+function starterCoastBlend(x, z) {
+  return Math.max(0, Math.min(1, 1 - Math.hypot(x, z) / 168));
+}
 function heightAt(x, z, seed = 0) {
   const sx = x * 0.03 * WORLD_SCALE + seed * 17.1;
   const sz = z * 0.03 * WORLD_SCALE + seed * 9.7;
@@ -60,6 +63,11 @@ function heightAt(x, z, seed = 0) {
       y = Math.max(y, peak);
     }
   }
+  const starterBlend = starterCoastBlend(x, z);
+  if (starterBlend > 0) {
+    const shelf = 8 + fbm(x * 0.018 * WORLD_SCALE + 41, z * 0.018 * WORLD_SCALE - 17, 3) * 16;
+    y = y * (1 - starterBlend) + shelf * starterBlend;
+  }
   return Math.floor(y);
 }
 
@@ -68,6 +76,11 @@ function biomeAt(x, z, seed = 0) {
   const coast = fbm(x * 0.01 * WORLD_SCALE + 3, z * 0.01 * WORLD_SCALE + 7, 3);
   const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
   if (h < 16 - 1) return 'ocean';
+  const starter = starterCoastBlend(x, z);
+  if (starter > 0.12 && h >= 16) {
+    if (h <= 16 + 1) return 'shore';
+    return 'tropical';
+  }
   if (h >= 16 && h <= 16 + 7 && coast < 0.4 && isle > 0.7) return 'tropical';
   if (h < 20) return 'shore';
   const dryness = fbm(
@@ -180,11 +193,11 @@ function generateChunkData(cx, cz, seed) {
         const th = hash2(x * 3 + (seed | 0), z * 5 + 19);
         let treeChance = 0;
         if (biome === 'forest') treeChance = 0.04;
-        else if (biome === 'shore') treeChance = 0.012;
+        else if (biome === 'shore') treeChance = 0.028;
         else if (biome === 'tundra') treeChance = 0.02;
-        else if (biome === 'tropical') treeChance = 0.03;
+        else if (biome === 'tropical') treeChance = 0.06;
         if (th > 1 - treeChance) {
-          if (biome === 'tropical') _placePalm(data, idx, lx, h + 1, lz);
+          if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);
           else _placeTree(data, idx, lx, h + 1, lz);
         }
       }
@@ -216,6 +229,23 @@ function generateChunkData(cx, cz, seed) {
   _carveLavaTubes(data, idx, baseX, baseZ, seed);
 
   return data;
+}
+
+function _placePalm(data, idx, lx, y, lz) {
+  const trunkH = 5 + Math.floor(hash2(lx + 21, lz + 13) * 3);
+  for (let i = 0; i < trunkH; i++) {
+    const ty = y + i;
+    if (ty >= WORLD_HEIGHT) break;
+    data[idx(lx, ty, lz)] = BLOCK.LOG;
+  }
+  const top = y + trunkH - 1;
+  for (const [dx, dz] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+    const tx = lx + dx;
+    const tz = lz + dz;
+    const ty = top + (Math.abs(dx) + Math.abs(dz) > 1 ? 0 : 1);
+    if (tx < 0 || tx >= CHUNK_SIZE || tz < 0 || tz >= CHUNK_SIZE || ty < 0 || ty >= WORLD_HEIGHT) continue;
+    if (data[idx(tx, ty, tz)] === BLOCK.AIR) data[idx(tx, ty, tz)] = BLOCK.LEAVES;
+  }
 }
 
 function _placeTree(data, idx, lx, y, lz) {

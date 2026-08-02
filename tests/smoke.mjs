@@ -1,6 +1,7 @@
 import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
 import { heightAt, fbm, hash2 } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
+import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
 import { getPlayMode, DEFAULT_SETTINGS, parseSettings, serializeSettings, SETTINGS_KEY, sensitivityFromSlider, sliderFromSensitivity, writeSettings, readSettings } from '../js/settings.js';
 import { MODES, getMode, scalePredatorDamage, isValidMode, MODE_ORDER } from '../js/modes.js';
 import { clonePlayer, cloneSurvivalState, serializeCoopGameState } from '../js/coop-state.js';
@@ -1139,6 +1140,21 @@ test('biomeAt returns known biome strings', () => {
         || b === 'ocean' || b === 'tropical',
       `unexpected biome: ${b}`,
     );
+  }
+});
+
+test('starter band is tropical/coastal dominant', () => {
+  const allowed = new Set([BIOME.OCEAN, BIOME.SHORE, BIOME.TROPICAL]);
+  for (const seed of [1, 42, 12345]) {
+    let coastal = 0;
+    let total = 0;
+    for (let z = -128; z <= 128; z += 16) {
+      for (let x = -128; x <= 128; x += 16) {
+        total++;
+        if (allowed.has(biomeAt(x, z, seed))) coastal++;
+      }
+    }
+    assert.ok(coastal / total >= 0.7, `seed ${seed} coastal share ${coastal}/${total}`);
   }
 });
 
@@ -3366,4 +3382,36 @@ test('wetness movePenalty', () => {
     assert.strictEqual(movePenalty(1), 0.7);
     const mid = movePenalty(0.5);
     assert.ok(mid > 0.7 && mid < 1, `mid penalty ${mid}`);
+});
+
+test('fauna-parts/accent-color coolTint', () => {
+  const cool = coolTint([0.8, 0.6, 0.4]);
+  assert.ok(cool[2] > cool[0], 'cool tint should be blue-dominant');
+  assert.ok(cool[0] >= 0 && cool[0] <= 1, 'r in [0,1]');
+  assert.ok(cool[1] >= 0 && cool[1] <= 1, 'g in [0,1]');
+  assert.ok(cool[2] >= 0 && cool[2] <= 1, 'b in [0,1]');
+});
+
+test('fauna-parts/accent-color oceanTint', () => {
+  const o = oceanTint([0.5, 0.5, 0.5]);
+  assert.ok(o[2] > o[0], 'ocean tint blue-dominant');
+  assert.ok(o[0] >= 0 && o[0] <= 1);
+  assert.ok(o[1] >= 0 && o[1] <= 1);
+  assert.ok(o[2] >= 0 && o[2] <= 1);
+});
+
+test('fauna-parts/accent-color applyCoolTint', () => {
+  const c = [0.8, 0.6, 0.4];
+  const mixed = applyCoolTint(c, 0.5);
+  assert.ok(mixed[0] > 0 && mixed[0] < 1);
+  assert.ok(mixed[1] > 0 && mixed[1] < 1);
+  assert.ok(mixed[2] > 0 && mixed[2] < 1);
+  const full = applyCoolTint(c, 1);
+  assert.deepStrictEqual(full, coolTint(c));
+});
+
+test('fauna-parts/accent-color clamp01', () => {
+  assert.strictEqual(clamp01(1.5), 1);
+  assert.strictEqual(clamp01(-0.5), 0);
+  assert.strictEqual(clamp01(0.5), 0.5);
 });
