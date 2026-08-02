@@ -1411,3 +1411,5 @@ PASS oss20b chiseled-bookshelf-signal PASS, 293? emitted PASS lines plus final  
 | 2026-08-01T23:42:26.424Z | watchdog running 1→0 reclaimed t_986e6dde Spawned 0 |
 | 2026-08-01T23:58:20.026Z | watchdog running 0→0 reclaimed none Spawned 0 |
 | 2026-08-01T20:13:09-0400 | SHIP v1.13.0 honey/powder-snow/scaffolding/smoker/mace playable + recipes; luna worker created; smoke316 |
+| 2026-08-02T00:14:20.339Z | watchdog running 3→3 reclaimed none Spawned 0 |
+| 2026-08-01T20:16:10-0400 | ANIMAL VISUALS v1.13.0 multi-part species silhouettes, markings, legs/wings/tails, and subtle motion; smoke159+green |

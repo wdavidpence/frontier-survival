@@ -2914,23 +2914,94 @@ export class Game {
     const g = new THREE.Group();
     const col = new THREE.Color(spec.color[0], spec.color[1], spec.color[2]);
     const mat = new THREE.MeshLambertMaterial({ color: col });
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(spec.scale[0], spec.scale[1] * 0.55, spec.scale[2]),
-      mat,
+    const dark = new THREE.MeshLambertMaterial({ color: 0x191822 });
+    const light = new THREE.MeshLambertMaterial({
+      color: new THREE.Color(
+        Math.min(1, spec.color[0] * 1.35 + 0.08),
+        Math.min(1, spec.color[1] * 1.35 + 0.08),
+        Math.min(1, spec.color[2] * 1.35 + 0.08),
+      ),
+    });
+    const accent = new THREE.MeshLambertMaterial({
+      color: type === 'bee_stub' || type === 'chicken' ? 0xd8ad28 : 0x6b3d25,
+    });
+    const add = (geometry, material, x, y, z, role = '') => {
+      const part = new THREE.Mesh(geometry, material);
+      part.position.set(x, y, z);
+      part.userData.baseY = y;
+      if (role) part.userData.animalRole = role;
+      g.add(part);
+      return part;
+    };
+    const sx = spec.scale[0];
+    const sy = spec.scale[1];
+    const sz = spec.scale[2];
+    const legW = Math.max(0.09, sx * 0.19);
+    const legH = Math.max(0.12, sy * 0.48);
+    const body = add(new THREE.BoxGeometry(sx, sy * 0.55, sz), mat, 0, sy * 0.35, 0, 'body');
+    body.rotation.x = type === 'alligator' ? -0.04 : 0;
+    const head = add(
+      new THREE.BoxGeometry(sx * (type === 'alligator' ? 0.7 : 0.55), sy * 0.4, sx * 0.55),
+      light,
+      0,
+      sy * (type === 'alligator' ? 0.52 : 0.7),
+      sz * 0.35,
+      'head',
     );
-    body.position.y = spec.scale[1] * 0.35;
-    const head = new THREE.Mesh(
-      new THREE.BoxGeometry(spec.scale[0] * 0.55, spec.scale[1] * 0.4, spec.scale[0] * 0.55),
-      mat,
-    );
-    head.position.set(0, spec.scale[1] * 0.7, spec.scale[2] * 0.35);
-    g.add(body, head);
-    if (type === 'wolf') {
-      const ear = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.18, 0.08), mat);
-      ear.position.set(0.12, spec.scale[1] * 0.95, spec.scale[2] * 0.3);
-      g.add(ear);
+    // Four simple articulated legs give the silhouettes readable motion at a distance.
+    if (!['bird', 'bat', 'bee_stub'].includes(type)) {
+      for (const x of [-sx * 0.32, sx * 0.32]) {
+        for (const z of [-sz * 0.28, sz * 0.28]) {
+          add(new THREE.BoxGeometry(legW, legH, legW), mat, x, legH * 0.5, z, 'leg');
+        }
+      }
+    }
+    // Species-specific silhouettes and markings. All geometry is original, low-poly, and cheap.
+    if (['hare', 'deer'].includes(type)) {
+      for (const x of [-sx * 0.2, sx * 0.2]) {
+        add(new THREE.ConeGeometry(sx * 0.11, sy * (type === 'hare' ? 0.55 : 0.28), 4), light, x, sy * 1.02, sz * 0.34, 'ear');
+      }
+      if (type === 'deer') {
+        for (const x of [-sx * 0.16, sx * 0.16]) add(new THREE.BoxGeometry(0.045, sy * 0.55, 0.045), light, x, sy * 1.32, sz * 0.35, 'antler');
+      }
+    } else if (['wolf', 'fox'].includes(type)) {
+      for (const x of [-sx * 0.2, sx * 0.2]) add(new THREE.ConeGeometry(sx * 0.13, sy * 0.32, 4), mat, x, sy * 1.0, sz * 0.34, 'ear');
+      add(new THREE.BoxGeometry(sx * 0.28, sy * 0.22, sz * 0.42), light, 0, sy * 0.54, -sz * 0.62, 'tail');
+    } else if (type === 'bear') {
+      for (const x of [-sx * 0.2, sx * 0.2]) add(new THREE.SphereGeometry(sx * 0.13, 6, 4), mat, x, sy * 0.98, sz * 0.3, 'ear');
+      add(new THREE.BoxGeometry(sx * 0.34, sy * 0.3, sz * 0.5), dark, 0, sy * 0.52, sz * 0.31, 'muzzle');
+    } else if (type === 'cow') {
+      add(new THREE.BoxGeometry(sx * 0.28, sy * 0.3, sz * 0.08), dark, -sx * 0.3, sy * 0.4, sz * 0.05, 'spot');
+      add(new THREE.BoxGeometry(sx * 0.2, sy * 0.22, sz * 0.08), dark, sx * 0.28, sy * 0.46, -sz * 0.2, 'spot');
+      for (const x of [-sx * 0.2, sx * 0.2]) add(new THREE.ConeGeometry(sx * 0.08, sy * 0.22, 4), light, x, sy * 0.98, sz * 0.3, 'horn');
+    } else if (type === 'boar') {
+      add(new THREE.BoxGeometry(sx * 0.38, sy * 0.25, sz * 0.24), dark, 0, sy * 0.58, sz * 0.38, 'snout');
+      for (const x of [-sx * 0.17, sx * 0.17]) add(new THREE.ConeGeometry(0.045, sy * 0.2, 5), light, x, sy * 0.55, sz * 0.57, 'tusk');
+    } else if (type === 'alligator') {
+      add(new THREE.BoxGeometry(sx * 0.62, sy * 0.3, sz * 0.55), dark, 0, sy * 0.24, -sz * 0.72, 'tail');
+      for (const x of [-sx * 0.18, sx * 0.18]) add(new THREE.SphereGeometry(0.055, 5, 4), light, x, sy * 0.76, sz * 0.52, 'eye');
+    } else if (type === 'chicken') {
+      add(new THREE.ConeGeometry(sx * 0.12, sy * 0.25, 5), accent, 0, sy * 0.98, sz * 0.3, 'comb');
+      add(new THREE.BoxGeometry(sx * 0.12, sy * 0.1, sx * 0.16), accent, 0, sy * 0.68, sz * 0.66, 'beak');
+      for (const x of [-sx * 0.42, sx * 0.42]) add(new THREE.BoxGeometry(sx * 0.3, sy * 0.08, sz * 0.48), light, x, sy * 0.42, 0, 'wing');
+    } else if (type === 'bird' || type === 'bat') {
+      const wingMat = type === 'bat' ? dark : light;
+      for (const x of [-1, 1]) {
+        const wing = add(new THREE.BoxGeometry(sx * 0.12, sy * 0.12, sz * 0.9), wingMat, x * sx * 0.62, sy * 0.5, 0, 'wing');
+        wing.rotation.z = x * 0.35;
+      }
+    } else if (type === 'bee_stub') {
+      add(new THREE.BoxGeometry(sx * 1.02, sy * 0.2, sz * 0.18), dark, 0, sy * 0.35, 0, 'stripe');
+      for (const x of [-1, 1]) add(new THREE.BoxGeometry(sx * 0.9, sy * 0.035, sz * 0.55), light, x * sx * 0.75, sy * 0.54, 0, 'wing');
+    } else {
+      add(new THREE.BoxGeometry(sx * 0.2, sy * 0.16, sz * 0.35), light, 0, sy * 0.52, -sz * 0.58, 'tail');
+    }
+    // Shared eyes make every head read as alive without changing collision/gameplay.
+    if (!['alligator', 'bird', 'bat', 'bee_stub'].includes(type)) {
+      for (const x of [-sx * 0.17, sx * 0.17]) add(new THREE.SphereGeometry(Math.max(0.025, sx * 0.045), 5, 4), dark, x, sy * 0.78, sx * 0.31, 'eye');
     }
     g.userData.type = type;
+    g.userData.phase = (type.length * 0.71) % (Math.PI * 2);
     return g;
   }
 
@@ -2948,6 +3019,16 @@ export class Game {
       }
       mesh.position.set(a.x, a.y, a.z);
       mesh.rotation.y = a.yaw || 0;
+      const moving = Math.hypot(a.vx || 0, a.vz || 0) > 0.08;
+      const animT = (performance.now() * 0.006 + mesh.userData.phase) * (moving ? 1 : 0.18);
+      mesh.userData.animT = animT;
+      mesh.traverse((c) => {
+        const role = c.userData?.animalRole;
+        if (role === 'leg') c.rotation.x = Math.sin(animT * 2.2 + c.position.z * 8) * (moving ? 0.22 : 0.04);
+        if (role === 'wing') c.rotation.x = Math.sin(animT * 3.2) * (moving ? 0.38 : 0.08);
+        if (role === 'tail') c.rotation.x = Math.sin(animT * 2.6) * 0.12;
+        if (role === 'head') c.position.y = (c.userData.baseY ?? c.position.y) + Math.sin(animT * 2) * 0.012;
+      });
       // hurt flash
       const hurt = a.hp < a.maxHp * 0.5;
       mesh.traverse((c) => {
