@@ -2,7 +2,7 @@
  * Unified item/block IDs for inventory stacks.
  * Blocks: 0–99 (see blocks.js). Items: 100+.
  */
-import { BLOCK, BLOCK_PROPS } from './blocks.js?v=216';
+import { BLOCK, BLOCK_PROPS } from './blocks.js?v=221';
 
 export const ITEM = {
   STICK: 100,
@@ -53,6 +53,7 @@ export const ITEM = {
   WATER_BUCKET: 145,
   MAP: 146,
   ICE_BOX: 147,
+  COCONUT: 148,
 };
 
 /** @type {Record<number, {
@@ -226,6 +227,7 @@ export const ITEM_PROPS = {
   [ITEM.WATER_BUCKET]: { name: 'Water Bucket', color: [0.25, 0.45, 0.85], maxStack: 1 },
   [ITEM.MAP]: { name: 'Map', color: [0.75, 0.7, 0.5], maxStack: 1 },
   [ITEM.ICE_BOX]: { name: 'Ice Box', color: [0.7, 0.85, 0.95], maxStack: 8, placeable: true, placeAs: BLOCK.ICE_BOX },
+  [ITEM.COCONUT]: { name: 'Coconut', color: [0.38, 0.24, 0.12], edible: 24, maxStack: 16 },
 };
 
 export function propsOf(id) {
@@ -270,7 +272,7 @@ export function placeBlockId(id) {
 
 /** Preferred tool type for a block */
 export function preferredTool(blockId) {
-  if (blockId === BLOCK.LOG || blockId === BLOCK.PLANKS || blockId === BLOCK.LEAVES || blockId === BLOCK.BUSH)
+  if (blockId === BLOCK.LOG || blockId === BLOCK.PLANKS || blockId === BLOCK.LEAVES || blockId === BLOCK.PALM_LEAVES || blockId === BLOCK.BUSH)
     return 'axe';
   if (
     blockId === BLOCK.STONE ||
@@ -305,7 +307,7 @@ export function dropForBlock(blockId) {
   if (blockId === BLOCK.IRON_ORE) return BLOCK.IRON_ORE;
   if (blockId === BLOCK.BUSH) return ITEM.BERRIES;
   if (blockId === BLOCK.CROP) return ITEM.WHEAT;
-  if (blockId === BLOCK.LEAVES) {
+  if (blockId === BLOCK.LEAVES || blockId === BLOCK.PALM_LEAVES) {
     return null; // handled with rng externally
   }
   if (blockId === BLOCK.CHEST) return BLOCK.CHEST;

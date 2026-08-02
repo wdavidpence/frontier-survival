@@ -1,0 +1,16 @@
+/** Pure palm-leaf harvest rules; deterministic for smoke tests and runtime injection. */
+import { BLOCK } from './blocks.js?v=221';
+import { ITEM } from './items.js?v=244';
+
+/**
+ * Resolve a palm leaf break into an item drop.
+ * @param {number} blockId
+ * @param {number} roll deterministic value in [0, 1)
+ * @returns {number|null}
+ */
+export function palmLeafDrop(blockId, roll) {
+  if (blockId !== BLOCK.PALM_LEAVES || !Number.isFinite(roll)) return null;
+  if (roll < 0.18) return ITEM.COCONUT;
+  if (roll < 0.36) return ITEM.STICK;
+  return null;
+}

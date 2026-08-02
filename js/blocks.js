@@ -48,6 +48,10 @@ export const BLOCK = {
   SEQUOIA_LEAVES: 45,
   STAIRS_WOOD: 46,
   SLAB_WOOD: 47,
+  CORAL: 48,
+  KELP: 49,
+  SEAGRASS: 50,
+  PALM_LEAVES: 51,
 };
 
 /** @type {Record<number, {
@@ -112,6 +116,10 @@ export const BLOCK_PROPS = {
   [BLOCK.SEQUOIA_LEAVES]: { name: 'Sequoia Leaves', solid: true, transparent: true, hardness: 0.2, color: [0.18, 0.45, 0.15], drops: BLOCK.SEQUOIA_LEAVES },
   [BLOCK.STAIRS_WOOD]: { name: 'Wood Stairs', solid: true, transparent: false, hardness: 0.8, color: [0.72, 0.58, 0.35], drops: BLOCK.STAIRS_WOOD },
   [BLOCK.SLAB_WOOD]: { name: 'Wood Slab', solid: true, transparent: false, hardness: 0.8, color: [0.72, 0.58, 0.35], drops: BLOCK.SLAB_WOOD },
+  [BLOCK.CORAL]: { name: 'Coral', solid: true, transparent: false, hardness: 0.8, color: [0.92, 0.38, 0.42], drops: BLOCK.CORAL },
+  [BLOCK.KELP]: { name: 'Kelp', solid: false, transparent: true, hardness: 0.1, color: [0.08, 0.38, 0.2], drops: BLOCK.KELP, replaceable: true },
+  [BLOCK.SEAGRASS]: { name: 'Seagrass', solid: false, transparent: true, hardness: 0.1, color: [0.12, 0.55, 0.28], drops: BLOCK.SEAGRASS, replaceable: true },
+  [BLOCK.PALM_LEAVES]: { name: 'Palm Leaves', solid: true, transparent: true, hardness: 0.2, color: [0.28, 0.58, 0.2], drops: BLOCK.PALM_LEAVES },
 };
 
 export function isSolid(id) {

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=220';
+import { World } from './world.js?v=245';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=220';
 import { GameTime } from './time.js?v=220';
@@ -20,7 +20,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=243';
+} from './items.js?v=244';
 import { resolveBlockDrop } from './mine-tier.js?v=220';
 import {
   createFurnaceState,
@@ -50,10 +50,11 @@ import {
   splitStack,
 } from './inventory.js?v=220';
 import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=243';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=242';
 import { createBlockAtlas } from './atlas.js?v=220';
-import { BreakFX } from './fx.js?v=220';
+import { BreakFX } from './fx.js?v=244';
+import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -91,7 +92,7 @@ import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=220';
 import { wearTool, durabilityRatio } from './durability.js?v=220';
 import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=220';
 import { tickLogic, COMPONENT } from './logic.js?v=220';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=222';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=245';
 import {
   chestKey,
   getChestSlots,
@@ -108,6 +109,7 @@ import { splitViewport } from './viewport-split.js?v=220';
 import { readGamepad } from './input-coop.js?v=220';
 import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=220';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=220';
+import { palmLeafDrop } from './palm-drops.js?v=1';
 
 export class Game {
   /**
@@ -198,6 +200,7 @@ export class Game {
     this._fpsAcc = 0;
     this._fpsFrames = 0;
     this._wasInWater = false;
+    this._cameraInWater = false;
     this._rain = null;
     this._bowCd = 0;
     this._chests = new Map();
@@ -427,8 +430,8 @@ export class Game {
       this.camera2.far = Math.max(far, 50);
       this.camera2.updateProjectionMatrix();
     }
-    // Update world chunk radius (each chunk = 16 blocks)
-    const chunks = Math.max(2, Math.min(16, rd)); // allow large maps; cost ~chunks²
+    // Render distance controls the bounded streaming ring, not a playable wall.
+    const chunks = Math.max(2, Math.min(16, rd));
     this.worldRadius = chunks;
     if (this.world) {
       // Trigger a chunk reload at the new radius
@@ -534,6 +537,7 @@ export class Game {
       radiusChunks: this.worldRadius || 5,
       material: this.atlas.greedyMaterial || this.atlas.material,
     });
+
     if (saveData?.edits?.length) {
       this.world.applyEdits(saveData.edits, { replace: true });
     }
@@ -674,6 +678,7 @@ export class Game {
       this.camera.rotation.x = this.player.pitch;
     }
     this._updateLighting();
+    this._updateWaterVisuals();
     this.render();
     this._invNeedsPaint = true;
     this._autosaveAcc = 0;
@@ -1414,6 +1419,16 @@ export class Game {
 
     let move = { moved: false, sprinting: false, inWater: false };
     if (!this.player.inventoryOpen) {
+      // Keep collision data available for the chunk the player is entering;
+      // the surrounding visual ring is streamed incrementally below.
+      if (this.world && this.player) {
+        const c = this.world.worldToChunk(this.player.position.x, this.player.position.z);
+        this.world.ensureChunk(c.cx, c.cz);
+        if (this.coopMode && this.player2) {
+          const c2 = this.world.worldToChunk(this.player2.position.x, this.player2.position.z);
+          this.world.ensureChunk(c2.cx, c2.cz);
+        }
+      }
       move = this.player.update(this.world, this.input, this.survival, dt);
       if (this.coopMode && this.player2 && this.input2) {
         // P2 uses pad1 when P1 holds pad0; else pad0 if P1 is KBM-only
@@ -1431,6 +1446,10 @@ export class Game {
         }
         }
       }
+      this.world.updateStreaming(
+        [this.player, this.coopMode ? this.player2 : null],
+        { radius: this.worldRadius },
+      );
 
       if (this.coopMode && this.player2 && this.input2 && !this.paused && !this.survival2?.dead) {
         // P2 bow steals R2 when holding bow
@@ -1458,10 +1477,7 @@ export class Game {
       }
       if (move.inWater && !this._wasInWater) this.audio.splash?.() || this.audio.step('water');
       this._wasInWater = move.inWater;
-      // drown when exhausted in water
-      if (move.inWater && this.survival.stamina < 2) {
-        this.survival = applyDamage(this.survival, 8 * dt, 'drowning');
-      }
+
     } else {
       // still update message timer
       if (this.player.messageT > 0) this.player.messageT -= dt;
@@ -1914,6 +1930,7 @@ export class Game {
       this._scanLights(false);
     }
     this._updateLighting();
+    this._updateWaterVisuals();
     this._tickTooltips(dt);
     this._updateHud();
     if ((this.player?.inventoryOpen || this.player2?.inventoryOpen) && this._invNeedsPaint) this._paintInventory();
@@ -2274,6 +2291,7 @@ export class Game {
           else if (r < 0.32) drop = ITEM.SEEDS;
           else drop = null;
         }
+        if (hit.id === BLOCK.PALM_LEAVES) drop = palmLeafDrop(hit.id, Math.random());
         if (hit.id === BLOCK.GRASS && Math.random() < 0.12) {
           // bonus seeds when ripping grass
           const bonus = addItems(this.player.slots, ITEM.SEEDS, 1);
@@ -3186,6 +3204,7 @@ export class Game {
 
   _updateLighting() {
     const sunI = this.time.sunIntensity();
+    this.hemi.color.setHex(0x9ec9ff);
     // storm lightning flash boost
     if (this._stormFlashT > 0) {
       this.ambient.intensity += this._stormFlashT * 8;
@@ -3231,7 +3250,23 @@ export class Game {
     }
   }
 
-
+  /** Apply a clear blue-green cast and short-range fog while the camera is submerged. */
+  _updateWaterVisuals() {
+    if (!this.world || !this.player || !this.scene?.fog) return;
+    const eye = this.player.eyePosition();
+    const underwater = this.world.getBlock(eye.x, eye.y, eye.z) === BLOCK.WATER;
+    this._cameraInWater = underwater;
+    if (!underwater) return;
+    const style = underwaterFogStyle({ underwater, depth: Math.max(0, 16 - eye.y) });
+    this.scene.background.setHex(style.color);
+    this.scene.fog.color.setHex(style.color);
+    this.scene.fog.near = style.near;
+    this.scene.fog.far = style.far;
+    this.ambient.color.setHex(0x4a9ab0);
+    this.ambient.intensity = Math.max(this.ambient.intensity, 0.28 * style.tint);
+    this.hemi.color.setHex(0x5bb8cf);
+    this.sun.intensity *= 0.42;
+  }
 
   /** P2 shared-world mine/place via pad (R2 break, L1 place). */
   _handleCoopP2World(dt) {
@@ -3253,6 +3288,7 @@ export class Game {
         p.breaking.progress += (this._breakSpeed * mult * dt) / hard;
         if (p.breaking.progress >= 1) {
           let drop = resolveBlockDrop(hit.id, dropForBlock);
+          if (hit.id === BLOCK.PALM_LEAVES) drop = palmLeafDrop(hit.id, Math.random());
           this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR);
           if (drop != null) {
             const add = addItems(p.slots, drop, 1);
@@ -3344,6 +3380,7 @@ export class Game {
     setBar('bar-health', s.health, s.maxHealth);
     setBar('bar-hunger', s.hunger, s.maxHunger);
     setBar('bar-thirst', s.thirst ?? 100, s.maxThirst ?? 100);
+    setBar('bar-breath', s.breath ?? s.maxBreath ?? 30, s.maxBreath ?? 30);
     setBar('bar-stamina', s.stamina, s.maxStamina);
     setBar('bar-temp', this._tempBar(s.bodyTemp), 100);
     setBar('bar-sleep', s.sleep, 100);
@@ -3355,6 +3392,7 @@ export class Game {
       setBar('bar-health-p2', s2.health, s2.maxHealth);
       setBar('bar-hunger-p2', s2.hunger, s2.maxHunger);
       setBar('bar-thirst-p2', s2.thirst ?? 100, s2.maxThirst ?? 100);
+      setBar('bar-breath-p2', s2.breath ?? s2.maxBreath ?? 30, s2.maxBreath ?? 30);
       setBar('bar-stamina-p2', s2.stamina, s2.maxStamina);
       setBar('bar-temp-p2', this._tempBar(s2.bodyTemp), 100);
       setBar('bar-sleep-p2', s2.sleep, 100);

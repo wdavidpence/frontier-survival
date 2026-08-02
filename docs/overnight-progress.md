@@ -1744,3 +1744,112 @@ Oldest ready task age: 100160s
 - Browser: Start OK, spawn under sand, logs/palms nearby, 0 JS errors
 - Decision: **ship** local tropical default candidate
 
+
+## 2026-08-02 14:10 EDT — overnight judge tick
+
+- Decision: **continue/recover**, no ship.
+- Routing: expired Luna implementation `t_9ef1f65d` was reclaimed and parked with `after_midnight_luna_parked_use_ornith`; no Luna card is running or ready. Exactly one depth-1 oss20b lane was requested with `dispatch --max 1`; the gateway actually spawned `t_32d426bd` (`oss20b`, fauna turtle pure slice) after its scheduled queue promotion. Fresh stats: running=1, ready=0.
+- Verification: independent `node tests/smoke.mjs` now PASS (exit 0; full suite output completed successfully). A concurrent first run briefly observed transient undefined tint symbols while the worker completion was still settling; rerun after reclaim completed cleanly. `git diff --check` PASS; `cmp index.html public/index.html` PASS.
+- Browser/local: `http://127.0.0.1:8767/` served v1.12.12 with boot console info and no JS errors. Accessibility Start click was inconclusive; DOM probe `#btn-start.click()` proved `window.__FS.started === true`, `#title-screen` computed `display:none`, and HUD text showed Day 1 tropical state.
+- Release: **NO SHIP**. Worktree remains broad dirty WIP (game/worldgen/dual HTML/smoke plus task-worktree metadata); no commit/push.
+- Next: independently inspect the actual `t_32d426bd` diff when terminal, rerun smoke/diff/browser gates, preserve depth-1 oss20b serialization, and keep all Luna implementation cards parked.
+
+| 2026-08-02T18:36:47.020Z | noidle 1→1 oss=1 luna=0 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T18:37:37.839Z | noidle 1→2 oss=1 luna=0 unblocked=- reclaimed=- Spawned 1 |
+
+| 2026-08-02T18:39:24.062Z | noidle 1→2 oss=0 luna=1 unblocked=t_dd323e9d reclaimed=- Spawned 1 |
+
+| 2026-08-02T18:48:03.565Z | noidle 0→1 oss=0 luna=0 unblocked=t_f6e18f32 reclaimed=- Spawned 1 |
+
+| 2026-08-02T18:49:54.071Z | noidle 1→1 oss=1 luna=0 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T18:53:39.744Z | noidle 0→1 oss=0 luna=0 unblocked=t_db2c7a30 reclaimed=- Spawned 1 |
+
+| 2026-08-02T18:59:39.851Z | noidle 1→1 oss=1 luna=0 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T19:05:39.957Z | noidle 1→1 oss=1 luna=0 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T19:08:00.384Z | noidle 0→1 oss=0 luna=0 unblocked=t_0b1c7e14 reclaimed=- Spawned 1 |
+
+| 2026-08-02T19:11:40.099Z | noidle 1→1 oss=1 luna=0 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T19:13:58.335Z | noidle 0→1 oss=0 luna=0 unblocked=t_a6a58fd9 reclaimed=- Spawned 1 |
+
+| 2026-08-02T19:17:40.226Z | noidle 1→1 oss=1 luna=0 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T19:23:40.345Z | noidle 1→2 oss=0 luna=1 unblocked=t_62922d52 reclaimed=- Spawned 1 |
+
+| 2026-08-02T19:29:40.506Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T19:35:40.662Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T19:40:29.735Z | noidle 2→2 oss=1 luna=1 unblocked=t_60496bee reclaimed=t_9d5469ee Spawned 1 |
+
+| 2026-08-02T19:41:40.780Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T19:46:49.326Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T19:47:40.926Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T19:49:14.937Z | noidle 2→2 oss=1 luna=1 unblocked=t_62922d52 reclaimed=t_62922d52 Spawned 1 |
+
+| 2026-08-02T19:52:16.395Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+
+## 2026-08-02 19:52 UTC — hourly judge tick
+
+- Watchdog: `fs-noidle-watchdog.mjs --reclaim-minutes 18 --dispatch-max 2` kept running=2; reclaimed and respawned the thrashing oss20b fauna card `t_62922d52`; Luna `t_cd63bd7a` remained active.
+- Board envelope: 2 running, 0 ready, 484 scheduled, 109 blocked, 340 done. Active owners are Luna (`t_cd63bd7a`, undersea fog/water tint) and oss20b (`t_62922d52`, alligator silhouette), both in the shared `dir` workspace; within configured depth caps.
+- Independent gates: `node tests/smoke.mjs` PASS (exit 0; all reported assertions passed, including alligator/fauna layout coverage); `git diff --check` PASS.
+- Worktree: broad uncommitted shared WIP remains across gameplay/world/fauna/atlas/smoke plus task worktrees; no commit, push, browser release gate, or ship attempted.
+- Decision: **continue**. Next action is to inspect both active cards only at terminal state, rerun smoke/diff-check, and review any completed diff before considering a green plateau.
+
+
+- **Correction evidence:** a concurrent final smoke invocation briefly hit `ERR_MODULE_NOT_FOUND: three` while the active Luna `js/fx.js` edit was in flight; an immediate clean rerun completed successfully with the underwater fog assertions. This transient observation does not reopen the release gate; broad WIP remains and no ship was attempted.
+
+| 2026-08-02T19:57:26.904Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 1 |
+
+| 2026-08-02T19:57:41.071Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T20:02:41.292Z | noidle 1→2 oss=0 luna=1 unblocked=t_af3348c2 reclaimed=- Spawned 1 |
+
+| 2026-08-02T20:04:25.620Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T20:08:41.431Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T20:09:52.814Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T20:14:41.523Z | noidle 1→2 oss=0 luna=1 unblocked=t_aee5f2b8 reclaimed=- Spawned 1 |
+
+| 2026-08-02T20:15:18.525Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T20:20:43.292Z | noidle 1→2 oss=1 luna=0 unblocked=t_60496bee reclaimed=- Spawned 1 |
+
+| 2026-08-02T20:20:41.680Z | noidle 1→2 oss=1 luna=0 unblocked=t_60496bee reclaimed=- Spawned 0 |
+
+| 2026-08-02T20:26:09.135Z | noidle 0→1 oss=0 luna=0 unblocked=t_fcb16cc4,t_5e87e080 reclaimed=- Spawned 1 |
+
+| 2026-08-02T20:26:41.802Z | noidle 1→1 oss=1 luna=0 unblocked=t_07b86449 reclaimed=- Spawned 0 |
+
+| 2026-08-02T20:28:31.565Z | noidle 2→2 oss=1 luna=1 unblocked=t_2794d054 reclaimed=t_2794d054 Spawned 1 |
+
+| 2026-08-02T20:32:41.936Z | noidle 1→2 oss=0 luna=1 unblocked=t_64b5a5e8 reclaimed=- Spawned 1 |
+
+| 2026-08-02T20:34:39.554Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T20:38:42.040Z | noidle 1→2 oss=1 luna=0 unblocked=t_ed369ec4 reclaimed=- Spawned 1 |
+
+| 2026-08-02T20:44:42.108Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+| 2026-08-02T20:50:42.228Z | noidle 0→2 oss=0 luna=0 unblocked=t_3fac051d,t_ed369ec4 reclaimed=- Spawned 2 |
+
+| 2026-08-02T20:52:05.847Z | noidle 2→2 oss=1 luna=1 unblocked=- reclaimed=- Spawned 0 |
+
+## 2026-08-02 — ship v1.12.14 infinite chunk streaming
+
+- P0 Luna: bootstrap ring ≤6, streamBudget 16, updateStreaming each frame, no hard wall (fauna lim 100000)
+- Dual HTML v1.12.14 main.js?v=245; smoke stream test PASS (162)
+- Also includes accumulated tropical ocean blocks/fauna/density WIP needed for green smoke
+- Decision: **ship**
+

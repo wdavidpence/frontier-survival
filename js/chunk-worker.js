@@ -139,6 +139,15 @@ const BLOCK = {
   CLAY_DEEP_ORE: 39,
   SULFUR_ORE: 40,
   OIL_SEEP: 41,
+  SPRUCE_LOG: 42,
+  SPRUCE_LEAVES: 43,
+  SEQUOIA_LOG: 44,
+  SEQUOIA_LEAVES: 45,
+  STAIRS_WOOD: 46,
+  SLAB_WOOD: 47,
+  CORAL: 48,
+  KELP: 49,
+  SEAGRASS: 50,
 };
 
 const CHUNK_SIZE = 16;
@@ -192,15 +201,17 @@ function generateChunkData(cx, cz, seed) {
       if (h > SEA_LEVEL + 1) {
         const th = hash2(x * 3 + (seed | 0), z * 5 + 19);
         let treeChance = 0;
-        if (biome === 'forest') treeChance = 0.04;
+        if (biome === 'forest') treeChance = 0.018;
         else if (biome === 'shore') treeChance = 0.028;
-        else if (biome === 'tundra') treeChance = 0.02;
+        else if (biome === 'tundra') treeChance = 0.012;
         else if (biome === 'tropical') treeChance = 0.06;
         if (th > 1 - treeChance) {
           if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);
           else _placeTree(data, idx, lx, h + 1, lz);
         }
       }
+
+      populateOceanColumn(data, idx, lx, h, lz, x, z, biome, seed);
 
       // Berry bushes
       if (
@@ -276,6 +287,45 @@ function _placeTree(data, idx, lx, y, lz) {
   if (peak < WORLD_HEIGHT && lx >= 0 && lx < CHUNK_SIZE && lz >= 0 && lz < CHUNK_SIZE) {
     const i = idx(lx, peak, lz);
     if (data[i] === BLOCK.AIR) data[i] = BLOCK.LEAVES;
+  }
+}
+
+function populateOceanColumn(data, idx, lx, h, lz, x, z, biome, seed) {
+  if (h >= SEA_LEVEL || (biome !== 'ocean' && biome !== 'shore' && biome !== 'tropical')) return;
+  const floor = data[idx(lx, h, lz)];
+  if (floor !== BLOCK.SAND && floor !== BLOCK.DIRT) return;
+  const waterY = h + 1;
+  if (waterY >= SEA_LEVEL || data[idx(lx, waterY, lz)] !== BLOCK.WATER) return;
+
+  const plantRoll = hash2(x * 11 + seed * 7, z * 13 + 31);
+  const shallow = h >= SEA_LEVEL - 5;
+  if (shallow && plantRoll > 0.72) {
+    data[idx(lx, waterY, lz)] = BLOCK.SEAGRASS;
+  } else if (!shallow && plantRoll > 0.78) {
+    const kelpHeight = 2 + Math.floor(hash2(x * 17 + 5, z * 19 + seed) * 4);
+    for (let y = waterY; y < Math.min(SEA_LEVEL, waterY + kelpHeight); y++) {
+      if (data[idx(lx, y, lz)] !== BLOCK.WATER) break;
+      data[idx(lx, y, lz)] = BLOCK.KELP;
+    }
+  }
+  if (shallow && hash2(x * 17 + 5, z * 19 + seed) > 0.93) {
+    data[idx(lx, waterY, lz)] = BLOCK.KELP;
+    if (waterY + 1 < SEA_LEVEL && data[idx(lx, waterY + 1, lz)] === BLOCK.WATER) data[idx(lx, waterY + 1, lz)] = BLOCK.KELP;
+  }
+
+  if (shallow && hash2(x * 23 + 17, z * 29 + seed * 3) > 0.84) {
+    data[idx(lx, waterY, lz)] = BLOCK.CORAL;
+    const reefY = waterY + 1;
+    if (reefY < SEA_LEVEL && data[idx(lx, reefY, lz)] === BLOCK.WATER && hash2(x + 41, z * 3 + 7) > 0.45) {
+      data[idx(lx, reefY, lz)] = BLOCK.CORAL;
+    }
+    for (const dx of [-1, 1]) {
+      const tx = lx + dx;
+      if (tx < 0 || tx >= CHUNK_SIZE) continue;
+      if (data[idx(tx, h, lz)] === BLOCK.SAND && data[idx(tx, waterY, lz)] === BLOCK.WATER) {
+        data[idx(tx, waterY, lz)] = BLOCK.CORAL;
+      }
+    }
   }
 }
 

@@ -17,6 +17,11 @@ export const HUNGER_DAYS_AT_MULT_1 = 7;
  */
 export const THIRST_DAYS_AT_MULT_1 = 3;
 
+/** Seconds of comfortable breath available when fully surfaced. */
+export const BREATH_SEC = 30;
+/** Gentle recovery rate after the player's head clears the water. */
+export const BREATH_RECOVER_PER_SEC = 8;
+
 export const DEFAULT_SURVIVAL = {
   health: 100,
   maxHealth: 100,
@@ -24,6 +29,8 @@ export const DEFAULT_SURVIVAL = {
   maxHunger: 100,
   thirst: 100,
   maxThirst: 100,
+  breath: BREATH_SEC,
+  maxBreath: BREATH_SEC,
   stamina: 100,
   maxStamina: 100,
   bodyTemp: 37.0, // °C
@@ -71,6 +78,8 @@ export function tickSurvival(state, env) {
   const next = { ...state };
   if (next.thirst == null || !Number.isFinite(next.thirst)) next.thirst = 100;
   if (next.maxThirst == null || !Number.isFinite(next.maxThirst)) next.maxThirst = 100;
+  if (next.maxBreath == null || !Number.isFinite(next.maxBreath)) next.maxBreath = BREATH_SEC;
+  if (next.breath == null || !Number.isFinite(next.breath)) next.breath = next.maxBreath;
   const grace = Math.max(0, Math.min(1, env.earlyGameGrace ?? 0));
   let ambient = ambientTempC(env.dayPhase, env.weather);
   // Apply biome temperature bias (desert +8, tundra -10, etc.)
@@ -151,6 +160,11 @@ export function tickSurvival(state, env) {
     next.thirst = Math.max(next.thirst, 30 + grace * 35);
   }
 
+  // Breath: underwater exploration has a clear, forgiving timer. The head clears
+  // water by the time the movement probe returns false, then recovery is quick.
+  if (env.inWater) next.breath = Math.max(0, next.breath - dt);
+  else next.breath = Math.min(next.maxBreath, next.breath + BREATH_RECOVER_PER_SEC * dt);
+
   // Stamina
   if (env.sprinting && env.moving) {
     next.stamina = Math.max(0, next.stamina - 18 * dt * (1 - grace * 0.4));
@@ -211,6 +225,12 @@ export function tickSurvival(state, env) {
       dps += 1.6 * dmgScale;
       cause = 'exhaustion';
     }
+
+    if (next.breath <= 0 && env.inWater) {
+      // Soft drowning pressure: survivable long enough to surface, but not ignorable.
+      dps += 1.2 * dmgScale;
+      cause = 'drowning';
+    }
   }
 
   if (dps > 0) {
@@ -232,7 +252,7 @@ export function tickSurvival(state, env) {
     next.causeOfDeath = cause || 'unknown';
   }
 
-  next._debug = { ambient, feelsLike, target, dps, grace, hungerDrain, thirstDrain };
+  next._debug = { ambient, feelsLike, target, dps, grace, hungerDrain, thirstDrain, breath: next.breath };
   return next;
 }
 

@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=220';
-import { heightAt, hash2, fbm } from './gen.js?v=222';
-import { biomeAt, BIOME } from './biomes.js?v=222';
-import { tileForBlock } from './atlas-core.js?v=220';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=220';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=245';
+import { heightAt, hash2, fbm } from './gen.js?v=245';
+import { biomeAt, BIOME } from './biomes.js?v=245';
+import { tileForBlock } from './atlas-core.js?v=245';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=245';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -19,6 +19,15 @@ export class World {
   constructor({ seed = 1, radiusChunks = 4, material = null } = {}) {
     this.seed = seed;
     this.radiusChunks = radiusChunks;
+    this.streamRadius = Math.max(2, Math.min(32, radiusChunks | 0));
+    this.streamMargin = 1;
+    this._streamCenter = { cx: 0, cz: 0 };
+    this._streamQueue = [];
+    this._streamQueued = new Set();
+    // Chunk generation/meshing is synchronous in the fallback path. Keep a
+    // generous per-frame budget so the visible ring catches up before the
+    // player can reach its edge, while still avoiding one huge blocking pass.
+    this.streamBudget = 16;
     this.chunks = new Map();
     this.meshes = new Map();
     this.group = new THREE.Group();
@@ -45,8 +54,9 @@ export class World {
     this._maxWorkers = Math.max(1, navigator.hardwareConcurrency - 1) || 3;
     this._workerReady = false;
 
-    // Keep synchronous generation for now — worker path wired in _genAllAsync
-    this._genAll();
+    // Bootstrap a solid starter ring. The old radius-2 bootstrap exposed a
+    // white void after only a short walk even though streaming was enabled.
+    this._genInitial(Math.min(this.streamRadius, 6));
   }
 
   /** Lazily initialise the worker pool (first call creates Blob URL workers). */
@@ -56,7 +66,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=222';
+    const workerUrl = './js/chunk-worker.js?v=245';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -139,13 +149,12 @@ export class World {
           }
           data[this._idx(lx, y, lz)] = id;
         }
-
         if (h > SEA_LEVEL + 1) {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
           let treeChance = 0;
-          if (biome === BIOME.FOREST) treeChance = 0.04; // half prior density for navigability
+          if (biome === BIOME.FOREST) treeChance = 0.018; // half prior density for navigability
           else if (biome === BIOME.SHORE) treeChance = 0.028; // coastal palms/scrub
-          else if (biome === BIOME.TUNDRA) treeChance = 0.02;
+          else if (biome === BIOME.TUNDRA) treeChance = 0.012;
           else if (biome === BIOME.TROPICAL) treeChance = 0.06; // readable palm canopy on starter islands
           else if (biome === BIOME.OCEAN) treeChance = 0;
           if (th > 1 - treeChance) {
@@ -167,6 +176,7 @@ export class World {
             }
           }
         }
+        this._populateOceanColumn(data, lx, h, lz, x, z, biome);
         if (
           (biome === BIOME.FOREST || biome === BIOME.SHORE || biome === BIOME.TROPICAL) &&
           h > SEA_LEVEL + 1 &&
@@ -278,6 +288,99 @@ export class World {
     }
   }
 
+  _genInitial(radius = 2) {
+    for (let cz = -radius; cz <= radius; cz++) {
+      for (let cx = -radius; cx <= radius; cx++) this.ensureChunk(cx, cz, { rebuild: false });
+    }
+    for (let cz = -radius; cz <= radius; cz++) {
+      for (let cx = -radius; cx <= radius; cx++) this.rebuildChunk(cx, cz);
+    }
+  }
+
+  ensureChunk(cx, cz, { rebuild = true } = {}) {
+    const k = this.key(cx, cz);
+    if (!this.chunks.has(k)) {
+      this._generateChunk(cx, cz);
+      this._restoreChunkEdits(cx, cz);
+    }
+    if (rebuild && !this.meshes.has(k)) this.rebuildChunk(cx, cz);
+    return this.chunks.get(k);
+  }
+
+  _restoreChunkEdits(cx, cz) {
+    const data = this.chunks.get(this.key(cx, cz));
+    if (!data) return;
+    const minX = cx * CHUNK_SIZE;
+    const minZ = cz * CHUNK_SIZE;
+    for (const [key, id] of this.edits) {
+      const [x, y, z] = key.split(',').map(Number);
+      if (x < minX || x >= minX + CHUNK_SIZE || z < minZ || z >= minZ + CHUNK_SIZE) continue;
+      if (y >= 0 && y < WORLD_HEIGHT) data[this._idx(x - minX, y, z - minZ)] = id;
+    }
+  }
+
+  updateStreaming(players, { radius = this.streamRadius } = {}) {
+    const list = Array.isArray(players) ? players : [players];
+    // Callers may pass Player instances (the game loop) or plain x/z points
+    // (tests/tools). Normalize both shapes before deriving stream centers.
+    const valid = list
+      .map((p) => p?.position ?? p)
+      .filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.z));
+    if (!valid.length) return { loaded: this.chunks.size, meshes: this.meshes.size };
+    const centers = valid.map((p) => this.worldToChunk(p.x, p.z));
+    const r = Math.max(2, Math.min(32, radius | 0));
+    this.streamRadius = r;
+    const signature = `${r}:${centers.map((c) => `${c.cx},${c.cz}`).join('|')}`;
+    const centerChanged = signature !== this._streamSignature;
+    this._streamSignature = signature;
+    const desired = new Set();
+    for (const { cx, cz } of centers) {
+      for (let dz = -r; dz <= r; dz++) {
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dz)) > r) continue;
+          const k = this.key(cx + dx, cz + dz);
+          desired.add(k);
+          if (!this.chunks.has(k) && !this._streamQueued.has(k)) {
+            this._streamQueued.add(k);
+            this._streamQueue.push({ cx: cx + dx, cz: cz + dz, distance: Math.max(Math.abs(dx), Math.abs(dz)) });
+          }
+        }
+      }
+    }
+    // Near chunks first keeps terrain solid around a player while the outer
+    // visual ring catches up. Continue draining even when the player remains
+    // in the same chunk (the old signature early-return starved the queue).
+    this._streamQueue.sort((a, b) => a.distance - b.distance);
+    let generated = 0;
+    const budget = Math.max(1, this.streamBudget | 0);
+    while (this._streamQueue.length && generated < budget) {
+      const next = this._streamQueue.shift();
+      const k = this.key(next.cx, next.cz);
+      this._streamQueued.delete(k);
+      if (!desired.has(k) || this.chunks.has(k)) continue;
+      this.ensureChunk(next.cx, next.cz);
+      generated++;
+    }
+    const unloadR = r + this.streamMargin;
+    for (const [k, mesh] of this.meshes) {
+      const [cx, cz] = k.split(',').map(Number);
+      if (centers.some((c) => Math.max(Math.abs(cx - c.cx), Math.abs(cz - c.cz)) <= unloadR)) continue;
+      mesh.geometry?.dispose();
+      this.group.remove(mesh);
+      this.meshes.delete(k);
+      this.chunks.delete(k);
+      this.dirty.delete(k);
+    }
+    this._streamCenter = centers[0];
+    return {
+      loaded: this.chunks.size,
+      meshes: this.meshes.size,
+      queued: this._streamQueue.length,
+      generated,
+      centerChanged,
+    };
+  }
+
   _generateChunk(cx, cz) {
     const data = new Uint8Array(CHUNK_SIZE * WORLD_HEIGHT * CHUNK_SIZE);
     const baseX = cx * CHUNK_SIZE;
@@ -321,13 +424,12 @@ export class World {
           data[this._idx(lx, y, lz)] = id;
         }
 
-        // trees — dense in forest, sparse in shore scrub / tundra pines
         if (h > SEA_LEVEL + 1) {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
           let treeChance = 0;
-          if (biome === BIOME.FOREST) treeChance = 0.04; // ~4% surface — half prior density
+          if (biome === BIOME.FOREST) treeChance = 0.018; // ~4% surface — half prior density
           else if (biome === BIOME.SHORE) treeChance = 0.028; // coastal palms/scrub
-          else if (biome === BIOME.TUNDRA) treeChance = 0.02;
+          else if (biome === BIOME.TUNDRA) treeChance = 0.012;
           else if (biome === BIOME.TROPICAL) treeChance = 0.06; // readable palm canopy on starter islands
           else if (biome === BIOME.OCEAN) treeChance = 0;
           if (th > 1 - treeChance) {
@@ -350,6 +452,7 @@ export class World {
           }
         }
         // berry bushes on grass surface — forest mainly
+        this._populateOceanColumn(data, lx, h, lz, x, z, biome);
         if (
           (biome === BIOME.FOREST || biome === BIOME.SHORE || biome === BIOME.TROPICAL) &&
           h > SEA_LEVEL + 1 &&
@@ -435,6 +538,46 @@ export class World {
     }
   }
 
+  /** Populate shallow ocean shelves with deterministic reefs and underwater plants. */
+  _populateOceanColumn(data, lx, h, lz, x, z, biome) {
+    if (h >= SEA_LEVEL || (biome !== BIOME.OCEAN && biome !== BIOME.SHORE && biome !== BIOME.TROPICAL)) return;
+    const floor = data[this._idx(lx, h, lz)];
+    if (floor !== BLOCK.SAND && floor !== BLOCK.DIRT) return;
+    const waterY = h + 1;
+    if (waterY >= SEA_LEVEL || data[this._idx(lx, waterY, lz)] !== BLOCK.WATER) return;
+
+    const plantRoll = hash2(x * 11 + this.seed * 7, z * 13 + 31);
+    const shallow = h >= SEA_LEVEL - 5;
+    if (shallow && plantRoll > 0.72) {
+      data[this._idx(lx, waterY, lz)] = BLOCK.SEAGRASS;
+    } else if (!shallow && plantRoll > 0.78) {
+      const kelpHeight = 2 + Math.floor(hash2(x * 17 + 5, z * 19 + this.seed) * 4);
+      for (let y = waterY; y < Math.min(SEA_LEVEL, waterY + kelpHeight); y++) {
+        if (data[this._idx(lx, y, lz)] !== BLOCK.WATER) break;
+        data[this._idx(lx, y, lz)] = BLOCK.KELP;
+      }
+    }
+    if (shallow && hash2(x * 17 + 5, z * 19 + this.seed) > 0.93) {
+      data[this._idx(lx, waterY, lz)] = BLOCK.KELP;
+      if (waterY + 1 < SEA_LEVEL && data[this._idx(lx, waterY + 1, lz)] === BLOCK.WATER) data[this._idx(lx, waterY + 1, lz)] = BLOCK.KELP;
+    }
+
+    if (shallow && hash2(x * 23 + 17, z * 29 + this.seed * 3) > 0.84) {
+      data[this._idx(lx, waterY, lz)] = BLOCK.CORAL;
+      const reefY = waterY + 1;
+      if (reefY < SEA_LEVEL && data[this._idx(lx, reefY, lz)] === BLOCK.WATER && hash2(x + 41, z * 3 + 7) > 0.45) {
+        data[this._idx(lx, reefY, lz)] = BLOCK.CORAL;
+      }
+      for (const dx of [-1, 1]) {
+        const tx = lx + dx;
+        if (tx < 0 || tx >= CHUNK_SIZE) continue;
+        if (data[this._idx(tx, h, lz)] === BLOCK.SAND && data[this._idx(tx, waterY, lz)] === BLOCK.WATER) {
+          data[this._idx(tx, waterY, lz)] = BLOCK.CORAL;
+        }
+      }
+    }
+  }
+
   _placeTree(data, lx, y, lz) {
     // Variable height canopy (Minecraft-ish oak)
     const trunkH = 4 + Math.floor(hash2(lx + 11, lz + 7) * 4); // 4-7
@@ -492,7 +635,7 @@ export class World {
       const tz = lz + dz;
       const ty = top + (Math.abs(dx) + Math.abs(dz) > 1 ? 0 : 1);
       if (tx < 0 || tx >= CHUNK_SIZE || tz < 0 || tz >= CHUNK_SIZE || ty < 0 || ty >= WORLD_HEIGHT) continue;
-      if (data[this._idx(tx, ty, tz)] === BLOCK.AIR) data[this._idx(tx, ty, tz)] = BLOCK.LEAVES;
+      if (data[this._idx(tx, ty, tz)] === BLOCK.AIR) data[this._idx(tx, ty, tz)] = BLOCK.PALM_LEAVES;
     }
   }
 
@@ -604,7 +747,7 @@ export class World {
     z = Math.floor(z);
     if (y < 0 || y >= WORLD_HEIGHT) return false;
     const { cx, cz, lx, lz } = this.worldToChunk(x, z);
-    const data = this.chunks.get(this.key(cx, cz));
+    const data = this.chunks.get(this.key(cx, cz)) || this.ensureChunk(cx, cz);
     if (!data) return false;
     const i = this._idx(lx, y, lz);
     if (data[i] === BLOCK.BEDROCK) return false;
@@ -824,6 +967,8 @@ export class World {
       const z = Math.floor((hash2(this.seed, i + 9) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.6);
       const h = heightAt(x, z, this.seed);
       if (h < SEA_LEVEL + 2 || h >= WORLD_HEIGHT - 6) continue;
+      const spawnChunk = this.worldToChunk(x, z);
+      this.ensureChunk(spawnChunk.cx, spawnChunk.cz);
       // surface must be solid non-water
       const surface = this.getBlock(x, h, z);
       if (surface === BLOCK.WATER || surface === BLOCK.AIR) continue;

@@ -2,8 +2,9 @@
  * Wildlife simulation — pure movement/AI helpers + manager.
  * Prey flee; predators hunt (worse at night). Meat drops on death.
  */
-import { isSolid, BLOCK } from './blocks.js?v=216';
-import { hash2 } from './gen.js?v=216';
+import { isSolid, BLOCK } from './blocks.js?v=245';
+import { hash2 } from './gen.js?v=245';
+import { biomeAt, BIOME } from './biomes.js?v=245';
 
 export const SPECIES = {
   hare: {
@@ -22,7 +23,7 @@ export const SPECIES = {
     feedItem: 'berries', // ITEM.BERRIES
     color: [0.72, 0.62, 0.48],
     scale: [0.45, 0.35, 0.55],
-    count: 10,
+    count: 5,
   },
   deer: {
     id: 'deer',
@@ -40,7 +41,7 @@ export const SPECIES = {
     feedItem: 'berries', // ITEM.BERRIES
     color: [0.55, 0.38, 0.22],
     scale: [0.7, 0.95, 1.1],
-    count: 6,
+    count: 3,
   },
   wolf: {
     id: 'wolf',
@@ -96,7 +97,7 @@ export const SPECIES = {
     feather: true,
     color: [0.35, 0.45, 0.75],
     scale: [0.28, 0.22, 0.35],
-    count: 8,
+    count: 4,
   },
   chicken: {
     id: 'chicken',
@@ -114,7 +115,7 @@ export const SPECIES = {
     feedItem: 'seeds',
     color: [0.6, 0.4, 0.3],
     scale: [0.55, 0.45, 0.65],
-    count: 20,
+    count: 10,
   },
   cow: {
     id: 'cow',
@@ -132,7 +133,7 @@ export const SPECIES = {
     feedItem: 'berries', // ITEM.BERRIES (herbivore)
     color: [0.55, 0.42, 0.3],
     scale: [1.0, 1.3, 1.6],
-    count: 4,
+    count: 2,
   },
   alligator: {
     id: 'alligator',
@@ -170,7 +171,7 @@ export const SPECIES = {
     feedItem: 'berries', // ITEM.BERRIES (omnivore)
     color: [0.75, 0.42, 0.18],
     scale: [0.4, 0.45, 0.65],
-    count: 8,
+    count: 4,
   },
   boar: {
     id: 'boar',
@@ -209,7 +210,31 @@ export const SPECIES = {
     color: [0.28, 0.22, 0.3],
     scale: [0.25, 0.2, 0.35],
     nocturnal: true, // primarily active at night
-    count: 10,
+    count: 5,
+  },
+  tropical_fish: {
+    id: 'tropical_fish', name: 'Tropical Fish', hp: 3, speed: 4.8,
+    hostile: false, fleeRange: 7, senseRange: 10, damage: 0, attackRange: 0, attackCd: 99,
+    meatMin: 0, meatMax: 1, color: [0.95, 0.35, 0.12], scale: [0.28, 0.22, 0.62], count: 4,
+    aquatic: true, school: true, swimDepth: 2.2,
+  },
+  sea_turtle: {
+    id: 'sea_turtle', name: 'Sea Turtle', hp: 24, speed: 2.4,
+    hostile: false, fleeRange: 8, senseRange: 12, damage: 0, attackRange: 0, attackCd: 99,
+    meatMin: 1, meatMax: 2, color: [0.18, 0.48, 0.3], scale: [0.72, 0.32, 1.05], count: 2,
+    aquatic: true, swimDepth: 0.9,
+  },
+  reef_shark: {
+    id: 'reef_shark', name: 'Reef Shark', hp: 42, speed: 3.8,
+    hostile: true, fleeRange: 0, senseRange: 8, nightSense: 11, damage: 12, attackRange: 1.5, attackCd: 1.7,
+    meatMin: 2, meatMax: 3, color: [0.28, 0.42, 0.5], scale: [0.58, 0.42, 1.55], count: 1,
+    aquatic: true, swimDepth: 2.8, cautious: true,
+  },
+  crab: {
+    id: 'crab', name: 'Reef Crab', hp: 7, speed: 2.2,
+    hostile: false, fleeRange: 5, senseRange: 8, damage: 0, attackRange: 0, attackCd: 99,
+    meatMin: 1, meatMax: 1, color: [0.82, 0.22, 0.12], scale: [0.42, 0.28, 0.5], count: 2,
+    aquatic: true, swimDepth: 0.25,
   },
 };
 
@@ -225,6 +250,15 @@ function groundY(world, x, z) {
     }
   }
   return 20;
+}
+
+function waterSurfaceY(world, x, z) {
+  const xi = Math.floor(x);
+  const zi = Math.floor(z);
+  for (let y = 40; y >= 1; y--) {
+    if (world.getBlock(xi, y, zi) === BLOCK.WATER) return y;
+  }
+  return null;
 }
 
 function dist2(ax, az, bx, bz) {
@@ -264,7 +298,7 @@ export class FaunaSystem {
         attempts++;
         const ang = hash2(this.seed + n + attempts, placed * 17 + spec.id.length) * Math.PI * 2;
         // predators prefer outer ring
-        const minR = spec.hostile ? 22 : 10;
+        const minR = spec.aquatic ? 20 : (spec.hostile ? 22 : 10);
         const rad = minR + hash2(placed + 3, this.seed + n + attempts) * Math.max(4, r - minR);
         const x = Math.cos(ang) * rad;
         const z = Math.sin(ang) * rad;
@@ -272,17 +306,15 @@ export class FaunaSystem {
         const y = groundY(this.world, x, z);
         // aquatic species prefer water; others avoid it
         if (spec.aquatic) {
-          // check if on water tile or adjacent to one
-          const onWater = this.world.getBlock(x, y - 1, z) === BLOCK.WATER;
-          const nearWater = this.world.getBlock(Math.floor(x + 1), y - 1, Math.floor(z)) === BLOCK.WATER ||
-                            this.world.getBlock(Math.floor(x - 1), y - 1, Math.floor(z)) === BLOCK.WATER ||
-                            this.world.getBlock(Math.floor(x), y - 1, Math.floor(z + 1)) === BLOCK.WATER ||
-                            this.world.getBlock(Math.floor(x), y - 1, Math.floor(z - 1)) === BLOCK.WATER;
-          if (!onWater && !nearWater) continue;
+          const biome = biomeAt(x, z, this.seed);
+          if (biome !== BIOME.OCEAN && biome !== BIOME.TROPICAL) continue;
+          if (waterSurfaceY(this.world, x, z) === null) continue;
         } else {
           if (this.world.getBlock(x, y - 1, z) === BLOCK.WATER) continue;
         }
-        this.animals.push(this._make(spec, x, y, z));
+        const animal = this._make(spec, x, y, z);
+        if (spec.aquatic) animal.y = waterSurfaceY(this.world, x, z) - (spec.swimDepth || 0.8);
+        this.animals.push(animal);
         placed++;
         n++;
       }
@@ -460,17 +492,25 @@ export class FaunaSystem {
         nx = a.x;
         nz = a.z;
       }
-      // water slow / avoid deep (aquatic species are comfortable in water)
-      if (!spec.aquatic && this.world.getBlock(nx, gy - 1, nz) === BLOCK.WATER) {
+      // Aquatic species stay in water columns; land species slow at the edge.
+      if (spec.aquatic) {
+        const waterY = waterSurfaceY(this.world, nx, nz);
+        if (waterY === null) {
+          nx = a.x;
+          nz = a.z;
+        } else {
+          a.y = waterY - (spec.swimDepth || 0.8);
+        }
+      } else if (this.world.getBlock(nx, gy - 1, nz) === BLOCK.WATER) {
         nx = a.x * 0.7 + nx * 0.3;
         nz = a.z * 0.7 + nz * 0.3;
       }
       a.x = nx;
       a.z = nz;
-      a.y = groundY(this.world, a.x, a.z);
+      if (!spec.aquatic) a.y = groundY(this.world, a.x, a.z);
 
-      // world bounds soft
-      const lim = this.world.radiusChunks * 16 - 2;
+      // Streaming supplies the frontier; retain only an extreme numeric safety limit.
+      const lim = 100000;
       a.x = Math.max(-lim, Math.min(lim, a.x));
       a.z = Math.max(-lim, Math.min(lim, a.z));
     }
@@ -563,7 +603,7 @@ export class FaunaSystem {
     this._respawnAcc += dt;
     if (this._respawnAcc < 25) return;
     this._respawnAcc = 0;
-    const r = this.world.radiusChunks * 16 - 6;
+    const r = 100000;
     for (const spec of Object.values(SPECIES)) {
       if (spec.hostile) continue;
       const living = this.countLiving(spec.id);
@@ -572,8 +612,8 @@ export class FaunaSystem {
       for (let attempt = 0; attempt < 8; attempt++) {
         const ang = Math.random() * Math.PI * 2;
         const rad = 18 + Math.random() * Math.max(6, r - 18);
-        const x = Math.cos(ang) * rad;
-        const z = Math.sin(ang) * rad;
+        const x = player.x + Math.cos(ang) * rad;
+        const z = player.z + Math.sin(ang) * rad;
         if (dist2(x, z, player.x, player.z) < 14 * 14) continue;
         const y = groundY(this.world, x, z);
         if (this.world.getBlock(x, y - 1, z) === BLOCK.WATER) continue;

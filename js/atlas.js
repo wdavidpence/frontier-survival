@@ -11,7 +11,7 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=216';
+} from './atlas-core.js?v=221';
 
 export {
   TILE,
@@ -22,7 +22,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=216';
+} from './atlas-core.js?v=221';
 
 function rnd(seed) {
   let s = seed | 0;
@@ -535,6 +535,45 @@ function drawSpruceLeaves(ctx, x0, y0) {
   }
 }
 
+function drawCoral(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [205, 75, 92], 0.3, 410);
+  const r = rnd(411);
+  ctx.fillStyle = '#f39a8b';
+  for (let i = 0; i < 7; i++) {
+    const x = x0 + 3 + r() * 24;
+    const y = y0 + 5 + r() * 20;
+    ctx.fillRect(x, y, 3 + r() * 5, 3 + r() * 5);
+  }
+}
+
+function drawKelp(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  const r = rnd(412);
+  ctx.strokeStyle = '#155d39';
+  ctx.lineWidth = 4;
+  for (let i = 0; i < 3; i++) {
+    const x = x0 + 6 + i * 10;
+    ctx.beginPath();
+    ctx.moveTo(x, y0 + 30);
+    ctx.quadraticCurveTo(x - 3 + r() * 6, y0 + 17, x + r() * 4 - 2, y0 + 3);
+    ctx.stroke();
+  }
+}
+
+function drawSeagrass(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  const r = rnd(413);
+  ctx.strokeStyle = '#2f9b52';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 7; i++) {
+    const x = x0 + 3 + i * 4;
+    ctx.beginPath();
+    ctx.moveTo(x, y0 + 30);
+    ctx.quadraticCurveTo(x - 3 + r() * 6, y0 + 13, x + r() * 5 - 2, y0 + 4 + r() * 5);
+    ctx.stroke();
+  }
+}
+
 export function createBlockAtlas() {
   const canvas = document.createElement('canvas');
   canvas.width = ATLAS_PX;
@@ -621,6 +660,14 @@ paint(TILE.WALL, drawWall);
   paint(TILE.SPRUCE_LOG_SIDE, drawSpruceLogSide);
   paint(TILE.SPRUCE_LOG_TOP, drawSpruceLogTop);
   paint(TILE.SPRUCE_LEAVES, drawSpruceLeaves);
+  paint(TILE.CORAL, drawCoral);
+  paint(TILE.KELP, drawKelp);
+  paint(TILE.SEAGRASS, drawSeagrass);
+  paint(TILE.PALM_LEAVES, (c, x, y) => {
+    drawLeaves(c, x, y);
+    c.fillStyle = 'rgba(70, 155, 48, 0.2)';
+    c.fillRect(x, y, TILE_PX, TILE_PX);
+  });
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = THREE.NearestFilter;

@@ -1,7 +1,12 @@
 import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
+
+import { palmLeafDrop } from '../js/palm-drops.js';
 import { heightAt, fbm, hash2 } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
 import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
+import { seaTurtleLayout } from '../js/fauna-parts/turtle-layout.js';
+import { alligatorScuteRidge, alligatorJaw, alligatorLayout } from '../js/fauna-parts/alligator-silhouette.js';
+import { layoutWolf, layoutChicken } from '../js/animal-visuals.js';
 import { getPlayMode, DEFAULT_SETTINGS, parseSettings, serializeSettings, SETTINGS_KEY, sensitivityFromSlider, sliderFromSensitivity, writeSettings, readSettings } from '../js/settings.js';
 import { MODES, getMode, scalePredatorDamage, isValidMode, MODE_ORDER } from '../js/modes.js';
 import { clonePlayer, cloneSurvivalState, serializeCoopGameState } from '../js/coop-state.js';
@@ -95,6 +100,7 @@ import { canOpenChest, toggleChestLock, createChestLock } from '../js/chest-lock
 import { torchFalloff, isTorchLit, torchLightSum } from '../js/torch-falloff.js';
 import { bearingTo, horizDistance, compassNeedleAngle } from '../js/compass-bearing.js';
 import { bedFacingFromYaw, bedFacingMeta, bedHeadOffset } from '../js/bed-facing.js';
+import { underwaterFogStyle } from '../js/underwater-fog.js';
 import { clampWaterLevel, flowOutLevel, isWaterSource, waterFillFraction } from '../js/water-level.js';
 import { createItemFrame, setFrameItem, rotateFrame, frameHasItem } from '../js/item-frame.js';
 import { createLever, toggleLever, leverOutputsPower } from '../js/lever-power.js';
@@ -176,6 +182,7 @@ import { clamp01 as wetnessClamp01, applyRain, dryNearFire, movePenalty } from '
  */
 import assert from 'assert';
 import { readFileSync } from 'node:fs';
+import vm from 'node:vm';
 import {
   DEFAULT_SURVIVAL,
   ambientTempC,
@@ -187,6 +194,7 @@ import {
   GAME_DAY_SEC,
   HUNGER_DAYS_AT_MULT_1,
   THIRST_DAYS_AT_MULT_1,
+  BREATH_SEC,
   applyDamage,
   fallDamageFromSpeed,
 } from '../js/survival.js';
@@ -236,6 +244,14 @@ function test(name, fn) {
     process.exitCode = 1;
   }
 }
+
+test('world streaming ring bootstraps and extends beyond starter chunks', () => {
+  const source = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
+  assert.match(source, /ensureChunk\(cx, cz/);
+  assert.match(source, /updateStreaming\(players/);
+  assert.match(source, /this\.streamBudget = 16/);
+  assert.match(source, /_genInitial\(Math\.min\(this\.streamRadius, 6\)\)/);
+});
 
 test('hash2 deterministic', () => {
   assert.strictEqual(hash2(1, 2), hash2(1, 2));
@@ -338,6 +354,19 @@ test('starvation damages over time', () => {
     });
   }
   assert.ok(s.health < 100);
+});
+
+test('breath drains underwater, recovers at surface, and only then drowns softly', () => {
+  let s = { ...DEFAULT_SURVIVAL };
+  assert.strictEqual(s.breath, BREATH_SEC);
+  s = tickSurvival(s, { dt: 5, dayPhase: 0.25, weather: 'clear', blockHeat: 0, sprinting: false, moving: false, inWater: true, sleeping: false });
+  assert.strictEqual(s.breath, BREATH_SEC - 5);
+  const surfaced = tickSurvival(s, { dt: 1, dayPhase: 0.25, weather: 'clear', blockHeat: 0, sprinting: false, moving: false, inWater: false, sleeping: false });
+  assert.ok(surfaced.breath > s.breath);
+  const empty = { ...DEFAULT_SURVIVAL, breath: 0, health: 20 };
+  const underwater = tickSurvival(empty, { dt: 1, dayPhase: 0.25, weather: 'clear', blockHeat: 0, sprinting: false, moving: false, inWater: true, sleeping: false });
+  assert.strictEqual(underwater.causeOfDeath, null);
+  assert.ok(underwater.health < empty.health);
 });
 
 test('cold night without fire kills eventually', () => {
@@ -484,6 +513,14 @@ test('atlas tiles map blocks and cracks', () => {
   assert.notStrictEqual(tileForBlock(BLOCK.GRASS, 'top'), tileForBlock(BLOCK.GRASS, 'side'));
   assert.strictEqual(tileForBlock(BLOCK.DIRT, 'top'), TILE.DIRT);
   assert.strictEqual(tileForBlock(BLOCK.BED, 'top'), TILE.BED);
+  assert.ok(isSolid(BLOCK.CORAL));
+  assert.ok(!isSolid(BLOCK.KELP));
+  assert.ok(!isSolid(BLOCK.SEAGRASS));
+  assert.ok(isTransparent(BLOCK.KELP));
+  assert.strictEqual(tileForBlock(BLOCK.CORAL, 'side'), TILE.CORAL);
+  assert.strictEqual(tileForBlock(BLOCK.KELP, 'side'), TILE.KELP);
+  assert.strictEqual(tileForBlock(BLOCK.SEAGRASS, 'side'), TILE.SEAGRASS);
+  assert.ok(TILE.CORAL !== TILE.KELP && TILE.KELP !== TILE.SEAGRASS);
   const uvs = tileUVs(TILE.STONE);
   assert.strictEqual(uvs.length, 4);
   assert.ok(uvs[0][0] >= 0 && uvs[0][0] <= 1);
@@ -2299,11 +2336,36 @@ test('clamp01 clamps to [0,1] and rejects non-finite', () => {
 
 
 
-test('forest tree density constant half of prior 0.08', () => {
-  // documented contract — world uses 0.04
+test('forest tree density sparse for navigability', () => {
   const src = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
-  assert.ok(src.includes('treeChance = 0.04'));
+  assert.ok(src.includes('treeChance = 0.018'));
+  assert.ok(src.includes('treeChance = 0.012'));
   assert.ok(!src.includes('treeChance = 0.08'));
+});
+
+test('ocean worker mirrors deterministic reef and plant density', () => {
+  const src = readFileSync(new URL('../js/chunk-worker.js', import.meta.url), 'utf8');
+  const messages = [];
+  const self = { postMessage: (message) => messages.push(message) };
+  const context = vm.createContext({ self, Math, Uint8Array });
+  vm.runInContext(src, context, { filename: 'chunk-worker.js' });
+  const counts = { coral: 0, kelp: 0, seagrass: 0 };
+  for (let cz = -6; cz <= 6; cz++) {
+    for (let cx = -6; cx <= 6; cx++) {
+      self.onmessage({ data: { cx, cz, seed: 42 } });
+      const data = messages.pop().data;
+      for (const id of data) {
+        if (id === 48) counts.coral++;
+        else if (id === 49) counts.kelp++;
+        else if (id === 50) counts.seagrass++;
+      }
+    }
+  }
+  assert.ok(counts.coral > 0, `expected coral reef blocks, got ${counts.coral}`);
+  assert.ok(counts.kelp > 0, `expected kelp blocks, got ${counts.kelp}`);
+  assert.ok(counts.seagrass > 0, `expected seagrass blocks, got ${counts.seagrass}`);
+  assert.ok(src.includes('populateOceanColumn(data, idx'));
+  assert.ok(src.includes('CORAL: 48') && src.includes('KELP: 49') && src.includes('SEAGRASS: 50'));
 });
 
 test('BIOME.OCEAN is "ocean"', () => {
@@ -2486,6 +2548,13 @@ test('mine-tier resolveBlockDrop prefers ore catalog', () => {
   assert.strictEqual(resolveBlockDrop(BLOCK.DIRT, legacy), BLOCK.DIRT);
 });
 
+test('palm leaves drop deterministic coconut or stick', () => {
+  assert.strictEqual(palmLeafDrop(BLOCK.PALM_LEAVES, 0.05), ITEM.COCONUT);
+  assert.strictEqual(palmLeafDrop(BLOCK.PALM_LEAVES, 0.25), ITEM.STICK);
+  assert.strictEqual(palmLeafDrop(BLOCK.PALM_LEAVES, 0.8), null);
+  assert.strictEqual(palmLeafDrop(BLOCK.LEAVES, 0.05), null);
+});
+
 test('furnace-tick smelts with fuel', () => {
   const f = createFurnaceState();
   assert.strictEqual(insertFuel(f, ITEM.COAL, 1), 0);
@@ -2534,6 +2603,7 @@ test('game source wires resolveBlockDrop and furnace-tick', () => {
   assert.ok(src.includes('furnace-tick'));
   assert.ok(src.includes('_tickFurnaces'));
   assert.ok(src.includes('createFurnaceState'));
+  assert.ok(src.includes('palmLeafDrop'));
 });
 
 
@@ -3197,6 +3267,25 @@ test('animal-visuals layouts for all SPECIES', () => {
   }
 });
 
+test('aquatic fauna species define tropical reef ecology', () => {
+  for (const id of ['tropical_fish', 'sea_turtle', 'reef_shark', 'crab']) {
+    assert.ok(SPECIES[id]?.aquatic, id + ' aquatic');
+    assert.ok(SPECIES[id].swimDepth > 0, id + ' swim depth');
+    assert.ok(SPECIES[id].count >= 1 && SPECIES[id].count <= 4, id + ' balanced count');
+    assert.ok(animalPartLayout(id, SPECIES[id]).parts.length >= 5, id + ' silhouette');
+  }
+  assert.strictEqual(SPECIES.reef_shark.hostile, true);
+  assert.strictEqual(SPECIES.reef_shark.damage, 12);
+});
+
+test('reef shark respects provoke policy', () => {
+  const world = { radiusChunks: 4, getBlock: () => BLOCK.WATER };
+  const fauna = new FaunaSystem(world, 7);
+  fauna.animals = [{ id: 1, type: 'reef_shark', x: 0, y: 12, z: 0, vx: 0, vz: 0, hp: 42, maxHp: 42, yaw: 0, state: 'wander', attackTimer: 0, wanderT: 5, targetX: 0, targetZ: 0, dead: false }];
+  const result = fauna.tick(0.1, { x: 0.5, y: 12, z: 0.5 }, false, { hostilePolicy: 'provoke', damageMult: 1 });
+  assert.strictEqual(result.playerDamage, 0);
+  assert.strictEqual(fauna.animals[0].state, 'wander');
+});
 test('animal-visuals wolf silhouette parts', () => {
   const L = animalPartLayout('wolf', SPECIES.wolf);
   const names = L.parts.map((p) => p.name);
@@ -3414,4 +3503,378 @@ test('fauna-parts/accent-color clamp01', () => {
   assert.strictEqual(clamp01(1.5), 1);
   assert.strictEqual(clamp01(-0.5), 0);
   assert.strictEqual(clamp01(0.5), 0.5);
+});
+
+test('fauna-parts/turtle-layout seaTurtleLayout', () => {
+  const layout = seaTurtleLayout({ scale: [0.5, 0.5, 0.7], color: [0.35, 0.4, 0.38] });
+  assert.ok(layout.parts && layout.parts.length > 5);
+  assert.ok(layout.parts.some(p => p.name === 'carapace'));
+  assert.ok(layout.parts.some(p => p.name === 'plastron'));
+  assert.ok(layout.parts.some(p => p.name === 'flipperFL'));
+  assert.ok(layout.parts.some(p => p.name === 'flipperFR'));
+  assert.ok(layout.parts.some(p => p.name === 'flipperBL'));
+  assert.ok(layout.parts.some(p => p.name === 'flipperBR'));
+  assert.ok(layout.parts.some(p => p.name === 'tail'));
+  assert.ok(layout.parts.some(p => p.name === 'head'));
+  assert.ok(layout.legNames.length === 0);
+  assert.ok(layout.wingNames.length === 0);
+  assert.ok(layout.eyeNames.length === 2);
+});
+
+test('fauna-parts/turtle-layout seaTurtleLayout default scale', () => {
+  const layout = seaTurtleLayout({});
+  assert.ok(layout.parts && layout.parts.length > 5);
+  assert.ok(layout.parts.some(p => p.name === 'carapace'));
+  assert.ok(layout.parts.some(p => p.name === 'flipperFL'));
+  assert.ok(layout.parts.some(p => p.name === 'tail'));
+});
+
+test('fauna-parts/turtle-layout seaTurtleLayout custom color', () => {
+  const layout = seaTurtleLayout({ scale: [0.6, 0.5, 0.7], color: [0.4, 0.35, 0.3] });
+  assert.ok(layout.parts && layout.parts.length > 5);
+  assert.ok(layout.parts.some(p => p.color[0] === 0.4));
+});
+
+import { parrotLayout } from '../js/fauna-parts/parrot-layout.js';
+
+test('fauna-parts/parrot-layout parrotLayout', () => {
+  const layout = parrotLayout({ scale: [0.5, 0.5, 0.7], color: [0.35, 0.4, 0.38] });
+  assert.ok(layout.parts && layout.parts.length > 5);
+  assert.ok(layout.parts.some(p => p.name === 'body'));
+  assert.ok(layout.parts.some(p => p.name === 'head'));
+  assert.ok(layout.parts.some(p => p.name === 'beak'));
+  assert.ok(layout.parts.some(p => p.name === 'wingL'));
+  assert.ok(layout.parts.some(p => p.name === 'wingR'));
+  assert.ok(layout.parts.some(p => p.name === 'tail'));
+  assert.ok(layout.parts.some(p => p.name === 'eyeL'));
+  assert.ok(layout.parts.some(p => p.name === 'eyeR'));
+  assert.ok(layout.legNames.length === 2);
+  assert.ok(layout.wingNames.length === 0);
+  assert.ok(layout.eyeNames.length === 2);
+});
+
+test('fauna-parts/parrot-layout parrotLayout default scale', () => {
+  const layout = parrotLayout({});
+  assert.ok(layout.parts && layout.parts.length > 5);
+  assert.ok(layout.parts.some(p => p.name === 'body'));
+  assert.ok(layout.parts.some(p => p.name === 'beak'));
+});
+
+test('fauna-parts/parrot-layout parrotLayout custom color', () => {
+  const layout = parrotLayout({ scale: [0.6, 0.5, 0.7], color: [0.4, 0.35, 0.3] });
+  assert.ok(layout.parts && layout.parts.length > 5);
+  assert.ok(layout.parts.some(p => p.color[0] === 0.4));
+});
+
+import { crabLayout } from '../js/fauna-parts/crab-layout.js';
+
+test('fauna-parts/crab-layout crabLayout', () => {
+  const layout = crabLayout({ scale: [0.5, 0.5, 0.7], color: [0.35, 0.4, 0.38] });
+  assert.ok(layout.parts && layout.parts.length > 5);
+  assert.ok(layout.parts.some(p => p.name === 'carapace'));
+  assert.ok(layout.parts.some(p => p.name === 'abdomen'));
+  assert.ok(layout.parts.some(p => p.name === 'clawL'));
+  assert.ok(layout.parts.some(p => p.name === 'clawR'));
+  assert.ok(layout.parts.some(p => p.name === 'legFL'));
+  assert.ok(layout.parts.some(p => p.name === 'legFR'));
+  assert.ok(layout.parts.some(p => p.name === 'eyeL'));
+  assert.ok(layout.parts.some(p => p.name === 'eyeR'));
+  assert.ok(layout.legNames.length === 0);
+  assert.ok(layout.wingNames.length === 0);
+  assert.ok(layout.eyeNames.length === 2);
+});
+
+test('fauna-parts/crab-layout crabLayout default scale', () => {
+  const layout = crabLayout({});
+  assert.ok(layout.parts && layout.parts.length > 5);
+  assert.ok(layout.parts.some(p => p.name === 'carapace'));
+  assert.ok(layout.parts.some(p => p.name === 'clawL'));
+  assert.ok(layout.parts.some(p => p.name === 'abdomen'));
+});
+
+test('fauna-parts/crab-layout crabLayout custom color', () => {
+  const layout = crabLayout({ scale: [0.6, 0.5, 0.7], color: [0.4, 0.35, 0.3] });
+  assert.ok(layout.parts && layout.parts.length > 5);
+  assert.ok(layout.parts.some(p => p.color[0] === 0.4));
+});
+
+import { tropicalFishLayout } from '../js/fauna-parts/tropical-fish-layout.js';
+
+test('fauna-parts/tropical-fish-layout tropicalFishLayout default', () => {
+  const layout = tropicalFishLayout({});
+  assert.ok(layout.parts && layout.parts.length > 5);
+  assert.ok(layout.parts.some(p => p.name === 'body'));
+  assert.ok(layout.parts.some(p => p.name === 'tailFin'));
+  assert.ok(layout.parts.some(p => p.name === 'dorsalFin'));
+  assert.ok(layout.parts.some(p => p.name === 'pectoralFL'));
+  assert.ok(layout.parts.some(p => p.name === 'pectoralFR'));
+  assert.ok(layout.parts.some(p => p.name === 'analFin'));
+  assert.ok(layout.parts.some(p => p.name === 'eyeL'));
+  assert.ok(layout.parts.some(p => p.name === 'eyeR'));
+  assert.ok(layout.parts.some(p => p.name === 'mouth'));
+  assert.ok(layout.finNames.length === 0);
+  assert.ok(layout.eyeNames.length === 2);
+});
+
+import { batWingLayout } from '../js/fauna-parts/bat-wing-membrane.js';
+
+test('fauna-parts/bat-wing-membrane batWingLayout default', () => {
+  const layout = batWingLayout({});
+  assert.ok(layout.parts.length >= 5, 'bat layout needs at least 5 parts');
+  const wings = layout.parts.filter(p => p.name === 'wingL' || p.name === 'wingR');
+  assert.strictEqual(wings.length, 2, 'bat should have 2 wings');
+});
+
+test('fauna-parts/bat-wing-membrane batWingLayout custom wing span', () => {
+  const layout = batWingLayout({ wingSpan: 0.7 });
+  const wingL = layout.parts.find(p => p.name === 'wingL');
+  assert.ok(wingL, 'bat wingL missing');
+  assert.ok(wingL.sx < 1.0, `wing span should be scaled, got ${wingL.sx}`);
+});
+
+test('fauna-parts/bat-wing-membrane batWingLayout part roles', () => {
+  const layout = batWingLayout({});
+  for (const p of layout.parts) {
+    assert.ok(['body', 'head', 'ear', 'eye', 'wing', 'leg', 'tail'].includes(p.role),
+      `unexpected role: ${p.role}`);
+  }
+});
+
+test('fauna-parts/tropical-fish-layout tropicalFishLayout custom scale and color', () => {
+  const layout = tropicalFishLayout({ scale: [0.6, 0.5, 0.7], color: [0.4, 0.35, 0.3] });
+  assert.ok(layout.parts && layout.parts.length > 5);
+  assert.ok(layout.parts.some(p => p.color[0] === 0.4));
+});
+
+test('fauna-parts/tropical-fish-layout tropicalFishLayout part roles', () => {
+  const layout = tropicalFishLayout({});
+  for (const p of layout.parts) {
+    assert.ok(['body', 'fin', 'eye', 'mouth'].includes(p.role), `unexpected role: ${p.role}`);
+  }
+});
+
+import { reefSharkLayout } from '../js/fauna-parts/reef-shark-layout.js';
+
+test('fauna-parts/reef-shark-layout reefSharkLayout default', () => {
+  const layout = reefSharkLayout({});
+  assert.ok(layout.parts && layout.parts.length > 5);
+  assert.ok(layout.parts.some(p => p.name === 'body'));
+  assert.ok(layout.parts.some(p => p.name === 'dorsalFin'));
+  assert.ok(layout.parts.some(p => p.name === 'pectoralFL'));
+  assert.ok(layout.parts.some(p => p.name === 'pectoralFR'));
+  assert.ok(layout.parts.some(p => p.name === 'caudalFin'));
+  assert.ok(layout.parts.some(p => p.name === 'pelvicFL'));
+  assert.ok(layout.parts.some(p => p.name === 'pelvicFR'));
+  assert.ok(layout.parts.some(p => p.name === 'analFin'));
+  assert.ok(layout.parts.some(p => p.name === 'eyeL'));
+  assert.ok(layout.parts.some(p => p.name === 'eyeR'));
+  assert.ok(layout.parts.some(p => p.name === 'gillL'));
+  assert.ok(layout.parts.some(p => p.name === 'gillR'));
+});
+
+test('fauna-parts/reef-shark-layout reefSharkLayout custom scale and color', () => {
+  const layout = reefSharkLayout({ scale: [0.6, 0.5, 0.7], color: [0.4, 0.35, 0.3] });
+  assert.ok(layout.parts && layout.parts.length > 5);
+  assert.ok(layout.parts.some(p => p.color[0] === 0.4));
+});
+
+test('fauna-parts/reef-shark-layout reefSharkLayout part roles', () => {
+  const layout = reefSharkLayout({});
+  for (const p of layout.parts) {
+    assert.ok(['body', 'fin', 'eye', 'gill'].includes(p.role), `unexpected role: ${p.role}`);
+  }
+});
+
+test('fauna-parts/wolf-layout snout longer than ear depth', () => {
+  const w = 1, h = 1, l = 1;
+  const spec = { color: [0.4, 0.35, 0.3], scale: [w, h, l] };
+  const layout = layoutWolf(spec);
+  const snout = layout.parts.find(p => p.name === 'snout');
+  const earL = layout.parts.find(p => p.name === 'earL');
+  assert.ok(snout, 'wolf snout missing');
+  assert.ok(earL, 'wolf earL missing');
+  // snout sx (0.45) > ear sx (0.12) — snout wider than ear
+  assert.ok(snout.sx > earL.sx, `snout sx ${snout.sx} should be wider than ear sx ${earL.sx}`);
+  // snout sy (0.32) < ear sy (0.24) — snout shallower than ear
+  assert.ok(snout.sy < earL.sy, `snout sy ${snout.sy} should be shallower than ear sy ${earL.sy}`);
+  // snout sx/sy ratio ~1.4 — elongated snout
+  const ratio = snout.sx / snout.sy;
+  assert.ok(ratio > 1.2 && ratio < 1.8, `snout ratio ${ratio} should be between 1.2 and 1.8`);
+});
+
+test('fauna-parts/wolf-layout ears positioned above head top', () => {
+  const w = 1, h = 1, l = 1;
+  const spec = { color: [0.4, 0.35, 0.3], scale: [w, h, l] };
+  const layout = layoutWolf(spec);
+  const earL = layout.parts.find(p => p.name === 'earL');
+  const earR = layout.parts.find(p => p.name === 'earR');
+  const head = layout.parts.find(p => p.name === 'head');
+  assert.ok(earL && earR, 'wolf ears missing');
+  // ears y should be above head top (headY + headS * 0.75)
+  const headTop = head.y + head.sy;
+  assert.ok(earL.y > headTop, `earL y ${earL.y} should be above head top ${headTop}`);
+  assert.ok(earR.y > headTop, `earR y ${earR.y} should be above head top ${headTop}`);
+});
+
+test('fauna-parts/wolf-layout ears narrower than snout width', () => {
+  const w = 1, h = 1, l = 1;
+  const spec = { color: [0.4, 0.35, 0.3], scale: [w, h, l] };
+  const layout = layoutWolf(spec);
+  const earL = layout.parts.find(p => p.name === 'earL');
+  const snout = layout.parts.find(p => p.name === 'snout');
+  assert.ok(earL && snout, 'wolf ears/snout missing');
+  // ear sx (0.12) < snout sx (0.45) — ears narrower than snout
+  assert.ok(earL.sx < snout.sx, `ear sx ${earL.sx} should be narrower than snout sx ${snout.sx}`);
+});
+
+test('fauna-parts/wolf-layout snout and ears have dark color', () => {
+  const w = 1, h = 1, l = 1;
+  const spec = { color: [0.4, 0.35, 0.3], scale: [w, h, l] };
+  const layout = layoutWolf(spec);
+  const snout = layout.parts.find(p => p.name === 'snout');
+  const earL = layout.parts.find(p => p.name === 'earL');
+  assert.ok(snout && earL, 'wolf parts missing');
+  // both should be dark-ish (low values)
+  assert.ok(snout.color[0] < 0.5, `snout r ${snout.color[0]} should be dark`);
+  assert.ok(earL.color[0] < 0.5, `earL r ${earL.color[0]} should be dark`);
+});
+
+test('fauna-parts/chicken-layout crest is a curved comb of bumps', () => {
+  const spec = { color: [0.6, 0.45, 0.3], scale: [1, 1, 1] };
+  const layout = layoutChicken(spec);
+  const crests = layout.parts.filter(p => p.name.startsWith('crestL') || p.name.startsWith('crestR'));
+  assert.ok(crests.length >= 3, `expected ≥3 crest bumps, got ${crests.length}`);
+  // bumps should have varying heights (not all identical)
+  const heights = crests.map(c => c.sy);
+  const uniqueHeights = new Set(heights);
+  assert.ok(uniqueHeights.size >= 2, 'crest bumps should have varying heights');
+  // crest color should be red-ish
+  for (const c of crests) {
+    assert.ok(c.color[0] > 0.7, `crest r ${c.color[0]} should be red`);
+  }
+});
+
+test('fauna-parts/chicken-layout wings fold when wingFold > 0', () => {
+  const spec = { color: [0.6, 0.45, 0.3], scale: [1, 1, 1], wingFold: 0.5 };
+  const layout = layoutChicken(spec);
+  const wingL = layout.parts.find(p => p.name === 'wingL');
+  const wingR = layout.parts.find(p => p.name === 'wingR');
+  assert.ok(wingL && wingR, 'wings missing');
+  // at wingFold=0.5, wings should be closer to body (less x offset)
+  const wingLx = Math.abs(wingL.x);
+  const wingRx = Math.abs(wingR.x);
+  assert.ok(wingLx < 0.5, `wingL x ${wingLx} should be < 0.5 when folded`);
+  assert.ok(wingRx < 0.5, `wingR x ${wingRx} should be < 0.5 when folded`);
+});
+
+test('alligator-silhouette: scute ridge produces paired bumps', () => {
+  const { parts, names } = alligatorScuteRidge(6, 0.5, 0.1, -0.4);
+  assert.ok(parts.length === 12, `expected 12 scutes got ${parts.length}`);
+  assert.ok(names.length === 12, `expected 12 names got ${names.length}`);
+  // verify alternating L/R naming
+  for (let i = 0; i < parts.length; i += 2) {
+    assert.ok(parts[i].name.endsWith('L'), `scute ${i} should be L`);
+    assert.ok(parts[i + 1].name.endsWith('R'), `scute ${i+1} should be R`);
+  }
+});
+
+test('alligator-silhouette: jaw produces upper+lower+teeth', () => {
+  const { parts, names } = alligatorJaw(0.5, 0.5, 0.7, 0.5, 0.1);
+  assert.ok(parts.length >= 6, `expected at least 6 jaw parts got ${parts.length}`);
+  // should have upper jaw, lower jaw, and teeth
+  const hasUpper = parts.some(p => p.name === 'jawUpper');
+  const hasLower = parts.some(p => p.name === 'jawLower');
+  assert.ok(hasUpper && hasLower, 'missing jawUpper or jawLower');
+});
+
+test('alligator-silhouette: full layout returns parts with ridge+snout', () => {
+  const layout = alligatorLayout({ color: [0.5, 0.4, 0.3], scale: [1, 1, 1] });
+  assert.ok(layout.parts.length > 10, `expected many parts got ${layout.parts.length}`);
+  // verify scute ridge parts exist
+  const hasScute = layout.parts.some(p => p.name.startsWith('ridgeScute'));
+  assert.ok(hasScute, 'missing scute ridge parts');
+  // verify jaw parts exist
+  const hasJaw = layout.parts.some(p => p.name === 'jawUpper' || p.name === 'jawLower');
+  assert.ok(hasJaw, 'missing jaw parts');
+});
+
+test('underwater fog style is neutral above water', () => {
+  const style = underwaterFogStyle({ underwater: false });
+  assert.strictEqual(style.color, null);
+  assert.strictEqual(style.near, null);
+  assert.strictEqual(style.far, null);
+  assert.strictEqual(style.tint, 0);
+});
+
+test('underwater fog style shortens and cools with depth', () => {
+  const shallow = underwaterFogStyle({ underwater: true, depth: 0 });
+  const deep = underwaterFogStyle({ underwater: true, depth: 12 });
+  assert.strictEqual(shallow.color, 0x0b5368);
+  assert.ok(shallow.near > deep.near, 'deeper water should bring near fog closer');
+  assert.ok(shallow.far > deep.far, 'deeper water should reduce visibility');
+  assert.ok(deep.tint > shallow.tint, 'deeper water should increase tint');
+});
+
+import { cowSpotLayout, cowUdderLayout } from '../js/fauna-parts/cow-spots-udder.js';
+
+test('fauna-parts/cow-spots-udder cowSpotLayout default', () => {
+  const layout = cowSpotLayout({ w: 1, h: 1, l: 1 });
+  assert.ok(layout.parts.length >= 5, 'cow spots need at least 5 parts');
+  for (const p of layout.parts) {
+    assert.ok(['body', 'spot'].includes(p.role), `unexpected role: ${p.role}`);
+  }
+});
+
+test('fauna-parts/cow-spots-udder cowSpotLayout varied sizes', () => {
+  const layout = cowSpotLayout({ w: 1, h: 1, l: 1 });
+  const sizes = layout.parts.map(p => p.sx);
+  assert.ok(sizes.some(s => s < 0.2), 'spots should have varied sizes');
+});
+
+test('fauna-parts/cow-spots-udder cowUdderLayout default', () => {
+  const layout = cowUdderLayout({ w: 1, h: 1, l: 1 });
+  assert.ok(layout.parts.length >= 3, 'udder needs at least 3 parts (body + teats)');
+  assert.ok(layout.parts.some(p => p.name === 'udderBody'), 'udder body missing');
+});
+
+test('fauna-parts/cow-spots-udder cowUdderLayout teat count', () => {
+  const layout = cowUdderLayout({ w: 1, h: 1, l: 1 });
+  const teats = layout.parts.filter(p => p.name.startsWith('teat'));
+  assert.strictEqual(teats.length, 4, 'cow should have 4 teats');
+});
+
+test('fauna-parts/cow-spots-udder cowUdderLayout diamond pattern', () => {
+  const layout = cowUdderLayout({ w: 1, h: 1, l: 1 });
+  const teats = layout.parts.filter(p => p.name.startsWith('teat'));
+  // teats should be spread in z (top/bottom) and x (left/right)
+  const zValues = teats.map(t => t.z);
+  assert.ok(zValues.some(z => z < 0), 'some teats should be forward');
+  assert.ok(zValues.some(z => z > 0), 'some teats should be backward');
+});
+
+import { foxTailLayout } from '../js/fauna-parts/fox-tail-tip.js';
+
+test('fauna-parts/fox-tail-tip foxTailLayout default', () => {
+  const layout = foxTailLayout({ w: 1, h: 1, l: 1 });
+  assert.ok(layout.parts.length >= 2, 'fox tail needs at least 2 parts (body + tip)');
+  assert.ok(layout.parts.some(p => p.name === 'tailBody'), 'tail body missing');
+  assert.ok(layout.parts.some(p => p.name === 'tailTip'), 'tail tip missing');
+});
+
+test('fauna-parts/fox-tail-tip foxTailLayout cream tip contrast', () => {
+  const layout = foxTailLayout({ w: 1, h: 1, l: 1 });
+  const tip = layout.parts.find(p => p.name === 'tailTip');
+  assert.ok(tip.color[0] > 0.9 && tip.color[1] > 0.9 && tip.color[2] > 0.85, 'tip should be cream/white for contrast');
+});
+
+test('fauna-parts/fox-tail-tip foxTailLayout dark body', () => {
+  const layout = foxTailLayout({ w: 1, h: 1, l: 1 });
+  const body = layout.parts.find(p => p.name === 'tailBody');
+  assert.ok(body.color[0] < 0.2 && body.color[1] < 0.2 && body.color[2] < 0.2, 'body should be dark for contrast');
+});
+
+test('fauna-parts/fox-tail-tip foxTailLayout tip positioned at end', () => {
+  const layout = foxTailLayout({ w: 1, h: 1, l: 1 });
+  const tip = layout.parts.find(p => p.name === 'tailTip');
+  assert.ok(tip.z < -0.5, 'tip should be positioned at the end of the tail (negative z)');
 });
