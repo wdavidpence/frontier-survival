@@ -328,7 +328,7 @@ export class FaunaSystem {
    * @param {{x:number,y:number,z:number,id?:string}|Array<{x:number,y:number,z:number,id?:string}>} playerOrPlayers
    *   Solo: one player object. Coop: array of players (id 'p1'|'p2'); nearest is targeted.
    * @param {boolean} isNight
-   * @param {{ senseMult?: number, damageMult?: number }} [opts]
+   * @param {{ senseMult?: number, damageMult?: number, hostilePolicy?: 'off'|'provoke'|'cautious'|'hunt' }} [opts]
    * @returns {{ playerDamage: number, player2Damage: number, kills: object[] }}
    */
   tick(dt, playerOrPlayers, isNight, opts = {}) {
@@ -342,6 +342,7 @@ export class FaunaSystem {
         : [];
     const senseMult = opts.senseMult ?? 1;
     const damageMult = opts.damageMult ?? 1;
+    const hostilePolicy = opts.hostilePolicy || 'hunt';
 
     for (const a of this.animals) {
       if (a.dead) continue;
@@ -364,12 +365,36 @@ export class FaunaSystem {
       const sense = (isNight && spec.nightSense ? spec.nightSense : spec.senseRange) * senseMult;
 
       if (spec.hostile) {
-        if (!a.tamed && nearest && dist < sense) {
+        const aggro = !!(a.aggro || a._aggro);
+        let wantChase = false;
+        if (hostilePolicy === 'off' || damageMult <= 0 || senseMult <= 0) {
+          wantChase = false;
+          if (a.state === 'chase') a.state = 'wander';
+          a._chaseTarget = null;
+        } else if (a.tamed) {
+          wantChase = false;
+        } else if (aggro && nearest && dist < sense + 10) {
+          wantChase = true;
+        } else if (hostilePolicy === 'provoke') {
+          // Minecraft-like: only fight back if hit
+          wantChase = false;
+        } else if (hostilePolicy === 'cautious' && nearest) {
+          // Night close approach, or bump into personal space — not free long-range hunt
+          const personal = Math.max(2.1, (spec.attackRange || 1.4) * 1.6);
+          wantChase = (isNight && dist < sense * 0.38) || dist < personal;
+        } else if (hostilePolicy === 'hunt' && nearest && dist < sense) {
+          wantChase = true;
+        }
+
+        if (wantChase) {
           a.state = 'chase';
           a._chaseTarget = targetId;
-        } else if (a.state === 'chase' && (!nearest || dist > sense + 6)) {
+        } else if (a.state === 'chase' && (!nearest || dist > sense + 8) && !aggro) {
           a.state = 'wander';
           a._chaseTarget = null;
+        } else if (a.state === 'chase' && aggro && (!nearest || dist > sense + 14)) {
+          a.state = 'wander';
+          // keep aggro memory briefly so they resume if player returns
         }
       } else {
         if (a.tamed) {
@@ -497,6 +522,8 @@ export class FaunaSystem {
   damageAnimal(animal, amount) {
     if (!animal || animal.dead) return null;
     animal.hp -= amount;
+    animal.aggro = true;
+    animal._aggro = true;
     animal.state = this.getSpec(animal.type).hostile ? 'chase' : 'flee';
     if (animal.hp > 0) return { killed: false, meat: 0, hide: 0, name: this.getSpec(animal.type).name };
     animal.dead = true;

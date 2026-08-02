@@ -8,8 +8,9 @@ import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
+  drinkWater,
   applyDamage,
-} from './survival.js?v=220';
+} from './survival.js?v=243';
 import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=220';
 import {
   ITEM,
@@ -19,7 +20,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=220';
+} from './items.js?v=243';
 import { resolveBlockDrop } from './mine-tier.js?v=220';
 import {
   createFurnaceState,
@@ -49,7 +50,7 @@ import {
   splitStack,
 } from './inventory.js?v=220';
 import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=220';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=243';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=242';
 import { createBlockAtlas } from './atlas.js?v=220';
 import { BreakFX } from './fx.js?v=220';
@@ -70,7 +71,7 @@ import {
   readSaveFromStorage,
   clearSaveStorage,
 } from './save.js?v=220';
-import { getMode } from './modes.js?v=220';
+import { getMode } from './modes.js?v=243';
 import {
   readSettings,
   writeSettings,
@@ -658,7 +659,7 @@ export class Game {
       this.player.notify('Click game if look fails · WASD move · Esc pause', 5);
       this.player.notify('Early days are forgiving — gather food, wood, and shelter.', 8);
     } else if (freshPlayer) {
-      this.player.notify(`${this.modeDef().name} mode. Hunt hares & deer. Craft a spear. Wolves hunt at night.`, 8);
+      this.player.notify(`${this.modeDef().name} mode. ${this.modeDef().hostilePolicy === 'off' ? 'Peaceful wildlife.' : this.modeDef().hostilePolicy === 'provoke' ? 'Predators only fight if provoked.' : 'Stay cautious near predators at night.'} Drink at water (F).`, 8);
     }
     if (!this._raf) this._loop();
     this.hud.hideTitle?.();
@@ -1579,6 +1580,7 @@ export class Game {
       inWater: move.inWater,
       sleeping: false,
       hungerMult: mode.hungerMult,
+      thirstMult: mode.thirstMult ?? 1,
       coldDamageMult: mode.coldDamageMult * expMult * (1 - grace * 0.95),
       wetnessGain: move.inWater ? 0 : wGain * (1 - grace * 0.8),
       desertHeat: grace > 0.5 ? false : desertHeat,
@@ -1632,6 +1634,7 @@ export class Game {
         inWater: inW2,
         sleeping: false,
         hungerMult: mode.hungerMult,
+        thirstMult: mode.thirstMult ?? 1,
         coldDamageMult: mode.coldDamageMult * exp2 * (1 - grace * 0.95),
         wetnessGain: inW2 ? 0 : wGain2 * (1 - grace * 0.8),
         desertHeat: grace > 0.5 ? false : desert2,
@@ -1697,6 +1700,7 @@ export class Game {
         {
           senseMult: mode.predatorSenseMult * (move.crouching ? 0.55 : 1),
           damageMult: mode.predatorDamageMult,
+          hostilePolicy: mode.hostilePolicy || 'provoke',
         },
       );
       if (fa.playerDamage > 0) {
@@ -1710,8 +1714,8 @@ export class Game {
           else this.player.notify('Shield blocks the bite!');
         } else {
           this.player.notify('A predator mauls you!');
-          const bleedAmt = 12 + ((Math.random() * 7) | 0);
-          this.survival = applyBleed(this.survival, bleedAmt);
+          const bleedAmt = Math.round((6 + ((Math.random() * 4) | 0)) * (mode.bleedMult ?? 0.5));
+          if (bleedAmt > 0) this.survival = applyBleed(this.survival, bleedAmt);
         }
         dmg = mitigatePhysicalDamage(dmg, equipmentArmor(this.player.equipment));
         this.survival = applyDamage(this.survival, dmg, 'wolf');
@@ -2499,8 +2503,11 @@ export class Game {
       if (!cons.ok) return;
       this.player.slots = cons.slots;
       this.survival = eatFood(this.survival, p.edible, p.edible > 20 ? 2 : 0);
-      if (p.eatDamage) {
-        this.survival = applyDamage(this.survival, p.eatDamage, 'food_poisoning');
+      const mode = this.modeDef();
+      const poisonChance = mode.poisonMult ?? 0.35;
+      if (p.eatDamage && Math.random() < poisonChance) {
+        const dmg = Math.max(1, Math.round(p.eatDamage * Math.min(1, poisonChance + 0.25)));
+        this.survival = applyDamage(this.survival, dmg, 'food_poisoning');
         this.player.notify(`Ate ${p.name} — stomach turns. Cook meat next time!`, 3);
       } else {
         this.player.notify(`Ate ${p.name}.`);
@@ -2591,15 +2598,12 @@ export class Game {
 
     // Drink water
     if (hit && hit.id === BLOCK.WATER && this._drinkCd <= 0) {
-      this.survival = {
-        ...this.survival,
-        stamina: Math.min(this.survival.maxStamina, this.survival.stamina + 25),
-        wetness: (this.survival.wetness || 0) + 15,
-        hunger: Math.min(this.survival.maxHunger, this.survival.hunger + 3),
-      };
+      this.survival = drinkWater(this.survival, 42, 22);
+      // sipping surface water slightly wets you
+      this.survival = { ...this.survival, wetness: Math.min(100, (this.survival.wetness || 0) + 8) };
       this._drinkCd = 2;
       this.audio.splash?.() || this.audio.eat();
-      this.player.notify('Drank water. +25 stamina.', 2);
+      this.player.notify('Drank water. Thirst eased.', 2);
       return;
     }
 
@@ -3339,6 +3343,7 @@ export class Game {
     };
     setBar('bar-health', s.health, s.maxHealth);
     setBar('bar-hunger', s.hunger, s.maxHunger);
+    setBar('bar-thirst', s.thirst ?? 100, s.maxThirst ?? 100);
     setBar('bar-stamina', s.stamina, s.maxStamina);
     setBar('bar-temp', this._tempBar(s.bodyTemp), 100);
     setBar('bar-sleep', s.sleep, 100);
@@ -3349,6 +3354,7 @@ export class Game {
       const s2 = this.survival2 || s;
       setBar('bar-health-p2', s2.health, s2.maxHealth);
       setBar('bar-hunger-p2', s2.hunger, s2.maxHunger);
+      setBar('bar-thirst-p2', s2.thirst ?? 100, s2.maxThirst ?? 100);
       setBar('bar-stamina-p2', s2.stamina, s2.maxStamina);
       setBar('bar-temp-p2', this._tempBar(s2.bodyTemp), 100);
       setBar('bar-sleep-p2', s2.sleep, 100);
@@ -3364,6 +3370,7 @@ export class Game {
     if (meters) {
       meters.classList.toggle('crit-health', s.health < 28);
       meters.classList.toggle('crit-hunger', s.hunger < 18);
+      meters.classList.toggle('crit-thirst', (s.thirst ?? 100) < 18);
       meters.classList.toggle('crit-cold', s.bodyTemp < 34.2);
       meters.classList.toggle('crit-bleed', (s.bleed || 0) > 20);
     }

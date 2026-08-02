@@ -1727,3 +1727,12 @@ Oldest ready task age: 100160s
 - Version markers: title/badge/boot `v1.12.11`, entry `main.js?v=242`, `animal-visuals.js?v=242`.
 - Decision: **ship** local candidate to origin/main + prove live Pages.
 
+## 2026-08-02 — ship v1.12.12 difficulty / multi-day needs
+
+- Harmless: `hostilePolicy=off`, predator damage/sense 0 (peaceful).
+- Survival: provoke-only predators; Challenging/Cruel cautious (no free long-range hunt).
+- Hunger base ~7 idle game-days at mult=1; thirst ~3 days; mode mults keep Challenging/Cruel multi-day.
+- Bleed/poison reduced; thirst meter + drinkWater; dual HTML.
+- Smoke 309 PASS; browser Harmless Start: forced wolf dmg 0, thirst bar present.
+- Decision: **ship**
+

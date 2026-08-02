@@ -1,9 +1,15 @@
 /**
  * Difficulty modes — pure config + helpers (unit-testable).
- * Harmless → Survival → Challenging → Cruel (+ Creative later).
+ * Harmless → Survival → Challenging → Cruel
+ *
+ * Design (v1.12.12):
+ * - Harmless = Minecraft-like peaceful: no predator attacks.
+ * - Food lasts many game-days (at hungerMult=1 ≈ 7 idle game-days with survival.js base).
+ * - Water/thirst lasts ≈ 3 game-days at thirstMult=1.
+ * - Hostiles mostly provoke-only; never free-hunt on Harmless/Survival.
  */
-
 /** @typedef {'harmless'|'survival'|'challenging'|'cruel'} ModeId */
+/** @typedef {'off'|'provoke'|'cautious'|'hunt'} HostilePolicy */
 
 /**
  * @typedef {{
@@ -11,9 +17,13 @@
  *  name: string,
  *  blurb: string,
  *  hungerMult: number,
+ *  thirstMult: number,
  *  coldDamageMult: number,
  *  predatorDamageMult: number,
  *  predatorSenseMult: number,
+ *  hostilePolicy: HostilePolicy,
+ *  bleedMult: number,
+ *  poisonMult: number,
  *  deathDrops: boolean,
  *  permadeath: boolean,
  *  starterRations: number
@@ -25,50 +35,66 @@ export const MODES = {
   harmless: {
     id: 'harmless',
     name: 'Harmless',
-    blurb: 'Soft learning mode. Hunger barely drains, cold is minimal, wolves are timid.',
-    hungerMult: 0.25,
-    coldDamageMult: 0.3,
-    predatorDamageMult: 0.4,
-    predatorSenseMult: 0.5,
+    blurb: 'Peaceful learning. No predator attacks. Food and cold barely matter.',
+    hungerMult: 0.12,
+    thirstMult: 0.15,
+    coldDamageMult: 0.05,
+    predatorDamageMult: 0,
+    predatorSenseMult: 0,
+    hostilePolicy: 'off',
+    bleedMult: 0,
+    poisonMult: 0.12,
     deathDrops: false,
     permadeath: false,
-    starterRations: 8,
+    starterRations: 12,
   },
   survival: {
     id: 'survival',
     name: 'Survival',
-    blurb: 'Default harsh frontier. Meters matter.',
-    hungerMult: 1,
-    coldDamageMult: 1,
-    predatorDamageMult: 1,
-    predatorSenseMult: 1,
+    blurb: 'Default frontier. Predators only fight back if provoked. Meters matter slowly.',
+    hungerMult: 0.55,
+    thirstMult: 0.7,
+    coldDamageMult: 0.5,
+    predatorDamageMult: 0.4,
+    predatorSenseMult: 0.35,
+    hostilePolicy: 'provoke',
+    bleedMult: 0.35,
+    poisonMult: 0.3,
     deathDrops: false,
     permadeath: false,
-    starterRations: 6,
+    starterRations: 8,
   },
   challenging: {
     id: 'challenging',
     name: 'Challenging',
-    blurb: 'Faster drains, meaner wolves. Death drops your pack.',
-    hungerMult: 1.5,
-    coldDamageMult: 1.5,
-    predatorDamageMult: 1.4,
-    predatorSenseMult: 1.3,
+    blurb: 'Tighter margins (~7 food days / ~3 water days). Death drops your pack. Predators cautious at night.',
+    hungerMult: 0.85,
+    thirstMult: 0.95,
+    coldDamageMult: 0.85,
+    predatorDamageMult: 0.65,
+    predatorSenseMult: 0.55,
+    hostilePolicy: 'cautious',
+    bleedMult: 0.55,
+    poisonMult: 0.45,
     deathDrops: true,
     permadeath: false,
-    starterRations: 5,
+    starterRations: 6,
   },
   cruel: {
     id: 'cruel',
     name: 'Cruel',
-    blurb: 'Permadeath. Save wiped on death. No mercy.',
-    hungerMult: 2,
-    coldDamageMult: 2.5,
-    predatorDamageMult: 1.75,
-    predatorSenseMult: 1.6,
+    blurb: 'Permadeath. Same multi-day food/water pacing as Challenging, but colder and riskier. Save wiped on death.',
+    hungerMult: 1,
+    thirstMult: 1,
+    coldDamageMult: 1.15,
+    predatorDamageMult: 0.85,
+    predatorSenseMult: 0.7,
+    hostilePolicy: 'cautious',
+    bleedMult: 0.7,
+    poisonMult: 0.55,
     deathDrops: true,
     permadeath: true,
-    starterRations: 4,
+    starterRations: 5,
   },
 };
 
@@ -85,15 +111,13 @@ export function isValidMode(id) {
   return !!(id && MODES[id]);
 }
 
-/**
- * Apply mode-scaled environmental damage from tickSurvival dps components.
- * Pure helper for tests: scale a base dps by cold mult when cause is hypothermia.
- */
 export function scaleEnvDps(baseDps, cause, mode) {
   const m = getMode(mode);
   if (!baseDps) return 0;
   if (cause === 'hypothermia' || cause === 'heatstroke') return baseDps * m.coldDamageMult;
-  if (cause === 'starvation' || cause === 'exhaustion') return baseDps * Math.max(1, m.hungerMult * 0.85);
+  if (cause === 'starvation' || cause === 'exhaustion' || cause === 'dehydration') {
+    return baseDps * Math.max(0.35, m.hungerMult * 0.85);
+  }
   return baseDps;
 }
 
@@ -107,56 +131,52 @@ export function scalePredatorSense(base, mode, isNight) {
 }
 
 /**
- * Detailed explanation for a difficulty preset — what the player can expect
- * during their first hour. Returns an object with readable sections.
  * @param {ModeId} modeId
  */
 export function difficulty_presets_explain(modeId) {
   const m = getMode(modeId);
-  /** @type {{title:string, body:string, tips:string[]}} */
   const explanations = {
     harmless: {
-      title: 'Harmless — Learn the game',
-      body: 'This mode is forgiving so you can learn mechanics without pressure. Hunger barely drains, cold damage is minimal, and wolves are timid — they will not chase you aggressively. You start with 8 rations (enough for a long first day). If you die, nothing is lost.',
+      title: 'Harmless — Peaceful / learn the game',
+      body: 'Minecraft-like peaceful mode. Predators never attack. Hunger and thirst drain very slowly. Cold is almost cosmetic. Ideal for learning build/craft/explore.',
       tips: [
-        'Use this to learn crafting, building, and the day/night cycle.',
-        'Hunger drains at ~25% normal speed — you have hours before starvation matters.',
-        'Cold only becomes dangerous after extended exposure in snow or rain at night.',
-        'Wolves keep their distance; bears are still a threat but deal reduced damage.',
+        'No wolves, bears, boars, or gators will hunt you.',
+        'Food lasts many days — focus on building and crafting.',
+        'Drink from water with F when you want stamina; thirst is very gentle.',
+        'Switch to Survival when you want wildlife danger.',
       ],
     },
     survival: {
-      title: 'Survival — The default frontier',
-      body: 'All survival meters matter from the start. Hunger drains at a steady pace, cold can kill you in freezing weather without shelter, and wolves will hunt you at night. You start with 6 rations — enough for a few meals but not forever. Death costs nothing but time.',
+      title: 'Survival — Default frontier',
+      body: 'Meters matter over days, not minutes. Predators only fight if you provoke them (hit them). Raw meat rarely poisons. Good default for real play.',
       tips: [
-        'Build shelter and light a fire before the first night.',
-        'Hunt hares for meat; cook it to avoid food poisoning.',
-        'Wolves are dangerous at night — stay near fire or in a sealed shelter.',
-        'Wetness + cold is the fastest way to die early — dry off near a fire.',
+        'Do not punch a wolf unless you want a fight.',
+        'Build shelter before long night trips — cold still matters.',
+        'Cook meat when you can; food poisoning is uncommon but real.',
+        'Food lasts many game-days; drink water every few days.',
       ],
     },
     challenging: {
-      title: 'Challenging — For experienced players',
-      body: 'Hunger drains 50% faster, cold damage is steeper, and wolves are meaner and more perceptive. If you die, your entire inventory is dropped in the world — you must retrieve it or lose it forever. You start with only 5 rations.',
+      title: 'Challenging — Experienced players',
+      body: 'About a week of food and ~3 days of water on a full bar (idle). Night predators may notice you if you linger close. Death drops your pack.',
       tips: [
-        'Scout for food and wood before dusk — you have less margin for error.',
-        'Always carry a weapon; wolves will actively hunt you at night.',
-        'Death is costly — save frequently and avoid risky behavior early on.',
-        'Cooked food is essential; raw meat risks poisoning which compounds the difficulty.',
+        'Keep cooked food and a water plan.',
+        'Avoid camping on top of hostiles at night.',
+        'Death drops inventory — mark your corpse path.',
+        'Bleed and poison are still reduced vs old builds, but harsher than Survival.',
       ],
     },
     cruel: {
-      title: 'Cruel — Permadeath, no second chances',
-      body: 'Everything is harder than Challenging mode. Hunger drains twice as fast, cold damage is brutal, and wolves are extremely aggressive. If you die, your save file is wiped entirely — no respawn, no recovery. You start with only 4 rations.',
+      title: 'Cruel — Permadeath',
+      body: 'Same multi-day food/water pacing targets as Challenging, with colder exposure and higher risk. Die once and the save is wiped.',
       tips: [
-        'This mode is for players who know the game well. Learn on Harmless or Survival first.',
-        'Every decision matters — do not waste resources on unnecessary risks.',
-        'Always have a plan for shelter, fire, and food before nightfall.',
-        'Consider this mode only after you can reliably survive 3+ days on Survival.',
+        'Learn the game on Harmless/Survival first.',
+        'Never take needless fights with predators.',
+        'Shelter + fire before storms.',
+        'One death ends the run.',
       ],
     },
   };
-
   const exp = explanations[m.id] || explanations.survival;
   return { ...exp, modeId: m.id, name: m.name };
 }

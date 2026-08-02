@@ -182,6 +182,10 @@ import {
   canSprint,
   moveSpeedMultiplier,
   eatFood,
+  drinkWater,
+  GAME_DAY_SEC,
+  HUNGER_DAYS_AT_MULT_1,
+  THIRST_DAYS_AT_MULT_1,
   applyDamage,
   fallDamageFromSpeed,
 } from '../js/survival.js';
@@ -645,7 +649,7 @@ test('difficulty modes defined', () => {
   assert.ok(getMode('cruel').permadeath);
   assert.ok(getMode('harmless').hungerMult < getMode('survival').hungerMult);
   assert.ok(scalePredatorDamage(10, 'harmless') < 10);
-  assert.ok(scalePredatorDamage(10, 'cruel') > 10);
+  assert.ok(scalePredatorDamage(10, 'cruel') > scalePredatorDamage(10, 'survival'));
   assert.strictEqual(MODES.survival.id, 'survival');
 });
 
@@ -669,16 +673,20 @@ test('difficulty modes monotonic ordering', () => {
 });
 
 test('difficulty modes blurb consistency', () => {
-  // Harmless: hungerMult ~0.25 → "barely drains" / "~25% normal speed"
-  assert.ok(MODES.harmless.hungerMult <= 0.3, 'harmless hunger should be very low');
-  // Survival: baseline = 1
-  assert.strictEqual(MODES.survival.hungerMult, 1);
-  // Challenging: >1 but <2
-  assert.ok(MODES.challenging.hungerMult > 1 && MODES.challenging.hungerMult < 2);
-  // Cruel: significantly harder than challenging (at least 1.3x)
-  assert.ok(MODES.cruel.hungerMult > MODES.challenging.hungerMult * 1.2);
-  // Cruel cold is brutal (2x+ survival baseline)
-  assert.ok(MODES.cruel.coldDamageMult >= 2);
+  // Harmless: peaceful / multi-day soft drains
+  assert.ok(MODES.harmless.hungerMult <= 0.2, 'harmless hunger should be very low');
+  assert.strictEqual(MODES.harmless.predatorDamageMult, 0);
+  assert.strictEqual(MODES.harmless.hostilePolicy, 'off');
+  // Survival: provoke-only predators, sub-1 mults (multi-day food)
+  assert.ok(MODES.survival.hungerMult < 1);
+  assert.strictEqual(MODES.survival.hostilePolicy, 'provoke');
+  // Challenging harder than survival but still multi-day
+  assert.ok(MODES.challenging.hungerMult > MODES.survival.hungerMult);
+  assert.ok(MODES.challenging.hungerMult <= 1);
+  // Cruel at least as hungry as challenging; cold steeper than survival
+  assert.ok(MODES.cruel.hungerMult >= MODES.challenging.hungerMult);
+  assert.ok(MODES.cruel.coldDamageMult > MODES.survival.coldDamageMult);
+  assert.ok(MODES.cruel.thirstMult >= MODES.challenging.thirstMult);
 });
 
 test('settings roundtrip + sensitivity map', () => {
@@ -3207,6 +3215,86 @@ test('animal-visuals alligator long', () => {
     z1 = Math.max(z1, part.z + part.sz / 2);
   }
   assert.ok(z1 - z0 > body.sy * 0.9);
+});
+
+
+// ── v1.12.12 difficulty / multi-day needs ─────────────────
+test('multi-day hunger pacing at mult 1', () => {
+  assert.strictEqual(HUNGER_DAYS_AT_MULT_1, 7);
+  assert.strictEqual(THIRST_DAYS_AT_MULT_1, 3);
+  assert.strictEqual(GAME_DAY_SEC, 420);
+  let s = { ...DEFAULT_SURVIVAL, hunger: 100, thirst: 100 };
+  // 1 full game-day idle at mult 1 should leave most of the bar
+  const day = GAME_DAY_SEC;
+  s = tickSurvival(s, {
+    dt: day,
+    dayPhase: 0.25,
+    weather: 'clear',
+    blockHeat: 12,
+    sprinting: false,
+    moving: false,
+    inWater: false,
+    sleeping: false,
+    hungerMult: 1,
+    thirstMult: 1,
+    earlyGameGrace: 0,
+  });
+  // ~1/7 of hunger gone, ~1/3 of thirst gone
+  assert.ok(s.hunger > 80 && s.hunger < 95, `hunger after 1 day ${s.hunger}`);
+  assert.ok(s.thirst > 55 && s.thirst < 80, `thirst after 1 day ${s.thirst}`);
+});
+
+test('harmless predators deal zero scaled damage', () => {
+  assert.strictEqual(scalePredatorDamage(25, 'harmless'), 0);
+  assert.strictEqual(MODES.harmless.hostilePolicy, 'off');
+});
+
+test('provoke policy ignores unprovoked hostiles', () => {
+  // lightweight world stub
+  const world = {
+    radiusChunks: 2,
+    getBlock: () => 0,
+  };
+  const fauna = new FaunaSystem(world, 99);
+  fauna.animals = [{
+    id: 1, type: 'wolf', x: 0.5, y: 1, z: 0.5, vx: 0, vz: 0,
+    hp: 30, maxHp: 30, yaw: 0, state: 'wander', attackTimer: 0,
+    wanderT: 1, targetX: 0, targetZ: 0, dead: false, aggro: false,
+  }];
+  const r = fauna.tick(0.2, { x: 0.5, y: 1, z: 0.5, id: 'p1' }, true, {
+    senseMult: 1,
+    damageMult: 1,
+    hostilePolicy: 'provoke',
+  });
+  assert.strictEqual(r.playerDamage, 0);
+  assert.notStrictEqual(fauna.animals[0].state, 'chase');
+});
+
+test('aggro after hit enables chase under provoke', () => {
+  const world = { radiusChunks: 2, getBlock: () => 0 };
+  const fauna = new FaunaSystem(world, 99);
+  const wolf = {
+    id: 1, type: 'wolf', x: 0.5, y: 1, z: 0.5, vx: 0, vz: 0,
+    hp: 30, maxHp: 30, yaw: 0, state: 'wander', attackTimer: 0,
+    wanderT: 1, targetX: 0, targetZ: 0, dead: false,
+  };
+  fauna.animals = [wolf];
+  fauna.damageAnimal(wolf, 1);
+  assert.ok(wolf.aggro);
+  const r = fauna.tick(0.05, { x: 0.5, y: 1, z: 0.5, id: 'p1' }, false, {
+    senseMult: 1,
+    damageMult: 1,
+    hostilePolicy: 'provoke',
+  });
+  assert.strictEqual(wolf.state, 'chase');
+  assert.ok(r.playerDamage > 0, 'provoked wolf in range should bite');
+});
+
+test('drinkWater restores thirst', () => {
+  let s = { ...DEFAULT_SURVIVAL, thirst: 20, stamina: 10 };
+  s = drinkWater(s, 40, 15);
+  assert.ok(s.thirst >= 60);
+  assert.ok(s.stamina >= 25);
 });
 
 if (process.exitCode) process.exit(1);

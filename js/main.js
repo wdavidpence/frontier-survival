@@ -1,4 +1,4 @@
-import { Game } from './game.js?v=242';
+import { Game } from './game.js?v=243';
 import { hasSave, clearSaveStorage } from './save.js?v=220';
 import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=220';
 import {
@@ -41,6 +41,7 @@ function causeFlavor(cause) {
   const map = {
     hypothermia: 'The cold took you.',
     starvation: 'Hunger hollowed you out.',
+    dehydration: 'Thirst took you.',
     exhaustion: 'You collapsed from fatigue.',
     wolf: "A wolf's jaws closed.",
     bear: 'A bear crushed you.',
@@ -390,4 +391,4 @@ engageControls = function() {
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.12.11');
+console.info('Frontier Survival boot OK · v1.12.12');

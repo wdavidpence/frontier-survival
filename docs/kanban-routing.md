@@ -56,3 +56,11 @@ This board follows `docs/frontier-token-protocol.md` permanently:
 
 ## Acceptance
 See `docs/roadmap/MASTER_PLAN.md`. Permanent until competitive.
+
+## Worker health note (2026-08-02)
+
+- `qwen27s` currently **parked/crashed** — do not assign until endpoint healthy again.
+- Hard SWE slices: prefer **Luna/Codex** (frontier) when qwen27s is down; `qwen35` if up.
+- Easy pure/docs/smoke cards: `ornith9b` depth 1 only (never parallel on same GPU).
+- Do not mint a 100-card ornith flood in one tick; mint small batches (≤5 ready) of disjoint pure helpers.
+

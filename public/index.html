@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frontier Survival v1.12.11</title>
+  <title>Frontier Survival v1.12.12</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -64,6 +64,8 @@
     .fill { height: 100%; width: 0%; border-radius: 4px; transition: width 0.08s linear; }
     #bar-health { background: linear-gradient(90deg, #8b1e1e, var(--health)); }
     #bar-hunger { background: linear-gradient(90deg, #8a7020, var(--hunger)); }
+    #bar-thirst { background: linear-gradient(90deg, #1a5a7a, #3aa0d0); }
+    #bar-thirst-p2 { background: linear-gradient(90deg, #1a5a7a, #3aa0d0); }
     #bar-stamina { background: linear-gradient(90deg, #1f5c38, var(--stamina)); }
     #bar-temp { background: linear-gradient(90deg, #2a6a9a, var(--temp)); }
     #bar-sleep { background: linear-gradient(90deg, #4a3d78, var(--sleep)); }
@@ -524,6 +526,7 @@
     #help.faded { opacity: 0.28; transition: opacity 1.2s ease; }
     #meters.crit-health #bar-health { animation: pulse-bar 0.7s ease-in-out infinite; }
     #meters.crit-hunger #bar-hunger { animation: pulse-bar 0.85s ease-in-out infinite; }
+    #meters.crit-thirst #bar-thirst { animation: pulse-bar 0.85s ease-in-out infinite; }
     #meters.crit-cold #bar-temp { animation: pulse-bar 0.9s ease-in-out infinite; }
     #meters.crit-bleed #bar-bleed { animation: pulse-bar 0.6s ease-in-out infinite; }
     #bleed-tag.crit-bleed { animation: pulse-bar 0.6s ease-in-out infinite; }
@@ -697,7 +700,7 @@
     <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.12.11</div>
+    <div id="version-badge">v1.12.12</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Second DualSense / pad for right screen. P1 can use keyboard+mouse.</div></div>
@@ -705,6 +708,7 @@
     <div id="meters-p2">
       <div class="meter"><span>Health</span><div class="track"><div id="bar-health-p2" class="fill"></div></div></div>
       <div class="meter"><span>Hunger</span><div class="track"><div id="bar-hunger-p2" class="fill"></div></div></div>
+      <div class="meter"><span>Thirst</span><div class="track"><div id="bar-thirst-p2" class="fill"></div></div></div>
       <div class="meter"><span>Stamina</span><div class="track"><div id="bar-stamina-p2" class="fill"></div></div></div>
       <div class="meter"><span>Temp <span id="temp-label-p2"></span></span><div class="track"><div id="bar-temp-p2" class="fill"></div></div></div>
       <div class="meter"><span>Fatigue</span><div class="track"><div id="bar-sleep-p2" class="fill"></div></div></div>
@@ -724,6 +728,7 @@
     <div id="meters">
       <div class="meter"><span>Health</span><div class="track"><div id="bar-health" class="fill"></div></div></div>
       <div class="meter"><span>Hunger</span><div class="track"><div id="bar-hunger" class="fill"></div></div></div>
+      <div class="meter"><span>Thirst</span><div class="track"><div id="bar-thirst" class="fill"></div></div></div>
       <div class="meter"><span>Stamina</span><div class="track"><div id="bar-stamina" class="fill"></div></div></div>
       <div class="meter"><span>Temp <span id="temp-label"></span></span><div class="track"><div id="bar-temp" class="fill"></div></div></div>
       <div class="meter"><span>Fatigue</span><div class="track"><div id="bar-sleep" class="fill"></div></div></div>
@@ -777,7 +782,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.12.11</div>
+      <div class="tag">Browser survival sandbox · v1.12.12</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -844,6 +849,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=242"></script>
+  <script type="module" src="./js/main.js?v=243"></script>
 </body>
 </html>
