@@ -118,23 +118,46 @@ const lunaStill = (running2.out.match(/\bluna\b/g) || []).length;
 if (ossStill === 0) {
   const sched = hermes('kanban list --assignee oss20b --status scheduled');
   const lines = sched.out.split('\n').filter((l) => /fauna:/i.test(l));
-  // prefer first listed (oldest / priority order as CLI shows)
   for (const line of lines) {
     const idm = line.match(/\b(t_[a-f0-9]+)\b/);
     if (!idm) continue;
     const id = idm[1];
-    if (!DRY) {
-      hermes(`kanban unblock ${id}`);
-    }
+    if (!DRY) hermes(`kanban unblock ${id}`);
     summary.unblocked.push({ id, lane: 'oss20b-fauna' });
     break; // depth 1
   }
 }
 
-// If luna idle: nothing to unblock specially — ready cards get dispatch
-// Optional: promote todo with no unfinished parents is dispatcher's job
+// If luna idle: keep hard lane fed (same idea as ornith serial feed)
+// Priority: ready luna already → dispatch handles; else unblock ONE scheduled
+// prefer ocean/world/stream/tropical/biome titles, then any FS:luna
+if (lunaStill === 0) {
+  const readyL = hermes('kanban list --assignee luna --status ready');
+  const hasReady = /\b(t_[a-f0-9]+)\b/.test(readyL.out) && !/no matching/i.test(readyL.out);
 
-// Dispatch
+  if (!hasReady) {
+    // review-required blocked cards that are "done work" stay blocked for judge —
+    // only auto-unblock scheduled (parked capacity), never sticky human blocked.
+    const schedL = hermes('kanban list --assignee luna --status scheduled');
+    const lines = schedL.out.split('\n').filter((l) => /\b(t_[a-f0-9]+)\b/.test(l));
+    const prefer = (l) =>
+      /ocean:|world:|stream|tropical|biome|reef|aquatic|island|coast|gen\.js|palm/i.test(l);
+    const ordered = [
+      ...lines.filter(prefer),
+      ...lines.filter((l) => !prefer(l) && /FS:luna|luna:/i.test(l)),
+    ];
+    for (const line of ordered) {
+      const idm = line.match(/\b(t_[a-f0-9]+)\b/);
+      if (!idm) continue;
+      const id = idm[1];
+      if (!DRY) hermes(`kanban unblock ${id}`);
+      summary.unblocked.push({ id, lane: 'luna-serial' });
+      break; // depth 1 luna
+    }
+  }
+}
+
+// Dispatch — prefer 2 so luna+oss can both run when ready
 if (!DRY) {
   const d = hermes(`kanban dispatch --max ${DISPATCH_MAX}`);
   const sp = d.out.match(/Spawned:\s*(\d+)/);

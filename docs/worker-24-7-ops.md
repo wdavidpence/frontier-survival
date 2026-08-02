@@ -87,3 +87,8 @@ User default: **5-minute** low-cost keep-alive + **hourly** higher-burn judge. S
 - **Cron** = always-on pump after `/new` or reboot (if gateway/cron host up).
 - **Chat poll** = optional live commentary while a human session is open.
 
+
+### Luna feed (same as ornith)
+- Watchdog if luna running=0: unblock 1 scheduled luna card (prefer ocean/world/stream titles).
+- Judge must **complete** review-required quickly or Luna idles on blocked.
+- Parent-link Luna hard cards so next auto-promotes.
