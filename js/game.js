@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=252';
-import { Player } from './player.js?v=252';
-import { Input } from './input.js?v=240';
-import { GameTime } from './time.js?v=240';
-import { AudioBus } from './audio.js?v=240';
+import { World } from './world.js?v=254';
+import { Player } from './player.js?v=254';
+import { Input } from './input.js?v=254';
+import { GameTime } from './time.js?v=254';
+import { AudioBus } from './audio.js?v=254';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=240';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=252';
+} from './survival.js?v=254';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=254';
 import {
   ITEM,
   propsOf,
@@ -19,24 +19,25 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=253';
-import { resolveBlockDrop } from './mine-tier.js?v=240';
+} from './items.js?v=254';
+import { resolveBlockDrop } from './mine-tier.js?v=254';
 import {
   createFurnaceState,
   insertFuel,
   insertInput,
   tickFurnace,
   takeOutput,
-} from './furnace-tick.js?v=240';
-import { isFuel, canSmelt } from './smelting.js?v=240';
-import { isSmokerFood } from './smoker-speed.js?v=240';
-import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=240';
-import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=240';
-import { advanceCropGrowth } from './crop-growth.js?v=240';
-import { toggleDoor } from './door-hinge.js?v=240';
-import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=240';
-import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=240';
-import { maceSmashDamage } from './mace-smash.js?v=240';
+} from './furnace-tick.js?v=254';
+import { isFuel, canSmelt } from './smelting.js?v=254';
+import { isSmokerFood } from './smoker-speed.js?v=254';
+import { canAnvilRepair, anvilRepair } from './anvil-repair.js?v=254';
+import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=254';
+import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=254';
+import { advanceCropGrowth } from './crop-growth.js?v=254';
+import { toggleDoor } from './door-hinge.js?v=254';
+import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=254';
+import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=254';
+import { maceSmashDamage } from './mace-smash.js?v=254';
 import {
   addItems,
   removeItems,
@@ -48,11 +49,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=240';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=240';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
-import { createBlockAtlas } from './atlas.js?v=240';
-import { BreakFX } from './fx.js?v=240';
+} from './inventory.js?v=254';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=254';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=254';
+import { createBlockAtlas } from './atlas.js?v=254';
+import { BreakFX } from './fx.js?v=254';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -62,35 +63,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=240';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=240';
+} from './equipment.js?v=254';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=254';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=240';
-import { getMode } from './modes.js?v=240';
+} from './save.js?v=254';
+import { getMode } from './modes.js?v=254';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=240';
+} from './settings.js?v=254';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=240';
-import { tickSpoilage } from './spoilage.js?v=240';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=240';
-import { wearTool, durabilityRatio } from './durability.js?v=240';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=240';
-import { tickLogic, COMPONENT } from './logic.js?v=240';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=241';
+} from './achievements.js?v=254';
+import { tickSpoilage } from './spoilage.js?v=254';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=254';
+import { wearTool, durabilityRatio } from './durability.js?v=254';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=254';
+import { tickLogic, COMPONENT } from './logic.js?v=254';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=254';
 import {
   chestKey,
   getChestSlots,
@@ -101,15 +102,15 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=240';
-import { checkTooltip, show as showTooltip } from './tooltips.js?v=240';
-import { splitViewport } from './viewport-split.js?v=240';
-import { readGamepad } from './input-coop.js?v=240';
-import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=240';
-import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=240';
-import { createTrialKey, trialKeyPickup, hasTrialKey as hasTrialKeyFn } from './trial-key.js?v=240';
-import { createOminousTrialKey, hasOminousTrialKey as hasOminousTrialKeyFn, useOminousTrialKey, grantOminousTrialKey as grantOminousTrialKeyFn } from './ominous-trial-key.js?v=240';
-import { BOLT_TRIM_ID, ARMOR_TRIM_PATTERNS, isValidArmorTrim as isValidArmorTrimFn, applyArmorTrim as applyArmorTrimFn, isBoltTrim } from './bolt-armor-trim.js?v=240';
+} from './chests.js?v=254';
+import { checkTooltip, show as showTooltip } from './tooltips.js?v=254';
+import { splitViewport } from './viewport-split.js?v=254';
+import { readGamepad } from './input-coop.js?v=254';
+import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=254';
+import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=254';
+import { createTrialKey, trialKeyPickup, hasTrialKey as hasTrialKeyFn } from './trial-key.js?v=254';
+import { createOminousTrialKey, hasOminousTrialKey as hasOminousTrialKeyFn, useOminousTrialKey, grantOminousTrialKey as grantOminousTrialKeyFn } from './ominous-trial-key.js?v=254';
+import { BOLT_TRIM_ID, ARMOR_TRIM_PATTERNS, isValidArmorTrim as isValidArmorTrimFn, applyArmorTrim as applyArmorTrimFn, isBoltTrim } from './bolt-armor-trim.js?v=254';
 
 export class Game {
   /**
@@ -1072,7 +1073,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=240').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=254').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -2591,6 +2592,36 @@ export class Game {
     const dir = this.player.lookDir();
     const hit = this.world.raycast(origin, dir, 5);
 
+    // Anvil repair: combine the held tool with another matching tool in the
+    // pack. The pure helper owns durability math; this call site owns slots.
+    if (hit && hit.id === BLOCK.ANVIL) {
+      const held = this.player.heldStack();
+      if (!canAnvilRepair(held, held)) {
+        this.player.notify('Hold a tool; another matching tool is needed.', 2.4);
+        return;
+      }
+      const otherIndex = this.player.slots.findIndex((slot, index) =>
+        index !== this.player.hotbarIndex && canAnvilRepair(held, slot),
+      );
+      if (otherIndex < 0) {
+        this.player.notify('Anvil needs a second matching tool in your pack.', 2.4);
+        return;
+      }
+      const repaired = anvilRepair(held, this.player.slots[otherIndex]);
+      if (!repaired.ok) {
+        this.player.notify('Those tools cannot be repaired together.', 2.2);
+        return;
+      }
+      const next = this.player.slots.map((slot) => ({ ...slot }));
+      next[this.player.hotbarIndex] = repaired.result;
+      next[otherIndex] = { id: null, count: 0 };
+      this.player.slots = next;
+      this.audio.placeBlock();
+      this.player.notify(`Anvil repaired ${displayName(held.id)}.`, 2.4);
+      this._invNeedsPaint = true;
+      return;
+    }
+
     // Open chest
     if (hit && hit.id === BLOCK.CHEST) {
       this._openChest(chestKey(hit.x, hit.y, hit.z));
@@ -3469,7 +3500,7 @@ export class Game {
     if (this.coopMode && !this._coopRouter) {
       try {
         // Lazy import path already static at top for readGamepad; router from same module via dynamic if needed
-        import(`./input-coop.js?v=240`).then((mod) => {
+        import(`./input-coop.js?v=254`).then((mod) => {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);

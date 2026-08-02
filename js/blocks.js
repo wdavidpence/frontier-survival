@@ -59,6 +59,7 @@ export const BLOCK = {
   SMOKER: 52,
   /** Ore furnace variant with speedMult 2 */
   BLAST_FURNACE: 53,
+  ANVIL: 54,
 };
 
 /** @type {Record<number, {
@@ -170,6 +171,15 @@ export const BLOCK_PROPS = {
     heat: 16,
     light: 11,
     drops: BLOCK.BLAST_FURNACE,
+  },
+  [BLOCK.ANVIL]: {
+    name: 'Anvil',
+    solid: true,
+    transparent: false,
+    hardness: 3.0,
+    color: [0.25, 0.28, 0.32],
+    topColor: [0.42, 0.45, 0.5],
+    drops: BLOCK.ANVIL,
   },
 };
 

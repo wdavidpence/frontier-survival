@@ -1,7 +1,7 @@
 /**
  * Pure atlas tile math — no DOM/Three (unit-testable).
  */
-import { BLOCK } from './blocks.js?v=251';
+import { BLOCK } from './blocks.js?v=254';
 
 export const TILE_PX = 32;
 export const ATLAS_N = 8;
@@ -61,6 +61,7 @@ export const TILE = {
   SPRUCE_LOG_TOP: 50,
   SPRUCE_LEAVES: 51,
   GLASS_PANE_THIN: 52,
+  ANVIL: 53,
 };
 
 /** UV corners: bl, tl, tr, br in atlas space */
@@ -180,6 +181,8 @@ export function tileForBlock(blockId, faceDir) {
     case BLOCK.SMOKER:
     case BLOCK.BLAST_FURNACE:
       return TILE.FURNACE;
+    case BLOCK.ANVIL:
+      return TILE.COBBLE;
     default:
       return TILE.STONE;
   }

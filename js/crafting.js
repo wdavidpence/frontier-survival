@@ -1,7 +1,7 @@
 /** Crafting recipes — pure data + craft helper */
-import { BLOCK } from './blocks.js?v=251';
-import { ITEM } from './items.js?v=251';
-import { craftWith } from './inventory.js?v=240';
+import { BLOCK } from './blocks.js?v=254';
+import { ITEM } from './items.js?v=254';
+import { craftWith } from './inventory.js?v=254';
 
 /**
  * @typedef {{ id: string, name: string, desc?: string, ingredients: {id:number,count:number}[], results: {id:number,count:number}[] }} Recipe
@@ -384,6 +384,7 @@ export const RECIPES = [
   { id:'smoker', name:'Smoker', desc:'Faster food smelting (2×). Furnace + 4 Logs', ingredients:[{id:BLOCK.FURNACE,count:1},{id:BLOCK.LOG,count:4}], results:[{id:BLOCK.SMOKER,count:1}] },
   { id:'blast_furnace', name:'Blast Furnace', desc:'Faster ore smelting (2×). Furnace + 5 Cobble + 1 Iron', ingredients:[{id:BLOCK.FURNACE,count:1},{id:BLOCK.COBBLE,count:5},{id:ITEM.IRON_INGOT,count:1}], results:[{id:BLOCK.BLAST_FURNACE,count:1}] },
   { id:'mace', name:'Mace', desc:'Fall-smash melee. 3 Iron + 2 Sticks', ingredients:[{id:ITEM.IRON_INGOT,count:3},{id:ITEM.STICK,count:2}], results:[{id:ITEM.MACE,count:1}] },
+  { id:'anvil', name:'Anvil', desc:'Repair matching tools. 3 Iron + 4 Cobble', ingredients:[{id:ITEM.IRON_INGOT,count:3},{id:BLOCK.COBBLE,count:4}], results:[{id:BLOCK.ANVIL,count:1}] },
 ];
 
 export function visibleRecipes() {

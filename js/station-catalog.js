@@ -50,11 +50,11 @@ export const STATIONS = [
     recipeTags: ['heat', 'cooking'],
   },
   {
-    id: 'anvil_stub',
-    name: 'Anvil (stub)',
-    blockId: null,
+    id: 'anvil',
+    name: 'Anvil',
+    blockId: BLOCK.ANVIL,
     recipeTags: ['repair', 'rename'],
-    notes: 'Not placed yet — catalog reserved for progression',
+    notes: 'Combine two matching damaged tools with F',
   },
 ];
 

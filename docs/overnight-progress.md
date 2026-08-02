@@ -1424,3 +1424,5 @@ PASS oss20b chiseled-bookshelf-signal PASS, 293? emitted PASS lines plus final  
 - Decision: continue.
 | 2026-08-02T00:32:13.130Z | watchdog running 2→2 reclaimed none Spawned 0 |
 | 2026-08-01T20:43:18-0400 | SHIP v1.13.2 forest grove density+shore scrub; station catalog smoker/blast; smelting food recipes; smoke317; luna review cleared |
+| 2026-08-02T00:47:20.967Z | watchdog running 1→1 reclaimed none Spawned 0 |
+| 2026-08-01T20:53:58-0400 | SHIP v1.13.3 anvil craft/F-repair + caves/ore veins; smoke319; luna; push |

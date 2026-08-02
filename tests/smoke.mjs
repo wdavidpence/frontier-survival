@@ -437,6 +437,24 @@ test('visible recipes non-empty', () => {
   assert.ok(visibleRecipes().length >= 5);
 });
 
+test('anvil block crafts and repairs matching tools', () => {
+  let slots = createStarterInventory();
+  slots = addItems(slots, ITEM.IRON_INGOT, 3).slots;
+  slots = addItems(slots, BLOCK.COBBLE, 4).slots;
+  const crafted = craftRecipe(slots, 'anvil');
+  assert.ok(crafted.ok, crafted.error);
+  assert.strictEqual(countItems(crafted.slots, BLOCK.ANVIL), 1);
+  assert.ok(isPlaceable(BLOCK.ANVIL));
+
+  const a = { id: ITEM.STONE_PICK, count: 1, dur: 20 };
+  const b = { id: ITEM.STONE_PICK, count: 1, dur: 30 };
+  assert.ok(canAnvilRepair(a, b));
+  const repaired = anvilRepair(a, b);
+  assert.ok(repaired.ok);
+  assert.strictEqual(repaired.result.dur, 55);
+  assert.ok(repaired.result.dur <= 100);
+});
+
 test('tools speed matching blocks', () => {
   assert.ok(mineMultiplier(ITEM.WOOD_AXE, BLOCK.LOG) > mineMultiplier(null, BLOCK.LOG));
   assert.ok(mineMultiplier(ITEM.STONE_PICK, BLOCK.STONE) > mineMultiplier(ITEM.WOOD_PICK, BLOCK.STONE));
@@ -3309,7 +3327,16 @@ test('v1131 blast furnace', () => {
   assert.ok(src.includes('isSmokerFood'));
 });
 
+
+test('v1133 anvil block and craft', () => {
+  assert.ok(BLOCK.ANVIL);
+  assert.ok(String(BLOCK_PROPS[BLOCK.ANVIL].name).toLowerCase().includes('anvil'));
+  assert.ok(visibleRecipes().some((r) => r.id === 'anvil'));
+  const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.ok(src.includes('anvilRepair'));
+});
 if (process.exitCode) process.exit(1);
+
 
 
 
