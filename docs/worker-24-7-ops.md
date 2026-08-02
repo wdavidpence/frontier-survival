@@ -51,4 +51,15 @@ Max-runtime: 12m
 2. **Smoke assert: animal count sanity** — `tests/smoke.mjs` extension that asserts total animals within expected range after world gen.
 3. **Docs: worker lane routing decision tree** — flowchart-style markdown for when to mint vs dispatch vs judge.
 4. **Pure helper: `debounce()` utility** — single-file `scripts/debounce.mjs` for UI event throttling.
-5. **Smoke assert: chunk count verification** — post-world-gen check that spawned chunk count matches expected formula.  
+5. **Smoke assert: chunk count verification** — post-world-gen check that spawned chunk count matches expected formula.
+
+## No-idle (2026-08-02)
+
+1. **Script (no LLM):** `node scripts/fs-noidle-watchdog.mjs` every ~15m  
+   - If `oss20b` running=0 → unblock next scheduled `fauna:` card (depth 1)  
+   - Reclaim thrash ≥18m → schedule park  
+   - `hermes kanban dispatch --max 2`
+2. **Judge cron:** every 15m runs watchdog first, then compact judge envelope (no bulk code).
+3. **Ornith fauna wave:** parent-linked serial chain so children promote when parent completes.
+4. **Luna:** hard cards (ocean place → aquatic fauna → streaming); do not dual-dispatch two Luna hot-file cards.
+

@@ -64,3 +64,6 @@ See `docs/roadmap/MASTER_PLAN.md`. Permanent until competitive.
 - Easy pure/docs/smoke cards: `ornith9b` depth 1 only (never parallel on same GPU).
 - Do not mint a 100-card ornith flood in one tick; mint small batches (≤5 ready) of disjoint pure helpers.
 
+## No-idle watchdog
+
+`node scripts/fs-noidle-watchdog.mjs` (cron 15m, also invoked by judge cron). Keeps oss20b fauna serial queue fed; dispatches free Luna/oss slots; reclaim ≥18m thrash only.
