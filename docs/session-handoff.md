@@ -364,3 +364,71 @@ The board briefly reached running=0 after the watchdog drained the previous wave
 - maceSmashDamage on fauna melee when held mace-named
 - pure bogged-arrow, crafter-enabled, heavy-core, flow-armor-trim
 - Smoke 293 PASS
+
+## Judge tick — 2026-08-01 03:17 EDT
+- Smoke 293 PASS; `git diff --check` PASS; local :8767 v1.12.9 Start probe reached HUD/canvas with 0 observed console errors.
+- Board recovered from zero running: `t_8964c49f` qwen27s and `t_a477e441` local35 bounded read-only audits running; qwen35 stopped. Caps/locks respected.
+- Dual HTML parity PASS; relative ES import cache-bust scan PASS (0 unbusted). Broad uncommitted WIP remains; live v1.12.9 was not newly published. Next: inspect audit artifacts and keep release blocked until a green plateau is independently verified.
+
+
+## Judge tick update — 2026-08-01 04:06 EDT
+
+- Verification: smoke PASS (267 assertion lines), diff-check PASS; local and live v1.12.9 boot clean with Start→HUD probes and zero browser JS errors.
+- Board: recovered zero-running state by dispatching `t_b1d39100` to healthy `local35` (`js/viewport-split.js`/`js/game.js` bounded TB split polish); 1 running, 263 scheduled, 68 blocked, 267 done.
+- Release: broad uncommitted WIP; dual HTML parity and cache-bust graph checks PASS; no publish. Next: inspect the bounded artifact, rerun independent gates, and preserve hot-file ownership.
+
+## Judge tick update — 2026-08-01 10:30Z
+- Verification: smoke exit 0; final output `PASS game mace smash wire`; `git diff --check` PASS. Local :8767 v1.12.9 booted; DOM Start probe hid the title overlay and exposed HUD/canvas, with no console errors observed.
+- Board: recovered zero-running state by dispatching `t_60092a4d` qwen27s (fresh animals-only bee slice, `js/animals.js`) and `t_ab4e1d1d` local35 (fresh read-only WIP/release audit). qwen35 gateway stopped; caps respected.
+- Release: broad uncommitted WIP remains; no commit/push and no live release claim. Next: inspect both artifacts independently, rerun full gates, and narrow to a deliberate green plateau before publishing.
+
+## Judge tick update — 2026-08-01 07:19 EDT
+- Verification: smoke exit 0; 293 assertions passed; `git diff --check` PASS. Local :8767 v1.12.9 booted; direct DOM Start probe hid the title overlay and exposed HUD/canvas; console errors 0.
+- Board: zero-running recovery dispatched `t_0c014398` qwen27s (pure bundle-slots helper) and `t_a477e441` local35 (bounded cache-bust/browser release audit). Running=2, scheduled=260, blocked=68, done=270; qwen35 gateway stopped; caps respected.
+- Release: dual HTML parity and full relative-import cache-bust scan PASS at `?v=240`; broad uncommitted WIP remains, so no commit/push or live release claim. Next: independently inspect both artifacts and rerun gates after any UI/runtime change.
+
+## Judge tick update — 2026-08-01T12:09:56Z
+- Smoke exited 0 with all emitted assertions passing; `git diff --check` PASS. Local :8767 HTTP 200, v1.12.9; browser boot console 0 JS errors. DOM Start probe hid title overlay and exposed HUD/canvas; accessibility click remained stale.
+- Board recovered from running=0 by dispatching `t_a477e441` local35 (bounded read-only cache-bust/browser audit); running=1, scheduled=261, blocked=68, done=270. qwen35 stopped; caps and hot locks respected.
+- Release remains closed: broad uncommitted WIP, no commit/push. Next: inspect the audit artifact independently and rerun gates after any reported correction.
+
+## Judge tick update — 2026-08-01T08:58:10-04:00
+- Smoke exit 0; `git diff --check` PASS. Local :8767 v1.12.9 booted; DOM Start probe hid title overlay and exposed HUD/canvas; browser console 0 JS errors.
+- Board zero-running recovery dispatched `t_52ccdd46` qwen27s and `t_5ec12793` local35 read-only audits; running=2, scheduled=262, blocked=68, done=270; qwen35 stopped.
+- Release remains closed due broad uncommitted WIP; no commit/push. Next: independently inspect audit artifacts and rerun full release gates.
+
+## Judge tick update — 2026-08-01T09:46:12-04:00
+- Smoke exit 0; `git diff --check` PASS. Local :8767 v1.12.9 served; direct DOM Start probe hid the title overlay and exposed HUD/canvas; browser console 0 JS errors.
+- Board recovered from running=0 by dispatching `t_8964c49f` qwen27s and `t_1249a7cc` local35 bounded read-only audits; running=2, scheduled=260, blocked=68, done=272; qwen35 stopped; caps and hot locks respected.
+- Dual HTML parity and relative-import cache-bust scan PASS; broad uncommitted WIP remains, so no commit/push or live release claim. Next: inspect both audit artifacts independently and rerun the full release gate.
+
+## Judge tick update — 2026-08-01T14:30Z
+- Smoke exit 0; final output `PASS game mace smash wire`; `git diff --check` PASS. Local :8767 v1.12.9 Start DOM probe hid the title overlay and exposed HUD/canvas; console reported 0 JS errors.
+- Board recovered from zero-running by creating and dispatching `t_3a990e5a` qwen27s (read-only release parity audit) and `t_45e75823` local35 (read-only lifecycle audit); running=2, scheduled=261, blocked=68, done=273; qwen35 stopped and caps/hot locks respected.
+- Release remains closed: broad uncommitted WIP, no commit/push; fresh audit artifacts pending independent inspection. Next: inspect both reports, rerun the full release gate, and publish only at a deliberately narrowed green plateau.
+
+
+## Judge tick update — 2026-08-01T11:25:18-04:00
+- Smoke exit 0 with all emitted assertions passing; git diff --check PASS. Local :8767 v1.12.9 served HTTP 200; browser console 0 JS errors.
+- Recovered zero-running by unblocking/dispatching t_0c014398 qwen27s (pure bundle-slots) and t_a477e441 local35 (read-only cache-bust/browser audit); running=2, scheduled=259, blocked=68, done=275. qwen35 stopped; caps/hot locks respected.
+- Native accessibility Start click was inconclusive, but direct DOM #btn-start.click() hid #title-screen and exposed HUD/canvas (SPAWN/HEALTH/HUNGER/STAMINA). Broad uncommitted WIP remains; no commit/push/live release claim. Next: independently inspect both artifacts and rerun the complete release gate.
+
+
+## Judge tick update — 2026-08-01T15:34:21-04:00
+
+- Independent checks: smoke exit 0; `git diff --check` PASS; local :8767 HTTP 200, v1.12.9, DOM Start→HUD verified, browser console 0 JS errors.
+- Board recovery: zero-running board recovered with qwen27s `t_0c014398` (pure bundle-slots) and local35 `t_2a9b08a1` (read-only served-root parity audit); both running after `dispatch --max 2`.
+- Release remains blocked by broad uncommitted WIP and the release audit's reported dead pure modules/untracked standalone smoke files.
+
+
+## Judge tick update — 2026-08-01T16:24:41-04:00
+- Smoke: `node tests/smoke.mjs` PASS (295 PASS lines); `git diff --check` PASS.
+- Browser: local :8767 v1.12.9 HTTP 200; DOM Start probe hid the title overlay and exposed authoritative HUD/status; console 0 JS errors. Live Pages is v1.12.9 but remains unclaimed because WIP is broad/uncommitted.
+- Board: zero-running recovery dispatched `t_986e6dde` qwen27s runtime wiring and new `t_a66b83bc` local35 read-only parity audit; running=2, scheduled=261, blocked=69, done=279.
+- Release: dual HTML equal and relative-import cache-bust scan clean; no commit/push.
+
+
+## Judge tick update — 2026-08-01T22:07:54-04:00
+- Smoke, syntax, diff-check, and local browser Start→HUD gates passed after integrating Luna's solo boat slice (`js/boat-entity.js`, `js/game.js`, `js/player.js`, `tests/smoke.mjs`).
+- Board is serialized at Luna depth 1 on `t_964a6a77` (temperature/clothing); duplicate oss20b boat writer was reclaimed and parked.
+- No release: broad uncommitted WIP remains. Next judge should independently review the Luna completion, rerun smoke/browser, and only then consider a green plateau.

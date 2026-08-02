@@ -88,6 +88,11 @@ export class Player {
       return { moved: false, sprinting: false, inWater: false, crouching: false, onLadder: false, boat: false };
     }
 
+    if (this.mountedBoat) {
+      this.velocity.set(0, 0, 0);
+      return { moved: false, sprinting: false, inWater: true, crouching: false, onLadder: false, boat: true };
+    }
+
     const slot = input.consumeSlot();
     if (slot >= 0) this.hotbarIndex = slot;
 

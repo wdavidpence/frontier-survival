@@ -231,6 +231,46 @@ export const SPECIES = {
     count: 12,
     biomes: ['forest', 'tropical'], // preferred spawn biomes (metadata for now)
   },
+  pig: {
+    id: 'pig',
+    name: 'Pig',
+    hp: 24,
+    speed: 3.7,
+    hostile: false,
+    fleeRange: 10,
+    senseRange: 13,
+    damage: 0,
+    attackRange: 0,
+    attackCd: 99,
+    meatMin: 2,
+    meatMax: 4,
+    meatItem: 'raw_meat', // raw pork uses the shared cookable meat item
+    feedItem: 'berries',
+    color: [0.78, 0.48, 0.5],
+    scale: [0.78, 0.72, 1.05],
+    count: 6,
+    biomes: ['plains', 'forest'],
+  },
+  sheep: {
+    id: 'sheep',
+    name: 'Sheep',
+    hp: 24,
+    speed: 3.7,
+    hostile: false,
+    fleeRange: 11,
+    senseRange: 14,
+    damage: 0,
+    attackRange: 0,
+    attackCd: 99,
+    meatMin: 2,
+    meatMax: 3,
+    woolMin: 1,
+    woolMax: 3,
+    feedItem: 'seeds',
+    color: [0.72, 0.68, 0.58],
+    scale: [0.82, 1.0, 1.18],
+    count: 6,
+  },
 };
 
 function groundY(world, x, z) {
@@ -701,4 +741,47 @@ export function tryFeed(animal, itemId) {
   }
 
   return { fed: true, calmT: animal._calmT, tameProgress, tamed: !!animal.tamed };
+}
+
+export function woolDropCount(spec, rng = Math.random) {
+  const a = spec?.woolMin | 0;
+  const b = spec?.woolMax | 0;
+  if (b <= a) return a;
+  return a + Math.floor(rng() * (b - a + 1));
+}
+
+export function canShear(animal, toolId = 'shears') {
+  return !!animal && !animal.dead && animal.type === 'sheep' && !animal.sheared &&
+    (toolId === 'shears' || toolId === 151);
+}
+
+export function shearAnimal(animal, toolId = 'shears', rng = Math.random) {
+  if (!canShear(animal, toolId)) return { sheared: false, wool: 0 };
+  animal.sheared = true;
+  return { sheared: true, wool: woolDropCount(SPECIES.sheep, rng) };
+}
+
+/** Deterministic drop helper for smoke/tests. Accepts species object or type id. */
+export function animalDrops(specOrType, rng = Math.random) {
+  const spec = typeof specOrType === 'string' ? SPECIES[specOrType] : specOrType;
+  if (!spec) return { item: null, count: 0 };
+  const type = spec.id || (typeof specOrType === 'string' ? specOrType : null);
+  if (type === 'pig' || spec === SPECIES.pig) {
+    const a = spec.meatMin ?? 1;
+    const b = spec.meatMax ?? Math.max(a, 3);
+    const t = typeof rng === 'function' ? rng() : 0;
+    const count = a + Math.floor(Math.max(0, Math.min(0.999999, t)) * (b - a + 1));
+    return { item: spec.meatItem || spec.dropItem || 'raw_meat', count };
+  }
+  if (type === 'sheep' || spec === SPECIES.sheep) {
+    return { item: 'wool', count: woolDropCount(spec, rng) };
+  }
+  if (spec.dropItem) return { item: spec.dropItem, count: 1 };
+  return { item: null, count: 0 };
+}
+
+export function spawnBiomeMatches(spec, biome) {
+  const list = spec?.biomes || spec?.spawnBiomes || [];
+  if (!list.length) return true;
+  return list.includes(biome);
 }

@@ -1,0 +1,17 @@
+{
+  "poisons": [
+    {"id":"rotten_mushroom","name":"Rotten Mushroom","effect":"sickness","severity":2,"symptoms":["nausea","dizziness"],"description":"Found in dark caves, grows on rotten wood"},
+    {"id":"blight_spore","name":"Blight Spore","effect":"sickness","severity":3,"symptoms":["fever","rash","weakness"],"description":"Fungal infection from blighted crops and plants"},
+    {"id":"cursed_berry","name":"Cursed Berry","effect":"hallucination","severity":2,"symptoms":["confusion","delusions","nightmares"],"description":"Glowing berries that cause terrifying visions at night"},
+    {"id":"infection","name":"Infection","effect":"sickness","severity":4,"symptoms":["pus_wounds","fever","sepsis_risk"],"description":"Bacteria from wounds, dirty water, or unwashed hands"},
+    {"id":"venom_sting","name":"Venom Sting","effect":"poison","severity":3,"symptoms":["pain","swelling","muscle_weakness"],"description":"Injected by venomous creatures like spiders and scorpions"},
+    {"id":"serpent_venom","name":"Serpent Venom","effect":"poison","severity":4,"symptoms":["intense_pain","neurotoxicity","organ_failure"],"description":"Bite from poisonous snakes causes paralysis or death"},
+    {"id":"corpse_plague","name":"Corpse Plague","effect":"disease","severity":5,"symptoms":["gangrene","black_wounds","sepsis"],"description":"Dead bodies spread deadly bacteria that rot flesh"},
+    {"id":"rat_illness","name":"Rat Illness","effect":"sickness","severity":2,"symptoms":["fever","fatigue","swollen_lymph"],"description":"Diseases spread by rats and rodents through waste and fleas"},
+    {"id":"mold_poison","name":"Mold Poison","effect":"allergy","symptoms":["coughing","wheezing","skin_itching"],"description":"Spores from damp buildings and moldy food cause breathing issues"},
+    {"id":"toxic_moss","name":"Toxic Moss","effect":"poison","severity":3,"symptoms":["blisters","nausea","liver_damage"],"description":"Glowing green moss in caves that releases toxins when touched"},
+    {"id":"cave_fungus","name":"Cave Fungus","effect":"sickness","severity":2,"symptoms":["headache","dizziness","fungal_spores_in_lungs"],"description":"Common cave fungus causes mild but persistent illness"},
+    {"id":"black_witch_poison","name":"Black Witch Potion","effect":"hallucination","severity":5,"symptoms":["total_delusion","madness","death"],"description":"Dark potion from witches causes total loss of sanity and death"},
+    {"id":"snake_bite_venom","name":"Snake Bite Venom","effect":"poison","severity":4,"symptoms":["neurotoxin_symptoms","organ_damage"],"description":"Deadly venom from poisonous snakes in the wild"}
+  ]
+}

@@ -108,9 +108,12 @@ import { splitViewport } from './viewport-split.js?v=254';
 import { readGamepad } from './input-coop.js?v=254';
 import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=254';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=254';
+import { BOAT_CONFIG, boatAimDistance, buoyancyY, canPlaceBoat, createBoat, dismountBoat, mountBoat, riderPosition, stepBoat } from './boat-entity.js?v=254';
 import { createTrialKey, trialKeyPickup, hasTrialKey as hasTrialKeyFn } from './trial-key.js?v=254';
 import { createOminousTrialKey, hasOminousTrialKey as hasOminousTrialKeyFn, useOminousTrialKey, grantOminousTrialKey as grantOminousTrialKeyFn } from './ominous-trial-key.js?v=254';
-import { BOLT_TRIM_ID, ARMOR_TRIM_PATTERNS, isValidArmorTrim as isValidArmorTrimFn, applyArmorTrim as applyArmorTrimFn, isBoltTrim } from './bolt-armor-trim.js?v=254';
+import { BOLT_TRIM_ID, ARMOR_TRIM_PATTERNS, isValidArmorTrim as isValidArmorTrimFn, applyArmorTrim as applyArmorTrimFn, isBoltTrim } from './bolt-armor-trim.js?v=' + VERSION;
+import { createFishingState, startCast, tickFishing, rollFishingCatch } from './fishing-cast.js?v=254';
+import { FaunaSystem, SPECIES, canFeed, tryFeed, shearAnimal } from './animals.js?v=254';
 
 export class Game {
   /**
@@ -207,6 +210,8 @@ export class Game {
     this._fpsAcc = 0;
     this._fpsFrames = 0;
     this._wasInWater = false;
+    this._boats = [];
+    this._boatMeshes = new Map();
     this._rain = null;
     this._bowCd = 0;
     this._chests = new Map();
@@ -549,6 +554,15 @@ export class Game {
     this.scene.add(this.world.group);
 
     this._clearAnimalMeshes();
+    for (const mesh of this._boatMeshes.values()) {
+      this.scene.remove(mesh);
+      mesh.traverse?.((child) => {
+        child.geometry?.dispose?.();
+        child.material?.dispose?.();
+      });
+    }
+    this._boatMeshes.clear();
+    this._boats = [];
     this.fauna = new FaunaSystem(this.world, seed);
     if (saveData?.animals?.length) {
       this.fauna.importState(saveData.animals);
@@ -1445,6 +1459,9 @@ export class Game {
     let move = { moved: false, sprinting: false, inWater: false };
     if (!this.player.inventoryOpen) {
       move = this.player.update(this.world, this.input, this.survival, dt);
+      if (this.player.mountedBoat) {
+        move = this._tickMountedBoat(this.player, this.input, dt, 'p1');
+      }
       if (this.coopMode && this.player2 && this.input2) {
         // P2 uses pad1 when P1 holds pad0; else pad0 if P1 is KBM-only
         const p2PadIndex = this.input?._gpConnected ? 1 : 0;
@@ -2367,9 +2384,109 @@ export class Game {
     this._target = hit;
   }
 
+  _boatInput(input) {
+    const forward = (input.wantsForward?.() ? 1 : 0) - (input.wantsBack?.() ? 1 : 0);
+    const turn = (input.wantsRight?.() ? 1 : 0) - (input.wantsLeft?.() ? 1 : 0);
+    return { forward, turn };
+  }
+
+  _tickMountedBoat(player, input, dt, riderId = 'p1') {
+    const boat = player.mountedBoat;
+    if (!boat) return { moved: false, sprinting: false, inWater: false, boat: false };
+    stepBoat(boat, this._boatInput(input), dt);
+    boat.y = buoyancyY(boat.surfaceY, boat.y, dt);
+    const rider = riderPosition(boat);
+    player.position.set(rider.x, rider.y, rider.z);
+    player.velocity.set(boat.vx, 0, boat.vz);
+    player.onGround = false;
+    player.yaw = boat.yaw;
+    const mesh = this._boatMeshes.get(boat);
+    if (mesh) {
+      mesh.position.set(boat.x, boat.y, boat.z);
+      mesh.rotation.y = boat.yaw;
+    }
+    return { moved: Math.abs(boat.vx) + Math.abs(boat.vz) > 0.05, sprinting: false, inWater: true, boat: true, riderId };
+  }
+
+  _boatAtLook(player = this.player) {
+    if (!player) return null;
+    const origin = player.eyePosition();
+    const dir = player.lookDir();
+    let best = null;
+    let bestD = Infinity;
+    for (const boat of this._boats) {
+      const d = boatAimDistance(boat, origin, dir, 5);
+      if (d < bestD) { bestD = d; best = boat; }
+    }
+    return best;
+  }
+
+  _findBoatWaterTarget() {
+    const origin = this.player.eyePosition();
+    const dir = this.player.lookDir();
+    for (let t = 0.8; t <= 6; t += 0.2) {
+      const x = Math.floor(origin.x + dir.x * t);
+      const y = Math.floor(origin.y + dir.y * t);
+      const z = Math.floor(origin.z + dir.z * t);
+      for (const dy of [0, -1, 1]) {
+        const wy = y + dy;
+        if (this.world.getBlock(x, wy, z) !== BLOCK.WATER) continue;
+        const clear = this.world.getBlock(x, wy + 1, z) === BLOCK.AIR
+          && this.world.getBlock(x + 1, wy + 1, z) === BLOCK.AIR
+          && this.world.getBlock(x - 1, wy + 1, z) === BLOCK.AIR;
+        if (canPlaceBoat({ water: true, clear, depth: 1 })) {
+          return { x: x + 0.5, y: wy + 0.88, z: z + 0.5, surfaceY: wy + 1 };
+        }
+      }
+    }
+    return null;
+  }
+
+  _makeBoatMesh() {
+    const group = new THREE.Group();
+    const hull = new THREE.Mesh(
+      new THREE.BoxGeometry(BOAT_CONFIG.width, 0.28, BOAT_CONFIG.length),
+      new THREE.MeshLambertMaterial({ color: 0x8b542d }),
+    );
+    hull.position.y = -0.12;
+    const seat = new THREE.Mesh(
+      new THREE.BoxGeometry(0.78, 0.12, 0.65),
+      new THREE.MeshLambertMaterial({ color: 0x4b2b18 }),
+    );
+    seat.position.y = 0.08;
+    group.add(hull, seat);
+    return group;
+  }
+
+  _placeBoat() {
+    const target = this._findBoatWaterTarget();
+    if (!target) {
+      this.player.notify('Aim at open water to place the boat.', 2.2);
+      return;
+    }
+    const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+    if (!cons.ok) return;
+    const boat = createBoat(target.x, target.y, target.z, this.player.yaw);
+    boat.surfaceY = target.surfaceY;
+    this.player.slots = cons.slots;
+    this._boats.push(boat);
+    const mesh = this._makeBoatMesh();
+    mesh.position.set(boat.x, boat.y, boat.z);
+    mesh.rotation.y = boat.yaw;
+    this.scene.add(mesh);
+    this._boatMeshes.set(boat, mesh);
+    this.audio.splash?.() || this.audio.placeBlock();
+    this.player.notify('Boat placed. F to mount; steer with WASD; F to dismount.', 3.2);
+    this._unlock('first_boat');
+  }
+
   _handlePlace() {
     if (!this.input.consumePlace()) return;
     const held = this.player.heldId();
+    if (held === ITEM.BOAT) {
+      this._placeBoat();
+      return;
+    }
     if (!isPlaceable(held)) {
       this.player.notify('Select a placeable block (E to craft).');
       return;
@@ -2588,6 +2705,30 @@ export class Game {
   /** F: cook meat / equip clothes / sleep on bed / chest / fish / fertilize */
   _handleCookUse() {
     if (!this.input.consumeUse()) return;
+    const mountedBoat = this.player.mountedBoat;
+    if (mountedBoat) {
+      const off = dismountBoat(mountedBoat);
+      if (off.ok) {
+        this.player.mountedBoat = null;
+        this.player.position.set(off.position.x, off.position.y, off.position.z);
+        this.player.velocity.set(0, 0, 0);
+        this.player.notify('You step out of the boat.', 1.8);
+      }
+      return;
+    }
+    const boat = this._boatAtLook(this.player);
+    if (boat) {
+      const mounted = mountBoat(boat, 'p1');
+      if (mounted.ok) {
+        this.player.mountedBoat = boat;
+        const rider = riderPosition(boat);
+        this.player.position.set(rider.x, rider.y, rider.z);
+        this.player.notify('Boat mounted. WASD steers; F dismounts.', 2.5);
+      } else {
+        this.player.notify('That boat is occupied.', 1.8);
+      }
+      return;
+    }
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
     const hit = this.world.raycast(origin, dir, 5);

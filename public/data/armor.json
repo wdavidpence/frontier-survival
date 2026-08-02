@@ -1,0 +1,6 @@
+[
+  { "id": "helmet",        "name": "Helmet",     "slot": "head",    "defense": 2,   "durability": 30 },
+  { "id": "shield",        "name": "Shield",     "slot": "offhand", "defense": 3,   "durability": 25 },
+  { "id": "chestplate",    "name": "Chestplate", "slot": "body",    "defense": 4,   "durability": 40 },
+  { "id": "boots",         "name": "Boots",      "slot": "feet",    "defense": 1.5, "durability": 20 }
+]

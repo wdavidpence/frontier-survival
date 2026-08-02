@@ -69,3 +69,7 @@ See docs/SCM.md
 
 ## Phase polish — v1.4 (docs/improvements-v1.4.md)
 - [x] 20 SC-research survival depth + bugfixes
+
+## Phase polish — v1.12 (docs/improvements-v1.12.md)
+- [x] v1.12.7: scaffolding climb wire + 1.21 pure helpers
+- [x] v1.12.9: mace smash melee wire + bogged/crafter/heavy/flow pure

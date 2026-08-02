@@ -2355,9 +2355,9 @@
       "body": "Add animal species penguin: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_c0a946e6"
     },
     {
       "id": "FS-a4dddaba7c",
@@ -2366,9 +2366,9 @@
       "body": "Add animal species pig: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_ee092f47"
     },
     {
       "id": "FS-e80430981c",
@@ -2377,9 +2377,9 @@
       "body": "Add animal species rabbit: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_ba4b0987"
     },
     {
       "id": "FS-7ac9c685ee",
@@ -2388,9 +2388,9 @@
       "body": "Add animal species scorpion: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_c3895ab9"
     },
     {
       "id": "FS-8531646228",
@@ -2399,9 +2399,9 @@
       "body": "Add animal species seagull: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_a7b26060"
     },
     {
       "id": "FS-748a302120",
@@ -2410,9 +2410,9 @@
       "body": "Add animal species seal: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_77c3f05e"
     },
     {
       "id": "FS-626d75992f",
@@ -2421,9 +2421,9 @@
       "body": "Add animal species shark: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_3d61815d"
     },
     {
       "id": "FS-0a4357e4c1",
@@ -2432,9 +2432,9 @@
       "body": "Add animal species sheep: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_a3b12090"
     },
     {
       "id": "FS-e17487a4d1",
@@ -2443,9 +2443,9 @@
       "body": "Add animal species slime_weak: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_9bd39fcc"
     },
     {
       "id": "FS-faffdfd950",
@@ -2454,9 +2454,9 @@
       "body": "Add animal species snake: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_672382d9"
     },
     {
       "id": "FS-50b79a6083",
@@ -2465,9 +2465,9 @@
       "body": "Add animal species spider_cave: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_e274b323"
     },
     {
       "id": "FS-eb63087e74",
@@ -2476,9 +2476,9 @@
       "body": "Add animal species squirrel: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_b432851e"
     },
     {
       "id": "FS-3ea6276547",
@@ -2487,9 +2487,9 @@
       "body": "Add animal species turtle: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_9a8a960f"
     },
     {
       "id": "FS-04ed9dce89",
@@ -2498,9 +2498,9 @@
       "body": "Add animal species walrus: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_4a1b23cc"
     },
     {
       "id": "FS-a03f01fdd3",
@@ -2509,9 +2509,9 @@
       "body": "Add animal species wolf_pack_leader: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_adea49a3"
     },
     {
       "id": "FS-dabde512b8",
@@ -2520,9 +2520,9 @@
       "body": "Add animal species yeti_rare: stats, mesh/color, drops, AI tags, spawn biomes.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_d3ba361c"
     },
     {
       "id": "FS-201d274d45",
@@ -3092,9 +3092,9 @@
       "body": "Playtest focus 'achievements' pass 1. File concrete bugs into docs/bugs/BUGLOG.md with repro; fix P0/P1 if quick else mint follow-up cards.",
       "files": "docs/bugs/BUGLOG.md,js/",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_bdb0eee0"
     },
     {
       "id": "FS-e9b04217c7",
@@ -3103,9 +3103,9 @@
       "body": "Playtest focus 'achievements' pass 2. File concrete bugs into docs/bugs/BUGLOG.md with repro; fix P0/P1 if quick else mint follow-up cards.",
       "files": "docs/bugs/BUGLOG.md,js/",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 35,
-      "minted_task_id": null
+      "minted_task_id": "t_7fab6243"
     },
     {
       "id": "FS-35b4060b05",
@@ -19427,9 +19427,9 @@
       "body": "Clone critical HUD (health hunger stamina temp hotbar) per viewport. CSS grid or absolute halves. Sync dual HTML.",
       "files": "index.html,public/index.html,js/game.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 8,
-      "minted_task_id": null
+      "minted_task_id": "t_c2f3a7b9"
     },
     {
       "id": "FS-dbda574c03",
@@ -19438,9 +19438,9 @@
       "body": "Both players can mine/place; last-write-wins same cell; no double-drop glitch. Test with simulated two actors if possible.",
       "files": "js/game.js,js/player.js,tests/smoke.mjs",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 8,
-      "minted_task_id": null
+      "minted_task_id": "t_3768b407"
     },
     {
       "id": "FS-b84c50b056",
@@ -19449,9 +19449,9 @@
       "body": "Two player bodies/colliders in world; separate positions; no clipping permanently; independent look rays for mine/place.",
       "files": "js/player.js,js/game.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 8,
-      "minted_task_id": null
+      "minted_task_id": "t_a028fc51"
     },
     {
       "id": "FS-9b145afb5e",
@@ -19471,9 +19471,9 @@
       "body": "Pause freezes sim for both; either player Options/Esc opens pause; resume clears both.",
       "files": "js/game.js,js/input-coop.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 9,
-      "minted_task_id": null
+      "minted_task_id": "t_0a944f6a"
     },
     {
       "id": "FS-d563e41596",
@@ -19482,9 +19482,9 @@
       "body": "Each player E/Share opens own inventory only; no shared hotbar selection bleed.",
       "files": "js/inventory.js,js/game.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 9,
-      "minted_task_id": null
+      "minted_task_id": "t_ee244b54"
     },
     {
       "id": "FS-a21bbbd42b",
@@ -19493,9 +19493,9 @@
       "body": "Hostile AI can target nearest of two players; switch target on distance. No null player crash in solo.",
       "files": "js/animals.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 9,
-      "minted_task_id": null
+      "minted_task_id": "t_a4be4855"
     },
     {
       "id": "FS-c1a7ef9a07",
@@ -19504,9 +19504,9 @@
       "body": "AudioListener follows P1 (or louder average later). Document choice in splitscreen.md. No double AudioListener.",
       "files": "js/audio.js,js/game.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 10,
-      "minted_task_id": null
+      "minted_task_id": "t_77e4b7b6"
     },
     {
       "id": "FS-51d671f13a",
@@ -19515,9 +19515,9 @@
       "body": "Coop mode reduce chunk radius or shadow quality default; settings flag coopQuality. Keep 30fps floor target on mid PC.",
       "files": "js/world.js,js/game.js,js/settings.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 10,
-      "minted_task_id": null
+      "minted_task_id": "t_c0b994ad"
     },
     {
       "id": "FS-f446596d5b",
@@ -19526,9 +19526,9 @@
       "body": "If solo running and pad1 connects, optional prompt Join Co-op without full restart when safe; else require title restart. Document.",
       "files": "js/input-coop.js,js/game.js,js/main.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 10,
-      "minted_task_id": null
+      "minted_task_id": "t_7ed84258"
     },
     {
       "id": "FS-1fdfed6783",
@@ -19537,9 +19537,9 @@
       "body": "One player death does not end session; dead player spectate or respawn timer; both dead → game over overlay.",
       "files": "js/game.js,js/player.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 10,
-      "minted_task_id": null
+      "minted_task_id": "t_57d609f8"
     },
     {
       "id": "FS-d3911c409c",
@@ -19548,9 +19548,9 @@
       "body": "Either player can use crafting table; UI binds to acting player inventory.",
       "files": "js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 11,
-      "minted_task_id": null
+      "minted_task_id": "t_679711d2"
     },
     {
       "id": "FS-7080730195",
@@ -19559,9 +19559,9 @@
       "body": "Chests are world-shared; open locks briefly per opener to avoid desync; solo path unchanged.",
       "files": "js/chests.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 11,
-      "minted_task_id": null
+      "minted_task_id": "t_975e1722"
     },
     {
       "id": "FS-80bf46ada6",
@@ -19570,9 +19570,9 @@
       "body": "Optional rule: both near bed to skip night OR P1 only with consent prompt. Implement one and document.",
       "files": "js/game.js,docs/roadmap/splitscreen.md",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 11,
-      "minted_task_id": null
+      "minted_task_id": "t_812fc517"
     },
     {
       "id": "FS-2f1e3ca5eb",
@@ -19592,9 +19592,9 @@
       "body": "H/help shows P1 KBM + P2 DualSense glyphs. Sync HTML.",
       "files": "index.html,public/index.html",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 11,
-      "minted_task_id": null
+      "minted_task_id": "t_9c948586"
     },
     {
       "id": "FS-84b840632b",
@@ -19625,9 +19625,9 @@
       "body": "Ensure viewport scissor/clear does not leave trails between halves; skybox both cams.",
       "files": "js/game.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 8,
-      "minted_task_id": null
+      "minted_task_id": "t_465bfd1e"
     },
     {
       "id": "FS-7bcbd07de9",
@@ -19636,9 +19636,9 @@
       "body": "Pointer lock only for P1 KBM; P2 never needs pointer lock. Esc handling does not break P2 look.",
       "files": "js/input.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 8,
-      "minted_task_id": null
+      "minted_task_id": "t_b4aa2af9"
     },
     {
       "id": "FS-3e45710a4f",
@@ -19647,9 +19647,9 @@
       "body": "D-pad or shoulder cycle hotbar independently per player.",
       "files": "js/input-coop.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 9,
-      "minted_task_id": null
+      "minted_task_id": "t_cabce7eb"
     },
     {
       "id": "FS-5f8f7dc5d5",
@@ -19680,9 +19680,9 @@
       "body": "CSS env(safe-area) + 5% padding mode for TV; toggle in settings; dual HTML.",
       "files": "index.html,public/index.html,js/settings.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 8,
-      "minted_task_id": null
+      "minted_task_id": "t_62032803"
     },
     {
       "id": "FS-6dd9d6cc82",
@@ -19691,9 +19691,9 @@
       "body": "Scale HUD fonts when tvMode or resolution height>=1080 console-like; readability test checklist.",
       "files": "index.html,public/index.html",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 8,
-      "minted_task_id": null
+      "minted_task_id": "t_65bd2b5d"
     },
     {
       "id": "FS-7e94415773",
@@ -19713,9 +19713,9 @@
       "body": "Grid focus for inventory slots via D-pad; Cross select; Circle close.",
       "files": "js/inventory.js,js/main.js,js/input.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 9,
-      "minted_task_id": null
+      "minted_task_id": "t_be677c9d"
     },
     {
       "id": "FS-4252ee8080",
@@ -19724,9 +19724,9 @@
       "body": "Preset: lower render distance, fewer entities, disable fancy shadows — for PS5 browser GPU.",
       "files": "js/settings.js,js/game.js,js/world.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 9,
-      "minted_task_id": null
+      "minted_task_id": "t_618428c1"
     },
     {
       "id": "FS-f2c0ed20f8",
@@ -19735,9 +19735,9 @@
       "body": "Rumble weak on block break / strong on damage if actuator present; try/catch.",
       "files": "js/input.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 12,
-      "minted_task_id": null
+      "minted_task_id": "t_03c32fcd"
     },
     {
       "id": "FS-8030ee0c57",
@@ -19746,9 +19746,9 @@
       "body": "Subtle snap for gamepad ray to block face centers within small angle; off by default on KBM.",
       "files": "js/game.js,js/settings.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 12,
-      "minted_task_id": null
+      "minted_task_id": "t_9c0de7bb"
     },
     {
       "id": "FS-859874df03",
@@ -19757,9 +19757,9 @@
       "body": "Settings page list actions + current button; click/listen to rebind; persist localStorage.",
       "files": "js/settings.js,index.html,public/index.html",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 14,
-      "minted_task_id": null
+      "minted_task_id": "t_53d1073e"
     },
     {
       "id": "FS-ec38e694ca",
@@ -19768,9 +19768,9 @@
       "body": "Implement or deepen body subsystem calories_track_separate: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_0a8d7c8a"
     },
     {
       "id": "FS-1d43cc9d18",
@@ -19779,9 +19779,9 @@
       "body": "Implement or deepen body subsystem hydration_meter: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_87d91a7a"
     },
     {
       "id": "FS-7e33c21ab5",
@@ -19790,9 +19790,9 @@
       "body": "Implement or deepen body subsystem food_poisoning_stacks: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_445f3f4d"
     },
     {
       "id": "FS-84cc1345dc",
@@ -19801,9 +19801,9 @@
       "body": "Implement or deepen body subsystem infection_wound_tick: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_b09a3fcd"
     },
     {
       "id": "FS-b1a2b81191",
@@ -19812,9 +19812,9 @@
       "body": "Implement or deepen body subsystem vitamins_scurvy_light: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_c5cbf64e"
     },
     {
       "id": "FS-98788bcc4e",
@@ -19823,9 +19823,9 @@
       "body": "Implement or deepen body subsystem fever_temp_spike: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_8f166123"
     },
     {
       "id": "FS-521fc2d19f",
@@ -19834,9 +19834,9 @@
       "body": "Implement or deepen body subsystem parasite_rare: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_59e212df"
     },
     {
       "id": "FS-feac3d821d",
@@ -19845,9 +19845,9 @@
       "body": "Implement or deepen body subsystem hygiene_dirt_meter: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_a9ddb040"
     },
     {
       "id": "FS-70f9af2bbe",
@@ -19856,9 +19856,9 @@
       "body": "Implement or deepen body subsystem protein_buff_melee: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_c429b2fd"
     },
     {
       "id": "FS-5a8661a44c",
@@ -19867,9 +19867,9 @@
       "body": "Implement or deepen body subsystem carbs_buff_stamina: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_d78e8b9d"
     },
     {
       "id": "FS-a2984e65a5",
@@ -19878,9 +19878,9 @@
       "body": "Implement or deepen body subsystem fat_buff_cold: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_dc36d9b5"
     },
     {
       "id": "FS-ac1846e547",
@@ -19889,9 +19889,9 @@
       "body": "Implement or deepen body subsystem wet_clothes_penalty: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_f41fe467"
     },
     {
       "id": "FS-178c205390",
@@ -19900,9 +19900,9 @@
       "body": "Implement or deepen body subsystem dry_by_fire: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_4712ee91"
     },
     {
       "id": "FS-c5382c97d5",
@@ -19911,9 +19911,9 @@
       "body": "Implement or deepen body subsystem sleep_debt_blur: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_ae45cfc2"
     },
     {
       "id": "FS-6ab44d6572",
@@ -19922,9 +19922,9 @@
       "body": "Implement or deepen body subsystem insomnia_from_noise: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_8a63453e"
     },
     {
       "id": "FS-d6e8747ea6",
@@ -19933,9 +19933,9 @@
       "body": "Implement or deepen body subsystem bandage_stops_bleed: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_1f4970b3"
     },
     {
       "id": "FS-76d196661f",
@@ -19944,9 +19944,9 @@
       "body": "Implement or deepen body subsystem splint_leg_speed: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_8e06ca19"
     },
     {
       "id": "FS-48354893f1",
@@ -19955,9 +19955,9 @@
       "body": "Implement or deepen body subsystem heatstroke_desert: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_4fdac649"
     },
     {
       "id": "FS-5adf32b4b1",
@@ -19966,9 +19966,9 @@
       "body": "Implement or deepen body subsystem frostbite_extremities: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_8d091895"
     },
     {
       "id": "FS-5606617649",
@@ -19977,9 +19977,9 @@
       "body": "Implement or deepen body subsystem comfort_temp_band: meters, tick rules, HUD hook stubs, balance constants. Prefer pure functions + smoke. Original IP names.",
       "files": "js/player.js,js/game.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_8a01a942"
     },
     {
       "id": "FS-c77fe01606",
@@ -19988,9 +19988,9 @@
       "body": "Add clothing piece or rule leather_armor_set: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_590c852b"
     },
     {
       "id": "FS-a4fed51891",
@@ -19999,9 +19999,9 @@
       "body": "Add clothing piece or rule wool_coat: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_d5f727da"
     },
     {
       "id": "FS-d6806e650e",
@@ -20010,9 +20010,9 @@
       "body": "Add clothing piece or rule linen_shirt: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_7bb6e0c4"
     },
     {
       "id": "FS-28c62feb24",
@@ -20021,9 +20021,9 @@
       "body": "Add clothing piece or rule fur_boots: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_12462557"
     },
     {
       "id": "FS-a8cc47089a",
@@ -20032,9 +20032,9 @@
       "body": "Add clothing piece or rule rain_cloak: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_690a2f58"
     },
     {
       "id": "FS-99f47d30fb",
@@ -20043,9 +20043,9 @@
       "body": "Add clothing piece or rule gloves_mining: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_3edb8ebd"
     },
     {
       "id": "FS-76a444c250",
@@ -20054,9 +20054,9 @@
       "body": "Add clothing piece or rule hat_sun: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_ee5a5532"
     },
     {
       "id": "FS-98f4e9afd5",
@@ -20065,9 +20065,9 @@
       "body": "Add clothing piece or rule hood_cold: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_999d4c9f"
     },
     {
       "id": "FS-4742f627fc",
@@ -20076,9 +20076,9 @@
       "body": "Add clothing piece or rule layering_slots_4: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_83a63582"
     },
     {
       "id": "FS-626da0bad5",
@@ -20087,9 +20087,9 @@
       "body": "Add clothing piece or rule wetness_per_layer: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_04f37bc1"
     },
     {
       "id": "FS-a62d754649",
@@ -20098,9 +20098,9 @@
       "body": "Add clothing piece or rule repair_clothes_kit: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_139e989e"
     },
     {
       "id": "FS-a1ece000f6",
@@ -20109,9 +20109,9 @@
       "body": "Add clothing piece or rule craft_cloth_from_fiber: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_6433904f"
     },
     {
       "id": "FS-f273865266",
@@ -20120,9 +20120,9 @@
       "body": "Add clothing piece or rule tan_hide_rack: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_6e59b2a6"
     },
     {
       "id": "FS-7d55b18df9",
@@ -20131,9 +20131,9 @@
       "body": "Add clothing piece or rule dye_clothes_stub: item def, craft recipe if needed, equip slot, warmth/armor modifiers. Original names.",
       "files": "js/items.js,js/equipment.js,js/crafting.js,tests/smoke.mjs",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 24,
-      "minted_task_id": null
+      "minted_task_id": "t_5d0c261e"
     },
     {
       "id": "FS-635e3e50c0",
@@ -20142,9 +20142,9 @@
       "body": "Vertical slice for stairs_auto_shape: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_a2d05d22"
     },
     {
       "id": "FS-c4fd44df9e",
@@ -20153,9 +20153,9 @@
       "body": "Vertical slice for slab_half_block: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_51fa6cd9"
     },
     {
       "id": "FS-514411bad9",
@@ -20164,9 +20164,9 @@
       "body": "Vertical slice for fence_connect: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_4e067b4d"
     },
     {
       "id": "FS-990dd185d6",
@@ -20175,9 +20175,9 @@
       "body": "Vertical slice for door_//_trapdoor: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_acc8866d"
     },
     {
       "id": "FS-2c465ddcaf",
@@ -20186,9 +20186,9 @@
       "body": "Vertical slice for ladder_climb_force: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_7d00fdbe"
     },
     {
       "id": "FS-92b9c8c20c",
@@ -20197,9 +20197,9 @@
       "body": "Vertical slice for glass_pane_thin: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_899e9157"
     },
     {
       "id": "FS-841220da22",
@@ -20208,9 +20208,9 @@
       "body": "Vertical slice for wall_post_rules: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_58d85067"
     },
     {
       "id": "FS-e6d993c3fb",
@@ -20219,9 +20219,9 @@
       "body": "Vertical slice for roof_slope_helper: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_db11431a"
     },
     {
       "id": "FS-480e46f2ea",
@@ -20230,9 +20230,9 @@
       "body": "Vertical slice for pillar_block: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_fc1d52eb"
     },
     {
       "id": "FS-be02c38fea",
@@ -20252,9 +20252,9 @@
       "body": "Vertical slice for paint_block_16cols: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_17491b44"
     },
     {
       "id": "FS-6ca1de0202",
@@ -20263,9 +20263,9 @@
       "body": "Vertical slice for light_block_levels: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_f171163e"
     },
     {
       "id": "FS-7b93448eb3",
@@ -20274,9 +20274,9 @@
       "body": "Vertical slice for torch_wall_attach: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_4591cadd"
     },
     {
       "id": "FS-d0417c3fb3",
@@ -20285,9 +20285,9 @@
       "body": "Vertical slice for lantern_hang: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_643b760c"
     },
     {
       "id": "FS-8aa0dd23d3",
@@ -20296,9 +20296,9 @@
       "body": "Vertical slice for carpet_layer: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_4847a855"
     },
     {
       "id": "FS-7f720421f9",
@@ -20307,9 +20307,9 @@
       "body": "Vertical slice for flower_pot: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_66ad724b"
     },
     {
       "id": "FS-db5feb37cf",
@@ -20329,9 +20329,9 @@
       "body": "Vertical slice for sign_text_basic: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_1d8184d0"
     },
     {
       "id": "FS-4a0f433fee",
@@ -20340,9 +20340,9 @@
       "body": "Vertical slice for bed_colors: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_b2b86472"
     },
     {
       "id": "FS-9e0493a52c",
@@ -20351,9 +20351,9 @@
       "body": "Vertical slice for chest_double: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_dd6bd7bf"
     },
     {
       "id": "FS-c156e852d8",
@@ -20362,9 +20362,9 @@
       "body": "Vertical slice for barrel_storage: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_526452a1"
     },
     {
       "id": "FS-c1a86eccfd",
@@ -20373,9 +20373,9 @@
       "body": "Vertical slice for bookshelf_deco: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_af960375"
     },
     {
       "id": "FS-b946cb164e",
@@ -20384,9 +20384,9 @@
       "body": "Vertical slice for crafting_table_ui_2: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_80027a40"
     },
     {
       "id": "FS-233a54a697",
@@ -20395,9 +20395,9 @@
       "body": "Vertical slice for furnace_fuel_times: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_567925f5"
     },
     {
       "id": "FS-26243a00ee",
@@ -20461,9 +20461,9 @@
       "body": "Vertical slice for cauldron_water: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_f5fd8d8b"
     },
     {
       "id": "FS-e886cb4573",
@@ -20527,9 +20527,9 @@
       "body": "Vertical slice for lever_toggle: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_a09fa24f"
     },
     {
       "id": "FS-fd203788bf",
@@ -20538,9 +20538,9 @@
       "body": "Vertical slice for button_pulse: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_c8ee5bc3"
     },
     {
       "id": "FS-1cfaf2a9f6",
@@ -20549,9 +20549,9 @@
       "body": "Vertical slice for pressure_plate: block/item if needed, placement rules, minimal interaction. Keep surgical; smoke pure rules where possible. Original art.",
       "files": "js/blocks.js,js/items.js,js/crafting.js,js/world.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 32,
-      "minted_task_id": null
+      "minted_task_id": "t_06fc392c"
     },
     {
       "id": "FS-325c43dd74",
@@ -20637,9 +20637,9 @@
       "body": "Add species fox: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_120a6e47"
     },
     {
       "id": "FS-d4584978d7",
@@ -20648,9 +20648,9 @@
       "body": "Add species owl: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_d429ea38"
     },
     {
       "id": "FS-502b5a16ef",
@@ -20659,9 +20659,9 @@
       "body": "Add species snake: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_5a466928"
     },
     {
       "id": "FS-995e0b1f60",
@@ -20670,9 +20670,9 @@
       "body": "Add species scorpion: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_b69ee4e3"
     },
     {
       "id": "FS-e0cb081abf",
@@ -20681,9 +20681,9 @@
       "body": "Add species shark_coast: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_af3832d8"
     },
     {
       "id": "FS-57886f5d8b",
@@ -20692,9 +20692,9 @@
       "body": "Add species crab: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_6271bc61"
     },
     {
       "id": "FS-75bc366b85",
@@ -20703,9 +20703,9 @@
       "body": "Add species goat_mountain: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_14e7e912"
     },
     {
       "id": "FS-c938c838df",
@@ -20714,9 +20714,9 @@
       "body": "Add species moose: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_502e64bd"
     },
     {
       "id": "FS-5126c0f5d3",
@@ -20725,9 +20725,9 @@
       "body": "Add species panther: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_f7cc05f4"
     },
     {
       "id": "FS-d71d71268b",
@@ -20736,9 +20736,9 @@
       "body": "Add species crocodile_river: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_4895e71d"
     },
     {
       "id": "FS-7d500d1bec",
@@ -20747,9 +20747,9 @@
       "body": "Add species firefly_ambient: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_4a100202"
     },
     {
       "id": "FS-9e49ef0839",
@@ -20758,9 +20758,9 @@
       "body": "Add species fish_school: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_09b5b97a"
     },
     {
       "id": "FS-bcb44d62c9",
@@ -20769,9 +20769,9 @@
       "body": "Add species bird_flock_ambient: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_5f1b13f9"
     },
     {
       "id": "FS-8f194d3485",
@@ -20780,9 +20780,9 @@
       "body": "Add species bee_stub: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_60092a4d"
     },
     {
       "id": "FS-6caf409201",
@@ -20791,9 +20791,9 @@
       "body": "Add species butterfly: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_8e768c7b"
     },
     {
       "id": "FS-97070267f8",
@@ -20802,9 +20802,9 @@
       "body": "Add species turtle_beach: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_05dfc316"
     },
     {
       "id": "FS-67fc60b2ca",
@@ -20813,9 +20813,9 @@
       "body": "Add species penguin_cold: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_85fe1eb3"
     },
     {
       "id": "FS-6e1a6e4927",
@@ -20824,9 +20824,9 @@
       "body": "Add species camel_desert: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_1c5534d3"
     },
     {
       "id": "FS-cf860a9e9c",
@@ -20835,9 +20835,9 @@
       "body": "Add species buffalo: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_40a6abd1"
     },
     {
       "id": "FS-966a751b10",
@@ -20846,9 +20846,9 @@
       "body": "Add species hyena: stats, mesh/color, drops, AI tags, spawn biomes. Surgical animals.js; avoid game.js unless spawn hook required.",
       "files": "js/animals.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 34,
-      "minted_task_id": null
+      "minted_task_id": "t_48a965a8"
     },
     {
       "id": "FS-859d90c9e8",
@@ -21077,9 +21077,9 @@
       "body": "Implement bronze_age_tier as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_c60b55a9"
     },
     {
       "id": "FS-b03e2869ce",
@@ -21088,9 +21088,9 @@
       "body": "Implement steel_tier as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_dd4b79af"
     },
     {
       "id": "FS-811eef990f",
@@ -21099,9 +21099,9 @@
       "body": "Implement obsidian_tools as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_cdb66deb"
     },
     {
       "id": "FS-9d6a6c66ac",
@@ -21110,9 +21110,9 @@
       "body": "Implement fishing_rod_real as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_adb3f055"
     },
     {
       "id": "FS-e6f0bd9757",
@@ -21121,9 +21121,9 @@
       "body": "Implement boat_entity as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_623ec311"
     },
     {
       "id": "FS-e6baae1acb",
@@ -21132,9 +21132,9 @@
       "body": "Implement minecart_stub as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_73201e40"
     },
     {
       "id": "FS-894f79d646",
@@ -21143,9 +21143,9 @@
       "body": "Implement saddle_ride_tamed as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_4f481ee5"
     },
     {
       "id": "FS-4b5841d398",
@@ -21154,9 +21154,9 @@
       "body": "Implement lead_animal as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_119e1e5d"
     },
     {
       "id": "FS-30ae98a127",
@@ -21165,9 +21165,9 @@
       "body": "Implement shears_wool as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_8cbec89a"
     },
     {
       "id": "FS-b0e7dbca59",
@@ -21176,9 +21176,9 @@
       "body": "Implement bucket_milk_cow as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_db2dce88"
     },
     {
       "id": "FS-db65f62205",
@@ -21187,9 +21187,9 @@
       "body": "Implement bucket_water_place as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_e84c9dc3"
     },
     {
       "id": "FS-d0b724a5cf",
@@ -21198,9 +21198,9 @@
       "body": "Implement bucket_lava_danger as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_96d8ff99"
     },
     {
       "id": "FS-93d00dcbfb",
@@ -21209,9 +21209,9 @@
       "body": "Implement bread_from_wheat as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_217318a8"
     },
     {
       "id": "FS-5aff708e55",
@@ -21220,9 +21220,9 @@
       "body": "Implement cake_celebration as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_f760772d"
     },
     {
       "id": "FS-a77ee72b55",
@@ -21231,9 +21231,9 @@
       "body": "Implement stew_mixed as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_936a51d1"
     },
     {
       "id": "FS-f5fdf5df62",
@@ -21242,9 +21242,9 @@
       "body": "Implement jerky_dry_rack as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_e8f0c656"
     },
     {
       "id": "FS-1caab30630",
@@ -21253,9 +21253,9 @@
       "body": "Implement smelt_glass_sand as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_77d2bc27"
     },
     {
       "id": "FS-7a4062e826",
@@ -21264,9 +21264,9 @@
       "body": "Implement brick_from_clay as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_f5e4c02e"
     },
     {
       "id": "FS-747dc08e1d",
@@ -21275,9 +21275,9 @@
       "body": "Implement concrete_stub as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_3ceff7fa"
     },
     {
       "id": "FS-ca3c025f50",
@@ -21286,9 +21286,9 @@
       "body": "Implement gunpowder_blasting_stub as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_c7866957"
     },
     {
       "id": "FS-36c35a3de9",
@@ -21297,9 +21297,9 @@
       "body": "Implement tnt_careful as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_bae3e2b7"
     },
     {
       "id": "FS-92888788a0",
@@ -21308,9 +21308,9 @@
       "body": "Implement shield_block as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_1606fdb5"
     },
     {
       "id": "FS-f5751bdaa9",
@@ -21319,9 +21319,9 @@
       "body": "Implement armor_stand_deco as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_6b645248"
     },
     {
       "id": "FS-b5ad2bb876",
@@ -21330,9 +21330,9 @@
       "body": "Implement map_item_explore as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_24bf0560"
     },
     {
       "id": "FS-aab2d7642d",
@@ -21341,9 +21341,9 @@
       "body": "Implement compass_spawn as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_ff155f19"
     },
     {
       "id": "FS-abcc812612",
@@ -21352,9 +21352,9 @@
       "body": "Implement clock_daytime as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_4905f8bc"
     },
     {
       "id": "FS-61823c84ff",
@@ -21363,9 +21363,9 @@
       "body": "Implement spyglass_zoom as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_c24b6e35"
     },
     {
       "id": "FS-786ed5159f",
@@ -21374,9 +21374,9 @@
       "body": "Implement bundle_storage as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_5b90f454"
     },
     {
       "id": "FS-7ec60e3c3a",
@@ -21385,9 +21385,9 @@
       "body": "Implement honeypot_stub as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_5bbeb9b4"
     },
     {
       "id": "FS-01131d86aa",
@@ -21396,9 +21396,9 @@
       "body": "Implement candle_light as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_b50f4b17"
     },
     {
       "id": "FS-832cd73fff",
@@ -21407,9 +21407,9 @@
       "body": "Implement campfire_signal_smoke as item/recipe/entity slice with acceptance via smoke or local interact. Original IP.",
       "files": "js/items.js,js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 30,
-      "minted_task_id": null
+      "minted_task_id": "t_d87816b0"
     },
     {
       "id": "FS-927c245ef3",
@@ -21638,9 +21638,9 @@
       "body": "Implement fps_counter_f3_smooth: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_3655f8a3"
     },
     {
       "id": "FS-d614901ea6",
@@ -21649,9 +21649,9 @@
       "body": "Implement chunk_gen_budget_ms: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_d69580c8"
     },
     {
       "id": "FS-94c69a5029",
@@ -21660,9 +21660,9 @@
       "body": "Implement entity_cap_per_chunk: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_4caad80d"
     },
     {
       "id": "FS-d2343032d6",
@@ -21671,9 +21671,9 @@
       "body": "Implement save_corruption_guard: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_367c1d86"
     },
     {
       "id": "FS-8c8d9a978e",
@@ -21682,9 +21682,9 @@
       "body": "Implement autosave_indicator: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_c0710562"
     },
     {
       "id": "FS-9d1ffed891",
@@ -21693,9 +21693,9 @@
       "body": "Implement crash_recovery_banner: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_fe3c0662"
     },
     {
       "id": "FS-a9b21dec6e",
@@ -21704,9 +21704,9 @@
       "body": "Implement accessibility_colorblind_hud: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_d2c90657"
     },
     {
       "id": "FS-33eb107410",
@@ -21715,9 +21715,9 @@
       "body": "Implement reduce_motion_flag: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_9e0e7acf"
     },
     {
       "id": "FS-1848bfc749",
@@ -21726,9 +21726,9 @@
       "body": "Implement language_string_table_stub: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_e1d0c8fc"
     },
     {
       "id": "FS-1499de4693",
@@ -21737,9 +21737,9 @@
       "body": "Implement tutorial_skip_forever: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_f48836e7"
     },
     {
       "id": "FS-65c73b62c7",
@@ -21748,9 +21748,9 @@
       "body": "Implement difficulty_tooltip_rich: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_f2730a84"
     },
     {
       "id": "FS-d79d01bd6c",
@@ -21759,9 +21759,9 @@
       "body": "Implement seed_share_button: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_62cf891f"
     },
     {
       "id": "FS-f39736bba2",
@@ -21770,9 +21770,9 @@
       "body": "Implement photo_mode_stub: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_2d6ebbb1"
     },
     {
       "id": "FS-0d4ee6535b",
@@ -21781,9 +21781,9 @@
       "body": "Implement debug_give_item_f4: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_43ed6eec"
     },
     {
       "id": "FS-671efc5d7c",
@@ -21792,9 +21792,9 @@
       "body": "Implement perf_overlay_drawcalls: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_96b8b256"
     },
     {
       "id": "FS-3ad550e094",
@@ -21803,9 +21803,9 @@
       "body": "Implement memory_warning_soft: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_3ac0094d"
     },
     {
       "id": "FS-6cfc0a7d50",
@@ -21814,9 +21814,9 @@
       "body": "Implement integration_test_new_world_boot: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_9926e9e9"
     },
     {
       "id": "FS-dffbe5ade7",
@@ -21825,9 +21825,9 @@
       "body": "Implement coop_mode_flag_test: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_3a59b370"
     },
     {
       "id": "FS-770b4ce32b",
@@ -21836,9 +21836,9 @@
       "body": "Implement gamepad_disconnect_test: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_1dc1cd96"
     },
     {
       "id": "FS-ff3e89faf2",
@@ -21847,9 +21847,9 @@
       "body": "Implement version_badge_semver: prefer tests + small hooks; no broad refactors.",
       "files": "tests/smoke.mjs,js/game.js,index.html",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 28,
-      "minted_task_id": null
+      "minted_task_id": "t_7765b415"
     },
     {
       "id": "FS-a7c13490ea",
@@ -21968,9 +21968,9 @@
       "body": "P1/P2 spawn 2 blocks apart facing same way; no stuck overlap.",
       "files": "js/game.js,js/coop-state.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 12,
-      "minted_task_id": null
+      "minted_task_id": "t_bcfe3900"
     },
     {
       "id": "FS-f1ef47a6f3",
@@ -21979,9 +21979,9 @@
       "body": "Billboard P1/P2 labels when far; toggle.",
       "files": "js/game.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 18,
-      "minted_task_id": null
+      "minted_task_id": "t_e14b8ce1"
     },
     {
       "id": "FS-190b0d4c70",
@@ -21990,9 +21990,9 @@
       "body": "Settings friendlyFire default off for tools/arrows between players.",
       "files": "js/settings.js,js/game.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 14,
-      "minted_task_id": null
+      "minted_task_id": "t_621fedc2"
     },
     {
       "id": "FS-1eb5aac8f9",
@@ -22001,9 +22001,9 @@
       "body": "On death drop to personal grave marker; other can loot.",
       "files": "js/game.js,js/player.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 16,
-      "minted_task_id": null
+      "minted_task_id": "t_e53b94f9"
     },
     {
       "id": "FS-59a80393ac",
@@ -22012,9 +22012,9 @@
       "body": "If XP exists, grant to crafting player only.",
       "files": "js/crafting.js,js/game.js",
       "assignee_pref": "qwen27s",
-      "status": "backlog",
+      "status": "minted",
       "priority": 20,
-      "minted_task_id": null
+      "minted_task_id": "t_5f2d1ac7"
     },
     {
       "id": "FS-a9861155df",
@@ -22023,9 +22023,9 @@
       "body": "If minimap exists, show both players; else stub.",
       "files": "js/game.js,index.html",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 22,
-      "minted_task_id": null
+      "minted_task_id": "t_a61a56ab"
     },
     {
       "id": "FS-6be8c4ea39",
@@ -22034,9 +22034,9 @@
       "body": "Optional local canned emotes D-pad for PS5 (wave, help, gather).",
       "files": "js/game.js,index.html",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 25,
-      "minted_task_id": null
+      "minted_task_id": "t_22993b4d"
     },
     {
       "id": "FS-cb2e3dec6f",
@@ -22045,9 +22045,9 @@
       "body": "Top-bottom split alternative for ultra-wide; setting.",
       "files": "js/viewport-split.js,js/game.js",
       "assignee_pref": "local35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 15,
-      "minted_task_id": null
+      "minted_task_id": "t_b1d39100"
     },
     {
       "id": "FS-6ca47ab364",
@@ -22056,9 +22056,9 @@
       "body": "Scale HUD elements with half-height so unreadable text fixed.",
       "files": "index.html,public/index.html",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 13,
-      "minted_task_id": null
+      "minted_task_id": "t_babf302a"
     },
     {
       "id": "FS-0138572896",
@@ -22067,9 +22067,9 @@
       "body": "Ensure only one AudioContext listener.",
       "files": "js/audio.js",
       "assignee_pref": "qwen35",
-      "status": "backlog",
+      "status": "minted",
       "priority": 15,
-      "minted_task_id": null
+      "minted_task_id": "t_dbd85f1e"
     }
   ]
 }

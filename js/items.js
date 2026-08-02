@@ -55,6 +55,8 @@ export const ITEM = {
   ICE_BOX: 147,
   MACE: 148,
   HONEY: 149,
+  WOOL: 150,
+  SHEARS: 151,
 };
 
 /** @type {Record<number, {
@@ -237,6 +239,8 @@ export const ITEM_PROPS = {
     maxStack: 1,
   },
   [ITEM.HONEY]: { name: 'Honey', color: [0.92, 0.62, 0.12], edible: 20, maxStack: 32 },
+  [ITEM.WOOL]: { name: 'Wool', color: [0.92, 0.9, 0.82], maxStack: 64 },
+  [ITEM.SHEARS]: { name: 'Shears', color: [0.72, 0.76, 0.82], tool: 'shears', maxStack: 1, durability: 80 },
 };
 
 export function propsOf(id) {

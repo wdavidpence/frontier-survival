@@ -22,7 +22,7 @@ function flag(name, def) {
   return v;
 }
 
-const RECLAIM_MIN = Number(flag('reclaim-minutes', 12)) || 12;
+const RECLAIM_MIN = Number(flag('reclaim-minutes', 45)) || 45; // was 12; Luna/goal cards need longer
 const DISPATCH_MAX = Number(flag('dispatch-max', 3)) || 3;
 const LOG = resolve('docs/overnight-progress.md');
 const DRY = !!flag('dry-run', false);

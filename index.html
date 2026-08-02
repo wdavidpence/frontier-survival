@@ -444,6 +444,12 @@
     #chest-slots {
       display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin: 12px 0;
     }
+    #barrel-screen .inv-panel { width: min(560px, 94vw); }
+    #barrel-slots {
+      display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin: 12px 0;
+      max-height: 58vh; overflow: auto;
+    }
+
     .hotbar-slot.damaged { box-shadow: inset 0 -3px 0 #c43c3c; }
     .dur-bar {
       position: absolute; left: 2px; right: 2px; bottom: 2px; height: 3px;
@@ -912,6 +918,18 @@
       <div class="inv-actions">
         <button id="btn-chest-deposit" type="button">Deposit hotbar slot</button>
         <button id="btn-close-chest" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="barrel-screen" class="overlay hidden">
+    <div class="inv-panel">
+      <h2>Barrel</h2>
+      <p class="inv-sub">27 slots for supplies. Click a slot to take one item; use the selected hotbar slot to deposit.</p>
+      <div id="barrel-slots"></div>
+      <div class="inv-actions">
+        <button id="btn-barrel-deposit" type="button">Deposit hotbar slot</button>
+        <button id="btn-close-barrel" type="button">Close</button>
       </div>
     </div>
   </div>

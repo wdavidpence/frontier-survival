@@ -6,6 +6,8 @@
 export const SAVE_VERSION = 2;
 export const SAVE_KEY = 'frontier_survival_save_v1';
 
+const BARREL_CAPACITY_LITERS = 10;
+
 function packPlayer(player) {
   if (!player) return null;
   return {

@@ -1426,3 +1426,180 @@ PASS oss20b chiseled-bookshelf-signal PASS, 293? emitted PASS lines plus final  
 | 2026-08-01T20:43:18-0400 | SHIP v1.13.2 forest grove density+shore scrub; station catalog smoker/blast; smelting food recipes; smoke317; luna review cleared |
 | 2026-08-02T00:47:20.967Z | watchdog running 1→1 reclaimed none Spawned 0 |
 | 2026-08-01T20:53:58-0400 | SHIP v1.13.3 anvil craft/F-repair + caves/ore veins; smoke319; luna; push |
+| 2026-08-02T01:03:21.214Z | watchdog running 0→1 reclaimed none Spawned 0 |
+
+
+## Judge tick — 2026-08-01 21:20 EDT — LUNA CREDIT BURN WAVE
+- Role: default orchestrator/judge; SWE delegated to profile `luna` (gpt-5.6-luna openai-codex).
+- Luna gateway: started (manual run). File tools re-enabled (was disabled_toolsets file,code_execution).
+- Minted 24 worktree goal-mode vertical slices (pig/sheep/fish/boat/horse/ocean/wolf/stairs/furnace UI/chest UI/farm/weather/coop x3/sleep/lightning/tiers/enchant/brew/bee/map/bow/shield) + 12 follow-up ready cards.
+- Dispatch: Spawned 12 concurrent luna workers in `.worktrees/t_*` (gateway concurrency ceiling ~12; second dispatch Spawned 0 while full). ready remains queued for auto-fill.
+- Verification baseline pre-wave: smoke previously green on main; no ship this tick; merges deferred until workers complete.
+- Decision: continue — burn luna credits on SurvivalCraft-competitive playable packs until midnight Eastern exhaustion.
+
+
+## Judge tick — 2026-08-01 21:50 EDT — Luna serial + Ornith swap
+- User steering: drop Luna concurrency (12 overloaded) to serial 1, scale only to 2-4 if quality; oss-20b replaced by ornith-1.0-9b-mtp.
+- OpenCode: removed localoss/gpt-oss-20b; provider ornith/ornith-1.0-9b-mtp on 172.26.128.1:18000. Probe ORNITH_OPENCODE_OK pass. Hermes oss20b profile retargeted; ORNITH_HERMES_OK + file write probe pass.
+- Luna tools fix: enabled file/terminal/code_execution (was hermes-cli-only / disabled file). LUNA_FILE_OK probe pass. Cron 04f1c4c224d7 prompt updated to ALLOW Luna implementer tonight (was auto-blocking 'lane disabled').
+- Board policy: Luna depth 1 (boat t_84ad6c81 worktree). oss20b/ornith depth 1 (torch-falloff). 36 Luna cards remain blocked/scheduled as backlog for serial refill after completions.
+- Decision: continue serial Luna burn + ornith overflow; merge worktrees only after independent smoke.
+| 2026-08-02T01:52:14.837Z | watchdog running 2→1 reclaimed t_84ad6c81 Spawned 0 |
+
+
+## Judge tick — 2026-08-01T22:07:54-04:00 — Luna boat integration + serial refill
+- Verification: main `node tests/smoke.mjs` PASS (final boat/runtime assertions included); worktree boat smoke PASS; `node --check` boat/game/player PASS; `git diff --check` PASS.
+- Browser/local: tracked `scripts/static-8767.mjs` served HTTP 200, v1.13.3, `#btn-start.click()` hid title overlay and exposed HUD/canvas; browser console had 0 JS errors.
+- Artifact review: independently inspected Luna worktree `t_84ad6c81`; solo boat placement, mount, steering, buoyancy, and dismount wiring was integrated into main. Coop dual-seat remains explicitly follow-up. No commit/push; broad WIP remains.
+- Release gates: `index.html`/`public/index.html` byte-identical; relative ES import cache-bust scan reports 0 unbusted imports. Live release not claimed.
+- Board: Luna `t_964a6a77` is the sole running implementation lane (depth 1). Duplicate oss20b boat card `t_9692621e` was reclaimed and parked as `duplicate_boat_slice_already_integrated` to preserve boat-file ownership. Stats after routing: running=1, ready=0, scheduled=265, blocked=108, done=310.
+- Decision: **continue** — keep Luna on the bounded temperature/clothing slice; do not publish until the broad WIP is narrowed and a fresh release gate passes.
+
+
+## Judge tick — 2026-08-01 22:13 EDT — Luna 100-card queue + boat ship
+- Boat t_84ad6c81 JUDGE APPROVED+MERGED to main: boat-entity + game/player wire + smoke boat tests PASS on main.
+- Minted 100 high-value Luna worktree goal cards (fishing/fauna/stations/survival/coop/worldgen/combat/feel) all parked lane-cap-hold:luna_depth_4_queue. List: /tmp/luna-100.json and scripts/_mint-luna-100.py.
+- Luna concurrency policy: max 4 concurrent paths; auto-refill from queue on completion.
+- Watchdog remains paused/softened; cron allows Luna implementer until midnight Eastern.
+- Decision: continue Luna depth-4 burn until midnight; judge-merge completions with smoke.
+
+
+## Judge tick — 2026-08-01 22:18 EDT — 100 Luna cards + merges
+- Created 100 valuable Luna worktree cards (scripts/_mint-luna-100.py); scheduled under luna_depth_4_queue (~102 luna scheduled).
+- Luna concurrency hard-cap 4. auto_decompose disabled (was spawning qwen/oss child thrash).
+- Judge-merged to main with smoke NO FAIL: boat, fishing-cast, pig SPECIES, sheep shear helpers, items/crafting shears.
+- Main smoke green including boat + pig + sheep + fishing tests.
+- Decision: continue Luna×4 until midnight; merge completions with smoke.
+
+
+## Ops — 2026-08-01 22:33 EDT — final 90m Luna burn + ornith all-night
+- Luna concurrency target 8 until midnight Eastern for Codex credit burn.
+- Minted 105 ornith overnight pure cards (scripts/_mint-ornith-night.py).
+- Cron midnight cutoff cf22f1548166 parks Luna; keepalive 84bab3a556cb every 20m keeps ornith depth-1.
+- Judge cron after-midnight: Luna implement banned; oss20b/ornith primary.
+| 2026-08-02T02:48:17.383Z | watchdog running 3→3 reclaimed none Spawned 0 |
+
+## Judge tick — 2026-08-01 22:55 EDT — after-midnight Luna park / smoke recovery
+- Routing: after-midnight policy enforced. Reclaimed running Luna implementation `t_5e87e080` and parked it with `after_midnight_luna_parked_use_ornith`; no Luna implementation was assigned or unblocked. `oss20b` remains the sole running implementer (`t_5b72bd74`, depth 1).
+- Board: after routing, running=1, ready=0, todo=12, scheduled=469, blocked=107, done=313. Historical repeated-crash diagnostics remain blocked; no mass retry. Created surgical follow-up `t_0be71cac` assigned to oss20b, parent-gated behind `t_5b72bd74`, for the smoke harness parse blocker.
+- Verification: independent `node tests/smoke.mjs` FAILS before execution with `SyntaxError: Identifier 'depositOne' has already been declared` at `tests/smoke.mjs:894`; the current file imports the chest helpers earlier and re-imports them at lines 893–894. `git diff --check` was run with the status inspection; no ship attempted.
+- Browser/local: tracked `scripts/static-8767.mjs` served HTTP 200 and `Frontier Survival v1.13.3`. Browser boot reached the start screen; authoritative DOM `#btn-start.click()` exposed `SPAWN`, `HEALTH`, `HUNGER`, `STAMINA`, and survival HUD text. Browser console collector reported one blank exception during/after the start probe, so runtime is recorded as playable-by-DOM but not zero-error clean.
+- Release: NO SHIP. Broad uncommitted WIP remains; no commit/push.
+- Decision: **recover/continue** — let the oss20b nutrition card finish, then allow the parent-gated surgical smoke repair to claim. Independently rerun smoke, diff-check, browser, and dual-HTML/cache gates before any publication.
+
+- Dispatch follow-up: bounded `dispatch --max 1` observed the prior oss20b run crash (`pid 1184570 not alive`) and immediately respawned `t_5b72bd74` as run 2078 on oss20b. Fresh run is active; the surgical smoke repair remains correctly todo and parent-gated.
+| 2026-08-02T03:04:17.646Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-02T03:20:17.935Z | watchdog running 1→1 reclaimed none Spawned 0 |
+| 2026-08-02T03:36:18.265Z | watchdog running 0→0 reclaimed none Spawned 0 |
+
+
+## Judge tick — 2026-08-01 23:44 ET
+- Decision: **continue / recover via active worker; no ship**. Luna was not assigned or unblocked after midnight cutoff; no Luna cards were running or ready.
+- Board: running=1 (`t_c45c4fdb`, oss20b), ready=0, scheduled=467, blocked=109, done=313.
+- Worker lane: oss20b remains warm on `FS:ornith: pure hydration thirst`; judge comment sent with the exact smoke blocker.
+- Smoke: **FAIL** before execution — `tests/smoke.mjs:894` redeclares `depositOne`, `withdrawOne`, `emptyChestSlots`, and `chestKey`, already imported at lines 223-224.
+- Diff check: PASS (`git diff --check`). Working tree has broad pre-existing WIP; no publish attempted.
+- Browser local: HTTP 200 from tracked `node scripts/static-8767.mjs` endpoint (existing server); title v1.13.3 and New World controls/HUD loaded. Start interaction exposed one blank JavaScript exception in browser console; authoritative HUD text was present afterward, so runtime exception remains unresolved and release gate stays closed.
+- Next: let oss20b finish the bounded hydration slice and repair the duplicate smoke imports; rerun `node tests/smoke.mjs`, then independently inspect diff/runtime before any release decision.
+| 2026-08-02T03:52:18.463Z | watchdog running 1→1 reclaimed none Spawned 0 |
+[2026-08-02 00:00 EDT] midnight-luna-cutoff start
+
+## Midnight cutoff — 2026-08-02 00:00 EDT
+- Luna implementers reclaimed/parked (after_midnight_luna_parked_use_ornith).
+- Ornith/oss20b is primary overnight worker depth 1; dispatch --max 1 attempted.
+- Decision: continue on ornith-only until morning.
+By status:
+  triage    2
+  todo      12
+  scheduled  466
+  ready     1
+  running   1
+  blocked   109
+  done      313
+
+By assignee:
+  local35               blocked=5, done=60
+  luna                  blocked=36, done=9, scheduled=96, todo=4, triage=2
+  oss20b                blocked=5, done=22, ready=1, running=1, scheduled=109, todo=3
+  qwen27s               blocked=49, done=136, scheduled=214, todo=4
+  qwen35                blocked=14, done=86, scheduled=47, todo=1
+
+Oldest ready task age: 100160s
+[2026-08-02 00:00 EDT] midnight-luna-cutoff done
+| 2026-08-02T04:08:18.755Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-02T04:24:19.055Z | watchdog running 1→1 reclaimed none Spawned 0 |
+
+
+## 2026-08-02 00:31 EDT — overnight judge tick
+
+- Decision: **recover**. The sole active implementation lane is `oss20b` card `t_ee4f64bc` (wetness rain/dry); Luna has no running or ready cards and remains parked after midnight.
+- Independent verification: `node tests/smoke.mjs` **FAIL** before test execution with `SyntaxError: Identifier 'depositOne' has already been declared` at `tests/smoke.mjs:894`; the file already imports the same chest symbols at its top-level import block.
+- Board: 1 running (`t_ee4f64bc` / oss20b), 0 ready, 465 scheduled, 111 blocked, 313 done; no depth oversubscription observed.
+- Recovery: added a surgical board comment instructing the active oss20b worker to remove the duplicate import, keep scope to `tests/smoke.mjs` + `js/wetness.js`, rerun the exact smoke command, and explicitly complete/block. No ship attempted; browser gate remains closed until smoke is green.
+- Next decision: re-run independent smoke, diff check, and local browser boot after the worker reaches a terminal state; publish only at a green plateau.
+
+
+## 2026-08-02 00:38 EDT — oss20b protocol recovery
+
+- The wetness card `t_ee4f64bc` was reclaimed and blocked after repeated non-productive runs: a crash, then a clean exit without `kanban_complete`/`kanban_block`, followed by another restart. No `js/wetness.js` artifact or smoke verification was produced.
+- Replacement: unblocked and dispatched the next bounded oss20b card `t_0f1556c9` (pure sleep gate solo/coop) with `--max 1`; the required oss20b depth-1 lane is warm again.
+- Board after recovery: running=1 (`t_0f1556c9` / oss20b), ready=0, scheduled=464, blocked=112, done=313; Luna remains with no running/ready cards and is not assigned after the midnight cutoff.
+- Release remains **blocked**: independent `node tests/smoke.mjs` still fails on the pre-existing duplicate chest import at `tests/smoke.mjs:894`; `git diff --check` passes. No browser, commit, push, or ship claim made.
+| 2026-08-02T04:40:26.997Z | watchdog running 1→1 reclaimed none Spawned 0 |
+| 2026-08-02T04:56:19.603Z | watchdog running 1→1 reclaimed none Spawned 0 |
+| 2026-08-02T05:12:19.868Z | watchdog running 1→1 reclaimed none Spawned 0 |
+
+
+## 2026-08-02 01:28 EDT — smoke-gate recovery
+
+- Independent verification: `node tests/smoke.mjs` **FAIL** before test execution with `SyntaxError: Identifier 'depositOne' has already been declared` at `tests/smoke.mjs:894`; `git diff --check` **PASS**.
+- Board recovery: prior oss20b card `t_017c782a` hit its protocol-violation retry limit and was reclaimed/auto-blocked; a fresh surgical correction `t_96308d40` was created for oss20b and dispatched with `--max 1`, spawning run `2112`.
+- Board: running=1 (`t_96308d40` / oss20b), ready=0, scheduled=463, blocked=114, done=313; no depth oversubscription. Luna has no running or ready implementation cards and remains parked after the midnight cutoff.
+- Gateway: active and dispatching; repeated Telegram token contention from the separate Luna gateway is an operational warning, not a new implementation lane.
+- Release: **blocked** by the smoke syntax failure and broad uncommitted WIP; no browser, commit, push, or ship claim.
+- Next decision: independently rerun smoke and diff checks after `t_96308d40` reaches a terminal state; only then consider local browser verification and a green-plateau release review.
+- Decision: **recover**.
+
+
+## 2026-08-02 01:29 EDT — workspace routing correction
+
+- Routing correction: reclaimed and blocked `t_96308d40` after verifying it was incorrectly created in `scratch`; no shared-repo change was counted from that run.
+- Replacement: created `t_06fb63c9` for oss20b with explicit `dir:/mnt/c/Users/wdavi/Projects/Frontier-Survival`, dispatched with `--max 1`, and verified run `2114` is active in the shared repo.
+- Release remains **blocked**: independent smoke is still the duplicate-import SyntaxError; no browser, commit, push, or ship claim.
+- Decision: **redirect/recover**; await the correctly routed surgical worker, then rerun smoke independently.
+| 2026-08-02T05:30:07.250Z | watchdog running 1→1 reclaimed none Spawned 0 |
+| 2026-08-02T05:45:20.468Z | watchdog running 1→1 reclaimed none Spawned 0 |
+| 2026-08-02T06:01:20.659Z | watchdog running 1→1 reclaimed none Spawned 0 |
+
+
+## 2026-08-02 02:19 EDT — smoke-blocker recovery
+
+- Profiles: `oss20b` is running with `ornith-1.0-9b-mtp`; `luna` exists but no Luna card was assigned or unblocked after midnight.
+- Board before dispatch: 2 triage, 12 todo, 463 scheduled, 0 ready, 0 running, 116 blocked, 313 done. No running or ready Luna cards were present.
+- Independent verification: `node tests/smoke.mjs` **FAIL** before test execution with `ERR_MODULE_NOT_FOUND` for `js/ominous-trial-key.js`, imported by `tests/smoke.mjs` line 155. `git diff --check` passed.
+- Worktree: substantial pre-existing staged/uncommitted WIP; no destructive cleanup performed.
+- Recovery: created bounded oss20b card `t_094d7359` in the shared `dir` workspace, restricted to creating only `js/ominous-trial-key.js`; dispatched with `--max 1`.
+- Post-dispatch evidence: `Spawned: 1`; `t_094d7359` is running as `oss20b`; board reports 1 running and 0 ready.
+- Decision: **recover** — hold shipping until the missing pure module is independently verified and smoke returns exit 0; then re-run diff and browser/release gates as warranted.
+
+
+## 2026-08-02 02:36 EDT — correction rejected
+
+- Worker `t_094d7359` completed, but independent inspection found only `js/ominous-trial-key.js`; its `useOminousTrialKey` mutates input and returns `{ok}` instead of the reassigned state required by smoke. The worker summary claimed unrelated game fixes that are not present in the worktree.
+- Independent smoke after that card fails at the next missing import: `js/aquatic-move.js`. `git diff --check` remains clean.
+- Fresh correction `t_6daab846` was dispatched to `oss20b`; it completed with an unrelated `saveRoundtrip` claim and produced neither required module. The card was rejected by judge evidence and commented with the failure.
+- Direct OpenCode fallback using `ornith/ornith-1.0-9b-mtp` was attempted as required by the front-door policy, but the CLI auto-rejected its external-directory permission requests for `/js` and `/tests`, so no fallback edit occurred.
+- Decision: **block/recover** — stop retrying the unhealthy oss20b correction loop; do not ship. Smoke remains failing and no worker is running.
+| 2026-08-02T06:38:33.502Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-02T06:54:22.954Z | watchdog running 0→0 reclaimed none Spawned 0 |
+| 2026-08-02T07:10:23.144Z | watchdog running 1→1 reclaimed none Spawned 1 |
+
+## Judge tick 2026-08-02 03:29 EDT
+- Decision: continue; keep the sole oss20b implementation lane warm. No Luna implementation was assigned or unblocked; Luna remains parked/scheduled.
+- Board: running=1 (t_53fa5901, oss20b, pure food poison); ready=0; scheduled=460; blocked=117; done=316. Diagnostics remain active, including repeated worker/protocol failures on historical qwen27s/qwen35/oss20b cards.
+- Worktree: substantial pre-existing shared WIP and generated .worktrees entries; no merge, reset, clean, checkout, commit, or push performed.
+- Smoke: FAIL, node tests/smoke.mjs; missing js/aquatic-move.js imported by tests/smoke.mjs. Existing scheduled oss20b card t_48f3d6eb owns that pure module slice.
+- Diff check: PASS (git diff --check).
+- Browser/local: node scripts/static-8767.mjs served 200 on 127.0.0.1:8767; local page reports v1.13.3 and DOM start probe reached HUD/started state, but browser console recorded blank exceptions on load/start. This is local evidence only; no live release claim.
+- Next: let t_53fa5901 finish, then dispatch the scheduled oss20b aquatic-move card serially; independently rerun smoke and investigate browser exceptions before any ship decision.
+| 2026-08-02T07:31:54.725Z | watchdog running 1→1 reclaimed none Spawned 0 |

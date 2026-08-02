@@ -385,6 +385,7 @@ export const RECIPES = [
   { id:'blast_furnace', name:'Blast Furnace', desc:'Faster ore smelting (2×). Furnace + 5 Cobble + 1 Iron', ingredients:[{id:BLOCK.FURNACE,count:1},{id:BLOCK.COBBLE,count:5},{id:ITEM.IRON_INGOT,count:1}], results:[{id:BLOCK.BLAST_FURNACE,count:1}] },
   { id:'mace', name:'Mace', desc:'Fall-smash melee. 3 Iron + 2 Sticks', ingredients:[{id:ITEM.IRON_INGOT,count:3},{id:ITEM.STICK,count:2}], results:[{id:ITEM.MACE,count:1}] },
   { id:'anvil', name:'Anvil', desc:'Repair matching tools. 3 Iron + 4 Cobble', ingredients:[{id:ITEM.IRON_INGOT,count:3},{id:BLOCK.COBBLE,count:4}], results:[{id:BLOCK.ANVIL,count:1}] },
+  { id:'shears', name:'Shears', desc:'2 Iron → Shears for wool', ingredients:[{id:ITEM.IRON_INGOT,count:2}], results:[{id:ITEM.SHEARS,count:1}] },
 ];
 
 export function visibleRecipes() {
