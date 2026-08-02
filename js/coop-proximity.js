@@ -88,3 +88,17 @@ export function lerp(a, b, t) {
   return a + (b - a) * clamp01(t);
 }
 
+/**
+ * Inverse linear interpolation: normalise `v` into [0,1] range between `a` and `b`.
+ * Returns 0 when a == b (safe division). Result clamped to [0,1].
+ * @param {number} a start value
+ * @param {number} b end value
+ * @param {number} v value to normalise
+ * @returns {number} 0..1, always finite
+ */
+export function invLerp(a, b, v) {
+  if (a === b || !Number.isFinite(a) || !Number.isFinite(b)) return 0;
+  if (!Number.isFinite(v)) return 0;
+  return clamp01((v - a) / (b - a));
+}
+

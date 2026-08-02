@@ -2,8 +2,8 @@
  * Pure mine-tier helper wrapping tool-tiers for harvest checks / speed.
  * Additive — does not change game mine path until a wire card imports it.
  */
-import { tierForItem, HARVEST_LEVEL, speedForItem, tierMeetsRequirement } from './tool-tiers.js?v=220';
-import { oreDropEntry, primaryOreDropId } from './ore-drops.js?v=220';
+import { tierForItem, HARVEST_LEVEL, speedForItem, tierMeetsRequirement } from './tool-tiers.js?v=240';
+import { oreDropEntry, primaryOreDropId } from './ore-drops.js?v=240';
 
 /**
  * Effective mine speed multiplier for a held item id.

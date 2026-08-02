@@ -69,7 +69,7 @@ function biomeAt(x, z, seed = 0) {
   const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
   if (h < 16 - 1) return 'ocean';
   if (h >= 16 && h <= 16 + 7 && coast < 0.4 && isle > 0.7) return 'tropical';
-  if (h < 20) return 'shore';
+  if (h < 21) return 'shore';
   const dryness = fbm(
     x * 0.015 * WORLD_SCALE + seed * 31.3,
     z * 0.015 * WORLD_SCALE + seed * 22.7,
@@ -179,10 +179,12 @@ function generateChunkData(cx, cz, seed) {
       if (h > SEA_LEVEL + 1) {
         const th = hash2(x * 3 + (seed | 0), z * 5 + 19);
         let treeChance = 0;
-        if (biome === 'forest') treeChance = 0.04;
-        else if (biome === 'shore') treeChance = 0.012;
-        else if (biome === 'tundra') treeChance = 0.02;
-        else if (biome === 'tropical') treeChance = 0.03;
+        if (biome === 'forest') treeChance = 0.06;
+        else if (biome === 'shore') treeChance = 0.02;
+        else if (biome === 'tundra') treeChance = 0.026;
+        else if (biome === 'tropical') treeChance = 0.045;
+        const grove = hash2(Math.floor(x / 4) + seed * 11, Math.floor(z / 4) - seed * 7);
+        if (grove > 0.62) treeChance += biome === 'forest' ? 0.035 : 0.012;
         if (th > 1 - treeChance) {
           if (biome === 'tropical') _placePalm(data, idx, lx, h + 1, lz);
           else _placeTree(data, idx, lx, h + 1, lz);
@@ -191,11 +193,22 @@ function generateChunkData(cx, cz, seed) {
 
       // Berry bushes
       if (
-        (biome === 'forest' || biome === 'shore') &&
+        (biome === 'forest' || biome === 'shore' || biome === 'tropical') &&
         h > SEA_LEVEL + 1 &&
-        data[idx(lx, h, lz)] === BLOCK.GRASS &&
+        (data[idx(lx, h, lz)] === BLOCK.GRASS || data[idx(lx, h, lz)] === BLOCK.SAND) &&
         data[idx(lx, h + 1, lz)] === BLOCK.AIR &&
-        hash2(x + 91, z * 3 + (seed | 0)) > 0.94
+        hash2(x + 91, z * 3 + (seed | 0)) > 0.90
+      ) {
+        data[idx(lx, h + 1, lz)] = BLOCK.BUSH;
+      }
+
+      // Low beach scrub marks the waterline on sandy shores and islands.
+      if (
+        (biome === 'shore' || biome === 'tropical') &&
+        h >= SEA_LEVEL && h <= SEA_LEVEL + 2 &&
+        data[idx(lx, h, lz)] === BLOCK.SAND &&
+        data[idx(lx, h + 1, lz)] === BLOCK.AIR &&
+        hash2(x + 137, z * 5 + (seed | 0)) > 0.88
       ) {
         data[idx(lx, h + 1, lz)] = BLOCK.BUSH;
       }
@@ -246,6 +259,24 @@ function _placeTree(data, idx, lx, y, lz) {
   if (peak < WORLD_HEIGHT && lx >= 0 && lx < CHUNK_SIZE && lz >= 0 && lz < CHUNK_SIZE) {
     const i = idx(lx, peak, lz);
     if (data[i] === BLOCK.AIR) data[i] = BLOCK.LEAVES;
+  }
+}
+
+function _placePalm(data, idx, lx, y, lz) {
+  const trunkH = 5 + Math.floor(hash2(lx + 21, lz + 13) * 3);
+  for (let i = 0; i < trunkH; i++) {
+    const ty = y + i;
+    if (ty >= WORLD_HEIGHT) break;
+    data[idx(lx, ty, lz)] = BLOCK.LOG;
+  }
+  const top = y + trunkH - 1;
+  const fronds = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  for (const [dx, dz] of fronds) {
+    const tx = lx + dx;
+    const tz = lz + dz;
+    const ty = top + (Math.abs(dx) + Math.abs(dz) > 1 ? 0 : 1);
+    if (tx < 0 || tx >= CHUNK_SIZE || tz < 0 || tz >= CHUNK_SIZE || ty < 0 || ty >= WORLD_HEIGHT) continue;
+    if (data[idx(tx, ty, tz)] === BLOCK.AIR) data[idx(tx, ty, tz)] = BLOCK.LEAVES;
   }
 }
 

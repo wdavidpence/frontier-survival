@@ -1,5 +1,5 @@
 /** Pure biome classifier — no game.js coupling. */
-import { heightAt, fbm, WORLD_SCALE } from './gen.js?v=220';
+import { heightAt, fbm, WORLD_SCALE } from './gen.js?v=241';
 
 export const BIOME = {
   OCEAN: 'ocean',
@@ -38,7 +38,7 @@ export function biomeAt(x, z, seed = 0) {
   }
 
   // Shore shelf / beach
-  if (h < 20) return BIOME.SHORE;
+  if (h < 21) return BIOME.SHORE;
 
   const dryness = fbm(
     x * 0.015 * WORLD_SCALE + seed * 31.3,

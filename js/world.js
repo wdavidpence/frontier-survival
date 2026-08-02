@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=220';
-import { heightAt, hash2, fbm } from './gen.js?v=220';
-import { biomeAt, BIOME } from './biomes.js?v=220';
-import { tileForBlock } from './atlas-core.js?v=220';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=220';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=241';
+import { heightAt, hash2, fbm } from './gen.js?v=241';
+import { biomeAt, BIOME } from './biomes.js?v=241';
+import { tileForBlock } from './atlas-core.js?v=241';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=241';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -56,7 +56,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=220';
+    const workerUrl = './js/chunk-worker.js?v=241';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -143,11 +143,15 @@ export class World {
         if (h > SEA_LEVEL + 1) {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
           let treeChance = 0;
-          if (biome === BIOME.FOREST) treeChance = 0.04; // half prior density for navigability
-          else if (biome === BIOME.SHORE) treeChance = 0.012;
-          else if (biome === BIOME.TUNDRA) treeChance = 0.02;
-          else if (biome === BIOME.TROPICAL) treeChance = 0.03; // palm-like sparse canopy
+          if (biome === BIOME.FOREST) treeChance = 0.06;
+          else if (biome === BIOME.SHORE) treeChance = 0.02;
+          else if (biome === BIOME.TUNDRA) treeChance = 0.026;
+          else if (biome === BIOME.TROPICAL) treeChance = 0.045;
           else if (biome === BIOME.OCEAN) treeChance = 0;
+          // Coarse cluster roll gives forests recognizable groves instead of a
+          // perfectly even grid of isolated trees.
+          const grove = hash2(Math.floor(x / 4) + this.seed * 11, Math.floor(z / 4) - this.seed * 7);
+          if (grove > 0.62) treeChance += biome === BIOME.FOREST ? 0.035 : 0.012;
           if (th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -172,7 +176,17 @@ export class World {
           h > SEA_LEVEL + 1 &&
           (data[this._idx(lx, h, lz)] === BLOCK.GRASS || data[this._idx(lx, h, lz)] === BLOCK.SAND) &&
           data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
-          hash2(x + 91, z * 3 + (this.seed | 0)) > 0.94
+          hash2(x + 91, z * 3 + (this.seed | 0)) > 0.90
+        ) {
+          data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
+        }
+        // Low beach scrub marks the waterline on sandy shores and islands.
+        if (
+          (biome === BIOME.SHORE || biome === BIOME.TROPICAL) &&
+          h >= SEA_LEVEL && h <= SEA_LEVEL + 2 &&
+          data[this._idx(lx, h, lz)] === BLOCK.SAND &&
+          data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
+          hash2(x + 137, z * 5 + (this.seed | 0)) > 0.88
         ) {
           data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
         }
@@ -325,11 +339,15 @@ export class World {
         if (h > SEA_LEVEL + 1) {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
           let treeChance = 0;
-          if (biome === BIOME.FOREST) treeChance = 0.04; // ~4% surface — half prior density
-          else if (biome === BIOME.SHORE) treeChance = 0.012;
-          else if (biome === BIOME.TUNDRA) treeChance = 0.02;
-          else if (biome === BIOME.TROPICAL) treeChance = 0.03; // palm-like sparse canopy
+          if (biome === BIOME.FOREST) treeChance = 0.06;
+          else if (biome === BIOME.SHORE) treeChance = 0.02;
+          else if (biome === BIOME.TUNDRA) treeChance = 0.026;
+          else if (biome === BIOME.TROPICAL) treeChance = 0.045;
           else if (biome === BIOME.OCEAN) treeChance = 0;
+          // Coarse cluster roll gives forests recognizable groves instead of a
+          // perfectly even grid of isolated trees.
+          const grove = hash2(Math.floor(x / 4) + this.seed * 11, Math.floor(z / 4) - this.seed * 7);
+          if (grove > 0.62) treeChance += biome === BIOME.FOREST ? 0.035 : 0.012;
           if (th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -355,7 +373,17 @@ export class World {
           h > SEA_LEVEL + 1 &&
           (data[this._idx(lx, h, lz)] === BLOCK.GRASS || data[this._idx(lx, h, lz)] === BLOCK.SAND) &&
           data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
-          hash2(x + 91, z * 3 + (this.seed | 0)) > 0.94
+          hash2(x + 91, z * 3 + (this.seed | 0)) > 0.90
+        ) {
+          data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
+        }
+        // Low beach scrub marks the waterline on sandy shores and islands.
+        if (
+          (biome === BIOME.SHORE || biome === BIOME.TROPICAL) &&
+          h >= SEA_LEVEL && h <= SEA_LEVEL + 2 &&
+          data[this._idx(lx, h, lz)] === BLOCK.SAND &&
+          data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
+          hash2(x + 137, z * 5 + (this.seed | 0)) > 0.88
         ) {
           data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
         }

@@ -2,40 +2,49 @@
  * Pure smelting/furnace data — no game state, no side effects.
  *
  * Defines:
- *  - SMOKE_RECIPES: input id -> { output, count } for furnace smelting
- *  - FUEL_VALUES: item/block id -> burn duration (in arbitrary ticks; higher = longer)
+ *  - SMELT_RECIPES: input id -> { output, count, fuelCost } for furnace smelting
+ *  - FUEL_VALUES: item/block id -> burn duration (arbitrary ticks)
+ *  - SMELTING_GAPS: documented missing block IDs for follow-up work
  *
  * Uses existing BLOCK/ITEM IDs from blocks.js and items.js.
  */
-import { BLOCK } from './blocks.js?v=220';
-import { ITEM } from './items.js?v=220';
+import { BLOCK } from './blocks.js?v=240';
+import { ITEM } from './items.js?v=240';
 
 /**
- * @typedef {{ input: number, output: number, count?: number }} SmeltRecipe
+ * @typedef {{ input: number, output: number, count: number, fuelCost: number }} SmeltRecipe
  */
 
 /**
  * Ore -> ingot / raw material smelting recipes.
- * Input id is the block or item placed in the furnace; output is what comes out.
- * Mirrors recipes already defined in crafting.js (smelt_iron, glass, brick_smelt, charcoal).
+ * Each recipe needs fuelCost units of burn time to complete.
+ * Mirrors the heat-requiring recipes already in crafting.js:
+ *   smelt_iron (BLOCK.IRON_ORE -> ITEM.IRON_INGOT)
+ *   glass     (BLOCK.SAND -> BLOCK.GLASS)
+ *   brick_smelt (ITEM.CLAY_BALL -> ITEM.BRICK)
+ *   charcoal  (BLOCK.LOG -> ITEM.CHARCOAL x2)
  */
 /** @type {SmeltRecipe[]} */
-export const SMELT_RECIPES = [
-  // Ore smelting
-  { input: BLOCK.IRON_ORE, output: ITEM.IRON_INGOT, count: 1 },
-  // Material smelting (sand -> glass, clay -> brick)
-  { input: BLOCK.SAND, output: BLOCK.GLASS, count: 1 },
-  { input: ITEM.CLAY_BALL, output: ITEM.BRICK, count: 1 },
-  // Charcoal production (log -> charcoal)
-  { input: BLOCK.LOG, output: ITEM.CHARCOAL, count: 2 },
-  { input: BLOCK.SPRUCE_LOG, output: ITEM.CHARCOAL, count: 2 },
-  { input: BLOCK.SEQUOIA_LOG, output: ITEM.CHARCOAL, count: 2 },
+const SMELT_RECIPES = [
+  // Ore smelting — iron ore to ingot (needs stone-tier or better)
+  { input: BLOCK.IRON_ORE, output: ITEM.IRON_INGOT, count: 1, fuelCost: 8 },
+  // Material smelting — sand to glass
+  { input: BLOCK.SAND, output: BLOCK.GLASS, count: 1, fuelCost: 4 },
+  // Material smelting — clay ball to brick
+  { input: ITEM.CLAY_BALL, output: ITEM.BRICK, count: 1, fuelCost: 4 },
+  // Charcoal production — logs to charcoal
+  { input: BLOCK.LOG, output: ITEM.CHARCOAL, count: 2, fuelCost: 6 },
+  { input: BLOCK.SPRUCE_LOG, output: ITEM.CHARCOAL, count: 2, fuelCost: 6 },
+  { input: BLOCK.SEQUOIA_LOG, output: ITEM.CHARCOAL, count: 2, fuelCost: 7 },
+  // Food cooking — smoker consumes these at 2x speed; furnace remains a fallback.
+  { input: ITEM.RAW_MEAT, output: ITEM.COOKED_MEAT, count: 1, fuelCost: 8 },
+  { input: ITEM.RAW_FISH, output: ITEM.COOKED_FISH, count: 1, fuelCost: 8 },
 ];
 
 /**
  * Fuel burn durations (arbitrary time units).
- * Higher = burns longer. 1 unit ~= 1 item smelted.
- * Coal/charcoal are the best fuels; wood is basic.
+ * Higher value = burns longer. 1 unit ~= 0.5 items smelted.
+ * Coal is the best fuel; wood/planks are basic alternatives.
  */
 /** @type {Record<number, number>} */
 export const FUEL_VALUES = {
@@ -47,71 +56,51 @@ export const FUEL_VALUES = {
   [BLOCK.PLANKS]: 15,
 };
 
-/** Look up smelt output for a given input id. Returns null if not smeltable. */
-/** @param {number} inputId */
-export function findSmeltRecipe(inputId) {
-  for (const r of SMELT_RECIPES) {
-    if (r.input === inputId) return r;
-  }
-  return null;
+/**
+ * Documented integration gaps — block IDs that exist but lack smelting recipes.
+ * These are real blocks in blocks.js with no corresponding ore->ingot path yet.
+ */
+export const SMELTING_GAPS = [
+  { blockId: BLOCK.SULFUR_ORE, note: 'Sulfur Ore (40) — no smelt recipe or output item yet' },
+  { blockId: BLOCK.CLAY_DEEP_ORE, note: 'Deep Clay Ore (39) — drops clay but no smelt recipe needed; brick recipe covers it' },
+  { blockId: BLOCK.OIL_SEEP, note: 'Oil Seep (41) — no smelt recipe or refined output item yet' },
+  // Future Minecraft-breadth gaps (blocks not yet in blocks.js):
+  // GOLD_ORE -> GOLD_INGOT, COPPER_ORE -> COPPER_INGOT, RAW_IRON -> IRON_INGOT
+  // LAPIS_ORE -> LAPIS_LAZULI, REDSTONE_ORE -> REDSTONE
+];
+
+/** Get burn time for a fuel id. Returns 0 if not a valid fuel. */
+export function fuelValue(itemId) {
+  return FUEL_VALUES[itemId] || 0;
 }
 
-/** Check whether an item id is a valid fuel. */
-/** @param {number} itemId */
+/** Check whether an item id is a valid furnace fuel. */
 export function isFuel(itemId) {
   return itemId in FUEL_VALUES;
 }
 
-/** Get burn duration for a fuel id. Returns 0 if not a fuel. */
-/** @param {number} itemId */
-export function getFuelBurnTime(itemId) {
-  return FUEL_VALUES[itemId] || 0;
-}
-
-/** Get all fuel item ids. */
-export const FUEL_IDS = Object.keys(FUEL_VALUES).map(Number);
-
-/** Get all smeltable input ids. */
-export const SMELTABLE_IDS = SMELT_RECIPES.map((r) => r.input);
-
-// Compatibility helpers (additive) used by smoke + future furnace UI.
-export function fuelValue(itemId) {
-  return getFuelBurnTime(itemId);
-}
-
-export function smeltRecipe(inputId) {
-  const r = findSmeltRecipe(inputId);
-  if (!r) return null;
-  return {
-    output: r.output,
-    count: r.count ?? 1,
-    fuelCost: 20,
-  };
-}
-
+/** Check whether an input id has a smelting recipe. */
 export function canSmelt(inputId) {
-  return findSmeltRecipe(inputId) != null;
+  return SMELT_RECIPES.some((r) => r.input === inputId);
 }
 
-export function canAffordSmelt(inputId, fuelUnits) {
-  const r = smeltRecipe(inputId);
-  if (!r) return false;
-  return (fuelUnits | 0) >= (r.fuelCost | 0);
+/** Look up smelt recipe for a given input id. Returns null if not smeltable. */
+export function smeltRecipe(inputId) {
+  return SMELT_RECIPES.find((r) => r.input === inputId) || null;
 }
 
+/**
+ * Check whether you have enough fuel to smelt one unit of the given input.
+ * @param {number} inputId - The item/block to smelt.
+ * @param {number} fuelAvailable - Burn time available from current fuel source.
+ */
+export function canAffordSmelt(inputId, fuelAvailable) {
+  const recipe = smeltRecipe(inputId);
+  if (!recipe) return false;
+  return fuelAvailable >= recipe.fuelCost;
+}
+
+/** Return a copy of all smelting recipes. */
 export function listSmeltRecipes() {
-  return SMELT_RECIPES.map((r) => ({
-    input: r.input,
-    output: r.output,
-    count: r.count ?? 1,
-    fuelCost: 20,
-  }));
+  return SMELT_RECIPES.map((r) => ({ ...r }));
 }
-
-/** Documented integration gaps (not blockers for pure module). */
-export const SMELTING_GAPS = [
-  'Furnace block UI tick not wired to these tables',
-  'SULFUR_ORE has no ingot output yet',
-  'Co-op: furnace opener must bind acting player inventory',
-];
-

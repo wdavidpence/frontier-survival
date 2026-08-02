@@ -2,8 +2,8 @@
  * Wildlife simulation — pure movement/AI helpers + manager.
  * Prey flee; predators hunt (worse at night). Meat drops on death.
  */
-import { isSolid, BLOCK } from './blocks.js?v=216';
-import { hash2 } from './gen.js?v=216';
+import { isSolid, BLOCK } from './blocks.js?v=240';
+import { hash2 } from './gen.js?v=240';
 
 export const SPECIES = {
   hare: {
@@ -211,6 +211,26 @@ export const SPECIES = {
     nocturnal: true, // primarily active at night
     count: 10,
   },
+  bee_stub: {
+    id: 'bee_stub',
+    name: 'Bee Stub',
+    hp: 3,
+    speed: 5.0,
+    hostile: false,
+    fleeRange: 8,
+    senseRange: 10,
+    damage: 2, // small defensive sting
+    attackRange: 1.2,
+    attackCd: 3.0, // reluctant to sting
+    meatMin: 0,
+    meatMax: 0,
+    honey: true, // drops honey on death
+    feedItem: 'berries', // nectar proxy — tameable via feeding
+    color: [0.85, 0.72, 0.12], // yellow
+    scale: [0.15, 0.15, 0.2], // tiny
+    count: 12,
+    biomes: ['forest', 'tropical'], // preferred spawn biomes (metadata for now)
+  },
 };
 
 function groundY(world, x, z) {
@@ -241,7 +261,7 @@ export function meatDropCount(spec, rng = Math.random) {
 }
 
 /**
- * @param {import('./world.js').World} world
+ * @param {import('./world.js?v=240').World} world
  */
 export class FaunaSystem {
   constructor(world, seed = 1) {
@@ -513,13 +533,16 @@ export class FaunaSystem {
     else if (animal.type === 'fox') hide = Math.random() < 0.6 ? 1 : 0;
     else if (animal.type === 'boar') hide = 2 + (Math.random() < 0.6 ? 1 : 0);
     else if (animal.type === 'bat') hide = Math.random() < 0.3 ? 1 : 0;
+    else if (animal.type === 'bee_stub') hide = Math.random() < 0.2 ? 1 : 0;
     let egg = 0;
     let feather = 0;
     let wing = 0;
+    let honey = 0;
     if (spec.egg) egg = Math.random() < 0.75 ? 1 : 0;
     if (spec.feather) feather = 1 + (Math.random() < 0.5 ? 1 : 0);
     if (spec.wing) wing = Math.random() < 0.65 ? 1 : 0;
-    return { killed: true, meat, hide, egg, feather, wing, name: spec.name, type: animal.type };
+    if (spec.honey) honey = Math.random() < 0.5 ? 1 : 0;
+    return { killed: true, meat, hide, egg, feather, wing, honey, name: spec.name, type: animal.type };
   }
 
   /** Count living of type */

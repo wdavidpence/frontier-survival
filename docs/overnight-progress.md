@@ -1414,3 +1414,13 @@ PASS oss20b chiseled-bookshelf-signal PASS, 293? emitted PASS lines plus final  
 | 2026-08-02T00:14:20.339Z | watchdog running 3→3 reclaimed none Spawned 0 |
 | 2026-08-01T20:16:10-0400 | ANIMAL VISUALS v1.13.0 multi-part species silhouettes, markings, legs/wings/tails, and subtle motion; smoke159+green |
 | 2026-08-01T20:30:36-0400 | SHIP v1.13.1 BLAST_FURNACE playable; luna animals shipped; oss20b opencode peg errors; smoke317 |
+
+## Judge tick — 2026-08-01 20:31 EDT
+- Board: 304 done, 266 scheduled, 69 blocked, 1 running (`t_22720009` qwen27s; game.js station lock); Luna implementation claims were reclaimed/reassigned to worker lane; no local35 dispatch because its gateway is stopped.
+- Started/redirected: `t_22720009` is the active qwen27s station slice; fauna/world slices were reassigned from Luna and parked behind exclusive `js/game.js`/`js/world.js` locks. Dispatch request was bounded (`--max 2`); gateway reported no new spawn while two claims appeared, then stale Luna world claim was reclaimed and parked.
+- Verification: `node tests/smoke.mjs` PASS (full output ends `v1130 honey powder scaffold smoker mace`); `git diff --check` PASS; local :8767 HTTP 200; browser boot v1.13.1, zero JS errors; DOM Start probe hid `#title-screen` and exposed survival HUD/status.
+- Release: broad uncommitted WIP; `index.html == public/index.html`; 104 relative JS refs all cache-busted, versions 240/250/251; no commit/push and live not rechecked.
+- Next safe action: let qwen27s finish `t_22720009`, then independently inspect station diff and smoke before unblocking the next game/world owner.
+- Decision: continue.
+| 2026-08-02T00:32:13.130Z | watchdog running 2→2 reclaimed none Spawned 0 |
+| 2026-08-01T20:43:18-0400 | SHIP v1.13.2 forest grove density+shore scrub; station catalog smoker/blast; smelting food recipes; smoke317; luna review cleared |

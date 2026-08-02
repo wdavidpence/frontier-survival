@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=240';
-import { Player } from './player.js?v=251';
+import { World } from './world.js?v=252';
+import { Player } from './player.js?v=252';
 import { Input } from './input.js?v=240';
 import { GameTime } from './time.js?v=240';
 import { AudioBus } from './audio.js?v=240';
@@ -10,7 +10,7 @@ import {
   eatFood,
   applyDamage,
 } from './survival.js?v=240';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=251';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=252';
 import {
   ITEM,
   propsOf,
@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=251';
+} from './items.js?v=252';
 import { resolveBlockDrop } from './mine-tier.js?v=240';
 import {
   createFurnaceState,
@@ -29,6 +29,7 @@ import {
   takeOutput,
 } from './furnace-tick.js?v=240';
 import { isFuel, canSmelt } from './smelting.js?v=240';
+import { isSmokerFood } from './smoker-speed.js?v=240';
 import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=240';
 import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=240';
 import { advanceCropGrowth } from './crop-growth.js?v=240';
@@ -49,7 +50,7 @@ import {
   splitStack,
 } from './inventory.js?v=240';
 import { visibleRecipes, craftRecipe } from './crafting.js?v=240';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=240';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
 import { createBlockAtlas } from './atlas.js?v=240';
 import { BreakFX } from './fx.js?v=240';
 import {
@@ -89,7 +90,7 @@ import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=240';
 import { wearTool, durabilityRatio } from './durability.js?v=240';
 import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=240';
 import { tickLogic, COMPONENT } from './logic.js?v=240';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=240';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=241';
 import {
   chestKey,
   getChestSlots,
@@ -2760,19 +2761,26 @@ export class Game {
           return;
         }
       }
-      if (held.id != null && canSmelt(held.id) && (!isBlastFurnace || isBlastFurnaceInput(displayName(held.id)))) {
+      const heldName = held.id != null ? displayName(held.id) : '';
+      const smokerRejects = isSmoker && canSmelt(held.id) && !isSmokerFood(heldName);
+      const blastRejects = isBlastFurnace && canSmelt(held.id) && !isBlastFurnaceInput(heldName);
+      if (smokerRejects) {
+        this.player.notify('Smoker only accepts food inputs.', 2.2);
+        return;
+      }
+      if (blastRejects) {
+        this.player.notify('Blast Furnace only accepts ore or metal inputs.', 2.2);
+        return;
+      }
+      if (held.id != null && canSmelt(held.id)) {
         const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
         if (cons.ok) {
           this.player.slots = cons.slots;
           insertInput(st, held.id, 1);
           this.audio.placeBlock();
-          this.player.notify(`${stationName}: smelting ${displayName(held.id)}${isSmoker ? ' (food speed 2×)' : isBlastFurnace ? ' (ore speed 2×)' : ''}…`, 2.4);
+          this.player.notify(`${stationName}: smelting ${heldName}${isSmoker ? ' (food speed 2×)' : isBlastFurnace ? ' (ore speed 2×)' : ''}…`, 2.4);
           return;
         }
-      }
-      if (isBlastFurnace && held.id != null && canSmelt(held.id)) {
-        this.player.notify('Blast Furnace only accepts ore or metal inputs.', 2.2);
-        return;
       }
       // legacy stick/coal set still handled above via isFuel; fall through if nothing matched
       const fuelIds = new Set([ITEM.STICK, ITEM.COAL, ITEM.CHARCOAL, BLOCK.LOG]);

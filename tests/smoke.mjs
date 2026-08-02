@@ -2443,8 +2443,13 @@ test('ore-drops pure catalog', () => {
 
 test('station-catalog pure tags', () => {
   assert.ok(listStationIds().includes('furnace'));
+  assert.ok(listStationIds().includes('smoker'));
+  assert.ok(listStationIds().includes('blast_furnace'));
   assert.strictEqual(stationById('furnace')?.blockId, BLOCK.FURNACE);
+  assert.strictEqual(stationById('smoker')?.blockId, BLOCK.SMOKER);
+  assert.strictEqual(stationById('blast_furnace')?.blockId, BLOCK.BLAST_FURNACE);
   assert.ok(stationsWithTag('smelting').length >= 1);
+  assert.ok(stationsWithTag('food').some((s) => s.id === 'smoker'));
 });
 
 test('mine-tier helpers', () => {
@@ -3294,9 +3299,14 @@ test('v1131 blast furnace', () => {
   assert.ok(BLOCK.BLAST_FURNACE);
   assert.ok(String(BLOCK_PROPS[BLOCK.BLAST_FURNACE].name).toLowerCase().includes('blast'));
   assert.ok(visibleRecipes().some((r) => r.id === 'blast_furnace'));
+  assert.ok(canSmelt(ITEM.RAW_MEAT));
+  assert.strictEqual(smeltRecipe(ITEM.RAW_MEAT)?.output, ITEM.COOKED_MEAT);
+  assert.ok(canSmelt(ITEM.RAW_FISH));
+  assert.strictEqual(smeltRecipe(ITEM.RAW_FISH)?.output, ITEM.COOKED_FISH);
   const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
   assert.ok(src.includes('BLAST_FURNACE'));
   assert.ok(src.includes('isBlastFurnace'));
+  assert.ok(src.includes('isSmokerFood'));
 });
 
 if (process.exitCode) process.exit(1);

@@ -2,12 +2,12 @@
  * Break/hit visual juice: crack overlay + debris particles.
  */
 import * as THREE from 'three';
-import { crackTileForProgress, tileUVs } from './atlas-core.js?v=216';
+import { crackTileForProgress, tileUVs } from './atlas-core.js?v=240';
 
 export class BreakFX {
   /**
    * @param {THREE.Scene} scene
-   * @param {import('./atlas.js').createBlockAtlas extends Function} atlas
+   * @param {import('./atlas.js?v=240').createBlockAtlas extends Function} atlas
    */
   constructor(scene, atlas) {
     this.scene = scene;

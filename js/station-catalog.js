@@ -1,7 +1,7 @@
 /**
  * Pure crafting-station catalog (MC-breadth). Tags only — no UI/game tick.
  */
-import { BLOCK } from './blocks.js?v=220';
+import { BLOCK } from './blocks.js?v=240';
 
 /**
  * @typedef {{ id: string, name: string, blockId: number|null, recipeTags: string[], notes?: string }} Station
@@ -28,6 +28,20 @@ export const STATIONS = [
     name: 'Furnace',
     blockId: BLOCK.FURNACE,
     recipeTags: ['smelting', 'heat'],
+  },
+  {
+    id: 'smoker',
+    name: 'Smoker',
+    blockId: BLOCK.SMOKER,
+    recipeTags: ['cooking', 'food', 'heat', 'smelting'],
+    notes: 'Food-only cooking at double speed',
+  },
+  {
+    id: 'blast_furnace',
+    name: 'Blast Furnace',
+    blockId: BLOCK.BLAST_FURNACE,
+    recipeTags: ['smelting', 'ore', 'heat'],
+    notes: 'Ore and metal smelting at double speed',
   },
   {
     id: 'campfire',
