@@ -1,0 +1,10 @@
+Repo /mnt/c/Users/wdavi/Projects/Frontier-Survival. Edit/Patch only. No long explore. ADD-ONLY.
+
+Add BLAST_FURNACE=53 playable like SMOKER (speedMult 2):
+- blocks.js id+props name Blast Furnace
+- atlas-core tileForBlock -> FURNACE tile
+- crafting recipe blast_furnace
+- game.js F-use + place with smoker path (include BLAST_FURNACE)
+- items preferredTool pick
+- smoke test
+Run node tests/smoke.mjs PASS. No animals.js. No push.

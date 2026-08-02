@@ -177,3 +177,11 @@ Pure: breeze-charge, wind-charge, mace-smash, wolf-armor, armadillo-scute, bogge
 
 1. Holding a mace-named tool applies maceSmashDamage using recent fall speed as distance proxy.
 2. No-op bonus until fall speed builds or a mace item exists.
+
+## v1.13.0 playable blocks (craft + place)
+
+1. **Honey Block** — 4 Berries → Honey Block. Walk on it: slower move, shorter jump.
+2. **Powder Snow** — 4 Snow → Powder Snow. Stand in it: sink; reduced jump.
+3. **Scaffolding** — 6 Sticks + 1 Planks → 6. Climb like ladder (forward/jump up, crouch down).
+4. **Smoker** — Furnace + 4 Logs. F feed like furnace at 2× cook.
+5. **Mace** — 3 Iron + 2 Sticks. Melee; fall speed adds smash damage.

@@ -1,0 +1,15 @@
+Repo: /mnt/c/Users/wdavi/Projects/Frontier-Survival
+Model slice for localoss/gpt-oss-20b. Surgical Edit only. ADD-ONLY. No git reset/clean/checkout. No commit unless smoke green and asked.
+
+GOAL: Playable BLAST_FURNACE block (MC ore smelter, 2x speed like smoker).
+
+1) js/blocks.js — add BLOCK.BLAST_FURNACE next free id after SMOKER (53 if free). Name must include "Blast Furnace". Props like furnace, heat/light, drops self.
+2) js/atlas-core.js — tileForBlock maps BLAST_FURNACE → TILE.FURNACE
+3) js/crafting.js — recipe blast_furnace: 1 FURNACE + 5 COBBLE → 1 BLAST_FURNACE
+4) js/game.js — extend furnace/smoker F-use and place handlers to include BLAST_FURNACE with speedMult=2 (same as smoker). Notify "Blast furnace" strings. Do NOT break honey/scaffold/smoker place notifies.
+5) js/items.js preferredTool — blast furnace is pick
+6) tests/smoke.mjs — assert BLOCK.BLAST_FURNACE exists, name includes blast, recipe blast_furnace in visibleRecipes()
+7) Run node tests/smoke.mjs — must PASS
+8) If version still v1.13.0, bump to v1.13.1 dual HTML + main boot + ?v=251 on changed entry imports only
+
+Do not touch js/animals.js. Keep diffs small.
