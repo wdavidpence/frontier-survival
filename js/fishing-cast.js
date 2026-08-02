@@ -1,51 +1,53 @@
-// Frontier Survival - Water, Plank, Bottle, Fishing Systems
-const FISHING_CAST_SECONDS = 2.2;
+import { randomItem, getWeight } from './utils.js';
 
-function createFishingState() {
-  return { rod: null, line: null, bait: null, bucket: false };
-}
+const CAST_ROD_COST = 5;
+const CAST_LINE_COST = 0.2;
+const CAST_BAIT_COST = 1;
+const MIN_ROD_DURABILITY = 5;
+const MAX_ROD_DURABILITY_COST = 8;
+const LINE_BREAK_CHANCE_BASE = 0.35;
 
-function updateFishingCast(state, input) {
-  if (!state.bucket && state.line === null) {
-    return { cast: false, catch: false };
-  }
-  
-  const roll = Math.random();
-  let catchResult = { caught: false, fish: null };
-  
-  if (roll < 0.55) {
-    catchResult.caught = true;
-    catchResult.fish = { type: 'small', weight: 12 + Math.floor(Math.random() * 8), value: 3 };
-  } else if (roll < 0.75) {
-    catchResult.caught = true;
-    catchResult.fish = { type: 'medium', weight: 18 + Math.floor(Math.random() * 6), value: 8 };
-  } else if (roll < 0.92) {
-    catchResult.caught = true;
-    catchResult.fish = { type: 'large', weight: 25 + Math.floor(Math.random() * 10), value: 15 };
-  }
-  
-  return { cast: state.line !== null, catch: catchResult };
-}
-
-function consumeResource(state) {
-  const bucket = state.bucket;
-  let rodDurability;
-  
-  if (bucket) {
-    if (state.rod === null || state.rod < 100) {
-      state.rod = Math.min(95, state.rod + 5);
-    } else {
-      state.rod = Math.max(0, state.rod - 3);
+export function cast(state, input) {
+    if (!input || !state) return false;
+    
+    const rodDurabilityCost = Math.floor(input.weight * (CAST_ROD_COST / MAX_WEIGHT));
+    state.rods = (state.rods - rodDurabilityCost).clamp(0);
+    if (rodDurabilityCost >= CAST_ROD_MAX_DURABILITY) {
+        state.rods = 0;
+        return false;
     }
-  } else if (state.line !== null && state.line > 0) {
-    state.line--;
-    rodDurability = 1;
-  } else if (state.bait === 'fish' || state.bait === 'worm') {
-    state.bait = null;
-    rodDurability = 2;
-  } else {
-    return false;
-  }
-  
-  return rodDurability > 0 ? true : false;
+
+    let lineIntact = true;
+    if (state.lines > 0) {
+        const lineBreakChance = Math.min(1, LINE_BREAK_CHANCE_BASE * (1 - state.lines));
+        if (Math.random() < lineBreakChance) {
+            state.lines = 0;
+            return false; // Line broke! Bad luck.
+        } else {
+            state.lines += CAST_LINES_PER_CAST;
+        }
+    }
+
+    const caughtItem = randomCatch(input.weight);
+    if (caughtItem && input.bait) {
+        caughtItem.quantity += Math.floor(2 * (1 - lineBreakChance));
+    }
+
+    // Return catch to player only if something was actually caught
+    if (!caughtItem || caughtItem.fish === 0 && caughtItem.shrimp === 0) {
+        return false;
+    }
+
+    return caughtItem;
+}
+
+function randomCatch(weight) {
+    const rand = weight;
+    const rolls = [];
+    
+    for (let i = 0; i < CATCH_ROLLOUTS.length; i++) {
+        rolls.push(rolls[rolls.length - 1] + Math.random() * rand);
+    }
+    
+    return rolls[CATCH_ROLL_INDEX];
 }
