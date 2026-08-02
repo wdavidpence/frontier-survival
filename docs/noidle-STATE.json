@@ -1,0 +1,25 @@
+{
+  "updatedAt": "2026-08-02T18:49:54.071Z",
+  "cadence": {
+    "watchdogEvery": "5m",
+    "judgeEvery": "60m",
+    "chatPollDefaultMin": 5,
+    "note": "CLI chat does not auto-receive cron; read this file + overnight-progress. Live session may 5m-poll."
+  },
+  "board": {
+    "runningBefore": 1,
+    "runningAfter": 1,
+    "ossRunning": 1,
+    "lunaRunning": 0,
+    "runningTitles": [
+      "● t_f6e18f32 running oss20b fauna: layout reef_shark stub parts pure export+smoke"
+    ]
+  },
+  "lastAction": {
+    "unblocked": [],
+    "reclaimed": [],
+    "spawnHint": "Spawned 0"
+  },
+  "previousUpdatedAt": "2026-08-02T18:48:03.565Z",
+  "protocol": "docs/worker-24-7-ops.md#no-idle-default-2026-08-02"
+}

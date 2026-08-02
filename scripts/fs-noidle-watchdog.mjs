@@ -12,7 +12,7 @@
  *   node scripts/fs-noidle-watchdog.mjs --dry-run
  */
 import { spawnSync } from 'child_process';
-import { appendFileSync, existsSync } from 'fs';
+import { appendFileSync, existsSync, writeFileSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const args = process.argv.slice(2);
@@ -28,6 +28,7 @@ const RECLAIM_MIN = Number(flag('reclaim-minutes', 18)) || 18;
 const DISPATCH_MAX = Number(flag('dispatch-max', 2)) || 2;
 const DRY = !!flag('dry-run', false);
 const LOG = resolve('docs/overnight-progress.md');
+const STATE = resolve('docs/noidle-STATE.json');
 const REPO = resolve('.');
 
 function sh(cmd) {
@@ -144,6 +145,16 @@ const stats2 = hermes('kanban stats');
 const runM2 = stats2.out.match(/running\s+(\d+)/i);
 summary.runningAfter = runM2 ? Number(runM2[1]) : -1;
 
+const runningFinal = hermes('kanban list --status running');
+const runningTitles = [];
+for (const line of runningFinal.out.split('\n')) {
+  const idm = line.match(/\b(t_[a-f0-9]+)\b/);
+  if (!idm) continue;
+  if (!/oss20b|luna|qwen|ornith|local|●|running/i.test(line)) continue;
+  runningTitles.push(line.replace(/\s+/g, ' ').trim().slice(0, 140));
+}
+summary.runningTitles = runningTitles;
+
 const human =
   `| ${summary.ts} | noidle ${summary.runningBefore}→${summary.runningAfter} ` +
   `oss=${summary.ossRunning} luna=${summary.lunaRunning} ` +
@@ -154,11 +165,49 @@ const human =
 console.log(JSON.stringify(summary));
 console.log(human);
 
-if (existsSync(LOG) && !DRY) {
+if (!DRY) {
   try {
-    appendFileSync(LOG, `\n${human}\n`);
+    let prev = {};
+    if (existsSync(STATE)) {
+      try {
+        prev = JSON.parse(readFileSync(STATE, 'utf8'));
+      } catch {
+        prev = {};
+      }
+    }
+    const stateDoc = {
+      updatedAt: summary.ts,
+      cadence: {
+        watchdogEvery: '5m',
+        judgeEvery: '60m',
+        chatPollDefaultMin: 5,
+        note: 'CLI chat does not auto-receive cron; read this file + overnight-progress. Live session may 5m-poll.',
+      },
+      board: {
+        runningBefore: summary.runningBefore,
+        runningAfter: summary.runningAfter,
+        ossRunning: summary.ossRunning,
+        lunaRunning: summary.lunaRunning,
+        runningTitles,
+      },
+      lastAction: {
+        unblocked: summary.unblocked,
+        reclaimed: summary.reclaimed,
+        spawnHint: summary.spawnHint,
+      },
+      previousUpdatedAt: prev.updatedAt || null,
+      protocol: 'docs/worker-24-7-ops.md#no-idle-default-2026-08-02',
+    };
+    writeFileSync(STATE, `${JSON.stringify(stateDoc, null, 2)}\n`);
   } catch {
     /* ignore */
+  }
+  if (existsSync(LOG)) {
+    try {
+      appendFileSync(LOG, `\n${human}\n`);
+    } catch {
+      /* ignore */
+    }
   }
 }
 

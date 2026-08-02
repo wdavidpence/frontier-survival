@@ -66,4 +66,10 @@ See `docs/roadmap/MASTER_PLAN.md`. Permanent until competitive.
 
 ## No-idle watchdog
 
-`node scripts/fs-noidle-watchdog.mjs` (cron 15m, also invoked by judge cron). Keeps oss20b fauna serial queue fed; dispatches free Luna/oss slots; reclaim ≥18m thrash only.
+`node scripts/fs-noidle-watchdog.mjs` (cron **5m**, also invoked by judge cron). Keeps oss20b fauna serial queue fed; dispatches free Luna/oss slots; reclaim ≥18m thrash only.
+
+
+## Cadence (permanent)
+- 5m no-agent watchdog
+- 60m frontier judge
+- Chat: 5m low-burn poll default when live

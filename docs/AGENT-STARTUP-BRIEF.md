@@ -14,6 +14,7 @@ If you only open one file after the project path, make it this one.
 | **Handoff (detail)** | `docs/session-handoff.md` |
 | **Routing** | `docs/kanban-routing.md` |
 | **Progress log** | `docs/overnight-progress.md` |
+| **No-idle state** | `docs/noidle-STATE.json` (updated every ~5m by cron) |
 
 ---
 
@@ -29,14 +30,31 @@ If you only open one file after the project path, make it this one.
 
 ---
 
+## Permanent no-idle cadence (user default, survives session reset)
+
+| Cadence | What | Tokens |
+|--------|------|--------|
+| **Every 5m** | Cron `FS noidle 5m (no-agent)` → `scripts/fs-noidle-watchdog.mjs` | **0 frontier** |
+| **Every 60m** | Cron `FS hourly judge (higher burn)` — smoke/diff/ship only if needed | **frontier, bounded** |
+| **Live chat session** | Default **5 min** low-burn poll when user wants live updates; deeper check ~hourly or on events | low / higher as needed |
+
+- Watchdog: if oss20b idle → unblock next `fauna:` card; reclaim thrash ≥18m; `dispatch --max 2`.
+- CLI chat **does not** auto-receive cron output. New sessions: read `docs/noidle-STATE.json` + overnight log.
+- Optional Telegram/etc. delivery is separate; not required for permanence.
+- Implementers: **luna** = hard; **oss20b** (ornith) = easy pure/fauna-parts. Hermes = judge/orchestrate only unless user says otherwise.
+
+---
+
 ## Session open checklist (in order)
 
 1. Read **this brief** (you are here).
-2. `git log -5 --oneline` + `git status -sb` — know HEAD vs origin.
-3. Note **live version** in `index.html` (`<title>`, badge, `main.js?v=N`).
-4. Skim top of `docs/session-handoff.md` only if you need deeper worker/fleet state.
-5. Before coding: `node tests/smoke.mjs` (must exit 0) or know why not.
-6. Before claiming “playable”: browser boot + **Start** must put `window.__FS.started === true` and hide `#title-screen`.
+2. Read **`docs/noidle-STATE.json`** if present — board running titles + last watchdog action.
+3. `git log -5 --oneline` + `git status -sb` — know HEAD vs origin.
+4. Note **live version** in `index.html` (`<title>`, badge, `main.js?v=N`).
+5. Skim top of `docs/session-handoff.md` only if you need deeper worker/fleet state.
+6. Before coding: `node tests/smoke.mjs` (must exit 0) or know why not.
+7. Before claiming “playable”: browser boot + **Start** must put `window.__FS.started === true` and hide `#title-screen`.
+8. If user wants live subordinate updates in **this** chat: default **5-minute** low-burn poll (stats/running/STATE only); escalate to smoke/diff ~hourly or when cards complete / ship / break.
 
 ---
 
@@ -71,9 +89,9 @@ If you only open one file after the project path, make it this one.
 
 ### Kanban / models (quick)
 - Board: `frontier-survival`. Judge/orchestrator merges and publishes; workers implement.
-- **ornith9b** (was oss20b): GTX 1080 laptop — **depth 1 only**, pure `js/*` + smoke, **never parallel prompts** on that GPU. Profile name: `ornith9b`.
-- Luna/Codex: heavy SWE when available. Local qwen lanes when up.
-- Keepalive must not mass-spawn ornith (max 1).
+- **oss20b** = Ornith-1.0-9B on laptop GPU — **depth 1 only**, pure `js/*` / `fauna-parts` + smoke, never parallel on that GPU.
+- **luna** = hard SWE (biome, world stream, multi-file). qwen lanes when up.
+- Keepalive: 5m no-agent watchdog + 60m judge; must not mass-spawn oss20b (max 1).
 
 ### Smoke harness
 - Authoritative suite: **`tests/smoke.mjs`** (thousands of lines).  
