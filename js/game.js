@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=254';
-import { Player } from './player.js?v=254';
-import { Input } from './input.js?v=254';
-import { GameTime } from './time.js?v=254';
-import { AudioBus } from './audio.js?v=254';
+import { World } from './world.js?v=220';
+import { Player } from './player.js?v=238';
+import { Input } from './input.js?v=220';
+import { GameTime } from './time.js?v=220';
+import { AudioBus } from './audio.js?v=220';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
   eatFood,
   applyDamage,
-} from './survival.js?v=254';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=254';
+} from './survival.js?v=220';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=220';
 import {
   ITEM,
   propsOf,
@@ -19,25 +19,23 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=254';
-import { resolveBlockDrop } from './mine-tier.js?v=254';
+} from './items.js?v=220';
+import { resolveBlockDrop } from './mine-tier.js?v=220';
 import {
   createFurnaceState,
   insertFuel,
   insertInput,
   tickFurnace,
   takeOutput,
-} from './furnace-tick.js?v=254';
-import { isFuel, canSmelt } from './smelting.js?v=254';
-import { isSmokerFood } from './smoker-speed.js?v=254';
-import { canAnvilRepair, anvilRepair } from './anvil-repair.js?v=254';
-import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=254';
-import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=254';
-import { advanceCropGrowth } from './crop-growth.js?v=254';
-import { toggleDoor } from './door-hinge.js?v=254';
-import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=254';
-import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=254';
-import { maceSmashDamage } from './mace-smash.js?v=254';
+} from './furnace-tick.js?v=232';
+import { isFuel, canSmelt } from './smelting.js?v=220';
+import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=220';
+import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=220';
+import { advanceCropGrowth } from './crop-growth.js?v=220';
+import { toggleDoor } from './door-hinge.js?v=220';
+import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=220';
+import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=220';
+import { maceSmashDamage } from './mace-smash.js?v=220';
 import {
   addItems,
   removeItems,
@@ -49,11 +47,11 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=254';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=254';
-import { FaunaSystem, SPECIES, canFeed, tryFeed, shearAnimal } from './animals.js?v=254';
-import { createBlockAtlas } from './atlas.js?v=254';
-import { BreakFX } from './fx.js?v=254';
+} from './inventory.js?v=220';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=220';
+import { createBlockAtlas } from './atlas.js?v=220';
+import { BreakFX } from './fx.js?v=220';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -63,35 +61,35 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=254';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=254';
+} from './equipment.js?v=220';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=220';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=254';
-import { getMode } from './modes.js?v=254';
+} from './save.js?v=220';
+import { getMode } from './modes.js?v=220';
 import {
   readSettings,
   writeSettings,
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=254';
+} from './settings.js?v=220';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=254';
-import { tickSpoilage } from './spoilage.js?v=254';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=254';
-import { wearTool, durabilityRatio } from './durability.js?v=254';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=254';
-import { tickLogic, COMPONENT } from './logic.js?v=254';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=254';
+} from './achievements.js?v=220';
+import { tickSpoilage } from './spoilage.js?v=220';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=220';
+import { wearTool, durabilityRatio } from './durability.js?v=220';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=220';
+import { tickLogic, COMPONENT } from './logic.js?v=220';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=220';
 import {
   chestKey,
   getChestSlots,
@@ -102,25 +100,12 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=254';
-import { checkTooltip, show as showTooltip } from './tooltips.js?v=254';
-import { splitViewport } from './viewport-split.js?v=254';
-import { readGamepad } from './input-coop.js?v=254';
-import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=254';
-import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=254';
-import { BOAT_CONFIG, boatAimDistance, buoyancyY, canPlaceBoat, createBoat, dismountBoat, mountBoat, riderPosition, stepBoat } from './boat-entity.js?v=254';
-import { createTrialKey, trialKeyPickup, hasTrialKey as hasTrialKeyFn } from './trial-key.js?v=254';
-import { createOminousTrialKey, hasOminousTrialKey as hasOminousTrialKeyFn, useOminousTrialKey, grantOminousTrialKey as grantOminousTrialKeyFn } from './ominous-trial-key.js?v=254';
-import { BOLT_TRIM_ID, ARMOR_TRIM_PATTERNS, isValidArmorTrim as isValidArmorTrimFn, applyArmorTrim as applyArmorTrimFn, isBoltTrim } from './bolt-armor-trim.js?v=254';
-import { createFishingState, startCast, tickFishing, rollFishingCatch } from './fishing-cast.js?v=254';
-import { createMountState } from './mount.js?v=254';
-import { feedWolf } from './wolf-tame.js?v=254';
-import { harvestHoney } from './honey-harvest.js?v=254';
-import { createFurnaceUiState } from './furnace-ui.js?v=254';
-import { transferOne } from './container-ui.js?v=254';
-import { createCraftGrid } from './craft-grid.js?v=254';
-import { clampAquaticMove, isWaterVoxel } from './aquatic-move.js?v=254';
-import { hydrateNearWater, isHydratedFarmland, clampMoisture } from './farmland.js?v=254';
+} from './chests.js?v=220';
+import { checkTooltip, show as showTooltip } from './tooltips.js?v=220';
+import { splitViewport } from './viewport-split.js?v=220';
+import { readGamepad } from './input-coop.js?v=220';
+import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=220';
+import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=220';
 
 export class Game {
   /**
@@ -204,12 +189,6 @@ export class Game {
     this._crops = new Map(); // "x,y,z" -> growth 0..1
     this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0 };
     this._achievements = emptyAchievements();
-    /** Trial key state (MC 1.21). */
-    this._trialKey = createTrialKey();
-    /** Ominous trial key state (MC 1.21). */
-    this._ominousTrialKey = createOminousTrialKey();
-    /** Bolt armor trim reference. */
-    this._boltTrimId = BOLT_TRIM_ID;
     this._toastId = null;
     this._toastT = 0;
     this._debugOpen = false;
@@ -217,8 +196,6 @@ export class Game {
     this._fpsAcc = 0;
     this._fpsFrames = 0;
     this._wasInWater = false;
-    this._boats = [];
-    this._boatMeshes = new Map();
     this._rain = null;
     this._bowCd = 0;
     this._chests = new Map();
@@ -561,15 +538,6 @@ export class Game {
     this.scene.add(this.world.group);
 
     this._clearAnimalMeshes();
-    for (const mesh of this._boatMeshes.values()) {
-      this.scene.remove(mesh);
-      mesh.traverse?.((child) => {
-        child.geometry?.dispose?.();
-        child.material?.dispose?.();
-      });
-    }
-    this._boatMeshes.clear();
-    this._boats = [];
     this.fauna = new FaunaSystem(this.world, seed);
     if (saveData?.animals?.length) {
       this.fauna.importState(saveData.animals);
@@ -583,8 +551,6 @@ export class Game {
       this.time = new GameTime({ dayLengthSec: 420 });
       this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0 };
       this._achievements = emptyAchievements();
-      this._trialKey = createTrialKey();
-      this._ominousTrialKey = createOminousTrialKey();
       this._crops = new Map();
       this._spawnCoopP2(spawn);
     } else {
@@ -643,9 +609,6 @@ export class Game {
       }
       this._crops = new Map(Array.isArray(saveData.crops) ? saveData.crops : []);
       this._chests = importChests(saveData.chests || []);
-      // restore trial key states (MC 1.21)
-      this._trialKey = saveData.trialKey ? { ...saveData.trialKey } : createTrialKey();
-      this._ominousTrialKey = saveData.ominousTrialKey ? { ...saveData.ominousTrialKey } : createOminousTrialKey();
       // restore starter spawn pin (fallback to world spawn for older saves)
       if (saveData.spawnPos && Number.isFinite(saveData.spawnPos.x)) {
         this._spawnPos = {
@@ -751,18 +714,6 @@ export class Game {
       case 'first_bucket': this._firstBucketSeen = true; break;
     }
   }
-
-  // Trial key runtime accessors (MC 1.21).
-  pickupTrialKey() { this._trialKey = trialKeyPickup(this._trialKey); }
-  useTrialKeyVault(vaultId) { return trialKeyUse(this._trialKey, vaultId); }
-  hasTrialKey() { return hasTrialKey(this._trialKey); }
-
-  grantOminousTrialKey() { this._ominousTrialKey = grantOminousTrialKeyFn(this._ominousTrialKey); }
-  consumeOminousTrialKey() { this._ominousTrialKey = useOminousTrialKey(this._ominousTrialKey); }
-  hasOminousTrialKey() { return hasOminousTrialKey(this._ominousTrialKey); }
-
-  applyArmorTrim(item, patternId, material) { return applyArmorTrim(item, patternId, material); }
-  isValidArmorTrim(pid) { return isValidArmorTrim(pid); }
 
   _surfaceName(blockId) {
     if (blockId === BLOCK.GRASS) return 'grass';
@@ -942,13 +893,11 @@ export class Game {
               if (res.hide > 0) this.player.slots = addItems(this.player.slots, ITEM.HIDE, res.hide).slots;
               if (res.egg > 0) this.player.slots = addItems(this.player.slots, ITEM.EGG, res.egg).slots;
               if (res.feather > 0) this.player.slots = addItems(this.player.slots, ITEM.FEATHER, res.feather).slots;
-              if (res.honey > 0) this.player.slots = addItems(this.player.slots, ITEM.HONEY, res.honey).slots;
               const bits = [];
               if (res.meat) bits.push(`+${res.meat} meat`);
               if (res.hide) bits.push(`+${res.hide} hide`);
               if (res.egg) bits.push(`+${res.egg} egg`);
               if (res.feather) bits.push(`+${res.feather} feather`);
-              if (res.honey) bits.push(`+${res.honey} honey`);
               this.player.notify(`${res.name} down (arrow). ${bits.join(', ')}`, 3);
               this._syncAnimalMeshes();
             } else if (res) {
@@ -1094,7 +1043,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=254').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=220').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -1143,8 +1092,6 @@ export class Game {
       achievements: this._achievements?.unlocked || {},
       crops: [...(this._crops || new Map()).entries()],
       chests: exportChests(this._chests),
-      trialKey: this._trialKey ? { ...this._trialKey } : null,
-      ominousTrialKey: this._ominousTrialKey ? { ...this._ominousTrialKey } : null,
     };
   }
 
@@ -1466,9 +1413,6 @@ export class Game {
     let move = { moved: false, sprinting: false, inWater: false };
     if (!this.player.inventoryOpen) {
       move = this.player.update(this.world, this.input, this.survival, dt);
-      if (this.player.mountedBoat) {
-        move = this._tickMountedBoat(this.player, this.input, dt, 'p1');
-      }
       if (this.coopMode && this.player2 && this.input2) {
         // P2 uses pad1 when P1 holds pad0; else pad0 if P1 is KBM-only
         const p2PadIndex = this.input?._gpConnected ? 1 : 0;
@@ -2286,13 +2230,11 @@ export class Game {
           }
           if (res.egg > 0) this.player.slots = addItems(this.player.slots, ITEM.EGG, res.egg).slots;
           if (res.feather > 0) this.player.slots = addItems(this.player.slots, ITEM.FEATHER, res.feather).slots;
-          if (res.honey > 0) this.player.slots = addItems(this.player.slots, ITEM.HONEY, res.honey).slots;
           const bits = [];
           if (res.meat) bits.push(`+${res.meat} meat`);
           if (res.hide) bits.push(`+${res.hide} hide`);
           if (res.egg) bits.push(`+${res.egg} egg`);
           if (res.feather) bits.push(`+${res.feather} feather`);
-          if (res.honey) bits.push(`+${res.honey} honey`);
           this.player.notify(
             `${res.name} down. ${bits.join(', ') || 'nothing'}. Craft clothes & cook!`,
             3.5,
@@ -2391,109 +2333,9 @@ export class Game {
     this._target = hit;
   }
 
-  _boatInput(input) {
-    const forward = (input.wantsForward?.() ? 1 : 0) - (input.wantsBack?.() ? 1 : 0);
-    const turn = (input.wantsRight?.() ? 1 : 0) - (input.wantsLeft?.() ? 1 : 0);
-    return { forward, turn };
-  }
-
-  _tickMountedBoat(player, input, dt, riderId = 'p1') {
-    const boat = player.mountedBoat;
-    if (!boat) return { moved: false, sprinting: false, inWater: false, boat: false };
-    stepBoat(boat, this._boatInput(input), dt);
-    boat.y = buoyancyY(boat.surfaceY, boat.y, dt);
-    const rider = riderPosition(boat);
-    player.position.set(rider.x, rider.y, rider.z);
-    player.velocity.set(boat.vx, 0, boat.vz);
-    player.onGround = false;
-    player.yaw = boat.yaw;
-    const mesh = this._boatMeshes.get(boat);
-    if (mesh) {
-      mesh.position.set(boat.x, boat.y, boat.z);
-      mesh.rotation.y = boat.yaw;
-    }
-    return { moved: Math.abs(boat.vx) + Math.abs(boat.vz) > 0.05, sprinting: false, inWater: true, boat: true, riderId };
-  }
-
-  _boatAtLook(player = this.player) {
-    if (!player) return null;
-    const origin = player.eyePosition();
-    const dir = player.lookDir();
-    let best = null;
-    let bestD = Infinity;
-    for (const boat of this._boats) {
-      const d = boatAimDistance(boat, origin, dir, 5);
-      if (d < bestD) { bestD = d; best = boat; }
-    }
-    return best;
-  }
-
-  _findBoatWaterTarget() {
-    const origin = this.player.eyePosition();
-    const dir = this.player.lookDir();
-    for (let t = 0.8; t <= 6; t += 0.2) {
-      const x = Math.floor(origin.x + dir.x * t);
-      const y = Math.floor(origin.y + dir.y * t);
-      const z = Math.floor(origin.z + dir.z * t);
-      for (const dy of [0, -1, 1]) {
-        const wy = y + dy;
-        if (this.world.getBlock(x, wy, z) !== BLOCK.WATER) continue;
-        const clear = this.world.getBlock(x, wy + 1, z) === BLOCK.AIR
-          && this.world.getBlock(x + 1, wy + 1, z) === BLOCK.AIR
-          && this.world.getBlock(x - 1, wy + 1, z) === BLOCK.AIR;
-        if (canPlaceBoat({ water: true, clear, depth: 1 })) {
-          return { x: x + 0.5, y: wy + 0.88, z: z + 0.5, surfaceY: wy + 1 };
-        }
-      }
-    }
-    return null;
-  }
-
-  _makeBoatMesh() {
-    const group = new THREE.Group();
-    const hull = new THREE.Mesh(
-      new THREE.BoxGeometry(BOAT_CONFIG.width, 0.28, BOAT_CONFIG.length),
-      new THREE.MeshLambertMaterial({ color: 0x8b542d }),
-    );
-    hull.position.y = -0.12;
-    const seat = new THREE.Mesh(
-      new THREE.BoxGeometry(0.78, 0.12, 0.65),
-      new THREE.MeshLambertMaterial({ color: 0x4b2b18 }),
-    );
-    seat.position.y = 0.08;
-    group.add(hull, seat);
-    return group;
-  }
-
-  _placeBoat() {
-    const target = this._findBoatWaterTarget();
-    if (!target) {
-      this.player.notify('Aim at open water to place the boat.', 2.2);
-      return;
-    }
-    const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
-    if (!cons.ok) return;
-    const boat = createBoat(target.x, target.y, target.z, this.player.yaw);
-    boat.surfaceY = target.surfaceY;
-    this.player.slots = cons.slots;
-    this._boats.push(boat);
-    const mesh = this._makeBoatMesh();
-    mesh.position.set(boat.x, boat.y, boat.z);
-    mesh.rotation.y = boat.yaw;
-    this.scene.add(mesh);
-    this._boatMeshes.set(boat, mesh);
-    this.audio.splash?.() || this.audio.placeBlock();
-    this.player.notify('Boat placed. F to mount; steer with WASD; F to dismount.', 3.2);
-    this._unlock('first_boat');
-  }
-
   _handlePlace() {
     if (!this.input.consumePlace()) return;
     const held = this.player.heldId();
-    if (held === ITEM.BOAT) {
-      this._placeBoat();
-      return;
-    }
     if (!isPlaceable(held)) {
       this.player.notify('Select a placeable block (E to craft).');
       return;
@@ -2569,25 +2411,6 @@ export class Game {
         this._scanLights(true);
         this._unlock('first_fire');
         this._campFuel.set(`${px|0},${py|0},${pz|0}`, 80);
-      }
-      if (blockId === BLOCK.HONEY_BLOCK || blockId === BLOCK.POWDER_SNOW || blockId === BLOCK.SCAFFOLDING) {
-        this.player.notify(`${displayName(blockId)} placed.`, 1.6);
-      }
-      if (blockId === BLOCK.SMOKER) {
-        const key = `${px|0},${py|0},${pz|0}`;
-        const st = createFurnaceState();
-        st.speedMult = 2;
-        this._furnaces.set(key, st);
-        this.player.notify('Smoker placed. F to feed fuel/food (2× cook).', 2.4);
-        this._scanLights(true);
-      }
-      if (blockId === BLOCK.BLAST_FURNACE) {
-        const key = `${px|0},${py|0},${pz|0}`;
-        const st = createFurnaceState();
-        st.speedMult = 2;
-        this._furnaces.set(key, st);
-        this.player.notify('Blast Furnace placed. F to feed fuel/ore (2× cook).', 2.4);
-        this._scanLights(true);
       }
       if (blockId === BLOCK.DOOR_CLOSED || blockId === BLOCK.DOOR_OPEN) {
         this._unlock('first_door');
@@ -2712,63 +2535,9 @@ export class Game {
   /** F: cook meat / equip clothes / sleep on bed / chest / fish / fertilize */
   _handleCookUse() {
     if (!this.input.consumeUse()) return;
-    const mountedBoat = this.player.mountedBoat;
-    if (mountedBoat) {
-      const off = dismountBoat(mountedBoat);
-      if (off.ok) {
-        this.player.mountedBoat = null;
-        this.player.position.set(off.position.x, off.position.y, off.position.z);
-        this.player.velocity.set(0, 0, 0);
-        this.player.notify('You step out of the boat.', 1.8);
-      }
-      return;
-    }
-    const boat = this._boatAtLook(this.player);
-    if (boat) {
-      const mounted = mountBoat(boat, 'p1');
-      if (mounted.ok) {
-        this.player.mountedBoat = boat;
-        const rider = riderPosition(boat);
-        this.player.position.set(rider.x, rider.y, rider.z);
-        this.player.notify('Boat mounted. WASD steers; F dismounts.', 2.5);
-      } else {
-        this.player.notify('That boat is occupied.', 1.8);
-      }
-      return;
-    }
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
     const hit = this.world.raycast(origin, dir, 5);
-
-    // Anvil repair: combine the held tool with another matching tool in the
-    // pack. The pure helper owns durability math; this call site owns slots.
-    if (hit && hit.id === BLOCK.ANVIL) {
-      const held = this.player.heldStack();
-      if (!canAnvilRepair(held, held)) {
-        this.player.notify('Hold a tool; another matching tool is needed.', 2.4);
-        return;
-      }
-      const otherIndex = this.player.slots.findIndex((slot, index) =>
-        index !== this.player.hotbarIndex && canAnvilRepair(held, slot),
-      );
-      if (otherIndex < 0) {
-        this.player.notify('Anvil needs a second matching tool in your pack.', 2.4);
-        return;
-      }
-      const repaired = anvilRepair(held, this.player.slots[otherIndex]);
-      if (!repaired.ok) {
-        this.player.notify('Those tools cannot be repaired together.', 2.2);
-        return;
-      }
-      const next = this.player.slots.map((slot) => ({ ...slot }));
-      next[this.player.hotbarIndex] = repaired.result;
-      next[otherIndex] = { id: null, count: 0 };
-      this.player.slots = next;
-      this.audio.placeBlock();
-      this.player.notify(`Anvil repaired ${displayName(held.id)}.`, 2.4);
-      this._invNeedsPaint = true;
-      return;
-    }
 
     // Open chest
     if (hit && hit.id === BLOCK.CHEST) {
@@ -2906,26 +2675,22 @@ export class Game {
       }
     }
 
-    // Feed furnace variants fuel / smelt input via pure furnace-tick (keeps campfire heat map for warmth)
-    if (hit && (hit.id === BLOCK.FURNACE || hit.id === BLOCK.SMOKER || hit.id === BLOCK.BLAST_FURNACE)) {
+    // Feed furnace fuel / smelt input via pure furnace-tick (keeps campfire heat map for warmth)
+    if (hit && hit.id === BLOCK.FURNACE) {
       const k = `${hit.x|0},${hit.y|0},${hit.z|0}`;
-      const isSmoker = hit.id === BLOCK.SMOKER;
-      const isBlastFurnace = hit.id === BLOCK.BLAST_FURNACE;
-      const stationName = isBlastFurnace ? 'Blast Furnace' : isSmoker ? 'Smoker' : 'Furnace';
       if (!this._furnaces.has(k)) {
         const st0 = createFurnaceState();
-        st0.speedMult = isSmoker || isBlastFurnace ? 2 : 1;
+        st0.speedMult = 1; // smoker/blast can set 2 later
         this._furnaces.set(k, st0);
       }
       const st = this._furnaces.get(k);
-      if (st.speedMult == null) st.speedMult = isSmoker || isBlastFurnace ? 2 : 1;
       // Empty hand: take finished output
       if (held.id == null || held.count <= 0) {
         const out = takeOutput(st);
         if (out) {
           const add = addItems(this.player.slots, out.id, out.count);
           this.player.slots = add.slots;
-          this.player.notify(`${stationName} → +${out.count} ${displayName(out.id)}`, 2.2);
+          this.player.notify(`Furnace → +${out.count} ${displayName(out.id)}`, 2.2);
           this.audio.ui?.() || this.audio.placeBlock();
           return;
         }
@@ -2940,20 +2705,9 @@ export class Game {
           f += held.id === BLOCK.LOG ? 50 : held.id === ITEM.STICK ? 14 : 32;
           this._campFuel.set(k, Math.min(150, f));
           this.audio.placeBlock();
-          this.player.notify(isSmoker ? 'You fed the smoker.' : 'You fed the furnace.', 1.8);
+          this.player.notify('You fed the furnace.', 1.8);
           return;
         }
-      }
-      const heldName = held.id != null ? displayName(held.id) : '';
-      const smokerRejects = isSmoker && canSmelt(held.id) && !isSmokerFood(heldName);
-      const blastRejects = isBlastFurnace && canSmelt(held.id) && !isBlastFurnaceInput(heldName);
-      if (smokerRejects) {
-        this.player.notify('Smoker only accepts food inputs.', 2.2);
-        return;
-      }
-      if (blastRejects) {
-        this.player.notify('Blast Furnace only accepts ore or metal inputs.', 2.2);
-        return;
       }
       if (held.id != null && canSmelt(held.id)) {
         const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
@@ -2961,7 +2715,7 @@ export class Game {
           this.player.slots = cons.slots;
           insertInput(st, held.id, 1);
           this.audio.placeBlock();
-          this.player.notify(`${stationName}: smelting ${heldName}${isSmoker ? ' (food speed 2×)' : isBlastFurnace ? ' (ore speed 2×)' : ''}…`, 2.4);
+          this.player.notify(`Furnace: smelting ${displayName(held.id)}…`, 2);
           return;
         }
       }
@@ -2975,7 +2729,7 @@ export class Game {
           f += held.id === BLOCK.LOG ? 50 : held.id === ITEM.STICK ? 14 : 32;
           this._campFuel.set(k, Math.min(150, f));
           this.audio.placeBlock();
-          this.player.notify(isSmoker ? 'You fed the smoker.' : 'You fed the furnace.', 1.8);
+          this.player.notify('You fed the furnace.', 1.8);
           return;
         }
       }
@@ -3119,104 +2873,23 @@ export class Game {
     const g = new THREE.Group();
     const col = new THREE.Color(spec.color[0], spec.color[1], spec.color[2]);
     const mat = new THREE.MeshLambertMaterial({ color: col });
-    const dark = new THREE.MeshLambertMaterial({ color: 0x191822 });
-    const eye = new THREE.MeshStandardMaterial({
-      color: 0x211812,
-      emissive: 0xffb52e,
-      emissiveIntensity: 0.08,
-      roughness: 0.42,
-      metalness: 0.05,
-    });
-    const light = new THREE.MeshLambertMaterial({
-      color: new THREE.Color(
-        Math.min(1, spec.color[0] * 1.35 + 0.08),
-        Math.min(1, spec.color[1] * 1.35 + 0.08),
-        Math.min(1, spec.color[2] * 1.35 + 0.08),
-      ),
-    });
-    const accent = new THREE.MeshLambertMaterial({
-      color: type === 'bee_stub' || type === 'chicken' ? 0xd8ad28 : 0x6b3d25,
-    });
-    const add = (geometry, material, x, y, z, role = '') => {
-      const part = new THREE.Mesh(geometry, material);
-      part.position.set(x, y, z);
-      part.userData.baseY = y;
-      part.userData.baseColor = material?.color ? material.color.clone() : null;
-      if (role) part.userData.animalRole = role;
-      g.add(part);
-      return part;
-    };
-    const sx = spec.scale[0];
-    const sy = spec.scale[1];
-    const sz = spec.scale[2];
-    const legW = Math.max(0.09, sx * 0.19);
-    const legH = Math.max(0.12, sy * 0.48);
-    const body = add(new THREE.BoxGeometry(sx, sy * 0.55, sz), mat, 0, sy * 0.35, 0, 'body');
-    body.rotation.x = type === 'alligator' ? -0.04 : 0;
-    const head = add(
-      new THREE.BoxGeometry(sx * (type === 'alligator' ? 0.7 : 0.55), sy * 0.4, sx * 0.55),
-      light,
-      0,
-      sy * (type === 'alligator' ? 0.52 : 0.7),
-      sz * 0.35,
-      'head',
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(spec.scale[0], spec.scale[1] * 0.55, spec.scale[2]),
+      mat,
     );
-    // Four simple articulated legs give the silhouettes readable motion at a distance.
-    if (!['bird', 'bat', 'bee_stub'].includes(type)) {
-      let legIndex = 0;
-      for (const x of [-sx * 0.32, sx * 0.32]) {
-        for (const z of [-sz * 0.28, sz * 0.28]) {
-          const leg = add(new THREE.BoxGeometry(legW, legH, legW), mat, x, legH * 0.5, z, 'leg');
-          leg.userData.walkPhase = (legIndex++ % 2) * Math.PI;
-        }
-      }
-    }
-    // Species-specific silhouettes and markings. All geometry is original, low-poly, and cheap.
-    if (['hare', 'deer'].includes(type)) {
-      for (const x of [-sx * 0.2, sx * 0.2]) {
-        add(new THREE.ConeGeometry(sx * 0.11, sy * (type === 'hare' ? 0.55 : 0.28), 4), light, x, sy * 1.02, sz * 0.34, 'ear');
-      }
-      if (type === 'deer') {
-        for (const x of [-sx * 0.16, sx * 0.16]) add(new THREE.BoxGeometry(0.045, sy * 0.55, 0.045), light, x, sy * 1.32, sz * 0.35, 'antler');
-      }
-    } else if (['wolf', 'fox'].includes(type)) {
-      for (const x of [-sx * 0.2, sx * 0.2]) add(new THREE.ConeGeometry(sx * 0.13, sy * 0.32, 4), mat, x, sy * 1.0, sz * 0.34, 'ear');
-      add(new THREE.BoxGeometry(sx * 0.28, sy * 0.22, sz * 0.42), light, 0, sy * 0.54, -sz * 0.62, 'tail');
-    } else if (type === 'bear') {
-      for (const x of [-sx * 0.2, sx * 0.2]) add(new THREE.SphereGeometry(sx * 0.13, 6, 4), mat, x, sy * 0.98, sz * 0.3, 'ear');
-      add(new THREE.BoxGeometry(sx * 0.34, sy * 0.3, sz * 0.5), dark, 0, sy * 0.52, sz * 0.31, 'muzzle');
-    } else if (type === 'cow') {
-      add(new THREE.BoxGeometry(sx * 0.28, sy * 0.3, sz * 0.08), dark, -sx * 0.3, sy * 0.4, sz * 0.05, 'spot');
-      add(new THREE.BoxGeometry(sx * 0.2, sy * 0.22, sz * 0.08), dark, sx * 0.28, sy * 0.46, -sz * 0.2, 'spot');
-      for (const x of [-sx * 0.2, sx * 0.2]) add(new THREE.ConeGeometry(sx * 0.08, sy * 0.22, 4), light, x, sy * 0.98, sz * 0.3, 'horn');
-    } else if (type === 'boar') {
-      add(new THREE.BoxGeometry(sx * 0.38, sy * 0.25, sz * 0.24), dark, 0, sy * 0.58, sz * 0.38, 'snout');
-      for (const x of [-sx * 0.17, sx * 0.17]) add(new THREE.ConeGeometry(0.045, sy * 0.2, 5), light, x, sy * 0.55, sz * 0.57, 'tusk');
-    } else if (type === 'alligator') {
-      add(new THREE.BoxGeometry(sx * 0.62, sy * 0.3, sz * 0.55), dark, 0, sy * 0.24, -sz * 0.72, 'tail');
-      for (const x of [-sx * 0.18, sx * 0.18]) add(new THREE.SphereGeometry(0.055, 5, 4), light, x, sy * 0.76, sz * 0.52, 'eye');
-    } else if (type === 'chicken') {
-      add(new THREE.ConeGeometry(sx * 0.12, sy * 0.25, 5), accent, 0, sy * 0.98, sz * 0.3, 'comb');
-      add(new THREE.BoxGeometry(sx * 0.12, sy * 0.1, sx * 0.16), accent, 0, sy * 0.68, sz * 0.66, 'beak');
-      for (const x of [-sx * 0.42, sx * 0.42]) add(new THREE.BoxGeometry(sx * 0.3, sy * 0.08, sz * 0.48), light, x, sy * 0.42, 0, 'wing');
-    } else if (type === 'bird' || type === 'bat') {
-      const wingMat = type === 'bat' ? dark : light;
-      for (const x of [-1, 1]) {
-        const wing = add(new THREE.BoxGeometry(sx * 0.12, sy * 0.12, sz * 0.9), wingMat, x * sx * 0.62, sy * 0.5, 0, 'wing');
-        wing.rotation.z = x * 0.35;
-      }
-    } else if (type === 'bee_stub') {
-      add(new THREE.BoxGeometry(sx * 1.02, sy * 0.2, sz * 0.18), dark, 0, sy * 0.35, 0, 'stripe');
-      for (const x of [-1, 1]) add(new THREE.BoxGeometry(sx * 0.9, sy * 0.035, sz * 0.55), light, x * sx * 0.75, sy * 0.54, 0, 'wing');
-    } else {
-      add(new THREE.BoxGeometry(sx * 0.2, sy * 0.16, sz * 0.35), light, 0, sy * 0.52, -sz * 0.58, 'tail');
-    }
-    // Shared eyes make every head read as alive without changing collision/gameplay.
-    if (!['alligator', 'bird', 'bat', 'bee_stub'].includes(type)) {
-      for (const x of [-sx * 0.17, sx * 0.17]) add(new THREE.SphereGeometry(Math.max(0.025, sx * 0.045), 5, 4), eye, x, sy * 0.78, sx * 0.31, 'eye');
+    body.position.y = spec.scale[1] * 0.35;
+    const head = new THREE.Mesh(
+      new THREE.BoxGeometry(spec.scale[0] * 0.55, spec.scale[1] * 0.4, spec.scale[0] * 0.55),
+      mat,
+    );
+    head.position.set(0, spec.scale[1] * 0.7, spec.scale[2] * 0.35);
+    g.add(body, head);
+    if (type === 'wolf') {
+      const ear = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.18, 0.08), mat);
+      ear.position.set(0.12, spec.scale[1] * 0.95, spec.scale[2] * 0.3);
+      g.add(ear);
     }
     g.userData.type = type;
-    g.userData.phase = (type.length * 0.71) % (Math.PI * 2);
     return g;
   }
 
@@ -3234,30 +2907,17 @@ export class Game {
       }
       mesh.position.set(a.x, a.y, a.z);
       mesh.rotation.y = a.yaw || 0;
-      const moving = Math.hypot(a.vx || 0, a.vz || 0) > 0.08;
-      const animT = (performance.now() * 0.006 + mesh.userData.phase) * (moving ? 1 : 0.18);
-      mesh.userData.animT = animT;
-      mesh.traverse((c) => {
-        const role = c.userData?.animalRole;
-        if (role === 'leg') c.rotation.x = Math.sin(animT * 2.2 + (c.userData.walkPhase || 0)) * (moving ? 0.34 : 0.04);
-        if (role === 'wing') c.rotation.x = Math.sin(animT * 3.2) * (moving ? 0.38 : 0.08);
-        if (role === 'tail') c.rotation.x = Math.sin(animT * 2.6) * 0.12;
-        if (role === 'head') c.position.y = (c.userData.baseY ?? c.position.y) + Math.sin(animT * 2) * 0.012;
-      });
       // hurt flash
       const hurt = a.hp < a.maxHp * 0.5;
       mesh.traverse((c) => {
-        if (c.isMesh && c.material?.color && c.userData?.animalRole !== 'eye') {
+        if (c.isMesh && c.material?.color) {
           const spec = SPECIES[a.type];
-          const base = c.userData.baseColor || new THREE.Color(...(spec?.color || [0.5, 0.5, 0.5]));
+          const base = spec?.color || [0.5, 0.5, 0.5];
           c.material.color.setRGB(
-            hurt ? Math.min(1, base.r + 0.25) : base.r,
-            hurt ? base.g * 0.7 : base.g,
-            hurt ? base.b * 0.7 : base.b,
+            hurt ? Math.min(1, base[0] + 0.25) : base[0],
+            hurt ? base[1] * 0.7 : base[1],
+            hurt ? base[2] * 0.7 : base[2],
           );
-        }
-        if (c.userData?.animalRole === 'eye' && c.material?.emissive) {
-          c.material.emissiveIntensity = this.time?.isNight?.() ? 0.42 : 0.08;
         }
       });
     }
@@ -3648,7 +3308,7 @@ export class Game {
     if (this.coopMode && !this._coopRouter) {
       try {
         // Lazy import path already static at top for readGamepad; router from same module via dynamic if needed
-        import(`./input-coop.js?v=254`).then((mod) => {
+        import(`./input-coop.js?v=220`).then((mod) => {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);

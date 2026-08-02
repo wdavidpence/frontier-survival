@@ -2,8 +2,8 @@
  * Wildlife simulation — pure movement/AI helpers + manager.
  * Prey flee; predators hunt (worse at night). Meat drops on death.
  */
-import { isSolid, BLOCK } from './blocks.js?v=240';
-import { hash2 } from './gen.js?v=240';
+import { isSolid, BLOCK } from './blocks.js?v=216';
+import { hash2 } from './gen.js?v=216';
 
 export const SPECIES = {
   hare: {
@@ -211,99 +211,6 @@ export const SPECIES = {
     nocturnal: true, // primarily active at night
     count: 10,
   },
-  bee_stub: {
-    id: 'bee_stub',
-    name: 'Bee Stub',
-    hp: 3,
-    speed: 5.0,
-    hostile: false,
-    fleeRange: 8,
-    senseRange: 10,
-    damage: 2, // small defensive sting
-    attackRange: 1.2,
-    attackCd: 3.0, // reluctant to sting
-    meatMin: 0,
-    meatMax: 0,
-    honey: true, // drops honey on death
-    feedItem: 'berries', // nectar proxy — tameable via feeding
-    color: [0.85, 0.72, 0.12], // yellow
-    scale: [0.15, 0.15, 0.2], // tiny
-    count: 12,
-    biomes: ['forest', 'tropical'], // preferred spawn biomes (metadata for now)
-  },
-  pig: {
-    id: 'pig',
-    name: 'Pig',
-    hp: 24,
-    speed: 3.5,
-    hostile: false,
-    fleeRange: 10,
-    senseRange: 13,
-    damage: 0,
-    attackRange: 0,
-    attackCd: 99,
-    meatMin: 2,
-    meatMax: 4,
-    feedItem: 'berries',
-    dropItem: 'raw_meat',
-    dropName: 'pork',
-    color: [0.82, 0.48, 0.48],
-    scale: [0.78, 0.68, 1.08],
-    count: 6,
-    biomes: ['plains', 'forest'],
-  },
-  sheep: {
-    id: 'sheep',
-    name: 'Sheep',
-    hp: 24,
-    speed: 3.6,
-    hostile: false,
-    fleeRange: 11,
-    senseRange: 14,
-    damage: 0,
-    attackRange: 0,
-    attackCd: 99,
-    meatMin: 1,
-    meatMax: 2,
-    woolMin: 1,
-    woolMax: 3,
-    shearable: true,
-    feedItem: 'wheat',
-    color: [0.9, 0.88, 0.8],
-    scale: [0.75, 0.9, 1.1],
-    count: 6,
-  },
-  fish: {
-    id: 'fish', name: 'Fish', hp: 5, speed: 3.8, hostile: false,
-    fleeRange: 7, senseRange: 9, damage: 0, attackRange: 0, attackCd: 99,
-    meatMin: 1, meatMax: 2, color: [0.22, 0.58, 0.82], scale: [0.28, 0.22, 0.72],
-    count: 16, aquatic: true, waterOnly: true, school: true,
-  },
-  squid: {
-    id: 'squid', name: 'Squid', hp: 16, speed: 2.4, hostile: false,
-    fleeRange: 8, senseRange: 10, damage: 0, attackRange: 0, attackCd: 99,
-    meatMin: 1, meatMax: 2, color: [0.28, 0.18, 0.42], scale: [0.5, 0.7, 0.5],
-    count: 4, aquatic: true, waterOnly: true,
-  },
-  horse: {
-    id: 'horse',
-    name: 'Steppe Horse',
-    hp: 32,
-    speed: 5.8,
-    hostile: false,
-    fleeRange: 12,
-    senseRange: 15,
-    damage: 0,
-    attackRange: 0,
-    attackCd: 99,
-    meatMin: 2,
-    meatMax: 3,
-    feedItem: 'berries',
-    color: [0.48, 0.27, 0.14],
-    scale: [0.85, 1.25, 1.65],
-    count: 2,
-    mountable: true,
-  },
 };
 
 function groundY(world, x, z) {
@@ -334,7 +241,7 @@ export function meatDropCount(spec, rng = Math.random) {
 }
 
 /**
- * @param {import('./world.js?v=240').World} world
+ * @param {import('./world.js').World} world
  */
 export class FaunaSystem {
   constructor(world, seed = 1) {
@@ -585,7 +492,7 @@ export class FaunaSystem {
   }
 
   /**
-   * @returns {{ killed: boolean, meat: number, hide: number, egg?: number, feather?: number, wing?: number, honey?: number, name: string, type?: string } | null}
+   * @returns {{ killed: boolean, meat: number, hide: number, egg?: number, feather?: number, wing?: number, name: string, type?: string } | null}
    */
   damageAnimal(animal, amount) {
     if (!animal || animal.dead) return null;
@@ -606,16 +513,13 @@ export class FaunaSystem {
     else if (animal.type === 'fox') hide = Math.random() < 0.6 ? 1 : 0;
     else if (animal.type === 'boar') hide = 2 + (Math.random() < 0.6 ? 1 : 0);
     else if (animal.type === 'bat') hide = Math.random() < 0.3 ? 1 : 0;
-    else if (animal.type === 'bee_stub') hide = Math.random() < 0.2 ? 1 : 0;
     let egg = 0;
     let feather = 0;
     let wing = 0;
-    let honey = 0;
     if (spec.egg) egg = Math.random() < 0.75 ? 1 : 0;
     if (spec.feather) feather = 1 + (Math.random() < 0.5 ? 1 : 0);
     if (spec.wing) wing = Math.random() < 0.65 ? 1 : 0;
-    if (spec.honey) honey = Math.random() < 0.5 ? 1 : 0;
-    return { killed: true, meat, hide, egg, feather, wing, honey, name: spec.name, type: animal.type };
+    return { killed: true, meat, hide, egg, feather, wing, name: spec.name, type: animal.type };
   }
 
   /** Count living of type */
@@ -774,47 +678,4 @@ export function tryFeed(animal, itemId) {
   }
 
   return { fed: true, calmT: animal._calmT, tameProgress, tamed: !!animal.tamed };
-}
-
-export function woolDropCount(spec, rng = Math.random) {
-  const a = spec?.woolMin | 0;
-  const b = spec?.woolMax | 0;
-  if (b <= a) return a;
-  return a + Math.floor(rng() * (b - a + 1));
-}
-
-export function canShear(animal, toolId = 'shears') {
-  return !!animal && !animal.dead && animal.type === 'sheep' && !animal.sheared &&
-    (toolId === 'shears' || toolId === 151);
-}
-
-export function shearAnimal(animal, toolId = 'shears', rng = Math.random) {
-  if (!canShear(animal, toolId)) return { sheared: false, wool: 0 };
-  animal.sheared = true;
-  return { sheared: true, wool: woolDropCount(SPECIES.sheep, rng) };
-}
-
-/** Deterministic drop helper for smoke/tests. Accepts species object or type id. */
-export function animalDrops(specOrType, rng = Math.random) {
-  const spec = typeof specOrType === 'string' ? SPECIES[specOrType] : specOrType;
-  if (!spec) return { item: null, count: 0 };
-  const type = spec.id || (typeof specOrType === 'string' ? specOrType : null);
-  if (type === 'pig' || spec === SPECIES.pig) {
-    const a = spec.meatMin ?? 1;
-    const b = spec.meatMax ?? Math.max(a, 3);
-    const t = typeof rng === 'function' ? rng() : 0;
-    const count = a + Math.floor(Math.max(0, Math.min(0.999999, t)) * (b - a + 1));
-    return { item: spec.meatItem || spec.dropItem || 'raw_meat', count };
-  }
-  if (type === 'sheep' || spec === SPECIES.sheep) {
-    return { item: 'wool', count: woolDropCount(spec, rng) };
-  }
-  if (spec.dropItem) return { item: spec.dropItem, count: 1 };
-  return { item: null, count: 0 };
-}
-
-export function spawnBiomeMatches(spec, biome) {
-  const list = spec?.biomes || spec?.spawnBiomes || [];
-  if (!list.length) return true;
-  return list.includes(biome);
 }

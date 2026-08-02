@@ -29,8 +29,6 @@ export function ambientMix({
   if (biome === 'desert') { windOut = Math.min(1, wind + 0.15); birds *= 0.35; }
   else if (biome === 'tundra') { windOut = Math.min(1, wind + 0.12); birds *= 0.2; }
   else if (biome === 'shore') { waterOut = Math.min(1, water + 0.12); }
-  else if (biome === 'ocean') { waterOut = Math.min(1, water + 0.3); birds *= 0.8; }
-  else if (biome === 'tropical') { waterOut = Math.min(1, water + 0.08); birds = Math.min(1, birds + 0.16); }
   return {
     master: 1,
     wind: windOut,
@@ -127,7 +125,7 @@ export class AudioBus {
 
   _noiseBuffer(seconds = 2) {
     const rate = this.ctx.sampleRate;
-    const len = Math.max(1, Math.floor(rate * seconds));
+    const len = rate * seconds;
     const buf = this.ctx.createBuffer(1, len, rate);
     const data = buf.getChannelData(0);
     for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
@@ -324,70 +322,14 @@ export class AudioBus {
     }
   }
 
-  /** Short, shaped synth voice used by tactile gameplay/UI stingers. */
-  _tone({ freq, endFreq = freq, dur = 0.08, type = 'sine', gain = 0.1, when = 0 }) {
-    if (!this.enabled) return;
-    this.ensure();
-    if (!this.ctx) return;
-    this._trimVoices();
-    if (this._voices.length >= AudioBus.MAX_VOICES) {
-      const stolen = this._voices.shift();
-      try { stolen.src.stop(); } catch (_) {}
-    }
-    const t = this.ctx.currentTime + Math.max(0, when);
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.type = type;
-    o.frequency.setValueAtTime(Math.max(1, freq), t);
-    if (endFreq !== freq) o.frequency.exponentialRampToValueAtTime(Math.max(1, endFreq), t + dur);
-    const attack = Math.min(0.012, dur * 0.2);
-    g.gain.setValueAtTime(0.001, t);
-    g.gain.linearRampToValueAtTime(Math.max(0.001, gain), t + attack);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    o.connect(g);
-    g.connect(this.master);
-    o.start(t);
-    o.stop(t + dur + 0.01);
-    this._voices.push({ src: o, stopTime: t + dur + 0.01 });
-  }
-
-  /** Filtered noise transient for block impacts and crisp UI clicks. */
-  _noiseBurst({ dur = 0.06, gain = 0.08, filterFreq = 1200, type = 'bandpass', when = 0 }) {
-    if (!this.enabled) return;
-    this.ensure();
-    if (!this.ctx) return;
-    this._trimVoices();
-    if (this._voices.length >= AudioBus.MAX_VOICES) {
-      const stolen = this._voices.shift();
-      try { stolen.src.stop(); } catch (_) {}
-    }
-    const t = this.ctx.currentTime + Math.max(0, when);
-    const src = this.ctx.createBufferSource();
-    src.buffer = this._noiseBuffer(Math.max(0.05, dur));
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = type;
-    filter.frequency.value = filterFreq;
-    filter.Q.value = type === 'highpass' ? 0.6 : 1.1;
-    const g = this.ctx.createGain();
-    g.gain.setValueAtTime(Math.max(0.001, gain), t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    src.connect(filter);
-    filter.connect(g);
-    g.connect(this.master);
-    src.start(t);
-    src.stop(t + dur + 0.01);
-    this._voices.push({ src, stopTime: t + dur + 0.01 });
-  }
-
   breakBlock() {
-    this._noiseBurst({ dur: 0.09, gain: 0.12, filterFreq: 520, type: 'lowpass' });
-    this._tone({ freq: 150, endFreq: 72, dur: 0.11, type: 'triangle', gain: 0.16 });
-    this._tone({ freq: 260, endFreq: 110, dur: 0.045, type: 'sawtooth', gain: 0.045, when: 0.012 });
+    this.beep(110, 0.05, 'triangle', 0.22);
+    this.beep(70, 0.09, 'square', 0.1);
+    this.beep(180 + Math.random() * 40, 0.03, 'sawtooth', 0.06);
   }
   placeBlock() {
-    this._noiseBurst({ dur: 0.045, gain: 0.07, filterFreq: 700, type: 'lowpass' });
-    this._tone({ freq: 250, endFreq: 370, dur: 0.065, type: 'sine', gain: 0.12 });
-    this._tone({ freq: 420, endFreq: 540, dur: 0.075, type: 'sine', gain: 0.07, when: 0.045 });
+    this.beep(320, 0.05, 'sine', 0.15);
+    this.beep(420, 0.03, 'sine', 0.08);
   }
   hurt() {
     this.beep(90, 0.2, 'sawtooth', 0.2);
@@ -419,12 +361,11 @@ export class AudioBus {
     this.beep(960, 0.08, 'sine', 0.07);
   }
   ui() {
-    this._tone({ freq: 620, endFreq: 700, dur: 0.035, type: 'sine', gain: 0.07 });
-    this._tone({ freq: 820, endFreq: 900, dur: 0.045, type: 'sine', gain: 0.045, when: 0.035 });
+    this.beep(660, 0.04, 'sine', 0.08);
   }
   hit() {
-    this._noiseBurst({ dur: 0.035, gain: 0.1, filterFreq: 1800, type: 'highpass' });
-    this._tone({ freq: 220, endFreq: 115, dur: 0.07, type: 'square', gain: 0.09 });
+    this.beep(200, 0.04, 'square', 0.12);
+    this.beep(140, 0.06, 'triangle', 0.1);
   }
   death() {
     this.beep(100, 0.4, 'sawtooth', 0.25);

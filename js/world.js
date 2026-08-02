@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=254';
-import { heightAt, hash2, fbm, caveDensityAt, oreVeinAt } from './gen.js?v=254';
-import { biomeAt, BIOME } from './biomes.js?v=254';
-import { tileForBlock } from './atlas-core.js?v=254';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=254';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=220';
+import { heightAt, hash2, fbm } from './gen.js?v=220';
+import { biomeAt, BIOME } from './biomes.js?v=220';
+import { tileForBlock } from './atlas-core.js?v=220';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=220';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -56,7 +56,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=254';
+    const workerUrl = './js/chunk-worker.js?v=220';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -143,15 +143,11 @@ export class World {
         if (h > SEA_LEVEL + 1) {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
           let treeChance = 0;
-          if (biome === BIOME.FOREST) treeChance = 0.06;
-          else if (biome === BIOME.SHORE) treeChance = 0.02;
-          else if (biome === BIOME.TUNDRA) treeChance = 0.026;
-          else if (biome === BIOME.TROPICAL) treeChance = 0.045;
+          if (biome === BIOME.FOREST) treeChance = 0.04; // half prior density for navigability
+          else if (biome === BIOME.SHORE) treeChance = 0.012;
+          else if (biome === BIOME.TUNDRA) treeChance = 0.02;
+          else if (biome === BIOME.TROPICAL) treeChance = 0.03; // palm-like sparse canopy
           else if (biome === BIOME.OCEAN) treeChance = 0;
-          // Coarse cluster roll gives forests recognizable groves instead of a
-          // perfectly even grid of isolated trees.
-          const grove = hash2(Math.floor(x / 4) + this.seed * 11, Math.floor(z / 4) - this.seed * 7);
-          if (grove > 0.62) treeChance += biome === BIOME.FOREST ? 0.035 : 0.012;
           if (th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -176,17 +172,7 @@ export class World {
           h > SEA_LEVEL + 1 &&
           (data[this._idx(lx, h, lz)] === BLOCK.GRASS || data[this._idx(lx, h, lz)] === BLOCK.SAND) &&
           data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
-          hash2(x + 91, z * 3 + (this.seed | 0)) > 0.90
-        ) {
-          data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
-        }
-        // Low beach scrub marks the waterline on sandy shores and islands.
-        if (
-          (biome === BIOME.SHORE || biome === BIOME.TROPICAL) &&
-          h >= SEA_LEVEL && h <= SEA_LEVEL + 2 &&
-          data[this._idx(lx, h, lz)] === BLOCK.SAND &&
-          data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
-          hash2(x + 137, z * 5 + (this.seed | 0)) > 0.88
+          hash2(x + 91, z * 3 + (this.seed | 0)) > 0.94
         ) {
           data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
         }
@@ -202,7 +188,6 @@ export class World {
     }
 
     this._carveLavaTubesSync(data, baseX, baseZ);
-    this._carveCavesAndDistributeOres(data, baseX, baseZ);
     return data;
   }
 
@@ -340,15 +325,11 @@ export class World {
         if (h > SEA_LEVEL + 1) {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
           let treeChance = 0;
-          if (biome === BIOME.FOREST) treeChance = 0.06;
-          else if (biome === BIOME.SHORE) treeChance = 0.02;
-          else if (biome === BIOME.TUNDRA) treeChance = 0.026;
-          else if (biome === BIOME.TROPICAL) treeChance = 0.045;
+          if (biome === BIOME.FOREST) treeChance = 0.04; // ~4% surface — half prior density
+          else if (biome === BIOME.SHORE) treeChance = 0.012;
+          else if (biome === BIOME.TUNDRA) treeChance = 0.02;
+          else if (biome === BIOME.TROPICAL) treeChance = 0.03; // palm-like sparse canopy
           else if (biome === BIOME.OCEAN) treeChance = 0;
-          // Coarse cluster roll gives forests recognizable groves instead of a
-          // perfectly even grid of isolated trees.
-          const grove = hash2(Math.floor(x / 4) + this.seed * 11, Math.floor(z / 4) - this.seed * 7);
-          if (grove > 0.62) treeChance += biome === BIOME.FOREST ? 0.035 : 0.012;
           if (th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -374,17 +355,7 @@ export class World {
           h > SEA_LEVEL + 1 &&
           (data[this._idx(lx, h, lz)] === BLOCK.GRASS || data[this._idx(lx, h, lz)] === BLOCK.SAND) &&
           data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
-          hash2(x + 91, z * 3 + (this.seed | 0)) > 0.90
-        ) {
-          data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
-        }
-        // Low beach scrub marks the waterline on sandy shores and islands.
-        if (
-          (biome === BIOME.SHORE || biome === BIOME.TROPICAL) &&
-          h >= SEA_LEVEL && h <= SEA_LEVEL + 2 &&
-          data[this._idx(lx, h, lz)] === BLOCK.SAND &&
-          data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
-          hash2(x + 137, z * 5 + (this.seed | 0)) > 0.88
+          hash2(x + 91, z * 3 + (this.seed | 0)) > 0.94
         ) {
           data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
         }
@@ -403,7 +374,6 @@ export class World {
 
     // Lava tube generation — carve tubular passages deep underground, fill with lava
     this._carveLavaTubes(data, baseX, baseZ);
-    this._carveCavesAndDistributeOres(data, baseX, baseZ);
 
     this.chunks.set(this.key(cx, cz), data);
   }
@@ -460,39 +430,6 @@ export class World {
           }
 
           // Edge glow reserved for future light bleed; lava BLOCK_PROPS.light handles emission.
-        }
-      }
-    }
-  }
-
-  /**
-   * Add connected cave galleries/chambers, then seed small ore clusters on
-   * their exposed stone walls. Work stays inside the existing chunk buffer.
-   */
-  _carveCavesAndDistributeOres(data, baseX, baseZ) {
-    for (let lz = 0; lz < CHUNK_SIZE; lz++) {
-      for (let lx = 0; lx < CHUNK_SIZE; lx++) {
-        const x = baseX + lx;
-        const z = baseZ + lz;
-        for (let y = 4; y < WORLD_HEIGHT - 2; y++) {
-          const i = this._idx(lx, y, lz);
-          const block = data[i];
-          if (block !== BLOCK.STONE && block !== BLOCK.DIRT) continue;
-
-          // Keep most underground solid; the broad score creates sparse,
-          // connected galleries rather than noisy single-block holes.
-          if (caveDensityAt(x, y, z, this.seed) > 0.70) {
-            data[i] = BLOCK.AIR;
-            continue;
-          }
-
-          // Only intact stone receives new ore, leaving pockets visible from
-          // nearby gallery surfaces while preserving existing ore rolls.
-          if (block === BLOCK.STONE) {
-            const ore = oreVeinAt(x, y, z, this.seed);
-            if (ore === 'coal') data[i] = BLOCK.COAL_ORE;
-            else if (ore === 'iron') data[i] = BLOCK.IRON_ORE;
-          }
         }
       }
     }

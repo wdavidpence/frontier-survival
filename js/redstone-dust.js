@@ -28,7 +28,7 @@ function clampSignal(n) {
  * @returns {number}
  */
 function dustFalloff(signal) {
-    return clampSignal(signal) - 1;
+    return Math.max(0, clampSignal(signal) - 1);
 }
 
 /**

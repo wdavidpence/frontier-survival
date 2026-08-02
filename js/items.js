@@ -2,7 +2,7 @@
  * Unified item/block IDs for inventory stacks.
  * Blocks: 0–99 (see blocks.js). Items: 100+.
  */
-import { BLOCK, BLOCK_PROPS } from './blocks.js?v=254';
+import { BLOCK, BLOCK_PROPS } from './blocks.js?v=216';
 
 export const ITEM = {
   STICK: 100,
@@ -53,10 +53,6 @@ export const ITEM = {
   WATER_BUCKET: 145,
   MAP: 146,
   ICE_BOX: 147,
-  MACE: 148,
-  HONEY: 149,
-  WOOL: 150,
-  SHEARS: 151,
 };
 
 /** @type {Record<number, {
@@ -230,17 +226,6 @@ export const ITEM_PROPS = {
   [ITEM.WATER_BUCKET]: { name: 'Water Bucket', color: [0.25, 0.45, 0.85], maxStack: 1 },
   [ITEM.MAP]: { name: 'Map', color: [0.75, 0.7, 0.5], maxStack: 1 },
   [ITEM.ICE_BOX]: { name: 'Ice Box', color: [0.7, 0.85, 0.95], maxStack: 8, placeable: true, placeAs: BLOCK.ICE_BOX },
-  [ITEM.MACE]: {
-    name: 'Mace',
-    color: [0.45, 0.42, 0.48],
-    tool: 'mace',
-    melee: 12,
-    meleeRange: 3.5,
-    maxStack: 1,
-  },
-  [ITEM.HONEY]: { name: 'Honey', color: [0.92, 0.62, 0.12], edible: 20, maxStack: 32 },
-  [ITEM.WOOL]: { name: 'Wool', color: [0.92, 0.9, 0.82], maxStack: 64 },
-  [ITEM.SHEARS]: { name: 'Shears', color: [0.72, 0.76, 0.82], tool: 'shears', maxStack: 1, durability: 80 },
 };
 
 export function propsOf(id) {
@@ -295,7 +280,7 @@ export function preferredTool(blockId) {
     blockId === BLOCK.SANDSTONE
   )
     return 'pick';
-  if (blockId === BLOCK.BRICKS || blockId === BLOCK.FURNACE || blockId === BLOCK.SMOKER || blockId === BLOCK.BLAST_FURNACE || blockId === BLOCK.ANVIL || blockId === BLOCK.CLAY) return 'pick';
+  if (blockId === BLOCK.BRICKS || blockId === BLOCK.FURNACE || blockId === BLOCK.CLAY) return 'pick';
   if (blockId === BLOCK.DOOR_CLOSED || blockId === BLOCK.DOOR_OPEN) return 'axe';
   return 'hand';
 }
@@ -334,14 +319,11 @@ export function dropForBlock(blockId) {
   if (blockId === BLOCK.GLASS) return BLOCK.GLASS;
   if (blockId === BLOCK.BRICKS) return BLOCK.BRICKS;
   if (blockId === BLOCK.FURNACE) return BLOCK.FURNACE;
-  if (blockId === BLOCK.BLAST_FURNACE) return BLOCK.BLAST_FURNACE;
-  if (blockId === BLOCK.ANVIL) return BLOCK.ANVIL;
   if (blockId === BLOCK.GENERATOR) return BLOCK.GENERATOR;
   if (blockId === BLOCK.ICE_BOX) return BLOCK.ICE_BOX;
   if (blockId === BLOCK.WALL) return BLOCK.WALL;
   if (blockId === BLOCK.WIRE) return BLOCK.WIRE;
   if (blockId === BLOCK.LAMP) return BLOCK.LAMP;
-  if (blockId === BLOCK.GLASS_PANE_THIN) return BLOCK.GLASS_PANE_THIN;
   const d = BLOCK_PROPS[blockId]?.drops;
   if (d === undefined) return blockId;
   return d;

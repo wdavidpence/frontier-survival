@@ -49,23 +49,6 @@ export function exposureColdMult({ weather, roofed, wetness, isNight }) {
 }
 
 /**
- * Classify core-temperature danger for UI/notification use.
- * Thresholds align with survival.js damage bands while warning early enough
- * for players to react.
- */
-export function temperatureWarning(bodyTemp, { wetness = 0 } = {}) {
-  const temp = Number(bodyTemp);
-  if (!Number.isFinite(temp)) return { level: 'unknown', message: 'Temperature unknown' };
-  if (temp <= 34.5) return { level: 'frost', message: 'Frost danger — seek fire or shelter.' };
-  if (temp < 35.5 || (wetness >= 75 && temp < 36.5)) {
-    return { level: 'cold', message: 'You are getting cold — dry off and add clothing.' };
-  }
-  if (temp >= 41) return { level: 'heat', message: 'Heatstroke danger — find shade and water.' };
-  if (temp > 39.5) return { level: 'hot', message: 'You are overheating — find shade or water.' };
-  return { level: 'safe', message: '' };
-}
-
-/**
  * Can sleep considering storm + roof (SC: don't leave shelter in bad weather).
  */
 export function stormBlocksSleep({ weather, roofed, atBed }) {

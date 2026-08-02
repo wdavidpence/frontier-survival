@@ -1,10 +1,10 @@
-import { GamepadSlotManager } from './input.js?v=240';
+import { GamepadSlotManager } from './input.js?v=220';
 import {
   applyDualHotbarEdge,
   createDualHotbarState,
   cycleHotbarIndex,
   hotbarFromPadEdges,
-} from './hotbar-cycle.js?v=240';
+} from './hotbar-cycle.js?v=220';
 
 export const P1 = 'p1';
 export const P2 = 'p2';

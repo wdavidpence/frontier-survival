@@ -89,16 +89,16 @@ export function lerp(a, b, t) {
 }
 
 /**
- * Inverse linear interpolation: normalise `v` into [0,1] range between `a` and `b`.
- * Returns 0 when a == b (safe division). Result clamped to [0,1].
- * @param {number} a start value
- * @param {number} b end value
- * @param {number} v value to normalise
- * @returns {number} 0..1, always finite
+ * Inverse of lerp; clamps to [0,1]. Degenerate a==b or non-finite -> 0.
  */
 export function invLerp(a, b, v) {
-  if (a === b || !Number.isFinite(a) || !Number.isFinite(b)) return 0;
-  if (!Number.isFinite(v)) return 0;
-  return clamp01((v - a) / (b - a));
+  const A = Number(a);
+  const B = Number(b);
+  const V = Number(v);
+  if (![A, B, V].every((n) => Number.isFinite(n))) return 0;
+  if (A === B) return 0;
+  const t = (V - A) / (B - A);
+  if (!Number.isFinite(t)) return 0;
+  return Math.max(0, Math.min(1, t));
 }
 

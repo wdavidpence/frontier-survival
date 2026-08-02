@@ -2,7 +2,7 @@
  * Equipment / clothing — warmth loadout (SC differentiator).
  * Pure logic.
  */
-import { ITEM, propsOf } from './items.js?v=240';
+import { ITEM, propsOf } from './items.js?v=216';
 
 export const EQUIP_SLOTS = ['head', 'chest', 'feet'];
 
@@ -21,14 +21,6 @@ export function equipmentWarmth(equipment) {
     w += p?.warmth || 0;
   }
   return w;
-}
-
-/** Effective insulation after water exposure. */
-export function equipmentInsulation(equipment, { wetness = 0, inWater = false } = {}) {
-  const warmth = equipmentWarmth(equipment);
-  if (inWater) return 0;
-  const wet = Math.max(0, Math.min(100, Number(wetness) || 0));
-  return warmth * (1 - wet * 0.006);
 }
 
 /** Total armor from equipped items (reduces physical damage). */

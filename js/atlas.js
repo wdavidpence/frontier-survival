@@ -11,7 +11,7 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=240';
+} from './atlas-core.js?v=216';
 
 export {
   TILE,
@@ -22,7 +22,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=240';
+} from './atlas-core.js?v=216';
 
 function rnd(seed) {
   let s = seed | 0;
@@ -535,20 +535,6 @@ function drawSpruceLeaves(ctx, x0, y0) {
   }
 }
 
-function drawGlassPaneThin(ctx, x0, y0) {
-  // Clear to transparent base (glass pane is thin frame-like)
-  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
-  // Thin glass pane: vertical frame with slight tint
-  ctx.fillStyle = 'rgba(195,215,235,0.45)';
-  ctx.fillRect(x0 + 12, y0 + 2, 8, TILE_PX - 4);
-  // Horizontal cross-bar (thin pane has a horizontal divider)
-  ctx.fillRect(x0 + 2, y0 + 14, TILE_PX - 4, 4);
-  // Subtle edge highlight
-  ctx.strokeStyle = 'rgba(160,185,215,0.35)';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x0 + 12.5, y0 + 2.5, 7, TILE_PX - 5);
-}
-
 export function createBlockAtlas() {
   const canvas = document.createElement('canvas');
   canvas.width = ATLAS_PX;
@@ -635,9 +621,6 @@ paint(TILE.WALL, drawWall);
   paint(TILE.SPRUCE_LOG_SIDE, drawSpruceLogSide);
   paint(TILE.SPRUCE_LOG_TOP, drawSpruceLogTop);
   paint(TILE.SPRUCE_LEAVES, drawSpruceLeaves);
-
-  // Thin glass pane — transparent frame tile (tile 52)
-  paint(TILE.GLASS_PANE_THIN, drawGlassPaneThin);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = THREE.NearestFilter;

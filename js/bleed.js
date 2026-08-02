@@ -25,22 +25,10 @@ export function tickBleed(state, dt) {
   }
   return next;
 }
-export function stopBleed(state, amount = 100) {
+export function stopBleed(state, strength = 100) {
   if (!state) return state;
-  const bleed = Math.max(0, (state.bleed || 0) - amount);
+  const bleed = Math.max(0, (state.bleed || 0) - strength);
   return { ...state, bleed };
-}
-
-/** Bandage: heal + stop bleeding */
-export function applyBandage(state) {
-  if (!state) return state;
-  const healed = 8;
-  let health = Math.min(20, (state.health || 0) + healed);
-  // Heal up to max health first, then drain bleed for the rest of heal budget
-  let remainingHeal = healed - (health - (state.health || 0));
-  if (remainingHeal < 0) remainingHeal = 0;
-  const newBleed = Math.max(0, (state.bleed || 0) - remainingHeal);
-  return { ...state, health, bleed: newBleed };
 }
 export function isBleeding(state) {
   return !!(state && (state.bleed || 0) > 1);

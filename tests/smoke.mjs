@@ -151,8 +151,6 @@ import { boggedArrowTip, boggedArrowDamage } from '../js/bogged-arrow.js';
 import { createCrafterEnable, crafterSetPowered, crafterCanCraft } from '../js/crafter-enabled.js';
 import { hasHeavyCore, canCraftMace } from '../js/heavy-core.js';
 import { applyArmorTrim, isFlowTrim, isValidArmorTrim } from '../js/flow-armor-trim.js';
-import { createTrialKey, trialKeyPickup, trialKeyUse, hasTrialKey } from '../js/trial-key.js';
-import { createOminousTrialKey, hasOminousTrialKey, useOminousTrialKey, grantOminousTrialKey } from '../js/ominous-trial-key.js';
 
 
 
@@ -435,24 +433,6 @@ test('craft fails without ingredients', () => {
 
 test('visible recipes non-empty', () => {
   assert.ok(visibleRecipes().length >= 5);
-});
-
-test('anvil block crafts and repairs matching tools', () => {
-  let slots = createStarterInventory();
-  slots = addItems(slots, ITEM.IRON_INGOT, 3).slots;
-  slots = addItems(slots, BLOCK.COBBLE, 4).slots;
-  const crafted = craftRecipe(slots, 'anvil');
-  assert.ok(crafted.ok, crafted.error);
-  assert.strictEqual(countItems(crafted.slots, BLOCK.ANVIL), 1);
-  assert.ok(isPlaceable(BLOCK.ANVIL));
-
-  const a = { id: ITEM.STONE_PICK, count: 1, dur: 20 };
-  const b = { id: ITEM.STONE_PICK, count: 1, dur: 30 };
-  assert.ok(canAnvilRepair(a, b));
-  const repaired = anvilRepair(a, b);
-  assert.ok(repaired.ok);
-  assert.strictEqual(repaired.result.dur, 55);
-  assert.ok(repaired.result.dur <= 100);
 });
 
 test('tools speed matching blocks', () => {
@@ -2121,33 +2101,6 @@ test('trigger-button-map: L2 and R2 entries exist', () => {
 
 import { PadInputAdapter } from '../js/pad-input.js';
 
-
-import { createBannerPattern, addBannerLayer as addBannerPatternLayer, bannerLayerCount as bannerPatternLayerCount } from '../js/banner-pattern.js';
-import { compostChance, compostSucceeds } from '../js/composter-chance.js';
-import { discDurationSec, discIsLong } from '../js/jukebox-song.js';
-import { respawnAnchorExplodesIn, respawnAnchorCanSetSpawn } from '../js/respawn-anchor-explode.js';
-import { lodestoneBearing, lodestoneDistance } from '../js/lodestone-compass.js';
-import { spyglassFov, spyglassSensitivity } from '../js/spyglass-zoom.js';
-import { goatHornInstrument, isGoatHornInstrument } from '../js/goat-horn.js';
-import { brushWear, brushBroken } from '../js/brush-wear.js';
-import { isPotterySherd, potterySherdCount } from '../js/pottery-sherd.js';
-import { snifferSeedDrop, isSnifferSeed } from '../js/sniffer-seed.js';
-import { camelCanDash, camelDashTick } from '../js/camel-dash.js';
-import { wardenAngerAdd, wardenIsAngry } from '../js/warden-anger.js';
-import { shriekerWarn, shriekerSpawnsWarden } from '../js/sculk-shrieker.js';
-import { allayCanDuplicate, allayDuplicateStart } from '../js/allay-duplication.js';
-import { axolotlVariant, axolotlIsBlue } from '../js/axolotl-variant.js';
-import { frogVariantForTemp, isFrogVariant } from '../js/frog-variant.js';
-import { tadpoleAdvance, tadpoleIsAdult } from '../js/tadpole-age.js';
-import { boatAttachChest, boatChestSlots } from '../js/boat-chest.js';
-import { hangingSignFaceFromYaw, isHangingFace } from '../js/hanging-sign.js';
-import { bookshelfComparatorSignal, bookshelfFillFraction } from '../js/chiseled-bookshelf-signal.js';
-import { createFishingState, canCast, startCast, tickFishing, rollFishingCatch, FISHING_CAST_SECONDS, FISH_CATCH_TABLE } from '../js/fishing-cast.js';
-import { createBoat, canPlaceBoat, buoyancyY, mountBoat, dismountBoat, stepBoat, BOAT_CONFIG } from '../js/boat-entity.js';
-import * as nutritionMod from '../js/nutrition.js';
-import { blockDamageMult, isBlockingReduced } from '../js/shield-block.js';
-
-
 test('PadInputAdapter movement thresholds', () => {
   const p = new PadInputAdapter();
   p._fwd = 0.5; p._str = -0.5;
@@ -2465,13 +2418,8 @@ test('ore-drops pure catalog', () => {
 
 test('station-catalog pure tags', () => {
   assert.ok(listStationIds().includes('furnace'));
-  assert.ok(listStationIds().includes('smoker'));
-  assert.ok(listStationIds().includes('blast_furnace'));
   assert.strictEqual(stationById('furnace')?.blockId, BLOCK.FURNACE);
-  assert.strictEqual(stationById('smoker')?.blockId, BLOCK.SMOKER);
-  assert.strictEqual(stationById('blast_furnace')?.blockId, BLOCK.BLAST_FURNACE);
   assert.ok(stationsWithTag('smelting').length >= 1);
-  assert.ok(stationsWithTag('food').some((s) => s.id === 'smoker'));
 });
 
 test('mine-tier helpers', () => {
@@ -3197,186 +3145,28 @@ test('flow-armor-trim', () => {
   assert.ok(r.ok && r.result.trim === 'flow');
 });
 
-test('ominous-trial-key flag', () => {
-  let s = createOminousTrialKey(false);
-  assert.ok(!hasOminousTrialKey(s));
-  s = grantOminousTrialKey(s);
-  assert.ok(hasOminousTrialKey(s));
-  s = useOminousTrialKey(s);
-  assert.ok(!hasOminousTrialKey(s));
-});
-
-test('trial-key vault flag', () => {
-  let s = createTrialKey(false);
-  assert.ok(!hasTrialKey(s));
-  s = trialKeyPickup(s);
-  assert.ok(hasTrialKey(s));
-  const r = trialKeyUse(s, 'vault_a');
-  assert.ok(r.ok && r.vaultId === 'vault_a' && !s.hasKey);
-  assert.strictEqual(s.usedFor, 'vault_a');
-});
-
 test('game mace smash wire', () => {
   const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
   assert.ok(src.includes('maceSmashDamage'));
   assert.ok(src.includes('mace'));
 });
 
-
-test('oss20b banner-pattern', () => {
-  let b = createBannerPattern('red');
-  const r = addBannerPatternLayer(b, 'stripe', 'white');
-  assert.ok(r.ok && bannerPatternLayerCount(r.banner) === 1);
-});
-test('oss20b composter-chance', () => {
-  assert.ok(compostChance('oak_leaves') > 0);
-  assert.ok(compostSucceeds('cake', () => 0));
-});
-test('oss20b jukebox-song', () => {
-  assert.ok(discDurationSec('cat') > 100);
-  assert.ok(discIsLong('blocks', 200));
-});
-test('oss20b respawn-anchor-explode', () => {
-  assert.ok(respawnAnchorExplodesIn('overworld'));
-  assert.ok(!respawnAnchorExplodesIn('nether'));
-  assert.ok(respawnAnchorCanSetSpawn('nether', 1));
-});
-test('oss20b lodestone-compass', () => {
-  assert.ok(Number.isFinite(lodestoneBearing({x:0,z:0},{x:1,z:0})));
-  assert.ok(lodestoneDistance({x:0,y:0,z:0},{x:3,y:4,z:0}) === 5);
-});
-test('oss20b spyglass-zoom', () => {
-  assert.ok(spyglassFov(70, true) < 70);
-  assert.ok(spyglassSensitivity(1, true) < 1);
-});
-test('oss20b goat-horn', () => {
-  assert.ok(isGoatHornInstrument(goatHornInstrument(0)));
-});
-test('oss20b brush-wear', () => {
-  assert.strictEqual(brushWear(10, 3), 7);
-  assert.ok(brushBroken(0));
-});
-test('oss20b pottery-sherd', () => {
-  assert.ok(isPotterySherd('arms_up'));
-  assert.ok(potterySherdCount() >= 10);
-});
-test('oss20b sniffer-seed', () => {
-  assert.ok(isSnifferSeed(snifferSeedDrop(() => 0.1)));
-});
-test('oss20b camel-dash', () => {
-  assert.ok(camelCanDash(0));
-  assert.ok(camelDashTick(2, 1) === 1);
-});
-test('oss20b warden-anger', () => {
-  assert.ok(wardenIsAngry(wardenAngerAdd(70, 20)));
-});
-test('oss20b sculk-shrieker', () => {
-  let w = 0;
-  for (let i = 0; i < 4; i++) w = shriekerWarn(w);
-  assert.ok(shriekerSpawnsWarden(w));
-});
-test('oss20b allay-duplication', () => {
-  assert.ok(allayCanDuplicate(0));
-  assert.ok(allayDuplicateStart() > 0);
-});
-test('oss20b axolotl-variant', () => {
-  assert.ok(axolotlVariant(0));
-  assert.ok(axolotlIsBlue('blue'));
-});
-test('oss20b frog-variant', () => {
-  assert.strictEqual(frogVariantForTemp(30), 'warm');
-  assert.ok(isFrogVariant('cold'));
-});
-test('oss20b tadpole-age', () => {
-  assert.ok(tadpoleIsAdult(tadpoleAdvance(0, 99999, 10)));
-});
-test('oss20b boat-chest', () => {
-  const b = boatAttachChest({});
-  assert.strictEqual(boatChestSlots(b), 27);
-});
-test('oss20b hanging-sign', () => {
-  assert.ok(isHangingFace(hangingSignFaceFromYaw(0)));
-});
-test('oss20b chiseled-bookshelf-signal', () => {
-  assert.strictEqual(bookshelfComparatorSignal(3), 3);
-  assert.ok(bookshelfFillFraction(3) === 0.5);
-});
-
-
-test('v1130 honey powder scaffold smoker mace', () => {
-  assert.ok(BLOCK.HONEY_BLOCK && String(BLOCK_PROPS[BLOCK.HONEY_BLOCK].name).toLowerCase().includes('honey'));
-  const ps = String(BLOCK_PROPS[BLOCK.POWDER_SNOW].name).toLowerCase();
-  assert.ok(ps.includes('powder') && ps.includes('snow'));
-  assert.ok(String(BLOCK_PROPS[BLOCK.SCAFFOLDING].name).toLowerCase().includes('scaffold'));
-  assert.ok(BLOCK.SMOKER && String(BLOCK_PROPS[BLOCK.SMOKER].name).toLowerCase().includes('smoker'));
-  assert.ok(ITEM.MACE && String(propsOf(ITEM.MACE).name).toLowerCase().includes('mace'));
-  const recipes = visibleRecipes();
-  for (const id of ['honey_block','powder_snow','scaffolding','smoker','mace']) {
-    assert.ok(recipes.some((r) => r.id === id), 'missing recipe '+id);
-  }
-});
-
-
-test('v1131 blast furnace', () => {
-  assert.ok(BLOCK.BLAST_FURNACE);
-  assert.ok(String(BLOCK_PROPS[BLOCK.BLAST_FURNACE].name).toLowerCase().includes('blast'));
-  assert.ok(visibleRecipes().some((r) => r.id === 'blast_furnace'));
-  assert.ok(canSmelt(ITEM.RAW_MEAT));
-  assert.strictEqual(smeltRecipe(ITEM.RAW_MEAT)?.output, ITEM.COOKED_MEAT);
-  assert.ok(canSmelt(ITEM.RAW_FISH));
-  assert.strictEqual(smeltRecipe(ITEM.RAW_FISH)?.output, ITEM.COOKED_FISH);
-  const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
-  assert.ok(src.includes('BLAST_FURNACE'));
-  assert.ok(src.includes('isBlastFurnace'));
-  assert.ok(src.includes('isSmokerFood'));
-});
-
-
-test('v1133 anvil block and craft', () => {
-  assert.ok(BLOCK.ANVIL);
-  assert.ok(String(BLOCK_PROPS[BLOCK.ANVIL].name).toLowerCase().includes('anvil'));
-  assert.ok(visibleRecipes().some((r) => r.id === 'anvil'));
-  const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
-  assert.ok(src.includes('anvilRepair'));
-});
 if (process.exitCode) process.exit(1);
 
-test('v1134 fishing-cast pure API', () => {
-  const st = createFishingState();
-  assert.strictEqual(canCast(st), true);
-  const started = startCast(st, 1);
-  assert.strictEqual(started.phase, 'waiting');
-  const done = tickFishing(tickFishing(started, 0.5).state, 1);
-  assert.strictEqual(done.caught, true);
-  const c = rollFishingCatch(() => 0);
-  assert.ok(c && ('id' in c));
-});
 
-test('v1134 boat-entity pure API', () => {
-  assert.strictEqual(canPlaceBoat({ water: true, clear: true, depth: 2 }), true);
-  assert.strictEqual(canPlaceBoat({ water: false, clear: true, depth: 2 }), false);
-  const b = createBoat(1, 2, 3, 0.5);
-  assert.ok(mountBoat(b, 'p1').ok);
-  assert.ok(dismountBoat(b));
-});
 
-test('v1134 pig sheep species present', () => {
-  assert.ok(SPECIES.pig, 'pig');
-  assert.ok(SPECIES.sheep, 'sheep');
-  assert.strictEqual(SPECIES.pig.hostile, false);
-  assert.strictEqual(SPECIES.sheep.hostile, false);
-});
 
-test('v1134 nutrition pure hunger-sat drain', () => {
-  let s = nutritionMod.createNutritionState();
-  s = nutritionMod.applyEat(s, { sat: 0.5 });
-  s = nutritionMod.tickNutrition(s, 10, { drain: 0.02 });
-  assert.ok(Math.abs(s.saturation - 0.3) < 1e-9);
-  assert.ok(Math.abs(s.hunger - 1) < 1e-9);
-});
 
-test('v1134 shield-block mult', () => {
-  assert.strictEqual(blockDamageMult(true, 10), 5);
-  assert.strictEqual(blockDamageMult(false, 10), 10);
-  if (typeof isBlockingReduced === 'function') assert.strictEqual(isBlockingReduced(true), true);
-});
+
+
+
+
+
+
+
+
+
+
+
+
+

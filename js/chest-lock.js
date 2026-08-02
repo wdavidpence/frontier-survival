@@ -6,8 +6,8 @@
  * @typedef {{ ownerId: string|null, locked: boolean }} ChestLock
  */
 
-export function createChestLock() {
-  return { ownerId: null, locked: false };
+export function createChestLock(ownerId = null) {
+  return { ownerId: ownerId == null ? null : String(ownerId), locked: false };
 }
 
 export function setChestOwner(lock, ownerId) {

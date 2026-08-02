@@ -48,18 +48,6 @@ export const BLOCK = {
   SEQUOIA_LEAVES: 45,
   STAIRS_WOOD: 46,
   SLAB_WOOD: 47,
-  GLASS_PANE_THIN: 48,
-  /** Slow movement / low jump — name must include "honey" for player.js */
-  HONEY_BLOCK: 49,
-  /** Sink physics — name must include powder + snow */
-  POWDER_SNOW: 50,
-  /** Climbable — name must include "scaffold" */
-  SCAFFOLDING: 51,
-  /** Furnace variant with speedMult 2 */
-  SMOKER: 52,
-  /** Ore furnace variant with speedMult 2 */
-  BLAST_FURNACE: 53,
-  ANVIL: 54,
 };
 
 /** @type {Record<number, {
@@ -124,63 +112,6 @@ export const BLOCK_PROPS = {
   [BLOCK.SEQUOIA_LEAVES]: { name: 'Sequoia Leaves', solid: true, transparent: true, hardness: 0.2, color: [0.18, 0.45, 0.15], drops: BLOCK.SEQUOIA_LEAVES },
   [BLOCK.STAIRS_WOOD]: { name: 'Wood Stairs', solid: true, transparent: false, hardness: 0.8, color: [0.72, 0.58, 0.35], drops: BLOCK.STAIRS_WOOD },
   [BLOCK.SLAB_WOOD]: { name: 'Wood Slab', solid: true, transparent: false, hardness: 0.8, color: [0.72, 0.58, 0.35], drops: BLOCK.SLAB_WOOD },
-  [BLOCK.GLASS_PANE_THIN]: { name: 'Thin Glass Pane', solid: true, transparent: true, hardness: 0.3, color: [0.72, 0.82, 0.92], drops: BLOCK.GLASS_PANE_THIN },
-  [BLOCK.HONEY_BLOCK]: {
-    name: 'Honey Block',
-    solid: true,
-    transparent: true,
-    hardness: 0.3,
-    color: [0.92, 0.72, 0.18],
-    topColor: [0.95, 0.8, 0.28],
-    drops: BLOCK.HONEY_BLOCK,
-  },
-  [BLOCK.POWDER_SNOW]: {
-    name: 'Powder Snow',
-    solid: false,
-    transparent: true,
-    hardness: 0.25,
-    color: [0.92, 0.95, 0.98],
-    replaceable: true,
-    drops: BLOCK.POWDER_SNOW,
-  },
-  [BLOCK.SCAFFOLDING]: {
-    name: 'Scaffolding',
-    solid: false,
-    transparent: true,
-    hardness: 0.2,
-    color: [0.78, 0.68, 0.35],
-    climbable: true,
-    drops: BLOCK.SCAFFOLDING,
-  },
-  [BLOCK.SMOKER]: {
-    name: 'Smoker',
-    solid: true,
-    transparent: true,
-    hardness: 1.5,
-    color: [0.32, 0.28, 0.24],
-    heat: 14,
-    light: 10,
-    drops: BLOCK.SMOKER,
-  },
-  [BLOCK.BLAST_FURNACE]: {
-    name: 'Blast Furnace',
-    solid: true,
-    transparent: true,
-    hardness: 1.5,
-    color: [0.24, 0.26, 0.3],
-    heat: 16,
-    light: 11,
-    drops: BLOCK.BLAST_FURNACE,
-  },
-  [BLOCK.ANVIL]: {
-    name: 'Anvil',
-    solid: true,
-    transparent: false,
-    hardness: 3.0,
-    color: [0.25, 0.28, 0.32],
-    topColor: [0.42, 0.45, 0.5],
-    drops: BLOCK.ANVIL,
-  },
 };
 
 export function isSolid(id) {

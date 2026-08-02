@@ -6,7 +6,7 @@ import {
   fuelValue,
   smeltRecipe,
   canSmelt,
-} from './smelting.js?v=240';
+} from './smelting.js?v=220';
 
 /**
  * @typedef {{

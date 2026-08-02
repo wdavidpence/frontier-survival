@@ -1,7 +1,7 @@
 /**
  * Pure crafting-station catalog (MC-breadth). Tags only — no UI/game tick.
  */
-import { BLOCK } from './blocks.js?v=240';
+import { BLOCK } from './blocks.js?v=220';
 
 /**
  * @typedef {{ id: string, name: string, blockId: number|null, recipeTags: string[], notes?: string }} Station
@@ -30,31 +30,17 @@ export const STATIONS = [
     recipeTags: ['smelting', 'heat'],
   },
   {
-    id: 'smoker',
-    name: 'Smoker',
-    blockId: BLOCK.SMOKER,
-    recipeTags: ['cooking', 'food', 'heat', 'smelting'],
-    notes: 'Food-only cooking at double speed',
-  },
-  {
-    id: 'blast_furnace',
-    name: 'Blast Furnace',
-    blockId: BLOCK.BLAST_FURNACE,
-    recipeTags: ['smelting', 'ore', 'heat'],
-    notes: 'Ore and metal smelting at double speed',
-  },
-  {
     id: 'campfire',
     name: 'Campfire',
     blockId: BLOCK.CAMPFIRE,
     recipeTags: ['heat', 'cooking'],
   },
   {
-    id: 'anvil',
-    name: 'Anvil',
-    blockId: BLOCK.ANVIL,
+    id: 'anvil_stub',
+    name: 'Anvil (stub)',
+    blockId: null,
     recipeTags: ['repair', 'rename'],
-    notes: 'Combine two matching damaged tools with F',
+    notes: 'Not placed yet — catalog reserved for progression',
   },
 ];
 

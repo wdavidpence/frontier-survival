@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frontier Survival v1.13.4</title>
+  <title>Frontier Survival v1.12.10</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -159,7 +159,7 @@
       padding: 4px 10px; border-radius: 12px;
       border: 1px solid rgba(120,160,220,0.45);
     }
-
+    
     #coop-pad-prompt {
       display: none;
       position: absolute;
@@ -420,12 +420,6 @@
       letter-spacing: 0.04em;
     }
     .panel button:hover { filter: brightness(1.06); }
-
-    #overlay-bg {
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-    }
     #death-screen {
       background: radial-gradient(ellipse at center, rgba(40,10,10,0.92), rgba(5,2,2,0.97));
       z-index: 30;
@@ -450,12 +444,6 @@
     #chest-slots {
       display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin: 12px 0;
     }
-    #barrel-screen .inv-panel { width: min(560px, 94vw); }
-    #barrel-slots {
-      display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; margin: 12px 0;
-      max-height: 58vh; overflow: auto;
-    }
-
     .hotbar-slot.damaged { box-shadow: inset 0 -3px 0 #c43c3c; }
     .dur-bar {
       position: absolute; left: 2px; right: 2px; bottom: 2px; height: 3px;
@@ -671,104 +659,6 @@
       line-height: 1;
     }
     .tooltip-dismiss:hover { color: #e8e4dc; }
-
-    /* Gamepad title navigation highlight */
-    .title-btn-gp {
-      outline: 2px solid rgba(212,165,116,0.85);
-      outline-offset: 2px;
-    }
-
-    #gamepad-hint {
-      display: none;
-      margin-top: 10px;
-      font-size: 11px;
-      color: #8a8378;
-    }
-
-    body.gamepad-connected #gamepad-hint { display: block; }
-
-    /* HUD readability pass: keep critical state legible over bright terrain and
-       preserve the same visual hierarchy when the screen is split for co-op. */
-    :root {
-      --panel: rgba(6, 10, 16, 0.86);
-      --hud-text: #f4f1ea;
-      --hud-muted: #d6d0c5;
-      --hud-track: rgba(2, 5, 9, 0.72);
-    }
-    #meters, body.coop-mode #meters-p2, #hotbar, body.coop-mode #hotbar-p2,
-    #help, #status-line, #prompt, #bleed-tag {
-      border-color: rgba(255,255,255,0.2);
-      box-shadow: 0 5px 18px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.06);
-    }
-    #meters, body.coop-mode #meters-p2 {
-      padding: 11px 13px;
-      gap: 7px;
-    }
-    .meter {
-      color: var(--hud-text);
-      font-size: 11px;
-      font-weight: 700;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.9);
-    }
-    .track {
-      height: 12px;
-      background: var(--hud-track);
-      border: 1px solid rgba(255,255,255,0.16);
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.6);
-    }
-    .fill { box-shadow: inset 0 1px 0 rgba(255,255,255,0.25); }
-    #temp-label, #temp-label-p2 { color: #c9ecff; font-weight: 600; }
-    #hotbar, body.coop-mode #hotbar-p2 { padding: 9px; gap: 7px; }
-    .hotbar-slot {
-      width: 46px; height: 46px;
-      background: rgba(255,255,255,0.09);
-      border-color: rgba(255,255,255,0.28);
-    }
-    .hotbar-slot::after {
-      color: #fff;
-      font-size: 10px;
-      font-weight: 700;
-      text-shadow: 0 1px 3px #000, 0 0 3px #000;
-    }
-    .hotbar-slot .hb-count {
-      font-size: 12px;
-      text-shadow: 0 1px 3px #000, 0 0 3px #000;
-    }
-    .hotbar-slot.active {
-      border-width: 3px;
-      background: rgba(212,165,116,0.16);
-    }
-    #status-line, #prompt, #message, #hotbar-name, #bleed-tag {
-      color: var(--hud-text);
-      font-weight: 600;
-      text-shadow: 0 1px 4px #000, 0 0 2px #000;
-    }
-    #status-line { padding: 7px 16px; }
-    #prompt { background: rgba(6,10,16,0.82); padding: 7px 16px; }
-    #message { max-width: min(680px, 72vw); line-height: 1.35; }
-    #help {
-      color: var(--hud-muted);
-      background: rgba(6,10,16,0.88);
-      font-size: 12px;
-      line-height: 1.55;
-    }
-    #help b { color: #fff1d6; }
-    #ach-toast {
-      background: linear-gradient(160deg, rgba(20,28,40,0.98), rgba(5,9,15,0.98));
-      border-color: rgba(242,196,120,0.72);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.62), 0 0 0 1px rgba(0,0,0,0.3);
-    }
-    #ach-toast strong { color: #ffd995; }
-    #ach-toast span { color: #e0dbd2; }
-    @media (max-width: 720px) {
-      #meters, body.coop-mode #meters-p2 { width: min(188px, 46vw); }
-      .meter { grid-template-columns: 54px 1fr; gap: 6px; font-size: 10px; }
-      #hotbar, body.coop-mode #hotbar-p2 { gap: 3px; padding: 6px; }
-      .hotbar-slot, body.coop-mode #hotbar .hotbar-slot,
-      body.coop-mode #hotbar-p2 .hotbar-slot { width: 34px; height: 38px; }
-      #help { right: 8px; bottom: 8px; width: 190px; font-size: 10px; }
-      #message { max-width: 86vw; font-size: 14px; }
-    }
   </style>
   <script type="importmap">
   {
@@ -807,7 +697,7 @@
     <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.13.4</div>
+    <div id="version-badge">v1.12.10</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Second DualSense / pad for right screen. P1 can use keyboard+mouse.</div></div>
@@ -887,7 +777,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.13.4</div>
+      <div class="tag">Browser survival sandbox · v1.12.10</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -911,11 +801,10 @@
       <button id="btn-continue" type="button" style="display:none">Continue save</button>
       <button id="btn-start" type="button">Start surviving</button>
       <button id="btn-new-world" type="button" style="display:none;margin-left:8px;background:linear-gradient(180deg,#8a909a,#5a6068);color:#f0f0f0">New world</button>
-      <div id="gamepad-hint">D-pad navigate · Cross confirm · Circle back to title</div>
     </div>
   </div>
 
-
+  
   <div id="chest-screen" class="overlay hidden">
     <div class="inv-panel">
       <h2>Chest</h2>
@@ -924,18 +813,6 @@
       <div class="inv-actions">
         <button id="btn-chest-deposit" type="button">Deposit hotbar slot</button>
         <button id="btn-close-chest" type="button">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="barrel-screen" class="overlay hidden">
-    <div class="inv-panel">
-      <h2>Barrel</h2>
-      <p class="inv-sub">27 slots for supplies. Click a slot to take one item; use the selected hotbar slot to deposit.</p>
-      <div id="barrel-slots"></div>
-      <div class="inv-actions">
-        <button id="btn-barrel-deposit" type="button">Deposit hotbar slot</button>
-        <button id="btn-close-barrel" type="button">Close</button>
       </div>
     </div>
   </div>
@@ -967,6 +844,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=255"></script>
+  <script type="module" src="./js/main.js?v=241"></script>
 </body>
 </html>
