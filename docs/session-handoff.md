@@ -1,5 +1,10 @@
 # Frontier Survival — session brief
 
+> **START HERE (new sessions):** [`docs/AGENT-STARTUP-BRIEF.md`](./AGENT-STARTUP-BRIEF.md) — forced via root `AGENTS.md`.  
+> This handoff is deeper state; the startup brief is the mandatory first read.
+
+---
+
 Date: 2026-07-30 22:40 EDT
 Repo: `/mnt/c/Users/wdavi/Projects/Frontier-Survival`
 Compat junction: `/mnt/c/Users/wdavi/Projects/SurvivalCraftMobile` → same repo (legacy only)

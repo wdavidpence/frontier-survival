@@ -1688,3 +1688,16 @@ Oldest ready task age: 100160s
 - Browser verify local :8767: boot OK v1.13.4, Solo/Co-op + 4 difficulties painted, DOM Start -> started=true, title hidden, world+player present, 0 JS errors.
 - Dual HTML synced; entry cache ?v=255. Smoke FAIL=0 (includes shield-block if present).
 - Ornith9b left on single pure card t_1e0b5480 (depth1); thrash cleared earlier.
+
+## 2026-08-02 11:20 EDT — overnight judge tick
+- Decision: **redirect/recover**, not ship.
+- Profiles: renamed active Ornith-1.0-9B-MTP lane `ornith9b` → `oss20b`; no Luna implementation running or dispatched.
+- Board: 1 running (`t_43c29ebc`, oss20b, pure redstone helper); 0 ready; 115 scheduled and 5 todo on oss20b; 0 Luna running.
+- Verification: `node tests/smoke.mjs` failed (3 passed, 7 failed); failures are the current fishing-cast API/durability contract mismatch. `git diff --check` was not accepted as a ship gate because the worktree status scan timed out.
+- Routing: created `t_b8da9792` behind the active card to restore the smallest fishing-cast smoke contract; migrated scheduled/todo Ornith lane cards to oss20b, depth 1.
+- Next: let the bounded redstone card finish, then dispatch the gated fishing-cast correction; rerun smoke and diff-check before any release decision.
+
+
+## 2026-08-02 11:49 EDT — agent startup brief
+- Added docs/AGENT-STARTUP-BRIEF.md + root AGENTS.md / CLAUDE.md / .cursorrules so new sessions load brief first.
+- session-handoff + frontier skills point at brief. Memory note saved.

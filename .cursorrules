@@ -1,0 +1,10 @@
+# Frontier Survival — always-on project rules
+
+On every new session or task in this repo:
+
+1. Read docs/AGENT-STARTUP-BRIEF.md first (forced entry also via AGENTS.md).
+2. Never ship a build that cannot Start (title modes painted + window.__FS.started).
+3. No dynamic string concat in static ES import paths (breaks entire boot).
+4. Keep index.html and public/index.html identical; cache-bust all relative ES imports ?v=N.
+5. Verify with node tests/smoke.mjs + browser; do not trust worker summaries alone.
+6. If start/title is broken, restore last good playable commit before feature salvage.

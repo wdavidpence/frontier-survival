@@ -1,0 +1,106 @@
+# Frontier Survival — Agent Startup Brief
+
+**READ THIS FIRST** on every new session that touches this repo.
+If you only open one file after the project path, make it this one.
+
+| | |
+|---|---|
+| **Repo** | `/mnt/c/Users/wdavi/Projects/Frontier-Survival` |
+| **Live** | https://wdavidpence.github.io/frontier-survival/ |
+| **Local** | `http://127.0.0.1:8767/` (`node scripts/static-8767.mjs`) |
+| **Board** | `frontier-survival` |
+| **Remote** | `https://github.com/wdavidpence/frontier-survival.git` |
+| **This brief** | `docs/AGENT-STARTUP-BRIEF.md` |
+| **Handoff (detail)** | `docs/session-handoff.md` |
+| **Routing** | `docs/kanban-routing.md` |
+| **Progress log** | `docs/overnight-progress.md` |
+
+---
+
+## How to find this brief without the user telling you
+
+1. **Project root inject** — When your cwd/workdir is this repo, Hermes injects root `AGENTS.md`. That file’s only job is to force you here.
+2. **Direct path** — Always works:  
+   `/mnt/c/Users/wdavi/Projects/Frontier-Survival/docs/AGENT-STARTUP-BRIEF.md`
+3. **Fallback search** — If the path moved:  
+   `rg -n "Agent Startup Brief" /mnt/c/Users/wdavi/Projects/Frontier-Survival/docs`  
+   or open `AGENTS.md` → follow the link.
+4. **Do not** wait for the user to say “read the handoff.” Opening this brief is **step 0** for any FS task.
+
+---
+
+## Session open checklist (in order)
+
+1. Read **this brief** (you are here).
+2. `git log -5 --oneline` + `git status -sb` — know HEAD vs origin.
+3. Note **live version** in `index.html` (`<title>`, badge, `main.js?v=N`).
+4. Skim top of `docs/session-handoff.md` only if you need deeper worker/fleet state.
+5. Before coding: `node tests/smoke.mjs` (must exit 0) or know why not.
+6. Before claiming “playable”: browser boot + **Start** must put `window.__FS.started === true` and hide `#title-screen`.
+
+---
+
+## Hard product rules (do not re-learn the hard way)
+
+### Playability is sacred
+- **Never publish** a build that cannot paint Solo/Co-op + difficulty rows and Start into a world.
+- Latest known-good family the user accepted after the 1.13 scare: **v1.12.10** (restored from **v1.12.9** `9e29f82`).  
+  History tip before restore: see `docs/reviews/pre-restore-1.13.4-HEAD.txt` and `docs/reviews/restore-1.12.10-from-1.12.9.md`.
+- If start is broken: **restore last good playable commit first**, then salvage features carefully. Do not “fix forward” a dead title screen.
+
+### Boot / ES module landmines
+- **Static `import` paths must be string literals.**  
+  Illegal (kills entire game boot):  
+  `from './foo.js?v=' + VERSION`  
+  Legal: `from './foo.js?v=241'`
+- No duplicate named imports of the same binding in one module (`FaunaSystem` twice → dead boot).
+- After UI changes: keep **`index.html` and `public/index.html` identical**.
+- Cache-bust **all** relative ES imports (`?v=N`), not only the entry script. Bump entry `main.js?v=N` on every public ship.
+
+### Verify before you trust anyone (including yourself)
+- Workers and subagents **lie / overclaim**. Verify with:
+  - `git diff` / file read
+  - `node tests/smoke.mjs` (exit 0)
+  - Browser: title buttons painted + Start → started + no JS errors
+- Dual HTML sync check: `cmp index.html public/index.html`
+
+### Git / workspace
+- Prefer surgical edits. **No** `git reset --hard`, `git clean -fd`, or destructive wipe of user WIP unless the user explicitly orders a restore and you snapshot the prior tip first.
+- Worktrees: siblings overwrite `index.html` / `public/index.html` — read before write; partition ownership.
+- Commit only when the card/user asks; publish = commit + push + **live URL proof**.
+
+### Kanban / models (quick)
+- Board: `frontier-survival`. Judge/orchestrator merges and publishes; workers implement.
+- **ornith9b** (was oss20b): GTX 1080 laptop — **depth 1 only**, pure `js/*` + smoke, **never parallel prompts** on that GPU. Profile name: `ornith9b`.
+- Luna/Codex: heavy SWE when available. Local qwen lanes when up.
+- Keepalive must not mass-spawn ornith (max 1).
+
+### Smoke harness
+- Authoritative suite: **`tests/smoke.mjs`** (thousands of lines).  
+  If it collapses to a tiny fishing-only file, **restore from `origin/main` or last good tag immediately** — do not “fix” a destroyed harness by rewriting from scratch in-session.
+
+---
+
+## Release one-liner
+
+```bash
+cd /mnt/c/Users/wdavi/Projects/Frontier-Survival
+node tests/smoke.mjs   # EXIT 0
+# browser Start proof on local or live
+# bump version + main.js?v=N, sync public/index.html
+git push origin main
+# prove https://wdavidpence.github.io/frontier-survival/ shows new version + Start works
+```
+
+---
+
+## Product north star (user)
+
+Polished SurvivalCraft/Minecraft-class **browser** survival: exploration, forests, ocean/islands, ecology, local **2P PS5-browser co-op**. Ship verified playable improvements; one honest public release beats a pile of unmerged pure modules.
+
+---
+
+## Maintaining this brief
+
+When a rule is learned the hard way (boot death, thrash, bad publish), **patch this file the same session**.  
+`AGENTS.md` should stay short and only point here so inject cost stays low.
