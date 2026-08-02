@@ -19,7 +19,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=252';
+} from './items.js?v=253';
 import { resolveBlockDrop } from './mine-tier.js?v=240';
 import {
   createFurnaceState,
@@ -920,11 +920,13 @@ export class Game {
               if (res.hide > 0) this.player.slots = addItems(this.player.slots, ITEM.HIDE, res.hide).slots;
               if (res.egg > 0) this.player.slots = addItems(this.player.slots, ITEM.EGG, res.egg).slots;
               if (res.feather > 0) this.player.slots = addItems(this.player.slots, ITEM.FEATHER, res.feather).slots;
+              if (res.honey > 0) this.player.slots = addItems(this.player.slots, ITEM.HONEY, res.honey).slots;
               const bits = [];
               if (res.meat) bits.push(`+${res.meat} meat`);
               if (res.hide) bits.push(`+${res.hide} hide`);
               if (res.egg) bits.push(`+${res.egg} egg`);
               if (res.feather) bits.push(`+${res.feather} feather`);
+              if (res.honey) bits.push(`+${res.honey} honey`);
               this.player.notify(`${res.name} down (arrow). ${bits.join(', ')}`, 3);
               this._syncAnimalMeshes();
             } else if (res) {
@@ -2259,11 +2261,13 @@ export class Game {
           }
           if (res.egg > 0) this.player.slots = addItems(this.player.slots, ITEM.EGG, res.egg).slots;
           if (res.feather > 0) this.player.slots = addItems(this.player.slots, ITEM.FEATHER, res.feather).slots;
+          if (res.honey > 0) this.player.slots = addItems(this.player.slots, ITEM.HONEY, res.honey).slots;
           const bits = [];
           if (res.meat) bits.push(`+${res.meat} meat`);
           if (res.hide) bits.push(`+${res.hide} hide`);
           if (res.egg) bits.push(`+${res.egg} egg`);
           if (res.feather) bits.push(`+${res.feather} feather`);
+          if (res.honey) bits.push(`+${res.honey} honey`);
           this.player.notify(
             `${res.name} down. ${bits.join(', ') || 'nothing'}. Craft clothes & cook!`,
             3.5,
@@ -2937,6 +2941,13 @@ export class Game {
     const col = new THREE.Color(spec.color[0], spec.color[1], spec.color[2]);
     const mat = new THREE.MeshLambertMaterial({ color: col });
     const dark = new THREE.MeshLambertMaterial({ color: 0x191822 });
+    const eye = new THREE.MeshStandardMaterial({
+      color: 0x211812,
+      emissive: 0xffb52e,
+      emissiveIntensity: 0.08,
+      roughness: 0.42,
+      metalness: 0.05,
+    });
     const light = new THREE.MeshLambertMaterial({
       color: new THREE.Color(
         Math.min(1, spec.color[0] * 1.35 + 0.08),
@@ -2951,6 +2962,7 @@ export class Game {
       const part = new THREE.Mesh(geometry, material);
       part.position.set(x, y, z);
       part.userData.baseY = y;
+      part.userData.baseColor = material?.color ? material.color.clone() : null;
       if (role) part.userData.animalRole = role;
       g.add(part);
       return part;
@@ -2972,9 +2984,11 @@ export class Game {
     );
     // Four simple articulated legs give the silhouettes readable motion at a distance.
     if (!['bird', 'bat', 'bee_stub'].includes(type)) {
+      let legIndex = 0;
       for (const x of [-sx * 0.32, sx * 0.32]) {
         for (const z of [-sz * 0.28, sz * 0.28]) {
-          add(new THREE.BoxGeometry(legW, legH, legW), mat, x, legH * 0.5, z, 'leg');
+          const leg = add(new THREE.BoxGeometry(legW, legH, legW), mat, x, legH * 0.5, z, 'leg');
+          leg.userData.walkPhase = (legIndex++ % 2) * Math.PI;
         }
       }
     }
@@ -3020,7 +3034,7 @@ export class Game {
     }
     // Shared eyes make every head read as alive without changing collision/gameplay.
     if (!['alligator', 'bird', 'bat', 'bee_stub'].includes(type)) {
-      for (const x of [-sx * 0.17, sx * 0.17]) add(new THREE.SphereGeometry(Math.max(0.025, sx * 0.045), 5, 4), dark, x, sy * 0.78, sx * 0.31, 'eye');
+      for (const x of [-sx * 0.17, sx * 0.17]) add(new THREE.SphereGeometry(Math.max(0.025, sx * 0.045), 5, 4), eye, x, sy * 0.78, sx * 0.31, 'eye');
     }
     g.userData.type = type;
     g.userData.phase = (type.length * 0.71) % (Math.PI * 2);
@@ -3046,7 +3060,7 @@ export class Game {
       mesh.userData.animT = animT;
       mesh.traverse((c) => {
         const role = c.userData?.animalRole;
-        if (role === 'leg') c.rotation.x = Math.sin(animT * 2.2 + c.position.z * 8) * (moving ? 0.22 : 0.04);
+        if (role === 'leg') c.rotation.x = Math.sin(animT * 2.2 + (c.userData.walkPhase || 0)) * (moving ? 0.34 : 0.04);
         if (role === 'wing') c.rotation.x = Math.sin(animT * 3.2) * (moving ? 0.38 : 0.08);
         if (role === 'tail') c.rotation.x = Math.sin(animT * 2.6) * 0.12;
         if (role === 'head') c.position.y = (c.userData.baseY ?? c.position.y) + Math.sin(animT * 2) * 0.012;
@@ -3054,14 +3068,17 @@ export class Game {
       // hurt flash
       const hurt = a.hp < a.maxHp * 0.5;
       mesh.traverse((c) => {
-        if (c.isMesh && c.material?.color) {
+        if (c.isMesh && c.material?.color && c.userData?.animalRole !== 'eye') {
           const spec = SPECIES[a.type];
-          const base = spec?.color || [0.5, 0.5, 0.5];
+          const base = c.userData.baseColor || new THREE.Color(...(spec?.color || [0.5, 0.5, 0.5]));
           c.material.color.setRGB(
-            hurt ? Math.min(1, base[0] + 0.25) : base[0],
-            hurt ? base[1] * 0.7 : base[1],
-            hurt ? base[2] * 0.7 : base[2],
+            hurt ? Math.min(1, base.r + 0.25) : base.r,
+            hurt ? base.g * 0.7 : base.g,
+            hurt ? base.b * 0.7 : base.b,
           );
+        }
+        if (c.userData?.animalRole === 'eye' && c.material?.emissive) {
+          c.material.emissiveIntensity = this.time?.isNight?.() ? 0.42 : 0.08;
         }
       });
     }

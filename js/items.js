@@ -54,6 +54,7 @@ export const ITEM = {
   MAP: 146,
   ICE_BOX: 147,
   MACE: 148,
+  HONEY: 149,
 };
 
 /** @type {Record<number, {
@@ -235,6 +236,7 @@ export const ITEM_PROPS = {
     meleeRange: 3.5,
     maxStack: 1,
   },
+  [ITEM.HONEY]: { name: 'Honey', color: [0.92, 0.62, 0.12], edible: 20, maxStack: 32 },
 };
 
 export function propsOf(id) {

@@ -512,7 +512,7 @@ export class FaunaSystem {
   }
 
   /**
-   * @returns {{ killed: boolean, meat: number, hide: number, egg?: number, feather?: number, wing?: number, name: string, type?: string } | null}
+   * @returns {{ killed: boolean, meat: number, hide: number, egg?: number, feather?: number, wing?: number, honey?: number, name: string, type?: string } | null}
    */
   damageAnimal(animal, amount) {
     if (!animal || animal.dead) return null;
