@@ -66,7 +66,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=245';
+    const workerUrl = './js/chunk-worker.js?v=250';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -132,7 +132,7 @@ export class World {
             if (y <= SEA_LEVEL) id = BLOCK.WATER;
             else id = BLOCK.AIR;
           } else if (y === h) {
-            if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN || biome === BIOME.TROPICAL) id = BLOCK.SAND;
+            if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
             else id = BLOCK.GRASS;
           } else if (y > h - 4) {
@@ -155,7 +155,7 @@ export class World {
           if (biome === BIOME.FOREST) treeChance = 0.018; // half prior density for navigability
           else if (biome === BIOME.SHORE) treeChance = 0.028; // coastal palms/scrub
           else if (biome === BIOME.TUNDRA) treeChance = 0.012;
-          else if (biome === BIOME.TROPICAL) treeChance = 0.06; // readable palm canopy on starter islands
+          else if (biome === BIOME.TROPICAL) treeChance = 0.018; // keep the starter island open enough to read landmarks
           else if (biome === BIOME.OCEAN) treeChance = 0;
           if (th > 1 - treeChance) {
             // Tree species selection by biome
@@ -401,7 +401,7 @@ export class World {
             else id = BLOCK.AIR;
           } else if (y === h) {
             // Biome-driven surface block
-            if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN || biome === BIOME.TROPICAL) id = BLOCK.SAND;
+            if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
             else id = BLOCK.GRASS; // FOREST default
           } else if (y > h - 4) {
@@ -430,7 +430,7 @@ export class World {
           if (biome === BIOME.FOREST) treeChance = 0.018; // ~4% surface — half prior density
           else if (biome === BIOME.SHORE) treeChance = 0.028; // coastal palms/scrub
           else if (biome === BIOME.TUNDRA) treeChance = 0.012;
-          else if (biome === BIOME.TROPICAL) treeChance = 0.06; // readable palm canopy on starter islands
+          else if (biome === BIOME.TROPICAL) treeChance = 0.018; // keep the starter island open enough to read landmarks
           else if (biome === BIOME.OCEAN) treeChance = 0;
           if (th > 1 - treeChance) {
             // Tree species selection by biome

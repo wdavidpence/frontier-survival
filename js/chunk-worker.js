@@ -179,7 +179,7 @@ function generateChunkData(cx, cz, seed) {
         else if (y > h) {
           if (y <= SEA_LEVEL) id = BLOCK.WATER;
         } else if (y === h) {
-          if (biome === 'shore' || biome === 'desert' || biome === 'ocean' || biome === 'tropical') id = BLOCK.SAND;
+          if (biome === 'shore' || biome === 'desert' || biome === 'ocean') id = BLOCK.SAND;
           else if (biome === 'tundra') id = BLOCK.SNOW;
           else id = BLOCK.GRASS;
         } else if (y > h - 4) {
@@ -204,7 +204,7 @@ function generateChunkData(cx, cz, seed) {
         if (biome === 'forest') treeChance = 0.018;
         else if (biome === 'shore') treeChance = 0.028;
         else if (biome === 'tundra') treeChance = 0.012;
-        else if (biome === 'tropical') treeChance = 0.06;
+        else if (biome === 'tropical') treeChance = 0.018;
         if (th > 1 - treeChance) {
           if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);
           else _placeTree(data, idx, lx, h + 1, lz);

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=245';
+import { World } from './world.js?v=250';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=220';
 import { GameTime } from './time.js?v=220';
@@ -139,6 +139,10 @@ export class Game {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // Keep the starter island readable: ACES rolls back the sunlit sand
+    // highlights while a small exposure lift preserves dark tree silhouettes.
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x87b5ff);
@@ -156,12 +160,12 @@ export class Game {
     // Apply render distance from settings
     this._applyRenderDistance();
 
-    this.ambient = new THREE.AmbientLight(0x6688aa, 0.35);
-    this.sun = new THREE.DirectionalLight(0xfff2d9, 1.1);
-    this.sun.position.set(40, 80, 20);
+    this.ambient = new THREE.AmbientLight(0x7895b4, 0.52);
+    this.sun = new THREE.DirectionalLight(0xffe4bd, 1.0);
+    this.sun.position.set(32, 72, 24);
     this.scene.add(this.ambient, this.sun);
 
-    this.hemi = new THREE.HemisphereLight(0x9ec9ff, 0x3a2a15, 0.35);
+    this.hemi = new THREE.HemisphereLight(0xa9d4ff, 0x4d3825, 0.52);
     this.scene.add(this.hemi);
 
     this.world = null;
