@@ -1,4 +1,4 @@
-# Frontier Survival v1.12.19 — PS5 controller quick fixes
+# Frontier Survival v1.12.20 — PS5 controller quick fixes
 
 This is a focused local controller/UI correction on v1.12.18.
 

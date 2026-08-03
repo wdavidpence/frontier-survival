@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=282';
+import { World } from './world.js?v=283';
 import { Player } from './player.js?v=238';
-import { Input } from './input.js?v=281';
+import { Input } from './input.js?v=283';
 import { GameTime } from './time.js?v=220';
 import { AudioBus } from './audio.js?v=220';
 import {
