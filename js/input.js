@@ -435,6 +435,8 @@ export class Input {
 
   /** Poll gamepad state — call from game loop each frame */
   pollGamepad() {
+    this._vSprint = false;
+    this._vCrouch = false;
     if (!navigator.getGamepads || !this._gpConnected) {
       this._vMoveX = 0;
       this._vMoveZ = 0;
@@ -502,8 +504,8 @@ export class Input {
       drop:       () => this.dropPressed = true,
       eat:        () => this.eatPressed = true,
       place:      () => this.placePressed = true,
-      sprint:     () => this.keys.add('ShiftLeft'),
-      crouch:     () => this.keys.add('KeyC'),
+      sprint:     () => { this._vSprint = true; this.keys.add('ShiftLeft'); },
+      crouch:     () => { this._vCrouch = true; this.keys.add('KeyC'); },
       quick_save: () => this.quickSavePressed = true,
       inventory:  () => this.inventoryPressed = true,
       pause:      () => this.pausePressed = true,
@@ -711,25 +713,25 @@ export class Input {
   };
 
   wantsForward() {
-    return this.keys.has('KeyW') || this.keys.has('ArrowUp') || this._vMoveZ < -0.3;
+    return (this.controllerOnly ? false : this.keys.has('KeyW') || this.keys.has('ArrowUp')) || this._vMoveZ < -0.3;
   }
   wantsBack() {
-    return this.keys.has('KeyS') || this.keys.has('ArrowDown') || this._vMoveZ > 0.3;
+    return (this.controllerOnly ? false : this.keys.has('KeyS') || this.keys.has('ArrowDown')) || this._vMoveZ > 0.3;
   }
   wantsLeft() {
-    return this.keys.has('KeyA') || this.keys.has('ArrowLeft') || this._vMoveX < -0.3;
+    return (this.controllerOnly ? false : this.keys.has('KeyA') || this.keys.has('ArrowLeft')) || this._vMoveX < -0.3;
   }
   wantsRight() {
-    return this.keys.has('KeyD') || this.keys.has('ArrowRight') || this._vMoveX > 0.3;
+    return (this.controllerOnly ? false : this.keys.has('KeyD') || this.keys.has('ArrowRight')) || this._vMoveX > 0.3;
   }
   wantsJump() {
-    return this.keys.has('Space') || this._vJump;
+    return (this.controllerOnly ? false : this.keys.has('Space')) || this._vJump;
   }
   wantsSprint() {
-    return this.keys.has('ShiftLeft') || this.keys.has('ShiftRight');
+    return this._vSprint || (!this.controllerOnly && (this.keys.has('ShiftLeft') || this.keys.has('ShiftRight')));
   }
   wantsCrouch() {
-    return this.keys.has('ControlLeft') || this.keys.has('ControlRight') || this.keys.has('KeyC') || this._vCrouch;
+    return this._vCrouch || (!this.controllerOnly && (this.keys.has('ControlLeft') || this.keys.has('ControlRight') || this.keys.has('KeyC')));
   }
 
   consumePlace() { const v = this.placePressed; this.placePressed = false; return v; }

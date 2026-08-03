@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=270';
+import { World } from './world.js?v=280';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=260';
 import { GameTime } from './time.js?v=220';
@@ -531,6 +531,7 @@ export class Game {
   start(seed = this.seed) {
     this.seed = seed;
     this.coopMode = this.settings.playMode === 'coop';
+    this.input.controllerOnly = this.coopMode;
     if (this.coopMode) {
       this._p2Yaw = this.input?.lookX || 0;
       this._p2Pitch = this.input?.lookY || 0;

@@ -43,7 +43,7 @@ function fbm(x, z, octaves = 4) {
 
 const WORLD_SCALE = 0.5;
 function starterCoastBlend(x, z) {
-  return Math.max(0, Math.min(1, 1 - Math.hypot(x, z) / 168));
+  return Math.max(0, Math.min(1, 1 - Math.hypot(x, z) / 240));
 }
 function heightAt(x, z, seed = 0) {
   const sx = x * 0.03 * WORLD_SCALE + seed * 17.1;
@@ -52,14 +52,14 @@ function heightAt(x, z, seed = 0) {
   const ridge = Math.abs(fbm(sx * 0.5 + 20, sz * 0.5 - 10, 3) - 0.5) * 2;
   let y = 18 + h * 16 + ridge * 8;
   const coast = fbm(x * 0.01 * WORLD_SCALE + 3, z * 0.01 * WORLD_SCALE + 7, 3);
-  if (coast < 0.44) {
-    const depth = (0.44 - coast) / 0.44;
+  if (coast < 0.50) {
+    const depth = (0.50 - coast) / 0.50;
     y -= depth * depth * 26;
   }
-  if (coast < 0.38) {
+  if (coast < 0.42) {
     const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
-    if (isle > 0.7) {
-      const peak = 16 + 1 + Math.floor((isle - 0.7) * 28);
+    if (isle > 0.66) {
+      const peak = 16 + 1 + Math.floor((isle - 0.66) * 28);
       y = Math.max(y, peak);
     }
   }

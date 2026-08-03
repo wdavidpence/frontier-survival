@@ -48,7 +48,7 @@ export const WORLD_SCALE = 0.5; // ~2x larger landforms (4x area feel of noise)
 
 /** Blend the first few chunks toward a low, wet island shelf. */
 export function starterCoastBlend(x, z) {
-  return Math.max(0, Math.min(1, 1 - Math.hypot(x, z) / 168));
+  return Math.max(0, Math.min(1, 1 - Math.hypot(x, z) / 240));
 }
 
 export function heightAt(x, z, seed = 0) {
@@ -60,16 +60,16 @@ export function heightAt(x, z, seed = 0) {
 
   // Broad ocean / shelf: lower coast noise → deeper water
   const coast = fbm(x * 0.01 * WORLD_SCALE + 3, z * 0.01 * WORLD_SCALE + 7, 3);
-  if (coast < 0.44) {
-    const depth = (0.44 - coast) / 0.44; // 0..1
+  if (coast < 0.50) {
+    const depth = (0.50 - coast) / 0.50; // 0..1
     y -= depth * depth * 26;
   }
 
   // Tropical island peaks inside wet basins
-  if (coast < 0.38) {
+  if (coast < 0.42) {
     const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
-    if (isle > 0.7) {
-      const peak = GEN_SEA_LEVEL + 1 + Math.floor((isle - 0.7) * 28);
+    if (isle > 0.66) {
+      const peak = GEN_SEA_LEVEL + 1 + Math.floor((isle - 0.66) * 28);
       y = Math.max(y, peak);
     }
   }

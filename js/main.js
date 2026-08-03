@@ -1,4 +1,4 @@
-import { Game } from './game.js?v=270';
+import { Game } from './game.js?v=280';
 import { hasSave, clearSaveStorage } from './save.js?v=220';
 import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=220';
 import {
@@ -17,6 +17,9 @@ const btnStart = document.getElementById('btn-start');
 const btnContinue = document.getElementById('btn-continue');
 const btnNew = document.getElementById('btn-new-world');
 const btnRespawn = document.getElementById('btn-respawn');
+const btnInstructions = document.getElementById('btn-instructions');
+const setupScreen = document.getElementById('setup-screen');
+const btnCloseInstructions = document.getElementById('btn-close-instructions');
 
 function refreshContinue() {
   const exists = hasSave();
@@ -241,14 +244,16 @@ document.getElementById('click-to-play')?.addEventListener('click', (e) => {
   engageControls();
 });
 
-function startNewWorld() {
-  const seed = readSeedInput();
+function startNewWorld({ randomize = false } = {}) {
+  const requestedSeed = randomize ? null : readSeedInput();
   clearSaveStorage();
   game.mode = getMode(game.settings.mode).id;
   game.settings.playMode = getPlayMode(game.settings.playMode);
   game.coopMode = game.settings.playMode === 'coop';
   writeSettings(game.settings);
-  game.seed = seed != null ? seed : ((Math.random() * 1e6) | 0);
+  let randomSeed = ((Math.random() * 0xffffffff) >>> 0);
+  if (randomize && randomSeed === game.seed) randomSeed = (randomSeed + 1) >>> 0;
+  game.seed = requestedSeed != null ? requestedSeed : randomSeed;
   game.start(game.seed);
   engageControls();
   refreshContinue();
@@ -300,8 +305,16 @@ btnContinue?.addEventListener('click', (e) => {
 
 btnNew?.addEventListener('click', (e) => {
   e.stopPropagation();
-  if (hasSave() && !confirm('Start a new world? This clears your saved game.')) return;
-  startNewWorld();
+  startNewWorld({ randomize: true });
+});
+
+btnInstructions?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setupScreen?.classList.remove('hidden');
+});
+btnCloseInstructions?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  setupScreen?.classList.add('hidden');
 });
 
 btnRespawn?.addEventListener('click', (e) => {
@@ -391,4 +404,4 @@ engageControls = function() {
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.12.16');
+console.info('Frontier Survival boot OK · v1.12.18');
