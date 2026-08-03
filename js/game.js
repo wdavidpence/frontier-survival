@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=250';
+import { World } from './world.js?v=260';
 import { Player } from './player.js?v=238';
-import { Input } from './input.js?v=220';
+import { Input } from './input.js?v=260';
 import { GameTime } from './time.js?v=220';
 import { AudioBus } from './audio.js?v=220';
 import {
@@ -106,7 +106,7 @@ import {
 } from './chests.js?v=220';
 import { checkTooltip, show as showTooltip } from './tooltips.js?v=220';
 import { splitViewport } from './viewport-split.js?v=220';
-import { readGamepad } from './input-coop.js?v=220';
+import { readGamepad } from './input-coop.js?v=260';
 import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=220';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=220';
 import { palmLeafDrop } from './palm-drops.js?v=1';
@@ -1479,7 +1479,10 @@ export class Game {
         this.audio.hurt();
         this.player.notify(dmg > 20 ? 'Hard landing!' : 'Oof — rough landing.', 1.6);
       }
-      if (move.inWater && !this._wasInWater) this.audio.splash?.() || this.audio.step('water');
+      if (move.inWater && !this._wasInWater) {
+        if (this.audio.splash) this.audio.splash();
+        else this.audio.step('water');
+      }
       this._wasInWater = move.inWater;
 
     } else {
@@ -1614,7 +1617,7 @@ export class Game {
     // Coop P2 body systems (SC-depth: hunger/cold/stamina for second player)
     if (this.coopMode && this.player2 && this.survival2 && !this.survival2.dead) {
       const p2 = this.player2.position;
-      const heat2 = heat; // TODO: per-player heat sample; share P1 heat for MVP
+      const heat2 = this.world.sampleHeat(p2.x, p2.y + 1, p2.z, 7);
       const roof2 = hasRoofAbove(
         (x, y, z) => this.world.getBlock(x, y, z),
         p2.x, p2.y, p2.z, isSolid, isTransparent,
@@ -3366,7 +3369,7 @@ export class Game {
     if (this.coopMode && !this._coopRouter) {
       try {
         // Lazy import path already static at top for readGamepad; router from same module via dynamic if needed
-        import(`./input-coop.js?v=220`).then((mod) => {
+        import(`./input-coop.js?v=260`).then((mod) => {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);

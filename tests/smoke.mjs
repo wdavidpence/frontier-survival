@@ -3878,3 +3878,35 @@ test('fauna-parts/fox-tail-tip foxTailLayout tip positioned at end', () => {
   const tip = layout.parts.find(p => p.name === 'tailTip');
   assert.ok(tip.z < -0.5, 'tip should be positioned at the end of the tail (negative z)');
 });
+
+const fsText = (name) => readFileSync(new URL(`../${name}`, import.meta.url), 'utf8');
+
+test('bug sprint: all visible version surfaces agree', () => {
+  const html = fsText('index.html');
+  const pub = fsText('public/index.html');
+  assert.equal(html, pub, 'root/public HTML must stay identical');
+  assert.ok(html.includes('v1.12.16'), 'HTML must expose v1.12.16');
+  assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
+});
+
+test('bug sprint: worker requests are correlated', () => {
+  assert.match(fsText('js/world.js'), /requestId/);
+  assert.match(fsText('js/chunk-worker.js'), /requestId: msg\.requestId/);
+});
+
+test('bug sprint: controller uses standard right-stick axis', () => {
+  assert.doesNotMatch(fsText('js/input.js'), /gp\.axes\[4\]/);
+  assert.doesNotMatch(fsText('js/input-coop.js'), /gp\.axes\[4\]/);
+  assert.match(fsText('js/input.js'), /axes\[2\]/);
+  assert.match(fsText('js/input-coop.js'), /axes\[2\]/);
+});
+
+test('bug sprint: negative chunks map to valid workers', () => {
+  assert.match(fsText('js/world.js'), /cx \* 31 \+ cz/);
+});
+
+test('bug sprint: title panel can scroll on short viewports', () => {
+  const html = fsText('index.html');
+  assert.match(html, /\.overlay[\s\S]*overflow-y: auto/);
+  assert.match(html, /\.panel[\s\S]*max-height: calc\(100vh - 32px\)/);
+});

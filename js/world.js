@@ -51,7 +51,8 @@ export class World {
 
     // ── Chunk worker pool (stub) ───────────────────────────────────────
     this._workerPool = [];
-    this._maxWorkers = Math.max(1, navigator.hardwareConcurrency - 1) || 3;
+    const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
+    this._maxWorkers = Math.max(1, cores - 1);
     this._workerReady = false;
 
     // Bootstrap a solid starter ring. The old radius-2 bootstrap exposed a
@@ -66,7 +67,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=250';
+    const workerUrl = './js/chunk-worker.js?v=260';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -95,10 +96,13 @@ export class World {
     }
 
     // Find an idle worker (simple round-robin with message queue)
-    const worker = this._workerPool[cx % this._workerPool.length];
+    const workerIndex = ((cx * 31 + cz) % this._workerPool.length + this._workerPool.length) % this._workerPool.length;
+    const worker = this._workerPool[workerIndex];
 
+    const requestId = `${cx}:${cz}:${Date.now()}:${Math.random()}`;
     return new Promise((resolve, reject) => {
       const handler = (e) => {
+        if (e.data.requestId !== requestId) return;
         if (e.data.error) {
           worker.removeEventListener('message', handler);
           reject(new Error(`Chunk ${cx},${cz}: ${e.data.error}`));
@@ -108,7 +112,7 @@ export class World {
         resolve(e.data.data); // Uint8Array (transferred)
       };
       worker.addEventListener('message', handler);
-      worker.postMessage({ cx, cz, seed: this.seed });
+      worker.postMessage({ cx, cz, seed: this.seed, requestId });
     });
   }
 
@@ -136,7 +140,7 @@ export class World {
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
             else id = BLOCK.GRASS;
           } else if (y > h - 4) {
-            if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN || biome === BIOME.TROPICAL) id = BLOCK.SAND;
+            if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else id = BLOCK.DIRT;
           } else {
             id = BLOCK.STONE;
@@ -406,7 +410,7 @@ export class World {
             else id = BLOCK.GRASS; // FOREST default
           } else if (y > h - 4) {
             // Sub-surface follows biome: desert/shore → sand, tundra → dirt, else dirt
-            if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN || biome === BIOME.TROPICAL) id = BLOCK.SAND;
+            if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else id = BLOCK.DIRT;
           } else {
             id = BLOCK.STONE;

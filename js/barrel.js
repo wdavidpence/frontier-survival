@@ -1,4 +1,10 @@
-import { generateId, pickRandomColor } from './utils.js';
+import { generateId, pickRandomColor } from './utils.js?v=260';
+
+// Keep this optional breadth module loadable in isolation; the main game does
+// not provide the UI framework's BaseComponent global.
+class BaseComponent {
+  constructor(type) { this.type = type; }
+}
 
 /**
  * Barrel State
@@ -46,10 +52,10 @@ class BarrelVisual extends BaseComponent {
     this.x = state ? state.x : config?.x || 0;
     this.y = state ? state.y : config?.y || 0;
     this.size = state ? state.size : config?.size || 38;
-    this.isOpen = false; // MC-breadth: whether barrel lid is up
+    this.isOpen = !!state?.isOpen; // mirror persisted lid state
     
     // Loot container reference from state (MC-breadth)
-    this.lootContainer = state ? { items: [] } : null;
+    this.lootContainer = state ? state.lootContainer : null;
     
     // Track if opened at least once (so re-open doesn't duplicate)
     this._hasBeenOpened = false;

@@ -183,7 +183,7 @@ function generateChunkData(cx, cz, seed) {
           else if (biome === 'tundra') id = BLOCK.SNOW;
           else id = BLOCK.GRASS;
         } else if (y > h - 4) {
-          if (biome === 'desert' || biome === 'shore' || biome === 'ocean' || biome === 'tropical') id = BLOCK.SAND;
+          if (biome === 'desert' || biome === 'shore' || biome === 'ocean') id = BLOCK.SAND;
           else id = BLOCK.DIRT;
         } else {
           id = BLOCK.STONE;
@@ -371,11 +371,12 @@ function _carveLavaTubes(data, idx, baseX, baseZ, seed) {
 // ── Worker message handler ──────────────────────────────────────────────────
 
 self.onmessage = function (e) {
-  const { cx, cz, seed } = e.data;
+  const msg = e.data;
+  const { cx, cz, seed } = msg;
   try {
     const data = generateChunkData(cx, cz, seed);
-    self.postMessage({ cx, cz, data });
+    self.postMessage({ cx, cz, requestId: msg.requestId, data });
   } catch (err) {
-    self.postMessage({ cx, cz, error: err.message });
+    self.postMessage({ cx, cz, requestId: msg.requestId, error: err.message });
   }
 };

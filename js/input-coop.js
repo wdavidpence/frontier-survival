@@ -19,6 +19,7 @@ export {
 
 /** Minimal deadzone helper – mirrors Input.pollGamepad logic. */
 function applyDeadzone(value, dz) {
+  dz = Math.max(0, Math.min(0.95, Number(dz) || 0));
   if (Math.abs(value) < dz) return 0;
   return Math.sign(value) * (Math.abs(value) - dz) / (1 - dz);
 }
@@ -26,10 +27,11 @@ function applyDeadzone(value, dz) {
 /** Read a gamepad object into structured input axes/buttons. */
 export function readGamepad(gp, deadzone = 0.15) {
   if (!gp) return null;
-  const lx = applyDeadzone(gp.axes[0] || 0, deadzone);
-  const ly = applyDeadzone(gp.axes[1] || 0, deadzone);
-  const rx = applyDeadzone(gp.axes[4] || 0, deadzone);
-  const ry = applyDeadzone(gp.axes[3] || 0, deadzone);
+  const axes = gp.axes || [];
+  const lx = applyDeadzone(axes[0] || 0, deadzone);
+  const ly = applyDeadzone(axes[1] || 0, deadzone);
+  const rx = applyDeadzone(axes[2] || 0, deadzone);
+  const ry = applyDeadzone(axes[3] || 0, deadzone);
   return { lx, ly: -ly, rx, ry }; // invert Y so stick-up = forward
 }
 
@@ -76,14 +78,27 @@ export class CoopInputRouter {
   /** Poll gamepad state for all assigned slots. Call each frame. */
   poll() {
     const nav = typeof navigator !== 'undefined' ? navigator : null;
-    if (!nav || !nav.getGamepads) return;
+    if (!nav || !nav.getGamepads) {
+      for (const slot of [P1, P2]) {
+        this._mockMove[slot].x = 0;
+        this._mockMove[slot].z = 0;
+      }
+      return;
+    }
 
     const gamepads = nav.getGamepads();
     for (const slot of [P1, P2]) {
       const gpIdx = this._gpSlot[slot];
       if (gpIdx < 0) continue;
       const gp = gamepads[gpIdx];
-      if (!gp) continue;
+      if (!gp) {
+        this._mockMove[slot].x = 0;
+        this._mockMove[slot].z = 0;
+        this._mockJump[slot] = false;
+        this._mockSprint[slot] = false;
+        this._mockCrouch[slot] = false;
+        continue;
+      }
 
       const parsed = readGamepad(gp, this.deadzone);
       if (parsed) {

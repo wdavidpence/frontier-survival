@@ -435,10 +435,21 @@ export class Input {
 
   /** Poll gamepad state — call from game loop each frame */
   pollGamepad() {
-    if (!navigator.getGamepads || !this._gpConnected) return;
+    if (!navigator.getGamepads || !this._gpConnected) {
+      this._vMoveX = 0;
+      this._vMoveZ = 0;
+      return;
+    }
     const gamepads = navigator.getGamepads();
     const gp = gamepads[this._gpIndex];
-    if (!gp) return;
+    if (!gp) {
+      // A disconnected pad must not leave its last movement latched forever.
+      this._vMoveX = 0;
+      this._vMoveZ = 0;
+      this.usePressed = false;
+      this.placePressed = false;
+      return;
+    }
 
     // Gamepad state — see GAMEPAD_BUTTON_MAP and GAMEPAD_AXIS_MAP for mappings.
 
@@ -446,8 +457,9 @@ export class Input {
     const sens = this.gpSensitivity;
 
     // Left stick → movement (inverted Y for forward/back)
-    let lx = gp.axes[0] || 0;
-    let ly = gp.axes[1] || 0;
+    const axes = gp.axes || [];
+    let lx = axes[0] || 0;
+    let ly = axes[1] || 0;
 
     // Apply deadzone to left stick
     if (Math.abs(lx) < dz) lx = 0;
@@ -461,8 +473,8 @@ export class Input {
     this._vMoveZ = -ly; // inverted: stick up (-1) → forward
 
     // Right stick → look (inverted X for screen-right = look right)
-    let rx = gp.axes[4] || 0;
-    let ry = gp.axes[3] || 0;
+    let rx = axes[2] || 0;
+    let ry = axes[3] || 0;
 
     // Apply deadzone to right stick
     if (Math.abs(rx) < dz) rx = 0;
@@ -511,9 +523,9 @@ export class Input {
       }
     }
 
-    // Triggers: L2 (axis[2]) can boost sprint, R2 (axis[5]) for fine look
+    // Triggers: standard mapping uses button 6 for L2 and 7 for R2.
     // L2 as additional forward boost when left stick is small
-    const l2 = absBtn(2) || 0;
+    const l2 = absBtn(6) || 0;
     if (l2 > 0.1 && Math.abs(lx) < 0.3) {
       this.keys.add('KeyW');
     }
