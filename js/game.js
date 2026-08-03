@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=260';
+import { World } from './world.js?v=270';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=260';
 import { GameTime } from './time.js?v=220';
@@ -134,7 +134,9 @@ export class Game {
     this._invOwner = 'p1';
     this.seed = (Math.random() * 1e6) | 0;
 
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setClearColor(0x87b5ff, 1);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
@@ -145,6 +147,23 @@ export class Game {
     this.renderer.toneMappingExposure = 1.08;
 
     this.scene = new THREE.Scene();
+    this.skyDome = new THREE.Mesh(
+      new THREE.SphereGeometry(900, 32, 16),
+      new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        depthWrite: false,
+        depthTest: false,
+        uniforms: {
+          topColor: { value: new THREE.Color(0x4f86c6) },
+          horizonColor: { value: new THREE.Color(0xd9ecff) },
+          groundColor: { value: new THREE.Color(0x9bb0c4) },
+        },
+        vertexShader: 'varying vec3 vLocal; void main(){ vLocal=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+        fragmentShader: 'uniform vec3 topColor; uniform vec3 horizonColor; uniform vec3 groundColor; varying vec3 vLocal; void main(){ float h=clamp(normalize(vLocal).y,-1.0,1.0); float t=smoothstep(-0.12,0.42,h); vec3 sky=mix(horizonColor,topColor,t); sky=mix(groundColor,sky,smoothstep(-0.42,-0.04,h)); gl_FragColor=vec4(sky,1.0); }',
+      }),
+    );
+    this.skyDome.renderOrder = -100;
+    this.scene.add(this.skyDome);
     this.scene.background = new THREE.Color(0x87b5ff);
     this.scene.fog = new THREE.Fog(0x87b5ff, 40, 120);
 
@@ -162,6 +181,14 @@ export class Game {
 
     this.ambient = new THREE.AmbientLight(0x7895b4, 0.52);
     this.sun = new THREE.DirectionalLight(0xffe4bd, 1.0);
+    this.sun.castShadow = true;
+    this.sun.shadow.mapSize.set(1024, 1024);
+    this.sun.shadow.camera.near = 1;
+    this.sun.shadow.camera.far = 180;
+    this.sun.shadow.camera.left = -72;
+    this.sun.shadow.camera.right = 72;
+    this.sun.shadow.camera.top = 72;
+    this.sun.shadow.camera.bottom = -72;
     this.sun.position.set(32, 72, 24);
     this.scene.add(this.ambient, this.sun);
 
@@ -3218,12 +3245,21 @@ export class Game {
       this.scene.background.setHex(0xccddff);
       this._stormFlashT -= 1 / 60;
     }
-    this.sun.intensity = 0.25 + sunI * 1.0;
-    this.ambient.intensity = 0.12 + sunI * 0.35;
-    this.hemi.intensity = 0.15 + sunI * 0.3;
+    this.sun.intensity = 0.3 + sunI * 1.15;
+    this.ambient.intensity = 0.2 + sunI * 0.48;
+    this.hemi.intensity = 0.24 + sunI * 0.4;
     const sky = this.time.skyColor();
     const color = new THREE.Color(sky.r, sky.g, sky.b);
     this.scene.background = color;
+    if (this.skyDome) {
+      this.skyDome.position.copy(this.camera.position);
+      const top = color.clone().multiplyScalar(0.62);
+      const horizon = color.clone().lerp(new THREE.Color(0xfff0d2), 0.28);
+      const ground = new THREE.Color(0x71808b).lerp(color, 0.2);
+      this.skyDome.material.uniforms.topColor.value.copy(top);
+      this.skyDome.material.uniforms.horizonColor.value.copy(horizon);
+      this.skyDome.material.uniforms.groundColor.value.copy(ground);
+    }
     this.scene.fog.color.copy(color);
     const rd = this.settings.renderDistance ?? 5;
     // Base fog near/far scaled by render distance, modulated by time of day
@@ -3248,11 +3284,11 @@ export class Game {
     if (mat?.uniforms) {
       mat.uniforms.sunIntensity.value = this.time.isNight()
         ? 0.32
-        : 0.55 + sunI * 0.7;
+        : 0.62 + sunI * 0.78;
       mat.uniforms.ambientColor.value.set(
-        this.time.isNight() ? 0.18 : 0.35,
-        this.time.isNight() ? 0.2 : 0.4,
-        this.time.isNight() ? 0.28 : 0.5,
+        this.time.isNight() ? 0.18 : 0.42,
+        this.time.isNight() ? 0.2 : 0.48,
+        this.time.isNight() ? 0.28 : 0.58,
       );
     }
   }

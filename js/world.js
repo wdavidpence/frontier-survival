@@ -857,6 +857,8 @@ export class World {
       this.meshes.set(k, mesh);
       this.group.add(mesh);
     }
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
   }
 
   meshStats() {
