@@ -987,9 +987,9 @@ export class World {
         BLOCK.LOG, BLOCK.LEAVES, BLOCK.SPRUCE_LOG, BLOCK.SPRUCE_LEAVES,
         BLOCK.SEQUOIA_LOG, BLOCK.SEQUOIA_LEAVES, BLOCK.PALM_LEAVES, BLOCK.BUSH,
       ]);
-      for (let dx = -2; dx <= 2 && clear; dx++) {
-        for (let dz = -2; dz <= 2 && clear; dz++) {
-          for (let dy = 1; dy <= 4; dy++) {
+      for (let dx = -4; dx <= 4 && clear; dx++) {
+        for (let dz = -4; dz <= 4 && clear; dz++) {
+          for (let dy = 1; dy <= 6; dy++) {
             if (foliage.has(this.getBlock(x + dx, h + dy, z + dz))) { clear = false; break; }
           }
         }

@@ -123,12 +123,12 @@ export const GAMEPAD_BUTTON_MAP = {
   0:   { action: 'jump',      label: 'A/Cross' },
   1:   { action: 'use',       label: 'B/Circle' },
   2:   { action: 'drop',      label: 'X/Square' },
-  3:   { action: 'eat',       label: 'Y/Triangle' },
-  4:   { action: 'place',     label: 'LB/L1' },
-  5:   { action: 'sprint',    label: 'RB/R1' },
-  8:   { action: 'inventory', label: 'Share/Back' },
+  3:   { action: 'inventory', label: 'Y/Triangle' },
+  4:   { action: 'hotbar_prev', label: 'LB/L1' },
+  5:   { action: 'hotbar_next', label: 'RB/R1' },
+  8:   { action: 'share',     label: 'Share' },
   9:   { action: 'pause',     label: 'Options/Start' },
-  10:  { action: 'quick_save', label: 'L3/LS' },
+  10:  { action: 'sprint',    label: 'L3/LS' },
   11:  { action: 'crouch',   label: 'R3/RS' },
   12:  { action: 'dpad_up',   label: 'D-pad Up' },
   13:  { action: 'dpad_left', label: 'D-pad Left' },
@@ -141,16 +141,16 @@ export const GAMEPAD_BUTTON_MAP = {
  * Maps gamepad axis index -> { name, description }.
  *
  * Standard layout (GT/Xbox/PS5):
- *   0=left stick X, 1=left stick Y, 2=L2 trigger,
- *   3=right stick Y, 4=right stick X, 5=R2 trigger.
+ *   0=left stick X, 1=left stick Y, 2=right stick X,
+ *   3=right stick Y. Triggers are buttons[6]=L2 and [7]=R2.
  */
 export const GAMEPAD_AXIS_MAP = {
   0:   { name: 'left_stick_x', description: 'Left stick horizontal (L=-1, R=+1)' },
   1:   { name: 'left_stick_y', description: 'Left stick vertical (U=-1, D=+1)' },
-  2:   { name: 'l2_trigger', description: 'Left trigger axis (0..1, gradual)' },
+  2:   { name: 'right_stick_x', description: 'Right stick horizontal (L=-1, R=+1)' },
   3:   { name: 'right_stick_y', description: 'Right stick vertical (U=-1, D=+1)' },
-  4:   { name: 'right_stick_x', description: 'Right stick horizontal (L=-1, R=+1)' },
-  5:   { name: 'r2_trigger', description: 'Right trigger axis (0..1, gradual)' },
+  4:   { name: 'l2_trigger', description: 'Non-standard extension axis; prefer button 6' },
+  5:   { name: 'r2_trigger', description: 'Non-standard extension axis; prefer button 7' },
 };
 
 /** Trigger axes that also have a pressed button counterpart (buttons[6]=L2, [7]=R2). */
@@ -210,6 +210,8 @@ export class Input {
     this._vMoveX = 0;
     this._vMoveZ = 0;
     this._vJump = false;
+    this._gpJumpHeld = false;
+    this._gpUseHeld = false;
     this._vCrouch = false;
     /** Gamepad state — dual gamepad support via shared GamepadSlotManager */
     this._slots = null; // Shared GamepadSlotManager (set by caller or auto-created)
@@ -435,11 +437,15 @@ export class Input {
 
   /** Poll gamepad state — call from game loop each frame */
   pollGamepad() {
+    this._vJump = false;
     this._vSprint = false;
     this._vCrouch = false;
     if (!navigator.getGamepads || !this._gpConnected) {
       this._vMoveX = 0;
       this._vMoveZ = 0;
+      this._gpJumpHeld = false;
+      this._gpUseHeld = false;
+      this.breakHeld = false;
       return;
     }
     const gamepads = navigator.getGamepads();
@@ -450,6 +456,9 @@ export class Input {
       this._vMoveZ = 0;
       this.usePressed = false;
       this.placePressed = false;
+      this._gpJumpHeld = false;
+      this._gpUseHeld = false;
+      this.breakHeld = false;
       return;
     }
 
@@ -472,7 +481,7 @@ export class Input {
 
     // Update virtual move from gamepad
     this._vMoveX = lx;
-    this._vMoveZ = -ly; // inverted: stick up (-1) → forward
+    this._vMoveZ = ly; // standard convention: stick up (-1) → forward
 
     // Right stick → look (inverted X for screen-right = look right)
     let rx = axes[2] || 0;
@@ -499,13 +508,15 @@ export class Input {
 
     // Action dispatch table — maps action names to setters.
     const actionMap = {
-      jump:       () => this._vJump = true,
+      jump:       () => { if (!this._gpJumpHeld) this._vJump = true; },
       use:        () => this.usePressed = true,
       drop:       () => this.dropPressed = true,
       eat:        () => this.eatPressed = true,
       place:      () => this.placePressed = true,
       sprint:     () => { this._vSprint = true; this.keys.add('ShiftLeft'); },
       crouch:     () => { this._vCrouch = true; this.keys.add('KeyC'); },
+      hotbar_prev: () => this.hotbarScroll -= 1,
+      hotbar_next: () => this.hotbarScroll += 1,
       quick_save: () => this.quickSavePressed = true,
       inventory:  () => this.inventoryPressed = true,
       pause:      () => this.pausePressed = true,
@@ -525,18 +536,12 @@ export class Input {
       }
     }
 
-    // Triggers: standard mapping uses button 6 for L2 and 7 for R2.
-    // L2 as additional forward boost when left stick is small
-    const l2 = absBtn(6) || 0;
-    if (l2 > 0.1 && Math.abs(lx) < 0.3) {
-      this.keys.add('KeyW');
-    }
-
-    // R2 fine-tune look (smaller multiplier)
-    const r2 = absBtn(5) || 0;
-    if (r2 > 0.1 && Math.abs(rx) < 0.3) {
-      this.lookX -= r2 * sens * 0.5;
-    }
+    const l2Value = absBtn(6) || 0;
+    const r2Value = absBtn(7) || 0;
+    if (l2Value > 0.1 && !this._gpUseHeld) this.placePressed = true;
+    this._gpUseHeld = l2Value > 0.1;
+    this.breakHeld = r2Value > 0.1;
+    this._gpJumpHeld = !!btn(0);
 
     // Haptic feedback: if game just started or took damage, rumble briefly
     if (this._gpVibrate && gp.hapticActuators && gp.hapticActuators[0]) {

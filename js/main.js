@@ -1,4 +1,4 @@
-import { Game } from './game.js?v=280';
+import { Game } from './game.js?v=282';
 import { hasSave, clearSaveStorage } from './save.js?v=220';
 import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=220';
 import {
@@ -20,6 +20,9 @@ const btnRespawn = document.getElementById('btn-respawn');
 const btnInstructions = document.getElementById('btn-instructions');
 const setupScreen = document.getElementById('setup-screen');
 const btnCloseInstructions = document.getElementById('btn-close-instructions');
+const controlsScreen = document.getElementById('controls-screen');
+const btnCloseControls = document.getElementById('btn-close-controls');
+const controlsButtons = [...document.querySelectorAll('[data-open-controls]')];
 
 function refreshContinue() {
   const exists = hasSave();
@@ -316,6 +319,14 @@ btnCloseInstructions?.addEventListener('click', (e) => {
   e.stopPropagation();
   setupScreen?.classList.add('hidden');
 });
+controlsButtons.forEach((button) => button.addEventListener('click', (e) => {
+  e.stopPropagation();
+  controlsScreen?.classList.remove('hidden');
+}));
+btnCloseControls?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  controlsScreen?.classList.add('hidden');
+});
 
 btnRespawn?.addEventListener('click', (e) => {
   e.stopPropagation();
@@ -404,4 +415,4 @@ engageControls = function() {
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.12.18');
+console.info('Frontier Survival boot OK · v1.12.19');

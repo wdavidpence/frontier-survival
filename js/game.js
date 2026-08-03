@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=280';
+import { World } from './world.js?v=282';
 import { Player } from './player.js?v=238';
-import { Input } from './input.js?v=260';
+import { Input } from './input.js?v=281';
 import { GameTime } from './time.js?v=220';
 import { AudioBus } from './audio.js?v=220';
 import {
@@ -523,9 +523,6 @@ export class Game {
       this.input.requestLock?.();
     }
     this._updateClickToPlay?.();
-    document.getElementById('touch-pad')?.classList.remove('hidden');
-    document.getElementById('touch-look')?.classList.remove('hidden');
-    document.getElementById('ctrl-debug')?.classList.remove('hidden');
   }
 
   start(seed = this.seed) {
@@ -542,7 +539,7 @@ export class Game {
       seed,
       freshPlayer: true,
       notify: this.coopMode
-        ? 'Local Co-op: left=P1 KBM/pad0 · right=P2 body (pad1 move/look).'
+        ? 'Local Co-op: two DualSense controllers · P1 left / P2 right.'
         : 'Hunt wildlife · craft a spear · cook at campfires · watch wolves. E craft · F use · K save · Esc pause',
     });
   }
@@ -3053,7 +3050,7 @@ export class Game {
     const eqEl = document.getElementById('equip-slots');
     if (eqEl) {
       const w = equipmentWarmth(pl.equipment);
-      eqEl.innerHTML = `<div class="equip-warmth">Clothing warmth: <b>${w}</b> (F to equip held clothes)</div>`;
+      eqEl.innerHTML = `<div class="equip-warmth">Clothing warmth: <b>${w}</b> (${this.coopMode ? 'L2' : 'F'} to equip held clothes)</div>`;
       for (const slot of EQUIP_SLOTS) {
         const id = pl.equipment?.[slot];
         const row = document.createElement('div');
@@ -3070,6 +3067,15 @@ export class Game {
    * Tick tooltip triggers — called every frame while game is running.
    * Queues tooltips when conditions are met, shows them with cooldown.
    */
+  _showTooltipForMode(def) {
+    if (!this.coopMode) return showTooltip(def);
+    return showTooltip({ ...def, body: def.body
+      .replaceAll('WASD', 'Left stick').replaceAll('Mouse', 'Right stick').replaceAll('Space', 'Cross')
+      .replaceAll('Ctrl or C', 'R3').replaceAll('left-click', 'R2').replaceAll('right-click', 'L2')
+      .replaceAll('Press E', 'Press Triangle').replaceAll('Press F', 'Press L2').replaceAll('Press R', 'Press Circle')
+      .replaceAll('(E)', '(Triangle)').replaceAll('(F)', '(L2)') });
+  }
+
   _tickTooltips(dt) {
     if (!this.started || this.paused || !this.player || this.survival?.dead) return;
 
@@ -3081,7 +3087,21 @@ export class Game {
         this._tooltipShownAcc = 0;
         const result = checkTooltip(id);
         if (result) {
-          showTooltip(result.def);
+          const def = this.coopMode
+            ? { ...result.def, body: result.def.body
+              .replaceAll('WASD', 'Left stick')
+              .replaceAll('Mouse', 'Right stick')
+              .replaceAll('Space', 'Cross')
+              .replaceAll('Ctrl or C', 'R3')
+              .replaceAll('left-click', 'R2')
+              .replaceAll('right-click', 'L2')
+              .replaceAll('Press E', 'Press Triangle')
+              .replaceAll('Press F', 'Press L2')
+              .replaceAll('Press R', 'Press Circle')
+              .replaceAll('(E)', '(Triangle)')
+              .replaceAll('(F)', '(L2)') }
+            : result.def;
+          showTooltip(def);
         }
       }
     }
@@ -3224,14 +3244,14 @@ export class Game {
       // Clear queue and show immediately
       this._tooltipQueue = [];
       const result = checkTooltip('eat_food');
-      if (result) showTooltip(result.def);
+      if (result) this._showTooltipForMode(result.def);
     }
 
     // hypothermia emergency: if body temp is critically low, show campfire immediately
     if (this.survival.bodyTemp < 34.5 && !this._tooltipQueue.includes('campfire')) {
       this._tooltipQueue = [];
       const result = checkTooltip('campfire');
-      if (result) showTooltip(result.def);
+      if (result) this._showTooltipForMode(result.def);
     }
 
     // biome notify: show biome name periodically (existing logic)
@@ -3400,6 +3420,16 @@ export class Game {
   _applyCoopHudMode() {
     try {
       document.body.classList.toggle('coop-mode', !!this.coopMode);
+      if (this.coopMode) {
+        const replacements = [
+          ['#btn-close-inv', 'Close (E)', 'Close (Triangle)'],
+          ['#btn-close-furnace', 'Close (F)', 'Close (Circle)'],
+          ['#chest-screen .inv-sub', 'inventory (E)', 'Pack & Craft (Triangle)'],
+        ];
+        for (const [selector, from, to] of replacements) {
+          document.querySelectorAll(selector).forEach((el) => { el.textContent = el.textContent.replaceAll(from, to); });
+        }
+      }
     } catch (_) {}
     // Keep perf knobs in sync when toggling coop
     try { this._applyCoopPerfBudget?.(); } catch (_) {}
@@ -3459,23 +3489,6 @@ export class Game {
     const bleedTag = document.getElementById('bleed-tag');
     if (bleedTag) bleedTag.classList.toggle('on', (s.bleed || 0) > 1);
 
-    const ctrlDbg = document.getElementById('ctrl-debug');
-    if (ctrlDbg && this.started) {
-      const k = [];
-      if (this.input.wantsForward()) k.push('W');
-      if (this.input.wantsLeft()) k.push('A');
-      if (this.input.wantsBack()) k.push('S');
-      if (this.input.wantsRight()) k.push('D');
-      if (this.input.wantsCrouch()) k.push('C');
-      if (this.input.wantsJump()) k.push('Sp');
-      const st = this.survival?.dead ? 'DEAD' : this.paused ? 'PAUSED' : this.input.locked ? 'LOCK' : this.input.softLook ? 'LOOK' : 'WAIT';
-      const gp = this.input._gpConnected ? `GP:${this.input._gpIndex}` : '';
-      const pos = this.player
-        ? `${this.player.position.x.toFixed(0)},${this.player.position.z.toFixed(0)}`
-        : '';
-      ctrlDbg.textContent = `${st} keys:${k.join('')||'-'} ${gp} xyz:${pos}`;
-      ctrlDbg.style.color = this.survival?.dead ? '#f66' : k.length ? '#6f6' : '#9cf';
-    }
     this._updateSpawnMarker();
     this._updateCoopPadPrompt();
 
