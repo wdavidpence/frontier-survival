@@ -982,6 +982,19 @@ export class World {
       const above1 = this.getBlock(x, h + 1, z);
       const above2 = this.getBlock(x, h + 2, z);
       if (above1 !== BLOCK.AIR || above2 !== BLOCK.AIR) continue;
+      let clear = true;
+      const foliage = new Set([
+        BLOCK.LOG, BLOCK.LEAVES, BLOCK.SPRUCE_LOG, BLOCK.SPRUCE_LEAVES,
+        BLOCK.SEQUOIA_LOG, BLOCK.SEQUOIA_LEAVES, BLOCK.PALM_LEAVES, BLOCK.BUSH,
+      ]);
+      for (let dx = -2; dx <= 2 && clear; dx++) {
+        for (let dz = -2; dz <= 2 && clear; dz++) {
+          for (let dy = 1; dy <= 4; dy++) {
+            if (foliage.has(this.getBlock(x + dx, h + dy, z + dz))) { clear = false; break; }
+          }
+        }
+      }
+      if (!clear) continue;
       const candidate = { x: x + 0.5, y: h + 1.01, z: z + 0.5, h };
       const biome = biomeAt(x, z, this.seed);
       const warmSurface = surface === BLOCK.SAND && (biome === BIOME.TROPICAL || biome === BIOME.SHORE);

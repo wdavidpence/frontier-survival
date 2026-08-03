@@ -9,6 +9,7 @@ Shipped visual slice:
 - Enabled high-performance WebGL preference and PCF soft shadow support.
 - Enabled cast/receive shadow flags on streamed chunk meshes.
 - Increased daytime sun, ambient, hemisphere, and atlas fill lighting to reduce black tree silhouettes while preserving night lighting behavior.
+- Added a spawn-clearance test around candidate surfaces so fresh sessions avoid starting inside nearby logs/leaves.
 - Kept terrain generation, custom atlas geometry, and distant landmark geometry unchanged to avoid the prior gray-occlusion regression.
 - Bumped visible version surfaces to v1.12.17 and entry cache-bust to `main.js?v=270`.
 
