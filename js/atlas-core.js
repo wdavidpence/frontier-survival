@@ -64,6 +64,10 @@ export const TILE = {
   KELP: 53,
   SEAGRASS: 54,
   PALM_LEAVES: 55,
+  ROOTS: 56,
+  STICK_PILE: 57,
+  DAMP_SOIL: 58,
+  MUSHROOM: 59,
 };
 
 /** UV corners: bl, tl, tr, br in atlas space */
@@ -178,6 +182,14 @@ export function tileForBlock(blockId, faceDir) {
       return TILE.SEAGRASS;
     case BLOCK.PALM_LEAVES:
       return TILE.PALM_LEAVES;
+    case BLOCK.ROOTS:
+      return TILE.ROOTS;
+    case BLOCK.STICK_PILE:
+      return TILE.STICK_PILE;
+    case BLOCK.DAMP_SOIL:
+      return faceDir === 'top' ? TILE.DAMP_SOIL : TILE.DIRT;
+    case BLOCK.MUSHROOM:
+      return TILE.MUSHROOM;
     default:
       return TILE.STONE;
   }

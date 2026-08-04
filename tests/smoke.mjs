@@ -1,7 +1,7 @@
 import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
 
 import { palmLeafDrop } from '../js/palm-drops.js';
-import { heightAt, fbm, hash2 } from '../js/gen.js';
+import { heightAt, fbm, hash2, forestFloorDetail } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
 import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
 import { seaTurtleLayout } from '../js/fauna-parts/turtle-layout.js';
@@ -3940,6 +3940,23 @@ test('fauna-parts/fox-tail-tip foxTailLayout tip positioned at end', () => {
   const layout = foxTailLayout({ w: 1, h: 1, l: 1 });
   const tip = layout.parts.find(p => p.name === 'tailTip');
   assert.ok(tip.z < -0.5, 'tip should be positioned at the end of the tail (negative z)');
+});
+
+test('forest floor detail is deterministic and biome-gated', () => {
+  assert.equal(forestFloorDetail(0, 29, 7, 'forest', 25, BLOCK.GRASS, BLOCK.AIR), 'mushroom');
+  assert.equal(forestFloorDetail(0, 21, 7, 'forest', 25, BLOCK.GRASS, BLOCK.AIR), 'roots');
+  assert.equal(forestFloorDetail(0, 30, 7, 'forest', 25, BLOCK.GRASS, BLOCK.AIR), 'sticks');
+  assert.equal(forestFloorDetail(0, 0, 7, 'forest', 25, BLOCK.GRASS, BLOCK.AIR), 'damp-soil');
+  assert.equal(forestFloorDetail(0, 29, 7, 'desert', 25, BLOCK.GRASS, BLOCK.AIR), null);
+  assert.equal(forestFloorDetail(0, 29, 7, 'forest', 25, BLOCK.GRASS, BLOCK.BUSH), null);
+});
+
+test('forest floor blocks have atlas tiles and expected solidity', () => {
+  assert.equal(tileForBlock(BLOCK.ROOTS), TILE.ROOTS);
+  assert.equal(tileForBlock(BLOCK.STICK_PILE), TILE.STICK_PILE);
+  assert.equal(tileForBlock(BLOCK.DAMP_SOIL, 'top'), TILE.DAMP_SOIL);
+  assert.equal(tileForBlock(BLOCK.MUSHROOM), TILE.MUSHROOM);
+  assert.equal(BLOCK.ROOTS < BLOCK.MUSHROOM, true);
 });
 
 const fsText = (name) => readFileSync(new URL(`../${name}`, import.meta.url), 'utf8');

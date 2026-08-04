@@ -148,6 +148,10 @@ const BLOCK = {
   CORAL: 48,
   KELP: 49,
   SEAGRASS: 50,
+  ROOTS: 52,
+  STICK_PILE: 53,
+  DAMP_SOIL: 54,
+  MUSHROOM: 55,
 };
 
 const CHUNK_SIZE = 16;
@@ -222,6 +226,18 @@ function generateChunkData(cx, cz, seed) {
         hash2(x + 91, z * 3 + (seed | 0)) > 0.94
       ) {
         data[idx(lx, h + 1, lz)] = BLOCK.BUSH;
+      }
+
+      const surfaceId = data[idx(lx, h, lz)];
+      const aboveId = data[idx(lx, h + 1, lz)];
+      if ((biome === 'forest' || biome === 'tropical' || biome === 'shore') && h > SEA_LEVEL + 1 && aboveId === BLOCK.AIR) {
+        const roll = hash2(x * 29 + seed * 7, z * 31 + seed * 11);
+        if (surfaceId === BLOCK.GRASS || surfaceId === BLOCK.DIRT || surfaceId === BLOCK.SAND) {
+          if (roll > 0.975) data[idx(lx, h + 1, lz)] = BLOCK.MUSHROOM;
+          else if (roll > 0.93) data[idx(lx, h + 1, lz)] = BLOCK.ROOTS;
+          else if (roll > 0.84) data[idx(lx, h + 1, lz)] = BLOCK.STICK_PILE;
+          else if (roll > 0.74) data[idx(lx, h, lz)] = BLOCK.DAMP_SOIL;
+        }
       }
 
       // Clay deposits near shore

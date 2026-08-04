@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=245';
-import { heightAt, hash2, fbm } from './gen.js?v=280';
+import { heightAt, hash2, fbm, forestFloorDetail } from './gen.js?v=280';
 import { biomeAt, BIOME } from './biomes.js?v=245';
 import { tileForBlock } from './atlas-core.js?v=245';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=245';
@@ -665,6 +665,20 @@ export class World {
         ) {
           data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
         }
+
+        const floorDetail = forestFloorDetail(
+          x,
+          z,
+          this.seed,
+          biome,
+          h,
+          data[this._idx(lx, h, lz)],
+          data[this._idx(lx, h + 1, lz)],
+        );
+        if (floorDetail === 'damp-soil') data[this._idx(lx, h, lz)] = BLOCK.DAMP_SOIL;
+        else if (floorDetail === 'roots') data[this._idx(lx, h + 1, lz)] = BLOCK.ROOTS;
+        else if (floorDetail === 'sticks') data[this._idx(lx, h + 1, lz)] = BLOCK.STICK_PILE;
+        else if (floorDetail === 'mushroom') data[this._idx(lx, h + 1, lz)] = BLOCK.MUSHROOM;
 
         // clay deposits near shore biome
         if (biome === BIOME.SHORE || (h >= SEA_LEVEL && h <= SEA_LEVEL + 3 && biome !== BIOME.TUNDRA)) {

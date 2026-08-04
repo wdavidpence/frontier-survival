@@ -52,6 +52,10 @@ export const BLOCK = {
   KELP: 49,
   SEAGRASS: 50,
   PALM_LEAVES: 51,
+  ROOTS: 52,
+  STICK_PILE: 53,
+  DAMP_SOIL: 54,
+  MUSHROOM: 55,
 };
 
 /** @type {Record<number, {
@@ -120,6 +124,10 @@ export const BLOCK_PROPS = {
   [BLOCK.KELP]: { name: 'Kelp', solid: false, transparent: true, hardness: 0.1, color: [0.08, 0.38, 0.2], drops: BLOCK.KELP, replaceable: true },
   [BLOCK.SEAGRASS]: { name: 'Seagrass', solid: false, transparent: true, hardness: 0.1, color: [0.12, 0.55, 0.28], drops: BLOCK.SEAGRASS, replaceable: true },
   [BLOCK.PALM_LEAVES]: { name: 'Palm Leaves', solid: true, transparent: true, hardness: 0.2, color: [0.28, 0.58, 0.2], drops: BLOCK.PALM_LEAVES },
+  [BLOCK.ROOTS]: { name: 'Tree Roots', solid: false, transparent: true, hardness: 0.12, color: [0.26, 0.16, 0.08], drops: BLOCK.ROOTS, replaceable: true },
+  [BLOCK.STICK_PILE]: { name: 'Stick Pile', solid: false, transparent: true, hardness: 0.1, color: [0.42, 0.27, 0.12], drops: BLOCK.STICK_PILE, replaceable: true },
+  [BLOCK.DAMP_SOIL]: { name: 'Damp Soil', solid: true, transparent: false, hardness: 0.42, color: [0.28, 0.19, 0.12], topColor: [0.24, 0.16, 0.1], drops: BLOCK.DAMP_SOIL },
+  [BLOCK.MUSHROOM]: { name: 'Mushroom', solid: false, transparent: true, hardness: 0.08, color: [0.65, 0.2, 0.16], drops: BLOCK.MUSHROOM, replaceable: true },
 };
 
 export function isSolid(id) {

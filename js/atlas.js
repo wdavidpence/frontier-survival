@@ -574,6 +574,35 @@ function drawSeagrass(ctx, x0, y0) {
   }
 }
 
+function drawRoots(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.strokeStyle = '#5b3218'; ctx.lineWidth = 3;
+  for (const [sx, sy, ex, ey] of [[3, 28, 15, 8], [15, 30, 22, 12], [29, 26, 18, 16]]) {
+    ctx.beginPath(); ctx.moveTo(x0 + sx, y0 + sy); ctx.quadraticCurveTo(x0 + 14, y0 + 18, x0 + ex, y0 + ey); ctx.stroke();
+  }
+}
+
+function drawStickPile(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.strokeStyle = '#9a6232'; ctx.lineWidth = 3;
+  for (const [sx, sy, ex, ey] of [[4, 25, 26, 10], [7, 12, 28, 23], [12, 28, 21, 7]]) {
+    ctx.beginPath(); ctx.moveTo(x0 + sx, y0 + sy); ctx.lineTo(x0 + ex, y0 + ey); ctx.stroke();
+  }
+}
+
+function drawDampSoil(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [76, 48, 29], 0.65, 414);
+  ctx.fillStyle = 'rgba(25, 18, 13, 0.35)';
+  for (let i = 0; i < 8; i++) ctx.fillRect(x0 + 3 + (i * 11) % 25, y0 + 4 + (i * 7) % 24, 2, 2);
+}
+
+function drawMushroom(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.fillStyle = '#e0b57b'; ctx.fillRect(x0 + 14, y0 + 17, 5, 12);
+  ctx.fillStyle = '#a83f35'; ctx.beginPath(); ctx.arc(x0 + 16, y0 + 15, 9, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = '#f2d9ae'; ctx.fillRect(x0 + 11, y0 + 12, 2, 2); ctx.fillRect(x0 + 19, y0 + 10, 2, 2);
+}
+
 export function createBlockAtlas() {
   const canvas = document.createElement('canvas');
   canvas.width = ATLAS_PX;
@@ -668,6 +697,10 @@ paint(TILE.WALL, drawWall);
     c.fillStyle = 'rgba(70, 155, 48, 0.2)';
     c.fillRect(x, y, TILE_PX, TILE_PX);
   });
+  paint(TILE.ROOTS, drawRoots);
+  paint(TILE.STICK_PILE, drawStickPile);
+  paint(TILE.DAMP_SOIL, drawDampSoil);
+  paint(TILE.MUSHROOM, drawMushroom);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = THREE.NearestFilter;
