@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=283';
+import { World } from './world.js?v=284';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=283';
 import { GameTime } from './time.js?v=220';
@@ -55,6 +55,7 @@ import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=242';
 import { createBlockAtlas } from './atlas.js?v=220';
 import { BreakFX } from './fx.js?v=244';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
+import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=284';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -205,7 +206,8 @@ export class Game {
     this._lastHeat = 0;
     this.atlas = createBlockAtlas();
     this.fx = new BreakFX(this.scene, this.atlas);
-    this.worldRadius = 5;
+    // Outer streaming ring; overwritten by _applyRenderDistance via visibility plan.
+    this.worldRadius = this._visPlan?.proxyChunks || 5;
 
     this._breakSpeed = 1.6;
     this._stepAcc = 0;
@@ -445,31 +447,35 @@ export class Game {
     // See docs/roadmap/coop-perf-budget.md — dual pass needs lower effective RD
     let rd = this.settings.renderDistance ?? 5;
     if (this.coopMode) rd = effectiveCoopRenderDistance(rd);
-    // Map slider 2–10 to fog near/far: near = rd*5, far = rd*12
-    const near = rd * 5;
-    const far = rd * 12;
+    const plan = terrainVisibilityPlan(rd);
+    this._visPlan = plan;
     if (this.scene.fog) {
-      this.scene.fog.near = near;
-      this.scene.fog.far = far;
+      this.scene.fog.near = plan.fogNear;
+      this.scene.fog.far = plan.fogFar;
     }
-    // Also adjust camera clipping plane to match fog far
+    // Camera far plane must clear the proxy ring + a little sky.
     if (this.camera) {
-      this.camera.far = Math.max(far, 50);
+      this.camera.far = Math.max(plan.cameraFar, 50);
       this.camera.updateProjectionMatrix();
     }
     if (this.camera2) {
-      this.camera2.far = Math.max(far, 50);
+      this.camera2.far = Math.max(plan.cameraFar, 50);
       this.camera2.updateProjectionMatrix();
     }
-    // Render distance controls the bounded streaming ring, not a playable wall.
-    const chunks = Math.max(2, Math.min(16, rd));
-    this.worldRadius = chunks;
+    // worldRadius is the outer (proxy) streaming ring in chunks.
+    this.worldRadius = plan.proxyChunks;
     if (this.world) {
-      // Trigger a chunk reload at the new radius
       if (this.world._requestChunks) {
         this.world._requestChunks();
       }
     }
+  }
+
+  /** Latest terrain visibility plan (streaming + fog). */
+  _terrainVisibilityPlan() {
+    let rd = this.settings.renderDistance ?? DEFAULT_SETTINGS.renderDistance ?? 8;
+    if (this.coopMode) rd = effectiveCoopRenderDistance(rd);
+    return this._visPlan || terrainVisibilityPlan(rd);
   }
 
   _applyCoopPerfBudget() {
@@ -563,7 +569,8 @@ export class Game {
     }
     this.world = new World({
       seed,
-      radiusChunks: this.worldRadius || 5,
+      // Bootstrap/full-detail radius — outer proxy ring streams in over frames.
+      radiusChunks: this._terrainVisibilityPlan().fullChunks || this.worldRadius || 5,
       material: this.atlas.greedyMaterial || this.atlas.material,
     });
 
@@ -1475,9 +1482,17 @@ export class Game {
         }
         }
       }
+      const vis = this._terrainVisibilityPlan();
       this.world.updateStreaming(
         [this.player, this.coopMode ? this.player2 : null],
-        { radius: this.worldRadius },
+        {
+          radius: this.worldRadius,
+          fullRadius: vis.fullChunks,
+          lodRadius: vis.lodChunks,
+          proxyRadius: vis.proxyChunks,
+          lodStep: vis.lodStep,
+          proxyStep: vis.proxyStep,
+        },
       );
 
       if (this.coopMode && this.player2 && this.input2 && !this.paused && !this.survival2?.dead) {
@@ -3282,12 +3297,10 @@ export class Game {
       this.skyDome.material.uniforms.groundColor.value.copy(ground);
     }
     this.scene.fog.color.copy(color);
-    const rd = this.settings.renderDistance ?? 5;
-    // Base fog near/far scaled by render distance, modulated by time of day
-    const baseNear = rd * 5;
-    const baseFar = rd * 12;
-    this.scene.fog.near = Math.max(baseNear, 45 + sunI * 25);
-    this.scene.fog.far = Math.max(baseFar, 110 + sunI * 50);
+    const plan = this._terrainVisibilityPlan();
+    const fog = fogForSun(plan, sunI);
+    this.scene.fog.near = fog.near;
+    this.scene.fog.far = fog.far;
     if (this.time.isNight()) {
       this.ambient.color.set(0x223355);
       this.sun.intensity = 0.08;

@@ -101,6 +101,12 @@ import { torchFalloff, isTorchLit, torchLightSum } from '../js/torch-falloff.js'
 import { bearingTo, horizDistance, compassNeedleAngle } from '../js/compass-bearing.js';
 import { bedFacingFromYaw, bedFacingMeta, bedHeadOffset } from '../js/bed-facing.js';
 import { underwaterFogStyle } from '../js/underwater-fog.js';
+import {
+  terrainVisibilityPlan,
+  chunkDetailTier,
+  fogForSun,
+  buildTerrainProxyArrays,
+} from '../js/terrain-visibility.js';
 import { clampWaterLevel, flowOutLevel, isWaterSource, waterFillFraction } from '../js/water-level.js';
 import { createItemFrame, setFrameItem, rotateFrame, frameHasItem } from '../js/item-frame.js';
 import { createLever, toggleLever, leverOutputsPower } from '../js/lever-power.js';
@@ -251,6 +257,63 @@ test('world streaming ring bootstraps and extends beyond starter chunks', () => 
   assert.match(source, /updateStreaming\(players/);
   assert.match(source, /this\.streamBudget = 16/);
   assert.match(source, /_genInitial\(Math\.min\(this\.streamRadius, 6\)\)/);
+  assert.match(source, /rebuildProxyChunk/);
+  assert.match(source, /rebuildLodChunk/);
+  assert.match(source, /chunkDetailTier\(/);
+});
+
+test('terrain visibility plan extends fog and proxy beyond full mesh', () => {
+  const plan = terrainVisibilityPlan(8);
+  assert.ok(plan.fullChunks >= 2);
+  assert.ok(plan.lodChunks >= plan.fullChunks);
+  assert.ok(plan.proxyChunks > plan.lodChunks, 'proxy ring should exceed LOD');
+  assert.ok(plan.fogFar > plan.fogNear);
+  assert.ok(plan.cameraFar >= plan.fogFar);
+  // Farther than legacy rd*12 fog mapping at RD8 (96).
+  assert.ok(plan.fogFar > 96, `expected fogFar>96 got ${plan.fogFar}`);
+  assert.strictEqual(chunkDetailTier(0, plan), 'full');
+  assert.strictEqual(chunkDetailTier(plan.fullChunks, plan), 'full');
+  assert.strictEqual(chunkDetailTier(plan.fullChunks + 1, plan), 'lod');
+  assert.strictEqual(chunkDetailTier(plan.lodChunks + 1, plan), 'proxy');
+  assert.strictEqual(chunkDetailTier(plan.proxyChunks + 1, plan), 'none');
+  const noon = fogForSun(plan, 1);
+  const night = fogForSun(plan, 0);
+  assert.ok(night.far <= noon.far);
+  assert.ok(noon.near >= 16);
+});
+
+test('terrain proxy heightfield emits deterministic quads', () => {
+  const a = buildTerrainProxyArrays({
+    baseX: 0,
+    baseZ: 0,
+    size: 16,
+    step: 4,
+    seed: 7,
+    heightFn: (x, z) => 10 + ((x + z) % 3),
+    sampleFn: () => ({ r: 0.2, g: 0.5, b: 0.1, a: 1, tile: 1 }),
+  });
+  const b = buildTerrainProxyArrays({
+    baseX: 0,
+    baseZ: 0,
+    size: 16,
+    step: 4,
+    seed: 7,
+    heightFn: (x, z) => 10 + ((x + z) % 3),
+    sampleFn: () => ({ r: 0.2, g: 0.5, b: 0.1, a: 1, tile: 1 }),
+  });
+  assert.ok(a.quadCount > 0);
+  assert.strictEqual(a.quadCount, 16); // 4x4 cells at step 4 on 16
+  assert.strictEqual(a.positions.length, b.positions.length);
+  assert.deepStrictEqual(Array.from(a.positions), Array.from(b.positions));
+  assert.ok(a.indices.length === a.quadCount * 6);
+});
+
+test('game wires terrain visibility plan into fog and streaming', () => {
+  const game = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.match(game, /terrainVisibilityPlan/);
+  assert.match(game, /fogForSun/);
+  assert.match(game, /proxyRadius:\s*vis\.proxyChunks/);
+  assert.match(game, /this\.worldRadius = plan\.proxyChunks/);
 });
 
 test('hash2 deterministic', () => {
