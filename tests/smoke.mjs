@@ -3965,7 +3965,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.20'), 'HTML must expose v1.12.20');
+  assert.ok(html.includes('v1.12.21'), 'HTML must expose v1.12.21');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -3991,14 +3991,14 @@ test('bug sprint: title panel can scroll on short viewports', () => {
   assert.match(html, /\.panel[\s\S]*max-height: calc\(100vh - 32px\)/);
 });
 
-test('v1.12.20: New World is immediate and randomized', () => {
+test('v1.12.21: New World is immediate and randomized', () => {
   const main = fsText('js/main.js');
   assert.doesNotMatch(main, /confirm\(['"]Start a new world/);
   assert.match(main, /startNewWorld\(\{ randomize: true \}\)/);
   assert.match(main, /randomSeed = \(\(Math\.random\(\) \* 0xffffffff\)/);
 });
 
-test('v1.12.20: ocean island generation is wetter and mirrored', () => {
+test('v1.12.21: ocean island generation is wetter and mirrored', () => {
   const gen = fsText('js/gen.js');
   const worker = fsText('js/chunk-worker.js');
   assert.match(gen, /Math\.hypot\(x, z\) \/ 240/);
@@ -4009,7 +4009,7 @@ test('v1.12.20: ocean island generation is wetter and mirrored', () => {
   assert.match(worker, /isle > 0\.66/);
 });
 
-test('v1.12.20: setup popup and touch overlay are configured for two-controller TV mode', () => {
+test('v1.12.21: setup popup and touch overlay are configured for two-controller TV mode', () => {
   const html = fsText('index.html');
   assert.match(html, /btn-instructions/);
   assert.match(html, /setup-screen/);

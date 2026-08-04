@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=284';
+import { World } from './world.js?v=285';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=283';
 import { GameTime } from './time.js?v=220';
@@ -11,7 +11,7 @@ import {
   drinkWater,
   applyDamage,
 } from './survival.js?v=243';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=220';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=285';
 import {
   ITEM,
   propsOf,
@@ -52,10 +52,10 @@ import {
 import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=242';
-import { createBlockAtlas } from './atlas.js?v=220';
+import { createBlockAtlas } from './atlas.js?v=285';
 import { BreakFX } from './fx.js?v=244';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
-import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=284';
+import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import {
   equipmentWarmth,
   equipmentArmor,

@@ -1,14 +1,14 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=245';
-import { heightAt, hash2, fbm, forestFloorDetail } from './gen.js?v=280';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=285';
+import { heightAt, hash2, fbm, forestFloorDetail } from './gen.js?v=285';
 import { biomeAt, BIOME } from './biomes.js?v=245';
-import { tileForBlock } from './atlas-core.js?v=245';
+import { tileForBlock } from './atlas-core.js?v=285';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=245';
 import {
   terrainVisibilityPlan,
   chunkDetailTier,
   buildTerrainProxyArrays,
-} from './terrain-visibility.js?v=284';
+} from './terrain-visibility.js?v=285';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;

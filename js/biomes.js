@@ -1,5 +1,5 @@
 /** Pure biome classifier — no game.js coupling. */
-import { heightAt, fbm, WORLD_SCALE, starterCoastBlend } from './gen.js?v=222';
+import { heightAt, fbm, WORLD_SCALE, starterCoastBlend } from './gen.js?v=285';
 
 export const BIOME = {
   OCEAN: 'ocean',
