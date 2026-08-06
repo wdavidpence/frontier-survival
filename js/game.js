@@ -1,9 +1,8 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=245';
+import { World } from './world.js?v=285';
 import { Player } from './player.js?v=238';
-import { Input } from './input.js?v=220';
+import { Input } from './input.js?v=283';
 import { GameTime } from './time.js?v=220';
-import { VoxelCloudLayer } from './sky-clouds.js?v=245';
 import { AudioBus } from './audio.js?v=220';
 import {
   DEFAULT_SURVIVAL,
@@ -12,7 +11,7 @@ import {
   drinkWater,
   applyDamage,
 } from './survival.js?v=243';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=220';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=285';
 import {
   ITEM,
   propsOf,
@@ -53,9 +52,11 @@ import {
 import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=242';
-import { createBlockAtlas } from './atlas.js?v=220';
-import { BreakFX } from './fx.js?v=244';
+import { createBlockAtlas } from './atlas.js?v=285';
+import { BreakFX, WeatherFX } from './fx.js?v=245';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
+import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
+import { VoxelCloudLayer } from './sky-clouds.js?v=1';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -107,7 +108,7 @@ import {
 } from './chests.js?v=220';
 import { checkTooltip, show as showTooltip } from './tooltips.js?v=220';
 import { splitViewport } from './viewport-split.js?v=220';
-import { readGamepad } from './input-coop.js?v=220';
+import { readGamepad } from './input-coop.js?v=260';
 import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=220';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=220';
 import { palmLeafDrop } from './palm-drops.js?v=1';
@@ -135,13 +136,36 @@ export class Game {
     this._invOwner = 'p1';
     this.seed = (Math.random() * 1e6) | 0;
 
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setClearColor(0x87b5ff, 1);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // Keep the starter island readable: ACES rolls back the sunlit sand
+    // highlights while a small exposure lift preserves dark tree silhouettes.
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
 
     this.scene = new THREE.Scene();
+    this.skyDome = new THREE.Mesh(
+      new THREE.SphereGeometry(900, 32, 16),
+      new THREE.ShaderMaterial({
+        side: THREE.BackSide,
+        depthWrite: false,
+        depthTest: false,
+        uniforms: {
+          topColor: { value: new THREE.Color(0x4f86c6) },
+          horizonColor: { value: new THREE.Color(0xd9ecff) },
+          groundColor: { value: new THREE.Color(0x9bb0c4) },
+        },
+        vertexShader: 'varying vec3 vLocal; void main(){ vLocal=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+        fragmentShader: 'uniform vec3 topColor; uniform vec3 horizonColor; uniform vec3 groundColor; varying vec3 vLocal; void main(){ float h=clamp(normalize(vLocal).y,-1.0,1.0); float t=smoothstep(-0.12,0.42,h); vec3 sky=mix(horizonColor,topColor,t); sky=mix(groundColor,sky,smoothstep(-0.42,-0.04,h)); gl_FragColor=vec4(sky,1.0); }',
+      }),
+    );
+    this.skyDome.renderOrder = -100;
+    this.scene.add(this.skyDome);
     this.scene.background = new THREE.Color(0x87b5ff);
     this.scene.fog = new THREE.Fog(0x87b5ff, 40, 120);
 
@@ -157,12 +181,20 @@ export class Game {
     // Apply render distance from settings
     this._applyRenderDistance();
 
-    this.ambient = new THREE.AmbientLight(0x6688aa, 0.35);
-    this.sun = new THREE.DirectionalLight(0xfff2d9, 1.1);
-    this.sun.position.set(40, 80, 20);
+    this.ambient = new THREE.AmbientLight(0x7895b4, 0.52);
+    this.sun = new THREE.DirectionalLight(0xffe4bd, 1.0);
+    this.sun.castShadow = true;
+    this.sun.shadow.mapSize.set(1024, 1024);
+    this.sun.shadow.camera.near = 1;
+    this.sun.shadow.camera.far = 180;
+    this.sun.shadow.camera.left = -72;
+    this.sun.shadow.camera.right = 72;
+    this.sun.shadow.camera.top = 72;
+    this.sun.shadow.camera.bottom = -72;
+    this.sun.position.set(32, 72, 24);
     this.scene.add(this.ambient, this.sun);
 
-    this.hemi = new THREE.HemisphereLight(0x9ec9ff, 0x3a2a15, 0.35);
+    this.hemi = new THREE.HemisphereLight(0xa9d4ff, 0x4d3825, 0.52);
     this.scene.add(this.hemi);
 
     this.clouds = new VoxelCloudLayer(this.scene);
@@ -177,7 +209,8 @@ export class Game {
     this._lastHeat = 0;
     this.atlas = createBlockAtlas();
     this.fx = new BreakFX(this.scene, this.atlas);
-    this.worldRadius = 5;
+    // Outer streaming ring; overwritten by _applyRenderDistance via visibility plan.
+    this.worldRadius = this._visPlan?.proxyChunks || 5;
 
     this._breakSpeed = 1.6;
     this._stepAcc = 0;
@@ -204,7 +237,7 @@ export class Game {
     this._fpsFrames = 0;
     this._wasInWater = false;
     this._cameraInWater = false;
-    this._rain = null;
+    this.weatherFx = null;
     this._bowCd = 0;
     this._chests = new Map();
     this._chestOpenKey = null;
@@ -417,31 +450,35 @@ export class Game {
     // See docs/roadmap/coop-perf-budget.md — dual pass needs lower effective RD
     let rd = this.settings.renderDistance ?? 5;
     if (this.coopMode) rd = effectiveCoopRenderDistance(rd);
-    // Map slider 2–10 to fog near/far: near = rd*5, far = rd*12
-    const near = rd * 5;
-    const far = rd * 12;
+    const plan = terrainVisibilityPlan(rd);
+    this._visPlan = plan;
     if (this.scene.fog) {
-      this.scene.fog.near = near;
-      this.scene.fog.far = far;
+      this.scene.fog.near = plan.fogNear;
+      this.scene.fog.far = plan.fogFar;
     }
-    // Also adjust camera clipping plane to match fog far
+    // Camera far plane must clear the proxy ring + a little sky.
     if (this.camera) {
-      this.camera.far = Math.max(far, 50);
+      this.camera.far = Math.max(plan.cameraFar, 50);
       this.camera.updateProjectionMatrix();
     }
     if (this.camera2) {
-      this.camera2.far = Math.max(far, 50);
+      this.camera2.far = Math.max(plan.cameraFar, 50);
       this.camera2.updateProjectionMatrix();
     }
-    // Render distance controls the bounded streaming ring, not a playable wall.
-    const chunks = Math.max(2, Math.min(16, rd));
-    this.worldRadius = chunks;
+    // worldRadius is the outer (proxy) streaming ring in chunks.
+    this.worldRadius = plan.proxyChunks;
     if (this.world) {
-      // Trigger a chunk reload at the new radius
       if (this.world._requestChunks) {
         this.world._requestChunks();
       }
     }
+  }
+
+  /** Latest terrain visibility plan (streaming + fog). */
+  _terrainVisibilityPlan() {
+    let rd = this.settings.renderDistance ?? DEFAULT_SETTINGS.renderDistance ?? 8;
+    if (this.coopMode) rd = effectiveCoopRenderDistance(rd);
+    return this._visPlan || terrainVisibilityPlan(rd);
   }
 
   _applyCoopPerfBudget() {
@@ -495,14 +532,12 @@ export class Game {
       this.input.requestLock?.();
     }
     this._updateClickToPlay?.();
-    document.getElementById('touch-pad')?.classList.remove('hidden');
-    document.getElementById('touch-look')?.classList.remove('hidden');
-    document.getElementById('ctrl-debug')?.classList.remove('hidden');
   }
 
   start(seed = this.seed) {
     this.seed = seed;
     this.coopMode = this.settings.playMode === 'coop';
+    this.input.controllerOnly = this.coopMode;
     if (this.coopMode) {
       this._p2Yaw = this.input?.lookX || 0;
       this._p2Pitch = this.input?.lookY || 0;
@@ -513,7 +548,7 @@ export class Game {
       seed,
       freshPlayer: true,
       notify: this.coopMode
-        ? 'Local Co-op: left=P1 KBM/pad0 · right=P2 body (pad1 move/look).'
+        ? 'Local Co-op: two DualSense controllers · P1 left / P2 right.'
         : 'Hunt wildlife · craft a spear · cook at campfires · watch wolves. E craft · F use · K save · Esc pause',
     });
   }
@@ -537,7 +572,8 @@ export class Game {
     }
     this.world = new World({
       seed,
-      radiusChunks: this.worldRadius || 5,
+      // Bootstrap/full-detail radius — outer proxy ring streams in over frames.
+      radiusChunks: this._terrainVisibilityPlan().fullChunks || this.worldRadius || 5,
       material: this.atlas.greedyMaterial || this.atlas.material,
     });
 
@@ -680,7 +716,7 @@ export class Game {
       this.camera.rotation.y = this.player.yaw;
       this.camera.rotation.x = this.player.pitch;
     }
-    this._updateLighting(0);
+    this._updateLighting();
     this._updateWaterVisuals();
     this.render();
     this._invNeedsPaint = true;
@@ -736,51 +772,15 @@ export class Game {
   }
 
   _ensureRain() {
-    if (this._rain) return;
-    const geo = new THREE.BufferGeometry();
-    const N = 900;
-    const pos = new Float32Array(N * 3);
-    for (let i = 0; i < N; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 40;
-      pos[i * 3 + 1] = Math.random() * 30;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 40;
-    }
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const mat = new THREE.PointsMaterial({
-      color: 0xaaccff,
-      size: 0.08,
-      transparent: true,
-      opacity: 0.55,
-      depthWrite: false,
-    });
-    this._rain = new THREE.Points(geo, mat);
-    this._rain.visible = false;
-    this.scene.add(this._rain);
+    if (this.weatherFx) return;
+    this.weatherFx = new WeatherFX(this.scene);
   }
 
   _tickWeatherFX(dt) {
     this._ensureRain();
-    const w = this.time.weather;
-    const show = w === 'rain' || w === 'snow';
-    this._rain.visible = show && this.started && !this.survival.dead;
-    if (!show) return;
-    const pos = this._rain.geometry.attributes.position.array;
-    const speed = w === 'snow' ? 4 : 14;
-    const px = this.player.position.x;
-    const py = this.player.position.y;
-    const pz = this.player.position.z;
-    for (let i = 0; i < pos.length; i += 3) {
-      pos[i + 1] -= speed * dt * (0.6 + (i % 7) * 0.05);
-      if (pos[i + 1] < -2) {
-        pos[i] = (Math.random() - 0.5) * 40;
-        pos[i + 1] = 18 + Math.random() * 12;
-        pos[i + 2] = (Math.random() - 0.5) * 40;
-      }
-    }
-    this._rain.position.set(px, py, pz);
-    this._rain.geometry.attributes.position.needsUpdate = true;
-    this._rain.material.color.setHex(w === 'snow' ? 0xffffff : 0x88aadd);
-    this._rain.material.size = w === 'snow' ? 0.12 : 0.07;
+    const active = this.started && !this.survival.dead;
+    const pos = this.player ? this.player.position : null;
+    this.weatherFx.tick(dt, this.time.weather, pos, active);
   }
 
   _tickCrops(dt) {
@@ -1449,9 +1449,17 @@ export class Game {
         }
         }
       }
+      const vis = this._terrainVisibilityPlan();
       this.world.updateStreaming(
         [this.player, this.coopMode ? this.player2 : null],
-        { radius: this.worldRadius },
+        {
+          radius: this.worldRadius,
+          fullRadius: vis.fullChunks,
+          lodRadius: vis.lodChunks,
+          proxyRadius: vis.proxyChunks,
+          lodStep: vis.lodStep,
+          proxyStep: vis.proxyStep,
+        },
       );
 
       if (this.coopMode && this.player2 && this.input2 && !this.paused && !this.survival2?.dead) {
@@ -1478,7 +1486,10 @@ export class Game {
         this.audio.hurt();
         this.player.notify(dmg > 20 ? 'Hard landing!' : 'Oof — rough landing.', 1.6);
       }
-      if (move.inWater && !this._wasInWater) this.audio.splash?.() || this.audio.step('water');
+      if (move.inWater && !this._wasInWater) {
+        if (this.audio.splash) this.audio.splash();
+        else this.audio.step('water');
+      }
       this._wasInWater = move.inWater;
 
     } else {
@@ -1613,7 +1624,7 @@ export class Game {
     // Coop P2 body systems (SC-depth: hunger/cold/stamina for second player)
     if (this.coopMode && this.player2 && this.survival2 && !this.survival2.dead) {
       const p2 = this.player2.position;
-      const heat2 = heat; // TODO: per-player heat sample; share P1 heat for MVP
+      const heat2 = this.world.sampleHeat(p2.x, p2.y + 1, p2.z, 7);
       const roof2 = hasRoofAbove(
         (x, y, z) => this.world.getBlock(x, y, z),
         p2.x, p2.y, p2.z, isSolid, isTransparent,
@@ -1927,12 +1938,13 @@ export class Game {
 
     this.world.flushDirty();
     this.fx.tick(dt);
+    this.clouds?.update(dt);
     this._lightScanAcc += dt;
     if (this._lightScanAcc > 0.5) {
       this._lightScanAcc = 0;
       this._scanLights(false);
     }
-    this._updateLighting(dt);
+    this._updateLighting();
     this._updateWaterVisuals();
     this._tickTooltips(dt);
     this._updateHud();
@@ -3021,7 +3033,7 @@ export class Game {
     const eqEl = document.getElementById('equip-slots');
     if (eqEl) {
       const w = equipmentWarmth(pl.equipment);
-      eqEl.innerHTML = `<div class="equip-warmth">Clothing warmth: <b>${w}</b> (F to equip held clothes)</div>`;
+      eqEl.innerHTML = `<div class="equip-warmth">Clothing warmth: <b>${w}</b> (${this.coopMode ? 'L2' : 'F'} to equip held clothes)</div>`;
       for (const slot of EQUIP_SLOTS) {
         const id = pl.equipment?.[slot];
         const row = document.createElement('div');
@@ -3038,6 +3050,15 @@ export class Game {
    * Tick tooltip triggers — called every frame while game is running.
    * Queues tooltips when conditions are met, shows them with cooldown.
    */
+  _showTooltipForMode(def) {
+    if (!this.coopMode) return showTooltip(def);
+    return showTooltip({ ...def, body: def.body
+      .replaceAll('WASD', 'Left stick').replaceAll('Mouse', 'Right stick').replaceAll('Space', 'Cross')
+      .replaceAll('Ctrl or C', 'R3').replaceAll('left-click', 'R2').replaceAll('right-click', 'L2')
+      .replaceAll('Press E', 'Press Triangle').replaceAll('Press F', 'Press L2').replaceAll('Press R', 'Press Circle')
+      .replaceAll('(E)', '(Triangle)').replaceAll('(F)', '(L2)') });
+  }
+
   _tickTooltips(dt) {
     if (!this.started || this.paused || !this.player || this.survival?.dead) return;
 
@@ -3049,7 +3070,21 @@ export class Game {
         this._tooltipShownAcc = 0;
         const result = checkTooltip(id);
         if (result) {
-          showTooltip(result.def);
+          const def = this.coopMode
+            ? { ...result.def, body: result.def.body
+              .replaceAll('WASD', 'Left stick')
+              .replaceAll('Mouse', 'Right stick')
+              .replaceAll('Space', 'Cross')
+              .replaceAll('Ctrl or C', 'R3')
+              .replaceAll('left-click', 'R2')
+              .replaceAll('right-click', 'L2')
+              .replaceAll('Press E', 'Press Triangle')
+              .replaceAll('Press F', 'Press L2')
+              .replaceAll('Press R', 'Press Circle')
+              .replaceAll('(E)', '(Triangle)')
+              .replaceAll('(F)', '(L2)') }
+            : result.def;
+          showTooltip(def);
         }
       }
     }
@@ -3192,20 +3227,20 @@ export class Game {
       // Clear queue and show immediately
       this._tooltipQueue = [];
       const result = checkTooltip('eat_food');
-      if (result) showTooltip(result.def);
+      if (result) this._showTooltipForMode(result.def);
     }
 
     // hypothermia emergency: if body temp is critically low, show campfire immediately
     if (this.survival.bodyTemp < 34.5 && !this._tooltipQueue.includes('campfire')) {
       this._tooltipQueue = [];
       const result = checkTooltip('campfire');
-      if (result) showTooltip(result.def);
+      if (result) this._showTooltipForMode(result.def);
     }
 
     // biome notify: show biome name periodically (existing logic)
   }
 
-  _updateLighting(dt = 1 / 60) {
+  _updateLighting() {
     const sunI = this.time.sunIntensity();
     this.hemi.color.setHex(0x9ec9ff);
     // storm lightning flash boost
@@ -3214,27 +3249,26 @@ export class Game {
       this.scene.background.setHex(0xccddff);
       this._stormFlashT -= 1 / 60;
     }
-    this.sun.intensity = 0.25 + sunI * 1.0;
-    this.ambient.intensity = 0.12 + sunI * 0.35;
-    this.hemi.intensity = 0.15 + sunI * 0.3;
+    this.sun.intensity = 0.3 + sunI * 1.15;
+    this.ambient.intensity = 0.2 + sunI * 0.48;
+    this.hemi.intensity = 0.24 + sunI * 0.4;
     const sky = this.time.skyColor();
     const color = new THREE.Color(sky.r, sky.g, sky.b);
     this.scene.background = color;
-    this.scene.fog.color.copy(color);
-    const rd = this.settings.renderDistance ?? 5;
-    // Base fog near/far scaled by render distance, modulated by time of day
-    const baseNear = rd * 5;
-    const baseFar = rd * 12;
-    this.scene.fog.near = Math.max(baseNear, 45 + sunI * 25);
-    this.scene.fog.far = Math.max(baseFar, 110 + sunI * 50);
-    if (this.clouds) {
-      const eye = this.player ? this.player.eyePosition() : this.camera.position;
-      this.clouds.update(dt, this.time, eye);
-      if (this.clouds.shadowFactor > 0) {
-        this.ambient.intensity *= Math.max(0.75, 1.0 - this.clouds.shadowFactor);
-        this.sun.intensity *= Math.max(0.80, 1.0 - this.clouds.shadowFactor * 0.7);
-      }
+    if (this.skyDome) {
+      this.skyDome.position.copy(this.camera.position);
+      const top = color.clone().multiplyScalar(0.62);
+      const horizon = color.clone().lerp(new THREE.Color(0xfff0d2), 0.28);
+      const ground = new THREE.Color(0x71808b).lerp(color, 0.2);
+      this.skyDome.material.uniforms.topColor.value.copy(top);
+      this.skyDome.material.uniforms.horizonColor.value.copy(horizon);
+      this.skyDome.material.uniforms.groundColor.value.copy(ground);
     }
+    this.scene.fog.color.copy(color);
+    const plan = this._terrainVisibilityPlan();
+    const fog = fogForSun(plan, sunI);
+    this.scene.fog.near = fog.near;
+    this.scene.fog.far = fog.far;
     if (this.time.isNight()) {
       this.ambient.color.set(0x223355);
       this.sun.intensity = 0.08;
@@ -3252,11 +3286,11 @@ export class Game {
     if (mat?.uniforms) {
       mat.uniforms.sunIntensity.value = this.time.isNight()
         ? 0.32
-        : 0.55 + sunI * 0.7;
+        : 0.62 + sunI * 0.78;
       mat.uniforms.ambientColor.value.set(
-        this.time.isNight() ? 0.18 : 0.35,
-        this.time.isNight() ? 0.2 : 0.4,
-        this.time.isNight() ? 0.28 : 0.5,
+        this.time.isNight() ? 0.18 : 0.42,
+        this.time.isNight() ? 0.2 : 0.48,
+        this.time.isNight() ? 0.28 : 0.58,
       );
     }
   }
@@ -3367,13 +3401,23 @@ export class Game {
   _applyCoopHudMode() {
     try {
       document.body.classList.toggle('coop-mode', !!this.coopMode);
+      if (this.coopMode) {
+        const replacements = [
+          ['#btn-close-inv', 'Close (E)', 'Close (Triangle)'],
+          ['#btn-close-furnace', 'Close (F)', 'Close (Circle)'],
+          ['#chest-screen .inv-sub', 'inventory (E)', 'Pack & Craft (Triangle)'],
+        ];
+        for (const [selector, from, to] of replacements) {
+          document.querySelectorAll(selector).forEach((el) => { el.textContent = el.textContent.replaceAll(from, to); });
+        }
+      }
     } catch (_) {}
     // Keep perf knobs in sync when toggling coop
     try { this._applyCoopPerfBudget?.(); } catch (_) {}
     if (this.coopMode && !this._coopRouter) {
       try {
         // Lazy import path already static at top for readGamepad; router from same module via dynamic if needed
-        import(`./input-coop.js?v=220`).then((mod) => {
+        import(`./input-coop.js?v=260`).then((mod) => {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);
@@ -3426,23 +3470,6 @@ export class Game {
     const bleedTag = document.getElementById('bleed-tag');
     if (bleedTag) bleedTag.classList.toggle('on', (s.bleed || 0) > 1);
 
-    const ctrlDbg = document.getElementById('ctrl-debug');
-    if (ctrlDbg && this.started) {
-      const k = [];
-      if (this.input.wantsForward()) k.push('W');
-      if (this.input.wantsLeft()) k.push('A');
-      if (this.input.wantsBack()) k.push('S');
-      if (this.input.wantsRight()) k.push('D');
-      if (this.input.wantsCrouch()) k.push('C');
-      if (this.input.wantsJump()) k.push('Sp');
-      const st = this.survival?.dead ? 'DEAD' : this.paused ? 'PAUSED' : this.input.locked ? 'LOCK' : this.input.softLook ? 'LOOK' : 'WAIT';
-      const gp = this.input._gpConnected ? `GP:${this.input._gpIndex}` : '';
-      const pos = this.player
-        ? `${this.player.position.x.toFixed(0)},${this.player.position.z.toFixed(0)}`
-        : '';
-      ctrlDbg.textContent = `${st} keys:${k.join('')||'-'} ${gp} xyz:${pos}`;
-      ctrlDbg.style.color = this.survival?.dead ? '#f66' : k.length ? '#6f6' : '#9cf';
-    }
     this._updateSpawnMarker();
     this._updateCoopPadPrompt();
 
@@ -3750,6 +3777,7 @@ const hbName = document.getElementById('hotbar-name');
     cancelAnimationFrame(this._raf);
     window.removeEventListener('resize', this._onResize);
     this.input.unbind();
-    this.clouds?.dispose();
+    this.fx?.dispose?.();
+    this.weatherFx?.dispose?.();
   }
 }

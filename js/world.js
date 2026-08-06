@@ -1,10 +1,14 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=245';
-import { heightAt, hash2, fbm } from './gen.js?v=245';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=285';
+import { heightAt, hash2, fbm, forestFloorDetail } from './gen.js?v=285';
 import { biomeAt, BIOME } from './biomes.js?v=245';
-import { tileForBlock } from './atlas-core.js?v=245';
+import { tileForBlock } from './atlas-core.js?v=285';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=245';
-import { TerrainVisibilityManager } from './terrain-visibility.js?v=245';
+import {
+  terrainVisibilityPlan,
+  chunkDetailTier,
+  buildTerrainProxyArrays,
+} from './terrain-visibility.js?v=285';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -31,6 +35,9 @@ export class World {
     this.streamBudget = 16;
     this.chunks = new Map();
     this.meshes = new Map();
+    /** @type {Map<string,'full'|'lod'|'proxy'>} */
+    this.meshTiers = new Map();
+    this._visPlan = terrainVisibilityPlan(this.streamRadius, { chunkSize: CHUNK_SIZE });
     this.group = new THREE.Group();
     this.dirty = new Set();
     this.edits = new Map();
@@ -52,7 +59,8 @@ export class World {
 
     // ── Chunk worker pool (stub) ───────────────────────────────────────
     this._workerPool = [];
-    this._maxWorkers = Math.max(1, navigator.hardwareConcurrency - 1) || 3;
+    const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
+    this._maxWorkers = Math.max(1, cores - 1);
     this._workerReady = false;
 
     // Bootstrap a solid starter ring. The old radius-2 bootstrap exposed a
@@ -67,7 +75,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=245';
+    const workerUrl = './js/chunk-worker.js?v=280';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -96,10 +104,13 @@ export class World {
     }
 
     // Find an idle worker (simple round-robin with message queue)
-    const worker = this._workerPool[cx % this._workerPool.length];
+    const workerIndex = ((cx * 31 + cz) % this._workerPool.length + this._workerPool.length) % this._workerPool.length;
+    const worker = this._workerPool[workerIndex];
 
+    const requestId = `${cx}:${cz}:${Date.now()}:${Math.random()}`;
     return new Promise((resolve, reject) => {
       const handler = (e) => {
+        if (e.data.requestId !== requestId) return;
         if (e.data.error) {
           worker.removeEventListener('message', handler);
           reject(new Error(`Chunk ${cx},${cz}: ${e.data.error}`));
@@ -109,7 +120,7 @@ export class World {
         resolve(e.data.data); // Uint8Array (transferred)
       };
       worker.addEventListener('message', handler);
-      worker.postMessage({ cx, cz, seed: this.seed });
+      worker.postMessage({ cx, cz, seed: this.seed, requestId });
     });
   }
 
@@ -133,11 +144,11 @@ export class World {
             if (y <= SEA_LEVEL) id = BLOCK.WATER;
             else id = BLOCK.AIR;
           } else if (y === h) {
-            if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN || biome === BIOME.TROPICAL) id = BLOCK.SAND;
+            if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
             else id = BLOCK.GRASS;
           } else if (y > h - 4) {
-            if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN || biome === BIOME.TROPICAL) id = BLOCK.SAND;
+            if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else id = BLOCK.DIRT;
           } else {
             id = BLOCK.STONE;
@@ -156,7 +167,7 @@ export class World {
           if (biome === BIOME.FOREST) treeChance = 0.018; // half prior density for navigability
           else if (biome === BIOME.SHORE) treeChance = 0.028; // coastal palms/scrub
           else if (biome === BIOME.TUNDRA) treeChance = 0.012;
-          else if (biome === BIOME.TROPICAL) treeChance = 0.06; // readable palm canopy on starter islands
+          else if (biome === BIOME.TROPICAL) treeChance = 0.018; // keep the starter island open enough to read landmarks
           else if (biome === BIOME.OCEAN) treeChance = 0;
           if (th > 1 - treeChance) {
             // Tree species selection by biome
@@ -320,7 +331,25 @@ export class World {
     }
   }
 
-  updateStreaming(players, { radius = this.streamRadius } = {}) {
+  /**
+   * Stream full / LOD / proxy rings around player(s).
+   * @param {object|object[]} players
+   * @param {object} [opts]
+   * @param {number} [opts.radius] outer stream radius (proxy ring)
+   * @param {number} [opts.fullRadius]
+   * @param {number} [opts.lodRadius]
+   * @param {number} [opts.proxyRadius]
+   * @param {number} [opts.lodStep]
+   * @param {number} [opts.proxyStep]
+   */
+  updateStreaming(players, {
+    radius = this.streamRadius,
+    fullRadius,
+    lodRadius,
+    proxyRadius,
+    lodStep,
+    proxyStep,
+  } = {}) {
     const list = Array.isArray(players) ? players : [players];
     // Callers may pass Player instances (the game loop) or plain x/z points
     // (tests/tools). Normalize both shapes before deriving stream centers.
@@ -329,46 +358,90 @@ export class World {
       .filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.z));
     if (!valid.length) return { loaded: this.chunks.size, meshes: this.meshes.size };
     const centers = valid.map((p) => this.worldToChunk(p.x, p.z));
-    const r = Math.max(2, Math.min(32, radius | 0));
+
+    const basePlan = terrainVisibilityPlan(radius, { chunkSize: CHUNK_SIZE });
+    const plan = {
+      ...basePlan,
+      fullChunks: Math.max(2, Math.min(32, (fullRadius ?? basePlan.fullChunks) | 0)),
+      lodChunks: Math.max(2, Math.min(32, (lodRadius ?? basePlan.lodChunks) | 0)),
+      proxyChunks: Math.max(2, Math.min(32, (proxyRadius ?? basePlan.proxyChunks ?? radius) | 0)),
+      lodStep: Math.max(1, (lodStep ?? basePlan.lodStep) | 0),
+      proxyStep: Math.max(1, (proxyStep ?? basePlan.proxyStep) | 0),
+    };
+    if (plan.lodChunks < plan.fullChunks) plan.lodChunks = plan.fullChunks;
+    if (plan.proxyChunks < plan.lodChunks) plan.proxyChunks = plan.lodChunks;
+    this._visPlan = plan;
+
+    const r = plan.proxyChunks;
     this.streamRadius = r;
-    const signature = `${r}:${centers.map((c) => `${c.cx},${c.cz}`).join('|')}`;
+    const signature = `${plan.fullChunks}:${plan.lodChunks}:${plan.proxyChunks}:${centers.map((c) => `${c.cx},${c.cz}`).join('|')}`;
     const centerChanged = signature !== this._streamSignature;
     this._streamSignature = signature;
-    const desired = new Set();
+
+    /** @type {Map<string,{cx:number,cz:number,distance:number,tier:'full'|'lod'|'proxy'}>} */
+    const desired = new Map();
     for (const { cx, cz } of centers) {
       for (let dz = -r; dz <= r; dz++) {
         for (let dx = -r; dx <= r; dx++) {
-          if (Math.max(Math.abs(dx), Math.abs(dz)) > r) continue;
+          const distance = Math.max(Math.abs(dx), Math.abs(dz));
+          if (distance > r) continue;
+          const tier = chunkDetailTier(distance, plan);
+          if (tier === 'none') continue;
           const k = this.key(cx + dx, cz + dz);
-          desired.add(k);
-          if (!this.chunks.has(k) && !this._streamQueued.has(k)) {
-            this._streamQueued.add(k);
-            this._streamQueue.push({ cx: cx + dx, cz: cz + dz, distance: Math.max(Math.abs(dx), Math.abs(dz)) });
+          const prev = desired.get(k);
+          // Prefer the highest-detail tier if multiple players overlap.
+          if (!prev || this._tierRank(tier) > this._tierRank(prev.tier)) {
+            desired.set(k, { cx: cx + dx, cz: cz + dz, distance, tier });
           }
         }
       }
     }
-    // Near chunks first keeps terrain solid around a player while the outer
-    // visual ring catches up. Continue draining even when the player remains
-    // in the same chunk (the old signature early-return starved the queue).
-    this._streamQueue.sort((a, b) => a.distance - b.distance);
+
+    for (const [k, want] of desired) {
+      const have = this.meshTiers.get(k);
+      const needsVoxel = want.tier === 'full' || want.tier === 'lod';
+      const needsWork =
+        !this.meshes.has(k) ||
+        !have ||
+        have !== want.tier ||
+        (needsVoxel && !this.chunks.has(k));
+      if (!needsWork || this._streamQueued.has(k)) continue;
+      this._streamQueued.add(k);
+      this._streamQueue.push({ ...want, key: k });
+    }
+
+    // Near + higher detail first. Continue draining even when the player
+    // remains in the same chunk (signature early-return used to starve the queue).
+    const rank = (t) => this._tierRank(t);
+    this._streamQueue.sort((a, b) => a.distance - b.distance || rank(b.tier) - rank(a.tier));
     let generated = 0;
     const budget = Math.max(1, this.streamBudget | 0);
     while (this._streamQueue.length && generated < budget) {
       const next = this._streamQueue.shift();
-      const k = this.key(next.cx, next.cz);
+      const k = next.key || this.key(next.cx, next.cz);
       this._streamQueued.delete(k);
-      if (!desired.has(k) || this.chunks.has(k)) continue;
-      this.ensureChunk(next.cx, next.cz);
+      const want = desired.get(k);
+      if (!want) continue;
+      this._materializeChunk(want.cx, want.cz, want.tier, plan);
       generated++;
     }
+
     const unloadR = r + this.streamMargin;
     for (const [k, mesh] of this.meshes) {
       const [cx, cz] = k.split(',').map(Number);
-      if (centers.some((c) => Math.max(Math.abs(cx - c.cx), Math.abs(cz - c.cz)) <= unloadR)) continue;
+      if (centers.some((c) => Math.max(Math.abs(cx - c.cx), Math.abs(cz - c.cz)) <= unloadR)) {
+        // Drop expensive voxel data outside the LOD ring; keep proxy mesh.
+        const want = desired.get(k);
+        if (want?.tier === 'proxy' && this.chunks.has(k)) {
+          this.chunks.delete(k);
+          this.dirty.delete(k);
+        }
+        continue;
+      }
       mesh.geometry?.dispose();
       this.group.remove(mesh);
       this.meshes.delete(k);
+      this.meshTiers.delete(k);
       this.chunks.delete(k);
       this.dirty.delete(k);
     }
@@ -379,7 +452,136 @@ export class World {
       queued: this._streamQueue.length,
       generated,
       centerChanged,
+      fullChunks: plan.fullChunks,
+      lodChunks: plan.lodChunks,
+      proxyChunks: plan.proxyChunks,
     };
+  }
+
+  /** @param {'full'|'lod'|'proxy'} tier */
+  _tierRank(tier) {
+    if (tier === 'full') return 3;
+    if (tier === 'lod') return 2;
+    if (tier === 'proxy') return 1;
+    return 0;
+  }
+
+  /**
+   * Ensure the right representation exists for a chunk at the requested tier.
+   * @param {number} cx
+   * @param {number} cz
+   * @param {'full'|'lod'|'proxy'} tier
+   * @param {ReturnType<typeof terrainVisibilityPlan>} plan
+   */
+  _materializeChunk(cx, cz, tier, plan) {
+    const k = this.key(cx, cz);
+    if (tier === 'proxy') {
+      // Proxies never allocate full voxel storage.
+      if (this.chunks.has(k) && this.meshTiers.get(k) === 'full') {
+        // Keep voxel data if we somehow still have it; just draw proxy if requested.
+      }
+      this.rebuildProxyChunk(cx, cz, plan.proxyStep || 4);
+      return;
+    }
+    this.ensureChunk(cx, cz, { rebuild: false });
+    if (tier === 'lod') this.rebuildLodChunk(cx, cz, plan.lodStep || 2);
+    else this.rebuildChunk(cx, cz);
+  }
+
+  /** Surface sample used by LOD/proxy heightfields. */
+  _proxySurfaceSample(x, z, h) {
+    const biome = biomeAt(x, z, this.seed);
+    let id = BLOCK.GRASS;
+    if (h < SEA_LEVEL) id = BLOCK.WATER;
+    else if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN) id = BLOCK.SAND;
+    else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
+    else if (biome === BIOME.TROPICAL) id = BLOCK.GRASS;
+    const c = getColor(id);
+    // getColor returns [r,g,b] in 0..1 (sometimes face-tinted).
+    let r = 0.35;
+    let g = 0.55;
+    let b = 0.28;
+    if (Array.isArray(c) && c.length >= 3) {
+      r = Number(c[0]) || r;
+      g = Number(c[1]) || g;
+      b = Number(c[2]) || b;
+    } else if (typeof c === 'number') {
+      r = ((c >> 16) & 255) / 255;
+      g = ((c >> 8) & 255) / 255;
+      b = (c & 255) / 255;
+    } else if (c && typeof c === 'object') {
+      r = Number(c.r ?? r);
+      g = Number(c.g ?? g);
+      b = Number(c.b ?? b);
+    }
+    // Slight distance desaturation so proxies read as horizon mass.
+    if (h < SEA_LEVEL) {
+      r = 0.15;
+      g = 0.42;
+      b = 0.62;
+    }
+    return {
+      r,
+      g,
+      b,
+      a: h < SEA_LEVEL ? 0.85 : 1,
+      tile: tileForBlock(id) || 0,
+    };
+  }
+
+  _applyMeshArrays(cx, cz, arrays, tier) {
+    const k = this.key(cx, cz);
+    if (!arrays || !arrays.positions?.length) return;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(arrays.positions, 3));
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(arrays.normals, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(arrays.colors, 4));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(arrays.uvs, 2));
+    geo.setAttribute('tile', new THREE.Float32BufferAttribute(arrays.tiles, 1));
+    geo.setIndex(Array.from(arrays.indices));
+    geo.computeBoundingSphere();
+
+    let mesh = this.meshes.get(k);
+    if (mesh) {
+      mesh.geometry.dispose();
+      mesh.geometry = geo;
+      mesh.material = this.material;
+    } else {
+      mesh = new THREE.Mesh(geo, this.material);
+      mesh.name = `chunk_${k}`;
+      this.meshes.set(k, mesh);
+      this.group.add(mesh);
+    }
+    mesh.userData.tier = tier;
+    mesh.castShadow = tier === 'full';
+    mesh.receiveShadow = tier !== 'proxy';
+    this.meshTiers.set(k, tier);
+  }
+
+  rebuildLodChunk(cx, cz, step = 2) {
+    const arrays = buildTerrainProxyArrays({
+      baseX: cx * CHUNK_SIZE,
+      baseZ: cz * CHUNK_SIZE,
+      size: CHUNK_SIZE,
+      step,
+      seed: this.seed,
+      heightFn: heightAt,
+      sampleFn: (x, z, h) => this._proxySurfaceSample(x, z, h),
+    });
+    this._applyMeshArrays(cx, cz, arrays, 'lod');
+  }
+
+  rebuildProxyChunk(cx, cz, step = 4) {
+    const arrays = buildTerrainProxyArrays({
+      baseX: cx * CHUNK_SIZE,
+      baseZ: cz * CHUNK_SIZE,
+      size: CHUNK_SIZE,
+      step,
+      seed: this.seed,
+      heightFn: heightAt,
+      sampleFn: (x, z, h) => this._proxySurfaceSample(x, z, h),
+    });
+    this._applyMeshArrays(cx, cz, arrays, 'proxy');
   }
 
   _generateChunk(cx, cz) {
@@ -402,12 +604,12 @@ export class World {
             else id = BLOCK.AIR;
           } else if (y === h) {
             // Biome-driven surface block
-            if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN || biome === BIOME.TROPICAL) id = BLOCK.SAND;
+            if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
             else id = BLOCK.GRASS; // FOREST default
           } else if (y > h - 4) {
             // Sub-surface follows biome: desert/shore → sand, tundra → dirt, else dirt
-            if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN || biome === BIOME.TROPICAL) id = BLOCK.SAND;
+            if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else id = BLOCK.DIRT;
           } else {
             id = BLOCK.STONE;
@@ -431,7 +633,7 @@ export class World {
           if (biome === BIOME.FOREST) treeChance = 0.018; // ~4% surface — half prior density
           else if (biome === BIOME.SHORE) treeChance = 0.028; // coastal palms/scrub
           else if (biome === BIOME.TUNDRA) treeChance = 0.012;
-          else if (biome === BIOME.TROPICAL) treeChance = 0.06; // readable palm canopy on starter islands
+          else if (biome === BIOME.TROPICAL) treeChance = 0.018; // keep the starter island open enough to read landmarks
           else if (biome === BIOME.OCEAN) treeChance = 0;
           if (th > 1 - treeChance) {
             // Tree species selection by biome
@@ -463,6 +665,20 @@ export class World {
         ) {
           data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
         }
+
+        const floorDetail = forestFloorDetail(
+          x,
+          z,
+          this.seed,
+          biome,
+          h,
+          data[this._idx(lx, h, lz)],
+          data[this._idx(lx, h + 1, lz)],
+        );
+        if (floorDetail === 'damp-soil') data[this._idx(lx, h, lz)] = BLOCK.DAMP_SOIL;
+        else if (floorDetail === 'roots') data[this._idx(lx, h + 1, lz)] = BLOCK.ROOTS;
+        else if (floorDetail === 'sticks') data[this._idx(lx, h + 1, lz)] = BLOCK.STICK_PILE;
+        else if (floorDetail === 'mushroom') data[this._idx(lx, h + 1, lz)] = BLOCK.MUSHROOM;
 
         // clay deposits near shore biome
         if (biome === BIOME.SHORE || (h >= SEA_LEVEL && h <= SEA_LEVEL + 3 && biome !== BIOME.TUNDRA)) {
@@ -854,6 +1070,10 @@ export class World {
       this.meshes.set(k, mesh);
       this.group.add(mesh);
     }
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData.tier = 'full';
+    this.meshTiers.set(k, 'full');
   }
 
   meshStats() {
@@ -977,6 +1197,19 @@ export class World {
       const above1 = this.getBlock(x, h + 1, z);
       const above2 = this.getBlock(x, h + 2, z);
       if (above1 !== BLOCK.AIR || above2 !== BLOCK.AIR) continue;
+      let clear = true;
+      const foliage = new Set([
+        BLOCK.LOG, BLOCK.LEAVES, BLOCK.SPRUCE_LOG, BLOCK.SPRUCE_LEAVES,
+        BLOCK.SEQUOIA_LOG, BLOCK.SEQUOIA_LEAVES, BLOCK.PALM_LEAVES, BLOCK.BUSH,
+      ]);
+      for (let dx = -4; dx <= 4 && clear; dx++) {
+        for (let dz = -4; dz <= 4 && clear; dz++) {
+          for (let dy = 1; dy <= 6; dy++) {
+            if (foliage.has(this.getBlock(x + dx, h + dy, z + dz))) { clear = false; break; }
+          }
+        }
+      }
+      if (!clear) continue;
       const candidate = { x: x + 0.5, y: h + 1.01, z: z + 0.5, h };
       const biome = biomeAt(x, z, this.seed);
       const warmSurface = surface === BLOCK.SAND && (biome === BIOME.TROPICAL || biome === BIOME.SHORE);
