@@ -9,9 +9,12 @@
  * @param {number} [power=2] quadratic-ish falloff
  */
 export function torchFalloff(distance, range = 8, power = 2) {
-  const d = Math.max(0, Number(distance) || 0);
-  const r = Math.max(0.01, Number(range) || 8);
-  const p = Math.max(0.5, Number(power) || 2);
+  const dn = Number(distance);
+  const rn = Number(range);
+  const pn = Number(power);
+  const d = Math.max(0, Number.isFinite(dn) ? dn : 0);
+  const r = Math.max(0.01, Number.isFinite(rn) ? rn : 8);
+  const p = Math.max(0.5, Number.isFinite(pn) ? pn : 2);
   if (d >= r) return 0;
   const t = 1 - d / r;
   return Math.max(0, Math.min(1, t ** p));

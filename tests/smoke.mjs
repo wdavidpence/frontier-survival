@@ -2838,6 +2838,15 @@ test('torch-falloff distance', () => {
   assert.ok(torchLightSum([1, 2], 8) > 0);
 });
 
+test('torch-falloff explicit zero-value defaults', () => {
+  assert.strictEqual(torchFalloff(1, 0), 0);
+  assert.notStrictEqual(torchFalloff(1, 0), torchFalloff(1, 8));
+  assert.strictEqual(torchFalloff(1, 8, 0), torchFalloff(1, 8, 0.5));
+  assert.notStrictEqual(torchFalloff(1, 8, 0), torchFalloff(1, 8, 2));
+  assert.strictEqual(torchFalloff(1, undefined, undefined), torchFalloff(1, 8, 2));
+  assert.strictEqual(torchFalloff(1, NaN, NaN), torchFalloff(1, 8, 2));
+});
+
 test('compass-bearing basics', () => {
   assert.ok(Number.isFinite(bearingTo({x:0,z:0},{x:1,z:0})));
   assert.ok(horizDistance({x:0,z:0},{x:3,z:4}) === 5);

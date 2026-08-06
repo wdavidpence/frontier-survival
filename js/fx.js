@@ -136,3 +136,157 @@ export class BreakFX {
     this.particles.length = 0;
   }
 }
+
+/**
+ * Compute particle parameter specs for a given weather type.
+ * @param {string} weather - 'clear' | 'rain' | 'snow'
+ * @returns {{color: number, size: number, opacity: number, speed: number, isSnow: boolean, visible: boolean}}
+ */
+export function getWeatherFXParams(weather) {
+  if (weather === 'snow') {
+    return { color: 0xffffff, size: 0.13, opacity: 0.8, speed: 3.5, isSnow: true, visible: true };
+  }
+  if (weather === 'rain') {
+    return { color: 0x99ccff, size: 0.08, opacity: 0.6, speed: 15.0, isSnow: false, visible: true };
+  }
+  return { color: 0x99ccff, size: 0.08, opacity: 0.0, speed: 0, isSnow: false, visible: false };
+}
+
+/**
+ * Step a single particle position for weather motion.
+ * @param {number} x
+ * @param {number} y
+ * @param {number} z
+ * @param {number} dt
+ * @param {string} weather
+ * @param {number} elapsed
+ * @param {number} index
+ * @returns {[number, number, number]}
+ */
+export function stepWeatherParticle(x, y, z, dt, weather, elapsed, index) {
+  const params = getWeatherFXParams(weather);
+  if (!params.visible) return [x, y, z];
+
+  let ny = y - params.speed * (0.7 + (index % 7) * 0.08) * dt;
+  let nx = x;
+  let nz = z;
+
+  if (params.isSnow) {
+    nx += Math.sin(elapsed * 2 + index * 0.5) * 0.8 * dt;
+    nz += Math.cos(elapsed * 1.5 + index * 0.3) * 0.5 * dt;
+  } else {
+    nx -= 1.2 * dt;
+  }
+
+  if (ny < -6) {
+    nx = (Math.random() - 0.5) * 40;
+    ny = 16 + Math.random() * 12;
+    nz = (Math.random() - 0.5) * 40;
+  }
+  return [nx, ny, nz];
+}
+
+/**
+ * Weather atmosphere rain/snow particle system.
+ */
+export class WeatherFX {
+  /**
+   * @param {THREE.Scene} scene
+   * @param {number} [particleCount=450]
+   */
+  constructor(scene, particleCount = 450) {
+    this.scene = scene;
+    this.particleCount = particleCount;
+    this.elapsed = 0;
+    this.pointsMesh = null;
+    this.geometry = null;
+    this.material = null;
+    this._initMesh();
+  }
+
+  _initMesh() {
+    if (typeof THREE === 'undefined' || !THREE || !THREE.BufferGeometry) return;
+    this.geometry = new THREE.BufferGeometry();
+    const pos = new Float32Array(this.particleCount * 3);
+    for (let i = 0; i < this.particleCount; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 40;
+      pos[i * 3 + 1] = Math.random() * 25 - 5;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 40;
+    }
+    this.geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    this.material = new THREE.PointsMaterial({
+      color: 0x99ccff,
+      size: 0.08,
+      transparent: true,
+      opacity: 0.6,
+      depthWrite: false,
+    });
+    this.pointsMesh = new THREE.Points(this.geometry, this.material);
+    this.pointsMesh.visible = false;
+    if (this.scene) {
+      this.scene.add(this.pointsMesh);
+    }
+  }
+
+  /**
+   * Update particle positions and visuals for active weather.
+   * @param {number} dt
+   * @param {string} weather - 'clear' | 'rain' | 'snow'
+   * @param {{x:number, y:number, z:number}} [centerPos]
+   * @param {boolean} [active=true]
+   */
+  tick(dt, weather, centerPos, active = true) {
+    const params = getWeatherFXParams(weather);
+    const isStorm = active && params.visible;
+    if (this.pointsMesh) {
+      this.pointsMesh.visible = isStorm;
+    }
+    if (!isStorm || !this.geometry) return;
+
+    this.elapsed += dt;
+    const pos = this.geometry.attributes.position.array;
+    const cx = centerPos ? centerPos.x : 0;
+    const cy = centerPos ? centerPos.y : 0;
+    const cz = centerPos ? centerPos.z : 0;
+
+    for (let i = 0; i < this.particleCount; i++) {
+      const idx = i * 3;
+      const [nx, ny, nz] = stepWeatherParticle(
+        pos[idx],
+        pos[idx + 1],
+        pos[idx + 2],
+        dt,
+        weather,
+        this.elapsed,
+        i,
+      );
+      pos[idx] = nx;
+      pos[idx + 1] = ny;
+      pos[idx + 2] = nz;
+    }
+
+    if (this.pointsMesh) {
+      this.pointsMesh.position.set(cx, cy, cz);
+    }
+    if (this.geometry && this.geometry.attributes.position) {
+      this.geometry.attributes.position.needsUpdate = true;
+    }
+
+    if (this.material) {
+      this.material.color.setHex(params.color);
+      this.material.size = params.size;
+      this.material.opacity = params.opacity;
+    }
+  }
+
+  dispose() {
+    if (this.pointsMesh) {
+      if (this.scene) this.scene.remove(this.pointsMesh);
+      if (this.geometry) this.geometry.dispose();
+      if (this.material) this.material.dispose();
+      this.pointsMesh = null;
+      this.geometry = null;
+      this.material = null;
+    }
+  }
+}
