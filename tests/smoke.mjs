@@ -678,6 +678,43 @@ test('greedy mesh merges flat top faces', () => {
   assert.strictEqual(arrays.tiles.length, arrays.positions.length / 3);
 });
 
+test('greedyMeshChunk translucent pass (glass, ice, amethyst)', () => {
+  const grid = new Map();
+  grid.set('1,1,1', BLOCK.GLASS);
+  grid.set('2,1,1', BLOCK.ICE);
+  grid.set('3,1,1', 56);
+  grid.set('4,1,1', BLOCK.STONE);
+
+  const opts = {
+    getBlock: (x, y, z) => grid.get(`${x},${y},${z}`) || 0,
+    tileFor: () => 0,
+    colorFor: (id) => (id === 56 ? [0.72, 0.42, 0.88] : [0.5, 0.5, 0.5]),
+    isTransparent: (id) => id === 0 || id === BLOCK.GLASS || id === BLOCK.ICE || id === 56,
+    isSolid: (id) => id !== 0,
+    baseX: 0,
+    baseY: 0,
+    baseZ: 0,
+    sizeX: 6,
+    sizeY: 3,
+    sizeZ: 3,
+    waterId: BLOCK.WATER,
+  };
+
+  const quads = greedyMeshChunk(opts);
+  const arrays = quadsToArrays(quads);
+
+  const glassQuads = quads.filter((q) => q.a === 0.48);
+  const iceQuads = quads.filter((q) => q.a === 0.72);
+  const amethystQuads = quads.filter((q) => q.a === 0.68);
+
+  assert.ok(glassQuads.length > 0, 'glass quads created with alpha 0.48');
+  assert.ok(iceQuads.length > 0, 'ice quads created with alpha 0.72');
+  assert.ok(amethystQuads.length > 0, 'amethyst quads created with alpha 0.68');
+
+  const lastQuadAlpha = arrays.colors[arrays.colors.length - 1];
+  assert.ok(lastQuadAlpha < 0.99, 'translucent quads ordered second in geometry buffer');
+});
+
 test('save roundtrip preserves seed inventory edits', () => {
   const state = {
     seed: 12345,
@@ -3974,7 +4011,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.21'), 'HTML must expose v1.12.21');
+  assert.ok(html.includes('v1.12.23'), 'HTML must expose v1.12.23');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 

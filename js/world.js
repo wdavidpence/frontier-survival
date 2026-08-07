@@ -3,7 +3,7 @@ import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.j
 import { heightAt, hash2, fbm, forestFloorDetail } from './gen.js?v=285';
 import { biomeAt, BIOME } from './biomes.js?v=245';
 import { tileForBlock } from './atlas-core.js?v=285';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=245';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=246';
 import {
   terrainVisibilityPlan,
   chunkDetailTier,

@@ -5,10 +5,8 @@
 
 function faceVisible(id, nid, waterId, isTransparent, isSolid) {
   if (id === 0 || id == null) return false;
-  if (id === waterId) {
-    return nid !== waterId && isTransparent(nid);
-  }
   if (!isTransparent(nid)) return false;
+  if (id === nid && isTransparent(id)) return false;
   return true;
 }
 
@@ -34,6 +32,9 @@ export function greedyMeshChunk(opts) {
     sizeY,
     sizeZ,
     waterId = 5,
+    glassId = 29,
+    iceId = 12,
+    amethystId = 56,
   } = opts;
 
   const quads = [];
@@ -78,10 +79,35 @@ export function greedyMeshChunk(opts) {
 
           const tile = tileFor(id, name);
           const col = colorFor(id, name);
-          const r = Math.min(1, col[0] * shade * 1.15);
-          const g = Math.min(1, col[1] * shade * 1.15);
-          const b = Math.min(1, col[2] * shade * 1.15);
-          const a = id === waterId ? 0.65 : 1;
+
+          const isWater = id === waterId || id === 5;
+          const isGlass = id === glassId || id === 29;
+          const isIce = id === iceId || id === 12;
+          const isAmethyst = id === amethystId || id === 56;
+
+          let shadeFactor = shade;
+          let a = 1.0;
+          if (isWater) {
+            a = 0.65;
+          } else if (isGlass) {
+            a = 0.48;
+          } else if (isIce) {
+            a = 0.72;
+          } else if (isAmethyst) {
+            a = 0.68;
+            shadeFactor = Math.max(0.72, shade);
+          }
+
+          let r = Math.min(1, col[0] * shadeFactor * 1.15);
+          let g = Math.min(1, col[1] * shadeFactor * 1.15);
+          let b = Math.min(1, col[2] * shadeFactor * 1.15);
+
+          if (isAmethyst && col[0] < 0.1 && col[1] < 0.1 && col[2] < 0.1) {
+            r = Math.min(1, 0.72 * shadeFactor * 1.15);
+            g = Math.min(1, 0.42 * shadeFactor * 1.15);
+            b = Math.min(1, 0.88 * shadeFactor * 1.15);
+          }
+
           mask[uu + vv * uSize] = { tile, r, g, b, a, id, bx: wx, by: wy, bz: wz };
         }
       }
@@ -172,7 +198,18 @@ export function quadsToArrays(quads) {
   const indices = [];
   let base = 0;
 
+  const opaque = [];
+  const translucent = [];
   for (const q of quads) {
+    if (q.a < 0.99) {
+      translucent.push(q);
+    } else {
+      opaque.push(q);
+    }
+  }
+  const orderedQuads = opaque.concat(translucent);
+
+  for (const q of orderedQuads) {
     const n = [0, 0, 0];
     n[q.axis] = q.sign;
 
