@@ -83,6 +83,12 @@ function addEyes(parts, eyeNames, hx, hy, hz, eyeS, eyeColor) {
   const ex = Math.max(0.04, eyeS);
   parts.push(part('eyeL', ex, ex, ex * 0.7, -hx * 0.28, hy, hz, eyeColor, 'eye'));
   parts.push(part('eyeR', ex, ex, ex * 0.7, hx * 0.28, hy, hz, eyeColor, 'eye'));
+  // pupils: small dark inset poking slightly forward for a visible catch-point
+  const px = ex * 0.4;
+  const pz = hz + ex * 0.4;
+  const pupilColor = [0.02, 0.02, 0.03];
+  parts.push(part('pupilL', px, px, px, -hx * 0.28, hy, pz, pupilColor, 'eye'));
+  parts.push(part('pupilR', px, px, px, hx * 0.28, hy, pz, pupilColor, 'eye'));
   eyeNames.push('eyeL', 'eyeR');
 }
 

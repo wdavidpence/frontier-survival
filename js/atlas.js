@@ -516,8 +516,8 @@ function drawSequoiaLeaves(ctx, x0, y0) {
 }
 
 function drawSpruceLogSide(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [72, 48, 25], 0.3, 300);
-  ctx.strokeStyle = 'rgba(40,25,10,0.6)';
+  fillNoise(ctx, x0, y0, [92, 64, 38], 0.3, 300);
+  ctx.strokeStyle = 'rgba(50,32,15,0.45)';
   for (let x = 4; x < TILE_PX; x += 6) {
     ctx.beginPath();
     ctx.moveTo(x0 + x, y0);
@@ -538,10 +538,10 @@ function drawSpruceLogTop(ctx, x0, y0) {
 }
 
 function drawSpruceLeaves(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [35, 85, 42], 0.45, 302, 225);
+  fillNoise(ctx, x0, y0, [48, 98, 54], 0.4, 302, 225);
   const r = rnd(303);
   for (let i = 0; i < 22; i++) {
-    ctx.fillStyle = r() > 0.5 ? 'rgba(20,65,30,0.5)' : 'rgba(48,110,52,0.35)';
+    ctx.fillStyle = r() > 0.5 ? 'rgba(28,78,38,0.45)' : 'rgba(58,122,62,0.35)';
     ctx.beginPath();
     ctx.arc(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1 + r() * 2, 0, Math.PI * 2);
     ctx.fill();
@@ -778,7 +778,7 @@ paint(TILE.WALL, drawWall);
         if (tex.a < 0.35) discard;
         float ndl = max(0.0, abs(dot(normalize(vNormal), normalize(sunDir))));
         vec3 light = ambientColor + sunColor * ndl * sunIntensity;
-        vec3 rgb = tex.rgb * max(vColor.rgb, vec3(0.15)) * light;
+        vec3 rgb = tex.rgb * max(vColor.rgb, vec3(0.20)) * light;
         gl_FragColor = vec4(rgb, 1.0);
       }
     `,
