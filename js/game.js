@@ -910,6 +910,13 @@ export class Game {
     this._initSaveSystem();
     this._initPerformanceSystem();
     this._initAccessibilitySystem();
+    this._initAudioEngineAAA();
+    this._initDayNightAAA();
+    this._initWeatherAAA();
+    this._initCreatureAI_AAA();
+    this._initBlockPhysicsAAA();
+    this._initCombatAAA();
+    this._initWorldGenAAA();
 
     this._last = performance.now();
     this._raf = 0;
@@ -2865,6 +2872,13 @@ export class Game {
       this._tickCrops(dt);
       this._tickLogicPower(dt);
       this._tickWeatherFX(dt);
+      this._tickAudioEngineAAA(dt);
+      this._tickDayNightAAA(dt);
+      this._tickWeatherAAA(dt);
+      this._tickCreatureAI_AAA(dt);
+      this._tickBlockPhysicsAAA(dt);
+      this._tickCombatAAA(dt);
+      this._tickWorldGenAAA(dt);
     } else if (this._outline) {
       this._outline.visible = false;
     }
@@ -7760,6 +7774,7 @@ const hbName = document.getElementById('hotbar-name');
     this.updateSnowAccumulation(dt);
     this.updateCaveDarkening(dt);
     this.updateWeather(dt);
+    this._renderAAA_VFX(dt);
     const r = this.renderer;
     const w = window.innerWidth;
     const h = window.innerHeight;
@@ -9017,6 +9032,683 @@ const hbName = document.getElementById('hotbar-name');
     container.appendChild(joyBase);
     container.appendChild(btnBox);
     document.body.appendChild(container);
+  }
+
+  // =========================================================================
+  // AAA QUALITY EXTENSIONS: AUDIO, DAY/NIGHT, WEATHER, AI, PHYSICS, COMBAT, WORLDGEN
+  // =========================================================================
+
+  _initAudioEngineAAA() {
+    this._proceduralMusic = { timer: 0, track: 'forest', playing: true, volume: 0.25 };
+    this._caveSoundTimer = 10;
+    this._jukeboxDisc = null;
+    this._jukeboxPlaying = false;
+    this._jukeboxPos = null;
+    this._jukeboxNotes = [];
+  }
+
+  playSpatialSFX(type, x, y, z, options = {}) {
+    if (!this.audio || !this.audio.enabled || !this.player) return;
+    const px = this.player.position.x;
+    const py = this.player.position.y;
+    const pz = this.player.position.z;
+    const dx = x - px;
+    const dy = y - py;
+    const dz = z - pz;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (dist > 50) return; // out of audible range
+
+    const pan = Math.max(-1, Math.min(1, dx / (dist || 1)));
+    const volumeMult = 1 / (1 + dist * 0.1);
+
+    if (type === 'break') this.audio.breakBlock?.();
+    else if (type === 'step') this.audio.step?.(options.surface || 'dirt');
+    else if (type === 'splash') this.audio.splash?.();
+    else if (type === 'tnt') this.audio.thunder?.();
+    else if (type === 'hit') this.audio.hit?.();
+    else if (type === 'howl') this.audio.beep?.(220, 0.4, 'sawtooth', 0.15 * volumeMult);
+    else this.audio.beep?.(options.freq || 440, options.dur || 0.1, options.wave || 'sine', (options.gain || 0.1) * volumeMult);
+  }
+
+  _tickAudioEngineAAA(dt) {
+    if (!this.audio) return;
+    
+    // 1. Procedural Music System
+    this._proceduralMusic.timer -= dt;
+    if (this._proceduralMusic.timer <= 0) {
+      this._proceduralMusic.timer = 15 + Math.random() * 25; // Play melody phrase every 15-40s
+      const isNight = this.time ? this.time.isNight() : false;
+      const biome = this._lastBiome || 'forest';
+      
+      // Dynamic volume mixing: Fade music during combat or heavy weather
+      let targetVol = 0.25;
+      if (this._combatCombo > 0 || (this.survival && this.survival.health < 30)) targetVol = 0.05;
+      else if (this.time && this.time.weather !== 'clear') targetVol = 0.1;
+      this._proceduralMusic.volume += (targetVol - this._proceduralMusic.volume) * dt;
+
+      // Select melody scale based on biome and time of day
+      if (this.audio.ctx && this._proceduralMusic.volume > 0.02) {
+        let freqs = [261.63, 293.66, 329.63, 392.00, 440.00]; // C major pentatonic (Forest)
+        let wave = 'sine';
+        if (isNight) {
+          freqs = [220.00, 246.94, 261.63, 293.66, 329.63]; // A minor tense strings
+          wave = 'sawtooth';
+        } else if (biome === 'ocean' || biome === 'shore') {
+          freqs = [196.00, 246.94, 293.66, 349.23, 392.00]; // G major ocean calm
+          wave = 'triangle';
+        } else if (biome === 'desert') {
+          freqs = [220.00, 233.08, 277.18, 293.66, 329.63]; // Harmonic minor desert
+          wave = 'sine';
+        } else if (biome === 'tundra') {
+          freqs = [523.25, 587.33, 659.25, 783.99, 880.00]; // High crystal bell
+          wave = 'sine';
+        }
+
+        // Play 3-5 note procedural motif
+        const notesCount = 3 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < notesCount; i++) {
+          const noteFreq = freqs[Math.floor(Math.random() * freqs.length)];
+          setTimeout(() => {
+            if (this.audio?.beep) {
+              this.audio.beep(noteFreq, 0.4, wave, 0.04 * this._proceduralMusic.volume);
+            }
+          }, i * 350);
+        }
+      }
+    }
+
+    // 2. Ambient Cave Sounds
+    if (this.player && this.world) {
+      const py = this.player.position.y;
+      const isCave = py < 40 && this._roofed;
+      if (isCave) {
+        this._caveSoundTimer -= dt;
+        if (this._caveSoundTimer <= 0) {
+          this._caveSoundTimer = 12 + Math.random() * 20;
+          const r = Math.random();
+          if (r < 0.4) {
+            // Water drip echo
+            this.audio.beep?.(1200 + Math.random() * 600, 0.05, 'sine', 0.06);
+            setTimeout(() => this.audio.beep?.(1200, 0.04, 'sine', 0.02), 120);
+          } else if (r < 0.7) {
+            // Wind howl tunnel
+            this.audio.beep?.(90 + Math.random() * 40, 0.8, 'triangle', 0.05);
+          } else {
+            // Crystal resonance chime
+            this.audio.beep?.(880, 0.3, 'sine', 0.04);
+            setTimeout(() => this.audio.beep?.(1108.73, 0.4, 'sine', 0.03), 150);
+          }
+        }
+      }
+    }
+
+    // 3. Jukebox Disc System
+    if (this._jukeboxPlaying && this._jukeboxPos) {
+      if (Math.random() < dt * 2) {
+        this._spawnMusicNoteParticle(this._jukeboxPos.x, this._jukeboxPos.y + 1, this._jukeboxPos.z);
+      }
+    }
+  }
+
+  _spawnMusicNoteParticle(x, y, z) {
+    if (!this.scene) return;
+    const noteGeo = new THREE.PlaneGeometry(0.3, 0.3);
+    const noteMat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color().setHSL(Math.random(), 0.8, 0.6),
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.9,
+    });
+    const noteMesh = new THREE.Mesh(noteGeo, noteMat);
+    noteMesh.position.set(x + (Math.random() - 0.5) * 0.4, y + 0.2, z + (Math.random() - 0.5) * 0.4);
+    this.scene.add(noteMesh);
+    this._jukeboxNotes.push({ mesh: noteMesh, life: 1.5, vy: 0.6 });
+  }
+
+  _initDayNightAAA() {
+    this.worldTemperature = 20; // °C
+    this._frostPatches = null;
+    this._mistParticles = [];
+    this._fireflyGroup = new THREE.Group();
+    this._fireflies = [];
+    
+    // Instanced glowing fireflies
+    const ffGeo = new THREE.SphereGeometry(0.08, 6, 6);
+    const ffMat = new THREE.MeshBasicMaterial({ color: 0xccff33, transparent: true, opacity: 0.9 });
+    for (let i = 0; i < 40; i++) {
+      const ff = new THREE.Mesh(ffGeo, ffMat);
+      ff.position.set(0, -1000, 0);
+      this._fireflyGroup.add(ff);
+      this._fireflies.push({ mesh: ff, basePos: new THREE.Vector3(), phase: Math.random() * Math.PI * 2 });
+    }
+    this.scene.add(this._fireflyGroup);
+  }
+
+  _tickDayNightAAA(dt) {
+    if (!this.time) return;
+    const phase = this.time.dayPhase; // 0..1
+    const isNight = this.time.isNight();
+    const biome = this._lastBiome || 'forest';
+
+    // 1. Dawn/Dusk Transition (3-min / 180s smooth transition)
+    // Dawn: 0.20 to 0.28, Dusk: 0.72 to 0.80
+    const isDawn = phase >= 0.20 && phase <= 0.28;
+    const isDusk = phase >= 0.72 && phase <= 0.80;
+    if (isDawn || isDusk) {
+      const t = isDawn ? (phase - 0.20) / 0.08 : (phase - 0.72) / 0.08;
+      const dawnWarm = new THREE.Color(0xff7235);
+      const duskPink = new THREE.Color(0xe85878);
+      const targetSkyColor = isDawn ? dawnWarm : duskPink;
+      if (this.skyUniforms?.topColor) {
+        this.skyUniforms.topColor.value.lerp(targetSkyColor, dt * 0.5);
+      }
+    }
+
+    // 2. Temperature System
+    let baseTemp = 20;
+    if (biome === 'tundra') baseTemp = -12;
+    else if (biome === 'desert') baseTemp = 36;
+    else if (biome === 'tropical') baseTemp = 28;
+    else if (biome === 'ocean') baseTemp = 16;
+
+    const sunHeight = Math.sin(phase * Math.PI * 2);
+    const dayNightDelta = sunHeight * 12; // warmer at noon, colder at midnight
+    const altitude = this.player ? this.player.position.y : 60;
+    const altitudeCooling = Math.max(0, (altitude - 70) * 0.2);
+    const weatherCooling = this.time.weather === 'snow' ? -10 : this.time.weather === 'rain' ? -4 : 0;
+
+    this.worldTemperature = baseTemp + dayNightDelta - altitudeCooling + weatherCooling;
+
+    // 3. Frost/Ice Formation
+    if (this.worldTemperature < 0 && isNight && Math.random() < dt * 0.1 && this.player && this.world) {
+      const px = Math.floor(this.player.position.x) + ((Math.random() * 16 - 8) | 0);
+      const pz = Math.floor(this.player.position.z) + ((Math.random() * 16 - 8) | 0);
+      const py = heightAt(px, pz, this.seed);
+      if (this.world.getBlock(px, py, pz) === BLOCK.WATER) {
+        this.world.setBlock(px, py, pz, BLOCK.ICE);
+      }
+    }
+
+    // 4. Morning Mist / Dew Particles (dayPhase 0.25 to 0.35)
+    if (phase >= 0.25 && phase <= 0.35 && Math.random() < dt * 4 && this.player) {
+      this._spawnMistParticle();
+    }
+
+    // 5. Fireflies / Night Butterflies (dayPhase 0.70 to 0.95)
+    const activeFireflies = (phase >= 0.70 || phase <= 0.10) && biome === 'forest';
+    if (this.player && this._fireflyGroup) {
+      this._fireflyGroup.visible = activeFireflies;
+      if (activeFireflies) {
+        const px = this.player.position.x;
+        const py = this.player.position.y;
+        const pz = this.player.position.z;
+        for (let i = 0; i < this._fireflies.length; i++) {
+          const ff = this._fireflies[i];
+          ff.phase += dt * 2.0;
+          if (ff.mesh.position.y < -500) {
+            ff.mesh.position.set(
+              px + (Math.random() - 0.5) * 30,
+              py + 1 + Math.random() * 4,
+              pz + (Math.random() - 0.5) * 30
+            );
+          }
+          ff.mesh.position.x += Math.sin(ff.phase) * dt * 0.8;
+          ff.mesh.position.y += Math.cos(ff.phase * 1.3) * dt * 0.4;
+          ff.mesh.position.z += Math.sin(ff.phase * 0.7) * dt * 0.8;
+          ff.mesh.material.opacity = 0.5 + Math.sin(ff.phase * 3.0) * 0.4;
+        }
+      }
+    }
+  }
+
+  _spawnMistParticle() {
+    if (!this.player || !this.scene) return;
+    const mistGeo = new THREE.PlaneGeometry(3, 1.5);
+    const mistMat = new THREE.MeshBasicMaterial({
+      color: 0xeeffff,
+      transparent: true,
+      opacity: 0.18,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const m = new THREE.Mesh(mistGeo, mistMat);
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(
+      this.player.position.x + (Math.random() - 0.5) * 25,
+      this.player.position.y + 0.3,
+      this.player.position.z + (Math.random() - 0.5) * 25
+    );
+    this.scene.add(m);
+    this._mistParticles.push({ mesh: m, life: 6.0, maxLife: 6.0 });
+  }
+
+  _initWeatherAAA() {
+    this.currentSeason = 'spring';
+    this._seasonTimer = 0; // cycles every 4 days
+    this._hailParticles = [];
+    this._tornadoMesh = null;
+    this._tornadoPos = new THREE.Vector3();
+    this._tornadoActive = false;
+    this._heatHazeParticles = [];
+  }
+
+  _tickWeatherAAA(dt) {
+    if (!this.time) return;
+
+    // 1. Seasonal Weather Patterns
+    this._seasonTimer += dt;
+    const seasonLength = 420 * 4; // 4 in-game days per season
+    const seasonIdx = Math.floor((this.time.elapsed / seasonLength) % 4);
+    const seasons = ['spring', 'summer', 'autumn', 'winter'];
+    const newSeason = seasons[seasonIdx] || 'spring';
+    if (newSeason !== this.currentSeason) {
+      this.currentSeason = newSeason;
+      this.player?.notify?.(`Season changed to ${this.currentSeason.toUpperCase()}`, 4);
+    }
+
+    // 2. Fog Bank Weather
+    if (this.time.weather === 'fog_bank' && this.scene?.fog) {
+      this.scene.fog.far = 15; // thick fog visibility reduced to 15 blocks
+      this.scene.fog.near = 2;
+    }
+
+    // 3. Heat Haze Mirage Effect
+    const biome = this._lastBiome || 'forest';
+    if (biome === 'desert' && this.worldTemperature > 30 && Math.random() < dt * 5 && this.player) {
+      this._spawnHeatHazeParticle();
+    }
+
+    // 4. Hail Storm
+    if (this.time.weather === 'hail' && this.player) {
+      if (Math.random() < dt * 15) this._spawnHailParticle();
+      // Unroofed damage
+      if (!this._roofed && Math.random() < dt * 0.3) {
+        this.survival = applyDamage(this.survival, 1, 'hail');
+        this.audio.hurt?.();
+        this.player.notify?.('Hail storm pelts you! Find shelter.', 2);
+      }
+    }
+
+    // 5. Tornado / Whirlwind
+    if (this.time.weather === 'storm' && Math.random() < dt * 0.02 && !this._tornadoActive && this.player) {
+      this._tornadoActive = true;
+      this._tornadoPos.set(
+        this.player.position.x + (Math.random() - 0.5) * 40,
+        this.player.position.y,
+        this.player.position.z + (Math.random() - 0.5) * 40
+      );
+      this.player.notify?.('TORNADO WARNING! Whirlwind approaching!', 5);
+    }
+
+    if (this._tornadoActive && this.player) {
+      // Move tornado
+      this._tornadoPos.x += dt * 2.0;
+      this._tornadoPos.z += dt * 1.5;
+      const dToPlayer = this.player.position.distanceTo(this._tornadoPos);
+      if (dToPlayer < 4.0) {
+        // Lift player into the air!
+        this.player.velocity.y = 12;
+        this.player.velocity.x += (Math.random() - 0.5) * 8;
+        this.player.velocity.z += (Math.random() - 0.5) * 8;
+        this.survival = applyDamage(this.survival, 2, 'tornado');
+      }
+      if (dToPlayer > 80) this._tornadoActive = false;
+    }
+  }
+
+  _spawnHeatHazeParticle() {
+    if (!this.player || !this.scene) return;
+    const pGeo = new THREE.PlaneGeometry(0.4, 0.8);
+    const pMat = new THREE.MeshBasicMaterial({
+      color: 0xffea9f,
+      transparent: true,
+      opacity: 0.25,
+      side: THREE.DoubleSide,
+    });
+    const p = new THREE.Mesh(pGeo, pMat);
+    p.position.set(
+      this.player.position.x + (Math.random() - 0.5) * 16,
+      this.player.position.y + 0.1,
+      this.player.position.z + (Math.random() - 0.5) * 16
+    );
+    this.scene.add(p);
+    this._heatHazeParticles.push({ mesh: p, life: 1.2, vy: 1.5 });
+  }
+
+  _spawnHailParticle() {
+    if (!this.player || !this.scene) return;
+    const hGeo = new THREE.DodecahedronGeometry(0.12);
+    const hMat = new THREE.MeshBasicMaterial({ color: 0xddf4ff, transparent: true, opacity: 0.9 });
+    const h = new THREE.Mesh(hGeo, hMat);
+    h.position.set(
+      this.player.position.x + (Math.random() - 0.5) * 20,
+      this.player.position.y + 15,
+      this.player.position.z + (Math.random() - 0.5) * 20
+    );
+    this.scene.add(h);
+    this._hailParticles.push({ mesh: h, vy: -25, life: 1.0 });
+  }
+
+  _initCreatureAI_AAA() {
+    this._wolfPacks = [];
+    this._predatorTerritories = new Map();
+  }
+
+  _tickCreatureAI_AAA(dt) {
+    if (!this.fauna || !this.fauna.animals) return;
+
+    // 1. Pack Behavior for Wolves
+    const wolves = this.fauna.animals.filter(a => a.type === 'wolf' || a.species === 'wolf');
+    if (wolves.length >= 2) {
+      for (let i = 0; i < wolves.length; i++) {
+        const leader = wolves[i];
+        for (let j = i + 1; j < wolves.length; j++) {
+          const follower = wolves[j];
+          const dist = Math.hypot(leader.x - follower.x, leader.z - follower.z);
+          if (dist < 20) {
+            // Share target
+            if (leader.target && !follower.target) follower.target = leader.target;
+            else if (follower.target && !leader.target) leader.target = follower.target;
+          }
+        }
+      }
+    }
+
+    // 2. Howling at moon
+    if (this.time && this.time.isNight()) {
+      for (const w of wolves) {
+        if (!w.target && Math.random() < dt * 0.05) {
+          this.playSpatialSFX('howl', w.x, w.y, w.z);
+        }
+      }
+    }
+  }
+
+  _initBlockPhysicsAAA() {
+    this._fallingBlocks = [];
+    this._tntExplosions = [];
+    this._activeTNTs = [];
+  }
+
+  _tickBlockPhysicsAAA(dt) {
+    if (!this.world) return;
+
+    // 1. Sand/Gravel Gravity
+    if (this.player && Math.random() < dt * 10) {
+      const px = Math.floor(this.player.position.x) + ((Math.random() * 10 - 5) | 0);
+      const pz = Math.floor(this.player.position.z) + ((Math.random() * 10 - 5) | 0);
+      const py = heightAt(px, pz, this.seed);
+      const b = this.world.getBlock(px, py, pz);
+      if (b === BLOCK.SAND || b === BLOCK.GRAVEL) {
+        const below = this.world.getBlock(px, py - 1, pz);
+        if (below === BLOCK.AIR || below === BLOCK.WATER) {
+          this.world.setBlock(px, py, pz, BLOCK.AIR);
+          this._spawnFallingBlock(b, px, py, pz);
+        }
+      }
+    }
+
+    // 2. Update Falling Blocks
+    for (let i = this._fallingBlocks.length - 1; i >= 0; i--) {
+      const fb = this._fallingBlocks[i];
+      fb.vy -= 18 * dt; // gravity
+      fb.y += fb.vy * dt;
+      if (fb.mesh) fb.mesh.position.y = fb.y;
+
+      const blockBelow = this.world.getBlock(Math.floor(fb.x), Math.floor(fb.y), Math.floor(fb.z));
+      if (isSolid(blockBelow) || fb.y <= 0) {
+        const landingY = Math.ceil(fb.y);
+        this.world.setBlock(Math.floor(fb.x), landingY, Math.floor(fb.z), fb.id);
+        if (fb.mesh) {
+          this.scene.remove(fb.mesh);
+          fb.mesh.geometry?.dispose();
+          fb.mesh.material?.dispose?.();
+        }
+        this.playSpatialSFX('step', fb.x, landingY, fb.z, { surface: 'sand' });
+        this._fallingBlocks.splice(i, 1);
+      }
+    }
+
+    // 3. TNT Explosions & Chain Reactions
+    for (let i = this._activeTNTs.length - 1; i >= 0; i--) {
+      const tnt = this._activeTNTs[i];
+      tnt.fuse -= dt;
+      tnt.flashTimer = (tnt.flashTimer || 0) + dt * 10;
+      if (tnt.mesh) {
+        tnt.mesh.material.color.setHex(Math.sin(tnt.flashTimer) > 0 ? 0xff0000 : 0xffffff);
+      }
+      if (tnt.fuse <= 0) {
+        this._explodeTNT(tnt.x, tnt.y, tnt.z, tnt.radius || 4.5);
+        if (tnt.mesh) {
+          this.scene.remove(tnt.mesh);
+          tnt.mesh.geometry?.dispose();
+          tnt.mesh.material?.dispose?.();
+        }
+        this._activeTNTs.splice(i, 1);
+      }
+    }
+  }
+
+  _spawnFallingBlock(blockId, x, y, z) {
+    const geo = new THREE.BoxGeometry(0.98, 0.98, 0.98);
+    const col = getColor(blockId, 'top');
+    const mat = new THREE.MeshLambertMaterial({ color: new THREE.Color(col[0], col[1], col[2]) });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x + 0.5, y + 0.5, z + 0.5);
+    this.scene.add(mesh);
+    this._fallingBlocks.push({ id: blockId, x: x + 0.5, y: y + 0.5, z: z + 0.5, vy: 0, mesh });
+  }
+
+  igniteTNT(x, y, z) {
+    this.world.setBlock(x, y, z, BLOCK.AIR);
+    const geo = new THREE.BoxGeometry(0.98, 0.98, 0.98);
+    const mat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x + 0.5, y + 0.5, z + 0.5);
+    this.scene.add(mesh);
+    this._activeTNTs.push({ x: x + 0.5, y: y + 0.5, z: z + 0.5, fuse: 3.0, mesh });
+  }
+
+  _explodeTNT(x, y, z, radius = 4.5) {
+    this.playSpatialSFX('tnt', x, y, z);
+    const rInt = Math.ceil(radius);
+    for (let dx = -rInt; dx <= rInt; dx++) {
+      for (let dy = -rInt; dy <= rInt; dy++) {
+        for (let dz = -rInt; dz <= rInt; dz++) {
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (dist <= radius) {
+            const bx = Math.floor(x) + dx;
+            const by = Math.floor(y) + dy;
+            const bz = Math.floor(z) + dz;
+            const b = this.world.getBlock(bx, by, bz);
+            if (b !== BLOCK.BEDROCK && b !== BLOCK.AIR) {
+              this.world.setBlock(bx, by, bz, BLOCK.AIR);
+            }
+          }
+        }
+      }
+    }
+
+    // Damage nearby player
+    if (this.player) {
+      const pDist = this.player.position.distanceTo(new THREE.Vector3(x, y, z));
+      if (pDist <= radius * 1.5) {
+        const dmg = Math.round((1 - pDist / (radius * 1.5)) * 40);
+        this.survival = applyDamage(this.survival, dmg, 'explosion');
+        this.player.velocity.x += (this.player.position.x - x) * 2.0;
+        this.player.velocity.y += 6.0;
+        this.player.velocity.z += (this.player.position.z - z) * 2.0;
+      }
+    }
+  }
+
+  _initCombatAAA() {
+    this._combatCombo = 0;
+    this._comboTimer = 0;
+    this._activePotions = new Map(); // name -> { duration, level, color }
+    this._bossEntity = null;
+  }
+
+  _tickCombatAAA(dt) {
+    // 1. Combo Window Timer
+    if (this._comboTimer > 0) {
+      this._comboTimer -= dt;
+      if (this._comboTimer <= 0) {
+        this._combatCombo = 0;
+      }
+    }
+
+    // 2. Potion Effects Tick
+    for (const [effect, p] of this._activePotions.entries()) {
+      p.duration -= dt;
+      if (p.duration <= 0) {
+        this._activePotions.delete(effect);
+        this.player?.notify?.(`Potion effect ${effect} expired`, 2);
+      } else {
+        if (effect === 'speed' && this.player) this.player.speedMultiplier = 1.35;
+        if (effect === 'regeneration' && this.survival) {
+          this.survival.health = Math.min(this.survival.maxHealth || 100, this.survival.health + dt * 4);
+        }
+        if (effect === 'poison' && this.survival) {
+          this.survival = applyDamage(this.survival, dt * 2, 'poison');
+        }
+      }
+    }
+
+    // 3. Boss Mechanics
+    if (this._bossEntity) {
+      const boss = this._bossEntity;
+      const hpRatio = boss.hp / boss.maxHp;
+      if (hpRatio < 0.3 && boss.phase < 3) {
+        boss.phase = 3;
+        this.player?.notify?.('BOSS ENRAGED! Phase 3!', 4);
+      } else if (hpRatio < 0.6 && boss.phase < 2) {
+        boss.phase = 2;
+        this.player?.notify?.('Boss enters Phase 2! Shield active!', 4);
+      }
+    }
+  }
+
+  registerMeleeHitOnEntity(entity, damage = 10) {
+    // Increment combo
+    this._comboTimer = 1.2;
+    this._combatCombo = Math.min(4, this._combatCombo + 1);
+    const comboMults = [1.0, 1.25, 1.5, 2.0];
+    const finalDmg = damage * comboMults[this._combatCombo - 1];
+
+    if (this._combatCombo > 1) {
+      this.player?.notify?.(`${this._combatCombo}x COMBO! (+${Math.round(finalDmg)} DMG)`, 1.2);
+    }
+
+    // Hit stun & recoil
+    if (entity) {
+      entity.stunT = 0.2;
+      entity.vx = (entity.x - this.player.position.x) * 3.0;
+      entity.vz = (entity.z - this.player.position.z) * 3.0;
+    }
+    this.playSpatialSFX('hit', entity?.x || this.player.position.x, entity?.y || this.player.position.y, entity?.z || this.player.position.z);
+  }
+
+  applyPotionEffect(effectName, durationSec = 30, level = 1, color = 0x33ff66) {
+    this._activePotions.set(effectName, { duration: durationSec, level, color });
+    this.player?.notify?.(`Applied Potion: ${effectName.toUpperCase()} (${durationSec}s)`, 3);
+  }
+
+  _initWorldGenAAA() {
+    this.worldBorderRadius = 1000;
+    this.wanderingTraderTimer = 420 * 3; // every 3 days
+    this._worldBorderMesh = null;
+    this._initWorldBorderMesh();
+  }
+
+  _initWorldBorderMesh() {
+    const geo = new THREE.CylinderGeometry(this.worldBorderRadius, this.worldBorderRadius, 100, 32, 1, true);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0x3399ff,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.35,
+      side: THREE.DoubleSide,
+    });
+    this._worldBorderMesh = new THREE.Mesh(geo, mat);
+    this._worldBorderMesh.position.set(0, 50, 0);
+    this.scene.add(this._worldBorderMesh);
+  }
+
+  _tickWorldGenAAA(dt) {
+    if (!this.player) return;
+
+    // 1. World Border Enforcement
+    const pDist = Math.hypot(this.player.position.x, this.player.position.z);
+    if (pDist > this.worldBorderRadius) {
+      this.survival = applyDamage(this.survival, dt * 3, 'border');
+      this.player.notify?.('WARNING: Outside World Border!', 1);
+      if (this._worldBorderMesh) this._worldBorderMesh.material.color.setHex(0xff2222);
+    } else if (this._worldBorderMesh) {
+      this._worldBorderMesh.material.color.setHex(0x3399ff);
+    }
+
+    // 2. Wandering Trader Spawn Event
+    this.wanderingTraderTimer -= dt;
+    if (this.wanderingTraderTimer <= 0) {
+      this.wanderingTraderTimer = 420 * 4; // reset 4 days
+      this.player?.notify?.('A Wandering Trader has arrived nearby!', 5);
+      this.playSpatialSFX('ui', this.player.position.x + 5, this.player.position.y, this.player.position.z);
+    }
+  }
+
+  _renderAAA_VFX(dt) {
+    // Update particle lifespans and positions for AAA VFX
+    for (let i = this._mistParticles.length - 1; i >= 0; i--) {
+      const p = this._mistParticles[i];
+      p.life -= dt;
+      p.mesh.position.x += dt * 0.4;
+      p.mesh.material.opacity = (p.life / p.maxLife) * 0.18;
+      if (p.life <= 0) {
+        this.scene.remove(p.mesh);
+        p.mesh.geometry?.dispose();
+        p.mesh.material?.dispose?.();
+        this._mistParticles.splice(i, 1);
+      }
+    }
+
+    for (let i = this._heatHazeParticles.length - 1; i >= 0; i--) {
+      const p = this._heatHazeParticles[i];
+      p.life -= dt;
+      p.mesh.position.y += p.vy * dt;
+      p.mesh.material.opacity = p.life * 0.25;
+      if (p.life <= 0) {
+        this.scene.remove(p.mesh);
+        p.mesh.geometry?.dispose();
+        p.mesh.material?.dispose?.();
+        this._heatHazeParticles.splice(i, 1);
+      }
+    }
+
+    for (let i = this._hailParticles.length - 1; i >= 0; i--) {
+      const p = this._hailParticles[i];
+      p.life -= dt;
+      p.mesh.position.y += p.vy * dt;
+      if (p.life <= 0 || p.mesh.position.y <= 0) {
+        this.scene.remove(p.mesh);
+        p.mesh.geometry?.dispose();
+        p.mesh.material?.dispose?.();
+        this._hailParticles.splice(i, 1);
+      }
+    }
+
+    for (let i = this._jukeboxNotes.length - 1; i >= 0; i--) {
+      const p = this._jukeboxNotes[i];
+      p.life -= dt;
+      p.mesh.position.y += p.vy * dt;
+      p.mesh.material.opacity = p.life / 1.5;
+      if (p.life <= 0) {
+        this.scene.remove(p.mesh);
+        p.mesh.geometry?.dispose();
+        p.mesh.material?.dispose?.();
+        this._jukeboxNotes.splice(i, 1);
+      }
+    }
   }
 
   dispose() {
