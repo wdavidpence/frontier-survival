@@ -779,7 +779,17 @@ export class Game {
     this._causticsLight.visible = false;
     this.scene.add(this._causticsLight);
 
-
+    this._initProceduralTerrain();
+    this._initLightingEffects();
+    this._initWaterVFX();
+    this._initWeatherVFX();
+    this._initCreaturesVFX();
+    this._blockPops = [];
+    this._screenShakeAcc = 0;
+    this._caveEnclosedFactor = 0;
+    this._lastCamYaw = 0;
+    this._lastCamPitch = 0;
+    this._camRotVel = 0;
 
     this.clouds = new VoxelCloudLayer(this.scene);
 
@@ -2073,6 +2083,11 @@ export class Game {
       if (move.inWater && !this._wasInWater) {
         if (this.audio.splash) this.audio.splash();
         else this.audio.step('water');
+        this._spawnWaterSplash(this.player.position.x, this.player.position.y, this.player.position.z, 22);
+        this._spawnWaterRipple(this.player.position.x, this.player.position.y, this.player.position.z);
+      }
+      if (move.inWater && this.input.jump && Math.random() < 0.35) {
+        this._spawnWaterSplash(this.player.position.x, this.player.position.y, this.player.position.z, 8);
       }
       this._wasInWater = move.inWater;
 
@@ -2522,6 +2537,11 @@ export class Game {
 
     this.world.flushDirty();
     this.fx.tick(dt);
+    this._updateWaterEffects(dt);
+    this._updateCreaturesVFX(dt);
+    this._updateWeatherVFX(dt);
+    this._updateBlockPops(dt);
+    this._updateScreenVFX(dt);
     this.clouds?.update(dt);
     this._lightScanAcc += dt;
     if (this._lightScanAcc > 0.5) {
@@ -3766,6 +3786,10 @@ export class Game {
 
     if (this.world.setBlock(px, py, pz, blockId)) {
       this.audio.placeBlock();
+      this._spawnBlockPop(px, py, pz, blockId);
+      if (blockId === BLOCK.TORCH || (BLOCK.LANTERN && blockId === BLOCK.LANTERN)) {
+        if (this.fx) this.fx.burst(px, py, pz, [1.0, 0.65, 0.15], 14);
+      }
       if (blockId === BLOCK.SLAB_WOOD) {
         const half = slabHalfFromPitch(this.player.pitch);
         const meta = slabHalfMeta(half);
@@ -4403,10 +4427,21 @@ export class Game {
           );
         }
       }
+      // Footstep particles for moving animals
+      if (spd > 0.3 && Math.random() < 0.22) {
+        if (this.world && this.world.getBlock(Math.floor(a.x), Math.floor(a.y), Math.floor(a.z)) === BLOCK.WATER) {
+          this._spawnWaterSplash(a.x, a.y + 0.1, a.z, 3);
+        } else if (this.fx) {
+          this.fx.burst(a.x, a.y, a.z, [0.55, 0.45, 0.35], 3);
+        }
+      }
     }
 
     for (const [id, mesh] of this._animalMeshes) {
       if (!seen.has(id)) {
+        if (this.fx && mesh.position) {
+          this.fx.burst(mesh.position.x, mesh.position.y + 0.3, mesh.position.z, [0.85, 0.25, 0.25], 16);
+        }
         this.scene.remove(mesh);
         mesh.traverse?.((c) => {
           c.geometry?.dispose?.();
@@ -5552,6 +5587,897 @@ export class Game {
     }
   }
 
+  _initProceduralTerrain() {
+    const MUSHROOM_COUNT = 200;
+    const capGeo = new THREE.ConeGeometry(0.12, 0.14, 6);
+    const shroomMat = new THREE.MeshLambertMaterial({ color: 0xd3422a, roughness: 0.8 });
+    this._mushroomPatches = new THREE.InstancedMesh(capGeo, shroomMat, MUSHROOM_COUNT);
+    this._mushroomPatches.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._mushroomPatches.frustumCulled = false;
+    this.scene.add(this._mushroomPatches);
+    this._mushroomDummy = new THREE.Object3D();
+    for (let i = 0; i < MUSHROOM_COUNT; i++) {
+      this._mushroomDummy.position.set(0, -1000, 0);
+      this._mushroomDummy.scale.setScalar(0);
+      this._mushroomDummy.updateMatrix();
+      this._mushroomPatches.setMatrixAt(i, this._mushroomDummy.matrix);
+    }
+    this._mushroomPatches.instanceMatrix.needsUpdate = true;
+
+    const STUMP_COUNT = 120;
+    const stumpGeo = new THREE.CylinderGeometry(0.35, 0.4, 0.75, 7);
+    const stumpMat = new THREE.MeshLambertMaterial({ color: 0x5a3e2b, roughness: 0.9 });
+    this._stumpPatches = new THREE.InstancedMesh(stumpGeo, stumpMat, STUMP_COUNT);
+    this._stumpPatches.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._stumpPatches.frustumCulled = false;
+    this.scene.add(this._stumpPatches);
+    this._stumpDummy = new THREE.Object3D();
+    for (let i = 0; i < STUMP_COUNT; i++) {
+      this._stumpDummy.position.set(0, -1000, 0);
+      this._stumpDummy.scale.setScalar(0);
+      this._stumpDummy.updateMatrix();
+      this._stumpPatches.setMatrixAt(i, this._stumpDummy.matrix);
+    }
+    this._stumpPatches.instanceMatrix.needsUpdate = true;
+  }
+
+  updateMushroomPatches() {
+    if (!this._mushroomPatches || !this.player || !this.world) return;
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const range = 24;
+    let idx = 0;
+    const max = 200;
+
+    for (let x = px - range; x <= px + range && idx < max; x += 3) {
+      for (let z = pz - range; z <= pz + range && idx < max; z += 3) {
+        try {
+          for (let y = py + 3; y >= py - 5; y--) {
+            const b = this.world.getBlock(x, y, z);
+            if ((b === BLOCK.DIRT || b === BLOCK.GRASS || b === BLOCK.DAMP_SOIL) &&
+                this.world.getBlock(x, y + 1, z) === BLOCK.AIR) {
+              const nearLog = this.world.getBlock(x + 1, y, z) === BLOCK.LOG ||
+                              this.world.getBlock(x - 1, y, z) === BLOCK.LOG ||
+                              this.world.getBlock(x, y, z + 1) === BLOCK.LOG ||
+                              this.world.getBlock(x, y, z - 1) === BLOCK.LOG;
+              const aboveLeaves = this.world.getBlock(x, y + 3, z) === BLOCK.LEAVES ||
+                                  this.world.getBlock(x, y + 4, z) === BLOCK.LEAVES;
+              if (nearLog || aboveLeaves || ((x * 13 + z * 19) % 11 < 2)) {
+                this._mushroomDummy.position.set(
+                  x + 0.3 + ((x * 7 + z * 3) % 5) * 0.1,
+                  y + 1.07,
+                  z + 0.3 + ((x * 3 + z * 11) % 5) * 0.1
+                );
+                this._mushroomDummy.rotation.set(0, (x * 5 + z * 7) * 0.4, 0);
+                this._mushroomDummy.scale.setScalar(0.7 + ((x + z) % 4) * 0.2);
+                this._mushroomDummy.updateMatrix();
+                this._mushroomPatches.setMatrixAt(idx, this._mushroomDummy.matrix);
+                idx++;
+                break;
+              }
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    for (let i = idx; i < max; i++) {
+      this._mushroomDummy.position.set(0, -1000, 0);
+      this._mushroomDummy.scale.setScalar(0);
+      this._mushroomDummy.updateMatrix();
+      this._mushroomPatches.setMatrixAt(i, this._mushroomDummy.matrix);
+    }
+    this._mushroomPatches.instanceMatrix.needsUpdate = true;
+  }
+
+  updateStumpProps() {
+    if (!this._stumpPatches || !this.player || !this.world) return;
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const range = 32;
+    let idx = 0;
+    const max = 120;
+
+    for (let x = px - range; x <= px + range && idx < max; x += 5) {
+      for (let z = pz - range; z <= pz + range && idx < max; z += 5) {
+        try {
+          const biome = biomeAt ? biomeAt(x, z, this.world.seed) : BIOME.FOREST;
+          if (biome !== BIOME.FOREST && biome !== BIOME.TAIGA) continue;
+          if (((x * 19 + z * 23) % 13) > 2) continue;
+
+          for (let y = py + 3; y >= py - 4; y--) {
+            const b = this.world.getBlock(x, y, z);
+            if ((b === BLOCK.GRASS || b === BLOCK.DIRT) &&
+                this.world.getBlock(x, y + 1, z) === BLOCK.AIR &&
+                this.world.getBlock(x, y + 2, z) === BLOCK.AIR) {
+              this._stumpDummy.position.set(x + 0.5, y + 1.37, z + 0.5);
+              this._stumpDummy.rotation.set((x % 3) * 0.05, (x * 7 + z * 3) * 0.5, 0);
+              this._stumpDummy.scale.set(0.9 + (x % 3) * 0.15, 0.8 + (z % 3) * 0.2, 0.9 + (x % 3) * 0.15);
+              this._stumpDummy.updateMatrix();
+              this._stumpPatches.setMatrixAt(idx, this._stumpDummy.matrix);
+              idx++;
+              break;
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    for (let i = idx; i < max; i++) {
+      this._stumpDummy.position.set(0, -1000, 0);
+      this._stumpDummy.scale.setScalar(0);
+      this._stumpDummy.updateMatrix();
+      this._stumpPatches.setMatrixAt(i, this._stumpDummy.matrix);
+    }
+    this._stumpPatches.instanceMatrix.needsUpdate = true;
+  }
+
+  updateCaveDarkening(dt) {
+    if (!this.player || !this.world || !this.scene?.fog) return;
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+
+    const roofAbove = hasRoofAbove(this.world, px, py, pz, 15);
+    const isUnderground = py < 45 || roofAbove;
+    const targetEnclosed = isUnderground ? (py < 30 ? 1.0 : 0.65) : 0.0;
+    this._caveEnclosedFactor += (targetEnclosed - this._caveEnclosedFactor) * Math.min(1, dt * 3.0);
+
+    if (this._caveEnclosedFactor > 0.05) {
+      const caveColor = new THREE.Color(0x05070a);
+      this.scene.fog.color.lerp(caveColor, this._caveEnclosedFactor * 0.6);
+      if (this.ambientLight) {
+        this.ambientLight.intensity = Math.max(0.12, this.ambientLight.intensity * (1.0 - this._caveEnclosedFactor * 0.5));
+      }
+    }
+  }
+
+  _initLightingEffects() {
+    let haloTex = null;
+    if (typeof document !== 'undefined' && document.createElement) {
+      try {
+        const c = document.createElement('canvas');
+        c.width = 64; c.height = 64;
+        const ctx = c.getContext('2d');
+        if (ctx) {
+          const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+          g.addColorStop(0, 'rgba(255, 210, 120, 0.9)');
+          g.addColorStop(0.35, 'rgba(255, 140, 40, 0.45)');
+          g.addColorStop(1, 'rgba(255, 80, 0, 0)');
+          ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64);
+        }
+        haloTex = new THREE.CanvasTexture(c);
+      } catch (e) {}
+    }
+    const torchHaloMat = new THREE.SpriteMaterial({
+      map: haloTex,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      opacity: 0.75,
+    });
+    this._torchHalos = [];
+    for (let i = 0; i < 24; i++) {
+      const s = new THREE.Sprite(torchHaloMat);
+      s.visible = false;
+      s.scale.set(2.2, 2.2, 1);
+      this.scene.add(s);
+      this._torchHalos.push(s);
+    }
+
+    this._lavaLights = [];
+    this._lavaHalos = [];
+    const lavaHaloMat = new THREE.SpriteMaterial({
+      map: haloTex,
+      color: 0xff4400,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      opacity: 0.85,
+    });
+    for (let i = 0; i < 12; i++) {
+      const pl = new THREE.PointLight(0xff4400, 0, 14, 2);
+      pl.visible = false;
+      this.scene.add(pl);
+      this._lavaLights.push(pl);
+      const hs = new THREE.Sprite(lavaHaloMat);
+      hs.visible = false;
+      hs.scale.set(3.5, 3.5, 1);
+      this.scene.add(hs);
+      this._lavaHalos.push(hs);
+    }
+
+    const beamGeo = new THREE.CylinderGeometry(0.18, 0.25, 80, 12, 1, true);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0x88ffff,
+      transparent: true,
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    this._beaconBeamMesh = new THREE.Mesh(beamGeo, beamMat);
+    this._beaconBeamMesh.visible = false;
+    this.scene.add(this._beaconBeamMesh);
+
+    const rayGeo = new THREE.ConeGeometry(1.2, 12, 8, 1, true);
+    const rayMat = new THREE.MeshBasicMaterial({
+      color: 0xfffae0,
+      transparent: true,
+      opacity: 0.18,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const GODRAY_COUNT = 35;
+    this._canopyGodRays = new THREE.InstancedMesh(rayGeo, rayMat, GODRAY_COUNT);
+    this._canopyGodRays.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._canopyGodRays.frustumCulled = false;
+    this.scene.add(this._canopyGodRays);
+    this._godRayDummy = new THREE.Object3D();
+    for (let i = 0; i < GODRAY_COUNT; i++) {
+      this._godRayDummy.position.set(0, -1000, 0);
+      this._godRayDummy.scale.setScalar(0);
+      this._godRayDummy.updateMatrix();
+      this._canopyGodRays.setMatrixAt(i, this._godRayDummy.matrix);
+    }
+    this._canopyGodRays.instanceMatrix.needsUpdate = true;
+  }
+
+  updateTorchLights() {
+    if (!this.world || !this.player) return;
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const time = this.time ? (this.time.elapsed || 0) : 0;
+    const range = 20;
+    let idx = 0;
+
+    for (let x = px - range; x <= px + range && idx < this._torchLights.length; x += 2) {
+      for (let z = pz - range; z <= pz + range && idx < this._torchLights.length; z += 2) {
+        for (let y = py - 4; y <= py + 6 && idx < this._torchLights.length; y++) {
+          const b = this.world.getBlock(x, y, z);
+          if (b === BLOCK.TORCH || (BLOCK.LANTERN && b === BLOCK.LANTERN)) {
+            const flicker = Math.sin(time * 12 + idx * 3) * 0.15 + Math.cos(time * 18 + idx) * 0.1;
+            const l = this._torchLights[idx];
+            l.position.set(x + 0.5, y + 0.6, z + 0.5);
+            l.intensity = 2.2 + flicker;
+            l.visible = true;
+
+            const h = this._torchHalos[idx];
+            if (h) {
+              h.position.set(x + 0.5, y + 0.6, z + 0.5);
+              const scale = 2.2 + flicker * 0.4;
+              h.scale.set(scale, scale, 1);
+              h.visible = true;
+            }
+            idx++;
+          }
+        }
+      }
+    }
+
+    for (let i = idx; i < this._torchLights.length; i++) {
+      this._torchLights[i].visible = false;
+      if (this._torchHalos[i]) this._torchHalos[i].visible = false;
+    }
+  }
+
+  updateLavaLights() {
+    if (!this.world || !this.player || !this._lavaLights) return;
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const time = this.time ? (this.time.elapsed || 0) : 0;
+    const range = 20;
+    let idx = 0;
+
+    for (let x = px - range; x <= px + range && idx < this._lavaLights.length; x += 3) {
+      for (let z = pz - range; z <= pz + range && idx < this._lavaLights.length; z += 3) {
+        for (let y = py - 6; y <= py + 4 && idx < this._lavaLights.length; y++) {
+          const b = this.world.getBlock(x, y, z);
+          if (b === BLOCK.LAVA || (BLOCK.LAVA_STILL && b === BLOCK.LAVA_STILL)) {
+            const flicker = Math.sin(time * 8 + idx * 2) * 0.2;
+            const l = this._lavaLights[idx];
+            l.position.set(x + 0.5, y + 0.8, z + 0.5);
+            l.intensity = 2.6 + flicker;
+            l.visible = true;
+
+            const h = this._lavaHalos[idx];
+            if (h) {
+              h.position.set(x + 0.5, y + 0.8, z + 0.5);
+              const scale = 3.6 + flicker * 0.5;
+              h.scale.set(scale, scale, 1);
+              h.visible = true;
+            }
+            idx++;
+            break;
+          }
+        }
+      }
+    }
+
+    for (let i = idx; i < this._lavaLights.length; i++) {
+      this._lavaLights[i].visible = false;
+      if (this._lavaHalos[i]) this._lavaHalos[i].visible = false;
+    }
+  }
+
+  updateBeaconBeams() {
+    if (!this._beaconBeamMesh || !this.player || !this.world) return;
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const range = 40;
+    let found = false;
+
+    for (let x = px - range; x <= px + range && !found; x += 4) {
+      for (let z = pz - range; z <= pz + range && !found; z += 4) {
+        for (let y = py - 10; y <= py + 15; y++) {
+          const b = this.world.getBlock(x, y, z);
+          if ((BLOCK.BEACON && b === BLOCK.BEACON) || (BLOCK.END_ROD && b === BLOCK.END_ROD)) {
+            this._beaconBeamMesh.position.set(x + 0.5, y + 40, z + 0.5);
+            this._beaconBeamMesh.rotation.y += 0.01;
+            this._beaconBeamMesh.visible = true;
+            found = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!found && this._deathBeacon && this._deathBeaconT > 0) {
+      this._beaconBeamMesh.position.set(this._deathBeacon.x, this._deathBeacon.y + 40, this._deathBeacon.z);
+      this._beaconBeamMesh.rotation.y += 0.01;
+      this._beaconBeamMesh.visible = true;
+      found = true;
+    }
+
+    if (!found) this._beaconBeamMesh.visible = false;
+  }
+
+  updateCanopyGodRays(dt) {
+    if (!this._canopyGodRays || !this.player || !this.world || !this.sunLight) return;
+    const sunI = this.time ? this.time.sunIntensity() : 1.0;
+    if (sunI < 0.25) {
+      this._canopyGodRays.visible = false;
+      return;
+    }
+    this._canopyGodRays.visible = true;
+
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const range = 24;
+    let idx = 0;
+    const max = 35;
+    const time = this.time ? (this.time.elapsed || 0) : 0;
+
+    for (let x = px - range; x <= px + range && idx < max; x += 4) {
+      for (let z = pz - range; z <= pz + range && idx < max; z += 4) {
+        try {
+          for (let y = py + 8; y >= py; y--) {
+            const b = this.world.getBlock(x, y, z);
+            if ((b === BLOCK.LEAVES || b === BLOCK.SPRUCE_LEAVES || b === BLOCK.SEQUOIA_LEAVES || b === BLOCK.PALM_LEAVES) &&
+                this.world.getBlock(x, y - 1, z) === BLOCK.AIR) {
+              const sway = Math.sin(time * 1.2 + x + z) * 0.1;
+              this._godRayDummy.position.set(x + 0.5, y - 4, z + 0.5);
+              this._godRayDummy.rotation.set(0.3 + sway * 0.2, (x + z) * 0.4, sway);
+              this._godRayDummy.scale.set(0.8 + sway * 0.2, 1.2, 0.8 + sway * 0.2);
+              this._godRayDummy.updateMatrix();
+              this._canopyGodRays.setMatrixAt(idx, this._godRayDummy.matrix);
+              idx++;
+              break;
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    for (let i = idx; i < max; i++) {
+      this._godRayDummy.position.set(0, -1000, 0);
+      this._godRayDummy.scale.setScalar(0);
+      this._godRayDummy.updateMatrix();
+      this._canopyGodRays.setMatrixAt(i, this._godRayDummy.matrix);
+    }
+    this._canopyGodRays.instanceMatrix.needsUpdate = true;
+  }
+
+  _initWaterVFX() {
+    this._waterSplashPool = [];
+    const splashGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
+    const splashMat = new THREE.MeshBasicMaterial({ color: 0xddffff, transparent: true, opacity: 0.85 });
+    for (let i = 0; i < 40; i++) {
+      const m = new THREE.Mesh(splashGeo, splashMat);
+      m.visible = false;
+      this.scene.add(m);
+      this._waterSplashPool.push({ mesh: m, vx: 0, vy: 0, vz: 0, life: 0, maxLife: 0.45 });
+    }
+
+    const WATERFALL_COUNT = 120;
+    const wfGeo = new THREE.BufferGeometry();
+    const wfPos = new Float32Array(WATERFALL_COUNT * 3);
+    for (let i = 0; i < WATERFALL_COUNT * 3; i += 3) {
+      wfPos[i] = 0; wfPos[i + 1] = -1000; wfPos[i + 2] = 0;
+    }
+    wfGeo.setAttribute('position', new THREE.BufferAttribute(wfPos, 3));
+    const wfMat = new THREE.PointsMaterial({
+      color: 0xbceeff,
+      size: 0.22,
+      transparent: true,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending,
+    });
+    this._waterfallParticles = new THREE.Points(wfGeo, wfMat);
+    this.scene.add(this._waterfallParticles);
+
+    this._waterRipplePool = [];
+    const ringGeo = new THREE.RingGeometry(0.08, 0.18, 16);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x77ddff,
+      transparent: true,
+      opacity: 0.7,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    for (let i = 0; i < 20; i++) {
+      const m = new THREE.Mesh(ringGeo, ringMat);
+      m.rotation.x = -Math.PI / 2;
+      m.visible = false;
+      this.scene.add(m);
+      this._waterRipplePool.push({ mesh: m, life: 0, maxLife: 0.75, scale: 0.2 });
+    }
+
+    this._underwaterBubblePool = [];
+    const bubbleGeo = new THREE.SphereGeometry(0.05, 6, 6);
+    const bubbleMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.65,
+      depthWrite: false,
+    });
+    for (let i = 0; i < 30; i++) {
+      const m = new THREE.Mesh(bubbleGeo, bubbleMat);
+      m.visible = false;
+      this.scene.add(m);
+      this._underwaterBubblePool.push({ mesh: m, vx: 0, vy: 0, vz: 0, life: 0, maxLife: 1.2 });
+    }
+  }
+
+  _spawnWaterSplash(x, y, z, count = 15) {
+    let spawned = 0;
+    for (const p of this._waterSplashPool) {
+      if (p.life <= 0) {
+        p.mesh.position.set(x + (Math.random() - 0.5) * 0.6, y, z + (Math.random() - 0.5) * 0.6);
+        p.vx = (Math.random() - 0.5) * 2.5;
+        p.vy = 2.0 + Math.random() * 2.5;
+        p.vz = (Math.random() - 0.5) * 2.5;
+        p.life = p.maxLife;
+        p.mesh.visible = true;
+        spawned++;
+        if (spawned >= count) break;
+      }
+    }
+  }
+
+  _spawnWaterRipple(x, y, z) {
+    for (const r of this._waterRipplePool) {
+      if (r.life <= 0) {
+        r.mesh.position.set(x, y + 0.02, z);
+        r.scale = 0.2;
+        r.mesh.scale.set(0.2, 0.2, 0.2);
+        r.life = r.maxLife;
+        r.mesh.visible = true;
+        break;
+      }
+    }
+  }
+
+  _spawnUnderwaterBubble(x, y, z) {
+    for (const b of this._underwaterBubblePool) {
+      if (b.life <= 0) {
+        b.mesh.position.set(x + (Math.random() - 0.5) * 0.4, y, z + (Math.random() - 0.5) * 0.4);
+        b.vx = (Math.random() - 0.5) * 0.3;
+        b.vy = 1.0 + Math.random() * 0.8;
+        b.vz = (Math.random() - 0.5) * 0.3;
+        b.life = b.maxLife;
+        b.mesh.visible = true;
+        break;
+      }
+    }
+  }
+
+  _updateWaterEffects(dt) {
+    for (const p of this._waterSplashPool) {
+      if (p.life > 0) {
+        p.life -= dt;
+        p.vy -= 9.8 * dt;
+        p.mesh.position.x += p.vx * dt;
+        p.mesh.position.y += p.vy * dt;
+        p.mesh.position.z += p.vz * dt;
+        p.mesh.material.opacity = (p.life / p.maxLife) * 0.85;
+        if (p.life <= 0) p.mesh.visible = false;
+      }
+    }
+
+    for (const r of this._waterRipplePool) {
+      if (r.life > 0) {
+        r.life -= dt;
+        const progress = 1 - (r.life / r.maxLife);
+        const s = 0.2 + progress * 2.2;
+        r.mesh.scale.set(s, s, s);
+        r.mesh.material.opacity = (1 - progress) * 0.7;
+        if (r.life <= 0) r.mesh.visible = false;
+      }
+    }
+
+    if (this.player && (this._cameraInWater || this.player.inWater)) {
+      if (Math.random() < 0.3) {
+        const eye = this.player.eyePosition();
+        this._spawnUnderwaterBubble(eye.x, eye.y - 0.3, eye.z);
+      }
+    }
+    for (const b of this._underwaterBubblePool) {
+      if (b.life > 0) {
+        b.life -= dt;
+        b.mesh.position.x += (b.vx + Math.sin(b.life * 8) * 0.2) * dt;
+        b.mesh.position.y += b.vy * dt;
+        b.mesh.position.z += (b.vz + Math.cos(b.life * 8) * 0.2) * dt;
+        b.mesh.material.opacity = (b.life / b.maxLife) * 0.65;
+        if (b.life <= 0) b.mesh.visible = false;
+      }
+    }
+  }
+
+  updateWaterfallParticles(dt) {
+    if (!this._waterfallParticles || !this.player || !this.world) return;
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const range = 24;
+    const pos = this._waterfallParticles.geometry.attributes.position.array;
+    let idx = 0;
+    const max = pos.length / 3;
+
+    for (let x = px - range; x <= px + range && idx < max; x += 3) {
+      for (let z = pz - range; z <= pz + range && idx < max; z += 3) {
+        for (let y = py + 4; y >= py - 6; y--) {
+          const b = this.world.getBlock(x, y, z);
+          if (b === BLOCK.WATER && this.world.getBlock(x, y - 1, z) === BLOCK.AIR) {
+            pos[idx * 3] = x + 0.5 + (Math.random() - 0.5) * 0.8;
+            pos[idx * 3 + 1] = y - (Math.random() * 2.0);
+            pos[idx * 3 + 2] = z + 0.5 + (Math.random() - 0.5) * 0.8;
+            idx++;
+            break;
+          }
+        }
+      }
+    }
+
+    for (let i = idx; i < max; i++) {
+      pos[i * 3 + 1] = -1000;
+    }
+    this._waterfallParticles.geometry.attributes.position.needsUpdate = true;
+  }
+
+  _initWeatherVFX() {
+    const PUDDLE_COUNT = 250;
+    const puddleGeo = new THREE.PlaneGeometry(0.85, 0.85);
+    const puddleMat = new THREE.MeshBasicMaterial({
+      color: 0x3a5a70,
+      transparent: true,
+      opacity: 0.0,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    this._rainPuddlePatches = new THREE.InstancedMesh(puddleGeo, puddleMat, PUDDLE_COUNT);
+    this._rainPuddlePatches.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._rainPuddlePatches.frustumCulled = false;
+    this.scene.add(this._rainPuddlePatches);
+    this._rainPuddleDummy = new THREE.Object3D();
+    for (let i = 0; i < PUDDLE_COUNT; i++) {
+      this._rainPuddleDummy.position.set(0, -1000, 0);
+      this._rainPuddleDummy.scale.setScalar(0);
+      this._rainPuddleDummy.updateMatrix();
+      this._rainPuddlePatches.setMatrixAt(i, this._rainPuddleDummy.matrix);
+    }
+    this._rainPuddlePatches.instanceMatrix.needsUpdate = true;
+
+    const boltMat = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      linewidth: 3,
+      transparent: true,
+      opacity: 0.0,
+    });
+    const boltGeo = new THREE.BufferGeometry();
+    this._lightningBoltMesh = new THREE.LineSegments(boltGeo, boltMat);
+    this.scene.add(this._lightningBoltMesh);
+
+    const SNOW_ACC_COUNT = 300;
+    const snowAccGeo = new THREE.PlaneGeometry(0.98, 0.98);
+    const snowAccMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.0,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    this._snowAccumulationPatches = new THREE.InstancedMesh(snowAccGeo, snowAccMat, SNOW_ACC_COUNT);
+    this._snowAccumulationPatches.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._snowAccumulationPatches.frustumCulled = false;
+    this.scene.add(this._snowAccumulationPatches);
+    this._snowAccumulationDummy = new THREE.Object3D();
+    for (let i = 0; i < SNOW_ACC_COUNT; i++) {
+      this._snowAccumulationDummy.position.set(0, -1000, 0);
+      this._snowAccumulationDummy.scale.setScalar(0);
+      this._snowAccumulationDummy.updateMatrix();
+      this._snowAccumulationPatches.setMatrixAt(i, this._snowAccumulationDummy.matrix);
+    }
+    this._snowAccumulationPatches.instanceMatrix.needsUpdate = true;
+  }
+
+  updateRainPuddles(dt) {
+    if (!this._rainPuddlePatches || !this.player || !this.world) return;
+    const isRain = this._lastWeather === 'rain';
+    const targetOpacity = isRain ? 0.65 : 0.0;
+    this._rainPuddlePatches.material.opacity += (targetOpacity - this._rainPuddlePatches.material.opacity) * dt * 0.8;
+
+    if (this._rainPuddlePatches.material.opacity <= 0.01) return;
+
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const range = 25;
+    let idx = 0;
+    const max = 250;
+
+    for (let x = px - range; x <= px + range && idx < max; x += 3) {
+      for (let z = pz - range; z <= pz + range && idx < max; z += 3) {
+        if (((x * 11 + z * 17) % 7) > 2) continue;
+        for (let y = py + 3; y >= py - 4; y--) {
+          const b = this.world.getBlock(x, y, z);
+          if ((b === BLOCK.DIRT || b === BLOCK.GRASS || b === BLOCK.STONE) &&
+              this.world.getBlock(x, y + 1, z) === BLOCK.AIR) {
+            this._rainPuddleDummy.position.set(x + 0.5, y + 1.01, z + 0.5);
+            this._rainPuddleDummy.rotation.set(-Math.PI / 2, 0, (x * 3 + z * 5) * 0.2);
+            this._rainPuddleDummy.scale.set(0.8, 0.8, 1);
+            this._rainPuddleDummy.updateMatrix();
+            this._rainPuddlePatches.setMatrixAt(idx, this._rainPuddleDummy.matrix);
+            idx++;
+            break;
+          }
+        }
+      }
+    }
+
+    for (let i = idx; i < max; i++) {
+      this._rainPuddleDummy.position.set(0, -1000, 0);
+      this._rainPuddleDummy.scale.setScalar(0);
+      this._rainPuddleDummy.updateMatrix();
+      this._rainPuddlePatches.setMatrixAt(i, this._rainPuddleDummy.matrix);
+    }
+    this._rainPuddlePatches.instanceMatrix.needsUpdate = true;
+  }
+
+  updateSnowAccumulation(dt) {
+    if (!this._snowAccumulationPatches || !this.player || !this.world) return;
+    const isSnow = this._lastWeather === 'snow';
+    const targetOpacity = isSnow ? 0.85 : 0.0;
+    this._snowAccumulationPatches.material.opacity += (targetOpacity - this._snowAccumulationPatches.material.opacity) * dt * 0.8;
+
+    if (this._snowAccumulationPatches.material.opacity <= 0.01) return;
+
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const range = 25;
+    let idx = 0;
+    const max = 300;
+
+    for (let x = px - range; x <= px + range && idx < max; x += 2) {
+      for (let z = pz - range; z <= pz + range && idx < max; z += 2) {
+        for (let y = py + 4; y >= py - 5; y--) {
+          const b = this.world.getBlock(x, y, z);
+          if (isSolid(b) && this.world.getBlock(x, y + 1, z) === BLOCK.AIR) {
+            this._snowAccumulationDummy.position.set(x + 0.5, y + 1.01, z + 0.5);
+            this._snowAccumulationDummy.rotation.set(-Math.PI / 2, 0, 0);
+            this._snowAccumulationDummy.scale.set(0.98, 0.98, 1);
+            this._snowAccumulationDummy.updateMatrix();
+            this._snowAccumulationPatches.setMatrixAt(idx, this._snowAccumulationDummy.matrix);
+            idx++;
+            break;
+          }
+        }
+      }
+    }
+
+    for (let i = idx; i < max; i++) {
+      this._snowAccumulationDummy.position.set(0, -1000, 0);
+      this._snowAccumulationDummy.scale.setScalar(0);
+      this._snowAccumulationDummy.updateMatrix();
+      this._snowAccumulationPatches.setMatrixAt(i, this._snowAccumulationDummy.matrix);
+    }
+    this._snowAccumulationPatches.instanceMatrix.needsUpdate = true;
+  }
+
+  _updateWeatherVFX(dt) {
+    if (this._stormFlashT > 0) {
+      this._stormFlashT -= dt;
+      this._screenShakeAcc = Math.max(0, this._stormFlashT * 0.6);
+      if (this._lightningBoltMesh) {
+        this._lightningBoltMesh.material.opacity = Math.min(1, this._stormFlashT * 3.0);
+        if (this._stormFlashT > 0.2) {
+          this._lightningBoltMesh.material.color.setHex(0xffffff);
+        } else {
+          this._lightningBoltMesh.material.color.setHex(0x9966ff);
+        }
+      }
+    } else if (this._lightningBoltMesh) {
+      this._lightningBoltMesh.material.opacity = 0;
+    }
+
+    if (this._screenShakeAcc > 0 && this.camera) {
+      this.camera.position.x += (Math.random() - 0.5) * this._screenShakeAcc;
+      this.camera.position.y += (Math.random() - 0.5) * this._screenShakeAcc;
+      this._screenShakeAcc = Math.max(0, this._screenShakeAcc - dt * 2.0);
+    }
+  }
+
+  _triggerLightningStrike(x, z) {
+    if (!this.player || !this._lightningBoltMesh) return;
+    const py = Math.floor(this.player.position.y);
+    const groundY = py;
+    const points = [];
+    let curX = x;
+    let curY = 90;
+    let curZ = z;
+
+    while (curY > groundY) {
+      const nextY = Math.max(groundY, curY - 8 - Math.random() * 10);
+      const nextX = curX + (Math.random() - 0.5) * 6;
+      const nextZ = curZ + (Math.random() - 0.5) * 6;
+      points.push(curX, curY, curZ, nextX, nextY, nextZ);
+      curX = nextX; curY = nextY; curZ = nextZ;
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+    this._lightningBoltMesh.geometry.dispose();
+    this._lightningBoltMesh.geometry = geo;
+    this._stormFlashT = 0.35;
+    this._screenShakeAcc = 0.5;
+    this.audio.thunder?.() || this.audio.hurt?.();
+  }
+
+  _initCreaturesVFX() {
+    this._birdFlockGroup = new THREE.Group();
+    this._birdFlockList = [];
+    const birdGeo = new THREE.ConeGeometry(0.15, 0.4, 4);
+    const wingGeo = new THREE.BoxGeometry(0.45, 0.02, 0.15);
+    const birdMat = new THREE.MeshBasicMaterial({ color: 0x223344 });
+    for (let i = 0; i < 5; i++) {
+      const bird = new THREE.Group();
+      const body = new THREE.Mesh(birdGeo, birdMat);
+      body.rotation.x = Math.PI / 2;
+      const leftWing = new THREE.Mesh(wingGeo, birdMat);
+      leftWing.position.set(-0.22, 0, 0);
+      const rightWing = new THREE.Mesh(wingGeo, birdMat);
+      rightWing.position.set(0.22, 0, 0);
+      bird.add(body, leftWing, rightWing);
+
+      const vOffset = (i === 0) ? { x: 0, z: 0 } : (i % 2 === 1) ? { x: i * 1.5, z: i * 2.0 } : { x: -i * 1.5, z: i * 2.0 };
+      bird.position.set(vOffset.x, 0, vOffset.z);
+      this._birdFlockGroup.add(bird);
+      this._birdFlockList.push({ group: bird, lwing: leftWing, rwing: rightWing });
+    }
+    this.scene.add(this._birdFlockGroup);
+
+    this._fishFlockGroup = new THREE.Group();
+    this._fishFlockList = [];
+    const fishBodyGeo = new THREE.ConeGeometry(0.08, 0.35, 5);
+    const fishMat = new THREE.MeshLambertMaterial({ color: 0xff8844 });
+    for (let i = 0; i < 6; i++) {
+      const fish = new THREE.Mesh(fishBodyGeo, fishMat);
+      fish.rotation.x = Math.PI / 2;
+      fish.position.set((Math.random() - 0.5) * 8, -0.6 - Math.random() * 1.2, (Math.random() - 0.5) * 8);
+      this._fishFlockGroup.add(fish);
+      this._fishFlockList.push({ mesh: fish, phase: Math.random() * Math.PI * 2 });
+    }
+    this.scene.add(this._fishFlockGroup);
+  }
+
+  _updateCreaturesVFX(dt) {
+    const time = this.time ? (this.time.elapsed || 0) : 0;
+    if (this.player && this._birdFlockGroup) {
+      const px = this.player.position.x;
+      const py = this.player.position.y;
+      const pz = this.player.position.z;
+      this._birdFlockGroup.position.set(
+        px + Math.sin(time * 0.1) * 40,
+        py + 35,
+        pz + Math.cos(time * 0.1) * 40
+      );
+      this._birdFlockGroup.rotation.y = time * 0.1;
+
+      for (let i = 0; i < this._birdFlockList.length; i++) {
+        const b = this._birdFlockList[i];
+        const flap = Math.sin(time * 8 + i) * 0.4;
+        b.lwing.rotation.z = flap;
+        b.rwing.rotation.z = -flap;
+      }
+    }
+
+    if (this.player && this._fishFlockGroup) {
+      const px = Math.floor(this.player.position.x);
+      const py = Math.floor(this.player.position.y);
+      const pz = Math.floor(this.player.position.z);
+      this._fishFlockGroup.position.set(px, py, pz);
+
+      for (let i = 0; i < this._fishFlockList.length; i++) {
+        const f = this._fishFlockList[i];
+        f.phase += dt * 3.0;
+        f.mesh.position.x += Math.sin(f.phase * 0.7) * dt * 0.6;
+        f.mesh.position.z += Math.cos(f.phase * 0.5) * dt * 0.6;
+        f.mesh.rotation.z = Math.sin(f.phase * 2) * 0.25;
+      }
+    }
+  }
+
+  _spawnBlockPop(x, y, z, blockId) {
+    const geo = new THREE.BoxGeometry(1.01, 1.01, 1.01);
+    const col = getColor(blockId, 'top');
+    const mat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(col[0], col[1], col[2]),
+      transparent: true,
+      opacity: 0.5,
+      wireframe: true,
+    });
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x + 0.5, y + 0.5, z + 0.5);
+    m.scale.setScalar(0.8);
+    this.scene.add(m);
+    this._blockPops.push({ mesh: m, t: 0, maxT: 0.15 });
+  }
+
+  _updateBlockPops(dt) {
+    for (let i = this._blockPops.length - 1; i >= 0; i--) {
+      const p = this._blockPops[i];
+      p.t += dt;
+      const progress = Math.min(1, p.t / p.maxT);
+      const scale = 0.8 + Math.sin(progress * Math.PI) * 0.28;
+      p.mesh.scale.setScalar(scale);
+      p.mesh.material.opacity = (1 - progress) * 0.6;
+      if (progress >= 1) {
+        this.scene.remove(p.mesh);
+        p.mesh.geometry.dispose();
+        p.mesh.material.dispose();
+        this._blockPops.splice(i, 1);
+      }
+    }
+  }
+
+  _updateScreenVFX(dt) {
+    if (!this.player || !this.camera) return;
+
+    const curYaw = this.player.yaw || 0;
+    const curPitch = this.player.pitch || 0;
+    const dYaw = Math.abs(curYaw - (this._lastCamYaw || 0));
+    const dPitch = Math.abs(curPitch - (this._lastCamPitch || 0));
+    this._lastCamYaw = curYaw;
+    this._lastCamPitch = curPitch;
+    const rotSpeed = (dYaw + dPitch) / dt;
+    this._camRotVel += (rotSpeed - this._camRotVel) * Math.min(1, dt * 5.0);
+
+    const hurt = (typeof document !== 'undefined') ? document.getElementById('hurt-vignette') : null;
+    if (hurt) {
+      const ssaoFactor = Math.min(0.4, (this._caveEnclosedFactor || 0) * 0.35);
+      const curOp = parseFloat(hurt.style.opacity || '0');
+      hurt.style.opacity = String(Math.max(curOp, ssaoFactor));
+    }
+  }
+
   updatePebblePatches() {
     if (!this._pebblePatches || !this.player || !this.world) return;
 
@@ -6145,6 +7071,18 @@ const hbName = document.getElementById('hotbar-name');
       this.updatePebblePatches();
     }
 
+    this._mushroomTimer = (this._mushroomTimer || 0) + dt;
+    if (this._mushroomTimer > 2.0) {
+      this._mushroomTimer = 0;
+      this.updateMushroomPatches();
+    }
+
+    this._stumpTimer = (this._stumpTimer || 0) + dt;
+    if (this._stumpTimer > 2.0) {
+      this._stumpTimer = 0;
+      this.updateStumpProps();
+    }
+
     this._torchUpdateTimer += dt;
     if (this._torchUpdateTimer > 0.5) { // Update torches twice per second
       this._torchUpdateTimer = 0;
@@ -6155,6 +7093,24 @@ const hbName = document.getElementById('hotbar-name');
       this._glowTimer = 0;
       this.updateGlowBlocks();
     }
+
+    this._lavaTimer = (this._lavaTimer || 0) + dt;
+    if (this._lavaTimer > 1.0) {
+      this._lavaTimer = 0;
+      this.updateLavaLights();
+    }
+
+    this._beaconTimer = (this._beaconTimer || 0) + dt;
+    if (this._beaconTimer > 0.5) {
+      this._beaconTimer = 0;
+      this.updateBeaconBeams();
+    }
+
+    this.updateCanopyGodRays(dt);
+    this.updateWaterfallParticles(dt);
+    this.updateRainPuddles(dt);
+    this.updateSnowAccumulation(dt);
+    this.updateCaveDarkening(dt);
     this.updateWeather(dt);
     const r = this.renderer;
     const w = window.innerWidth;
