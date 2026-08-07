@@ -54,7 +54,7 @@ import {
 import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=242';
-import { createBlockAtlas } from './atlas.js?v=285';
+import { createBlockAtlas, drawItemIconToCanvas, generateItemIconDataUrl } from './atlas.js?v=285';
 import { ATLAS_N } from './atlas-core.js?v=285';
 import { BreakFX, WeatherFX } from './fx.js?v=245';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
@@ -588,11 +588,12 @@ export class Game {
     const FLOWER_COUNT = 400;
     const flowerGeo = new THREE.PlaneGeometry(0.35, 0.35);
     const flowerMat = new THREE.MeshBasicMaterial({
-      color: 0xe85d75,
+      color: 0xffffff,
       transparent: true,
       opacity: 0.9,
       depthWrite: false,
       side: THREE.DoubleSide,
+      vertexColors: true,
     });
     this._flowerPatches = new THREE.InstancedMesh(flowerGeo, flowerMat, FLOWER_COUNT);
     this._flowerPatches.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -3394,7 +3395,6 @@ export class Game {
     const py = Math.floor(this.player.position.y);
     const pz = Math.floor(this.player.position.z);
 
-    // Find torch blocks near the player
     const torchPositions = [];
     const searchRadius = 32;
     const TORCH = 'TORCH';
@@ -3406,20 +3406,18 @@ export class Game {
           if (block && (block === BLOCK.TORCH || block === BLOCK.SOUL_TORCH || block === BLOCK.REDSTONE_TORCH || String(block).includes(TORCH))) {
             const dist = Math.hypot(x - px, y - py, z - pz);
             if (dist < searchRadius) {
-              torchPositions.push({ x: x + 0.5, y: y + 1, z: z + 0.5, dist });
+              const isSoul = (block === BLOCK.SOUL_TORCH || String(block).includes('SOUL'));
+              torchPositions.push({ x: x + 0.5, y: y + 1, z: z + 0.5, dist, isSoul });
             }
           }
         }
       }
     }
 
-    // Sort by distance, use nearest ones
     torchPositions.sort((a, b) => a.dist - b.dist);
-
     const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
     const tick200 = Math.floor(now / 200);
 
-    // Update light pool with ±10% flicker every 200ms & warmer color temperature shift
     for (let i = 0; i < this._torchLights.length; i++) {
       const light = this._torchLights[i];
       if (i < torchPositions.length) {
@@ -3427,16 +3425,20 @@ export class Game {
         light.position.set(tp.x, tp.y, tp.z);
         const baseIntensity = Math.max(0.5, 1.5 - tp.dist * 0.03);
 
-        // Torch flickering: ±10% variation every 200ms
         const hash = Math.sin(tick200 * 12.9898 + i * 78.233 + tp.x * 3.1) * 43758.5453;
-        const flicker = ((hash - Math.floor(hash)) - 0.5) * 0.20; // -0.10 to +0.10
+        const flicker = ((hash - Math.floor(hash)) - 0.5) * 0.20;
         light.intensity = Math.max(0.2, baseIntensity * (1.0 + flicker));
         light.visible = true;
 
-        // Subtle color temperature shift (warmer hue & lower lightness when flickering dimmer)
-        const baseHue = 0.07 + (tp.x * 0.001 + tp.z * 0.002) % 0.03;
-        const warmerHue = Math.max(0.03, baseHue + flicker * 0.12);
-        light.color.setHSL(warmerHue, 0.95, 0.58 + flicker * 0.08);
+        if (tp.isSoul) {
+          // Soul torch: vibrant cool blue light
+          light.color.setHex(0x33bbee);
+        } else {
+          // Normal torch: warm orange color temperature shift
+          const baseHue = 0.07 + (tp.x * 0.001 + tp.z * 0.002) % 0.03;
+          const warmerHue = Math.max(0.03, baseHue + flicker * 0.12);
+          light.color.setHSL(warmerHue, 0.95, 0.58 + flicker * 0.08);
+        }
       } else {
         light.visible = false;
       }
@@ -3452,6 +3454,7 @@ export class Game {
 
     const glowPositions = [];
     const searchRadius = 32;
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
 
     for (let x = px - searchRadius; x <= px + searchRadius; x++) {
       for (let z = pz - searchRadius; z <= pz + searchRadius; z++) {
@@ -3463,7 +3466,19 @@ export class Game {
           let intensity = 1.2;
           let distance = 10;
 
-          if ((BLOCK.GLOWSTONE && block === BLOCK.GLOWSTONE) || block === 34 /* LAMP */) {
+          const blockStr = String(block);
+
+          if (blockStr.includes('SEA_LANTERN') || blockStr.includes('LANTERN')) {
+            // Sea lantern glow: bright cyan point light with larger range
+            color = 0x44efff;
+            intensity = 2.5;
+            distance = 18;
+          } else if (blockStr.includes('SHROOMLIGHT') || blockStr.includes('SHROOM')) {
+            // Shroomlight glow: warm pink/purple point light with pulsing intensity
+            color = 0xff55bb;
+            intensity = 1.8 + Math.sin(now / 300 + x * 0.5 + z * 0.5) * 0.4;
+            distance = 14;
+          } else if ((BLOCK.GLOWSTONE && block === BLOCK.GLOWSTONE) || block === 34 /* LAMP */) {
             color = 0xffe082;
             intensity = 1.8;
             distance = 12;
@@ -3483,7 +3498,7 @@ export class Game {
             color = 0xaa66ff;
             intensity = 0.8;
             distance = 6;
-          } else if (typeof block === 'string' && (block.includes('GLOW') || block.includes('LAMP') || block.includes('CORAL') || block.includes('BIOLUM'))) {
+          } else if (blockStr.includes('GLOW') || blockStr.includes('LAMP') || blockStr.includes('CORAL') || blockStr.includes('BIOLUM')) {
             color = 0xffe082;
             intensity = 1.2;
             distance = 10;
@@ -4435,6 +4450,43 @@ export class Game {
           );
         }
       }
+      // AAA Slime bounce animation with size variants (tiny, small, large)
+      const typeStr = String(a.type).toLowerCase();
+      if (typeStr.includes('slime')) {
+        const baseS = typeStr.includes('large') ? 1.8 : typeStr.includes('tiny') ? 0.5 : 1.0;
+        const bounceSq = Math.abs(Math.sin(this._animClock * 6.0 + (a.x * 3 + a.z * 5)));
+        const sy = baseS * (1.0 + bounceSq * 0.45);
+        const sxz = baseS / Math.sqrt(1.0 + bounceSq * 0.45);
+        mesh.scale.set(sxz, sy, sxz);
+      }
+
+      // Enderman teleport particles (purple swirl effect)
+      if (typeStr.includes('enderman')) {
+        if (Math.random() < 0.35 && this.fx) {
+          this.fx.burst?.(a.x, a.y + 1.2, a.z, [0.65, 0.15, 0.95], 4);
+        }
+      }
+
+      // Creeper hiss animation: body swells, white particle cloud, explosion
+      if (typeStr.includes('creeper') && this.player) {
+        const distToPl = Math.hypot(a.x - this.player.position.x, a.z - this.player.position.z);
+        if (distToPl < 4.5) {
+          a.hissTimer = (a.hissTimer || 0) + delta;
+          const swell = 1.0 + (a.hissTimer / 1.5) * 0.45;
+          mesh.scale.set(swell, swell * 1.15, swell);
+          if (Math.random() < 0.5 && this.fx) {
+            this.fx.burst?.(a.x, a.y + 0.8, a.z, [0.95, 0.95, 0.95], 3);
+          }
+          if (a.hissTimer >= 1.5) {
+            if (this.fx) this.fx.burst?.(a.x, a.y + 1, a.z, [1.0, 0.5, 0.1], 30);
+            if (this.survival) applyDamage(this.survival, 25);
+            a.hp = 0;
+          }
+        } else {
+          a.hissTimer = 0;
+        }
+      }
+
       // Footstep particles for moving animals
       if (spd > 0.3 && Math.random() < 0.22) {
         if (this.world && this.world.getBlock(Math.floor(a.x), Math.floor(a.y), Math.floor(a.z)) === BLOCK.WATER) {
@@ -5431,8 +5483,10 @@ export class Game {
 
           if (grassY !== -1 && idx < 3000) {
             const b = biomeAt(x, z, this.world.seed);
-            const isPlainsOrTropical = (b === BIOME.PLAINS || b === BIOME.TROPICAL);
-            const tallGrassMult = isPlainsOrTropical ? 1.6 : 1.0;
+            let tallGrassMult = 1.0;
+            if (b === BIOME.PLAINS || b === BIOME.SAVANNAH) tallGrassMult = 2.0;
+            else if (b === BIOME.DESERT || b === BIOME.TUNDRA || b === BIOME.TAIGA) tallGrassMult = 0.35;
+            else if (b === BIOME.FOREST || b === BIOME.TROPICAL || b === BIOME.SWAMP) tallGrassMult = 1.3;
 
             const sway = Math.sin(time * 2 + x * 0.5 + z * 0.3) * 0.1;
             const targetY = grassY + 1;
@@ -5573,6 +5627,18 @@ export class Game {
               this._flowerDummy.scale.setScalar(0.4 + ((x * 3 + z * 2) % 4) * 0.15);
               this._flowerDummy.updateMatrix();
               this._flowerPatches.setMatrixAt(idx, this._flowerDummy.matrix);
+
+              if (!this._flowerPatches.instanceColor) {
+                const colors = new Float32Array(maxFlowers * 3);
+                this._flowerPatches.instanceColor = new THREE.InstancedBufferAttribute(colors, 3);
+              }
+              const flowerType = Math.abs(x * 13 + z * 37) % 5;
+              const fColor = flowerType === 0 ? [0.98, 0.88, 0.15]  // Dandelion yellow
+                           : flowerType === 1 ? [0.92, 0.15, 0.15]  // Poppy red
+                           : flowerType === 2 ? [0.15, 0.65, 0.95]  // Blue orchid
+                           : flowerType === 3 ? [0.75, 0.25, 0.85]  // Allium purple
+                           : [0.95, 0.45, 0.65];                    // Tulip pink
+              this._flowerPatches.setColorAt(idx, new THREE.Color(fColor[0], fColor[1], fColor[2]));
               idx++;
               break;
             }
@@ -5588,6 +5654,7 @@ export class Game {
       this._flowerPatches.setMatrixAt(i, this._flowerDummy.matrix);
     }
     this._flowerPatches.instanceMatrix.needsUpdate = true;
+    if (this._flowerPatches.instanceColor) this._flowerPatches.instanceColor.needsUpdate = true;
 
     if (this.sunLight) {
       const sunI = this.sunLight.intensity;
@@ -5627,6 +5694,117 @@ export class Game {
       this._stumpPatches.setMatrixAt(i, this._stumpDummy.matrix);
     }
     this._stumpPatches.instanceMatrix.needsUpdate = true;
+
+    // AAA Environmental details: Leaf litter, Lily pads, Seagrass, Reeds
+    const LEAF_LITTER_COUNT = 300;
+    const leafGeo = new THREE.PlaneGeometry(0.5, 0.5);
+    const leafMat = new THREE.MeshBasicMaterial({ color: 0x8b5a2b, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
+    this._leafLitterPatches = new THREE.InstancedMesh(leafGeo, leafMat, LEAF_LITTER_COUNT);
+    this._leafLitterPatches.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._leafLitterPatches.frustumCulled = false;
+    this.scene.add(this._leafLitterPatches);
+    this._leafLitterDummy = new THREE.Object3D();
+
+    const LILY_COUNT = 200;
+    const lilyGeo = new THREE.CircleGeometry(0.4, 12);
+    const lilyMat = new THREE.MeshBasicMaterial({ color: 0x3a8a36, side: THREE.DoubleSide });
+    this._lilyPatches = new THREE.InstancedMesh(lilyGeo, lilyMat, LILY_COUNT);
+    this._lilyPatches.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._lilyPatches.frustumCulled = false;
+    this.scene.add(this._lilyPatches);
+    this._lilyDummy = new THREE.Object3D();
+
+    const SEAGRASS_COUNT = 300;
+    const seagrassGeo = new THREE.PlaneGeometry(0.3, 0.7);
+    const seagrassMat = new THREE.MeshBasicMaterial({ color: 0x2a9950, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
+    this._seagrassPatches = new THREE.InstancedMesh(seagrassGeo, seagrassMat, SEAGRASS_COUNT);
+    this._seagrassPatches.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._seagrassPatches.frustumCulled = false;
+    this.scene.add(this._seagrassPatches);
+    this._seagrassDummy = new THREE.Object3D();
+
+    const REEDS_COUNT = 250;
+    const reedGeo = new THREE.CylinderGeometry(0.04, 0.05, 1.4, 5);
+    const reedMat = new THREE.MeshLambertMaterial({ color: 0x5aab3d, roughness: 0.7 });
+    this._reedPatches = new THREE.InstancedMesh(reedGeo, reedMat, REEDS_COUNT);
+    this._reedPatches.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._reedPatches.frustumCulled = false;
+    this.scene.add(this._reedPatches);
+    this._reedDummy = new THREE.Object3D();
+  }
+
+  updateEnvironmentalDetails() {
+    if (!this.player || !this.world) return;
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const range = 25;
+    let leafIdx = 0, lilyIdx = 0, seaIdx = 0, reedIdx = 0;
+
+    for (let x = px - range; x <= px + range; x += 2) {
+      for (let z = pz - range; z <= pz + range; z += 2) {
+        try {
+          const baseY = Math.floor(py);
+          for (let y = baseY + 4; y >= baseY - 6; y--) {
+            const b = this.world.getBlock(x, y, z);
+            const above = this.world.getBlock(x, y + 1, z);
+
+            if ((b === BLOCK.GRASS || b === BLOCK.DIRT) && above === BLOCK.AIR && leafIdx < 300) {
+              const highLeaf = this.world.getBlock(x, y + 3, z) === BLOCK.LEAVES ||
+                               this.world.getBlock(x, y + 4, z) === BLOCK.LEAVES ||
+                               this.world.getBlock(x, y + 5, z) === BLOCK.LEAVES;
+              if (highLeaf) {
+                this._leafLitterDummy.position.set(x + 0.5, y + 1.01, z + 0.5);
+                this._leafLitterDummy.rotation.set(-Math.PI / 2, 0, (x * 7 + z * 13) * 0.2);
+                this._leafLitterDummy.scale.setScalar(0.7 + ((x * 3 + z) % 4) * 0.15);
+                this._leafLitterDummy.updateMatrix();
+                this._leafLitterPatches?.setMatrixAt(leafIdx++, this._leafLitterDummy.matrix);
+              }
+            }
+
+            if (b === BLOCK.WATER && above === BLOCK.AIR && lilyIdx < 200) {
+              if (((x * 11 + z * 17) % 7) < 2) {
+                this._lilyDummy.position.set(x + 0.5, y + 1.02, z + 0.5);
+                this._lilyDummy.rotation.set(-Math.PI / 2, 0, (x * 5 + z * 11) * 0.3);
+                this._lilyDummy.scale.setScalar(0.8 + ((x + z) % 3) * 0.15);
+                this._lilyDummy.updateMatrix();
+                this._lilyPatches?.setMatrixAt(lilyIdx++, this._lilyDummy.matrix);
+              }
+            }
+
+            if (b === BLOCK.WATER && seaIdx < 300) {
+              const below = this.world.getBlock(x, y - 1, z);
+              if (below === BLOCK.DIRT || below === BLOCK.SAND) {
+                this._seagrassDummy.position.set(x + 0.5, y + 0.35, z + 0.5);
+                this._seagrassDummy.rotation.set(0, (x * 13 + z * 7) * 0.5, 0);
+                this._seagrassDummy.scale.setScalar(0.9 + ((x * 2 + z) % 4) * 0.1);
+                this._seagrassDummy.updateMatrix();
+                this._seagrassPatches?.setMatrixAt(seaIdx++, this._seagrassDummy.matrix);
+              }
+            }
+
+            if ((b === BLOCK.GRASS || b === BLOCK.DIRT || b === BLOCK.SAND) && above === BLOCK.AIR && reedIdx < 250) {
+              const nearWater = this.world.getBlock(x + 1, y, z) === BLOCK.WATER ||
+                                this.world.getBlock(x - 1, y, z) === BLOCK.WATER ||
+                                this.world.getBlock(x, y, z + 1) === BLOCK.WATER ||
+                                this.world.getBlock(x, y, z - 1) === BLOCK.WATER;
+              if (nearWater) {
+                this._reedDummy.position.set(x + 0.5, y + 1.7, z + 0.5);
+                this._reedDummy.rotation.set(0, (x * 3 + z * 7) * 0.4, 0);
+                this._reedDummy.scale.setScalar(0.85 + ((x * 5 + z) % 3) * 0.15);
+                this._reedDummy.updateMatrix();
+                this._reedPatches?.setMatrixAt(reedIdx++, this._reedDummy.matrix);
+              }
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    if (this._leafLitterPatches) this._leafLitterPatches.instanceMatrix.needsUpdate = true;
+    if (this._lilyPatches) this._lilyPatches.instanceMatrix.needsUpdate = true;
+    if (this._seagrassPatches) this._seagrassPatches.instanceMatrix.needsUpdate = true;
+    if (this._reedPatches) this._reedPatches.instanceMatrix.needsUpdate = true;
   }
 
   updateMushroomPatches() {
@@ -6897,6 +7075,82 @@ export class Game {
       msg.textContent = this.player.messageT > 0 ? this.player.message : '';
     }
 
+    // Hunger food icons overlay
+    const hungerMeter = document.getElementById('meter-hunger');
+    if (hungerMeter) {
+      const fc = Math.max(0, Math.min(10, Math.ceil((s.hunger || 100) / 10)));
+      let icons = '';
+      for (let i = 0; i < 10; i++) icons += (i < fc ? '🍗' : '🦴');
+      let iconHolder = hungerMeter.querySelector('.hunger-food-icons');
+      if (!iconHolder) {
+        iconHolder = document.createElement('span');
+        iconHolder.className = 'hunger-food-icons';
+        iconHolder.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;letter-spacing:1px;pointer-events:none;';
+        hungerMeter.appendChild(iconHolder);
+      }
+      iconHolder.textContent = icons;
+    }
+
+    // Armor bar display
+    const armVal = equipmentArmor(this.player.equipment);
+    let armorEl = document.getElementById('meter-armor-display');
+    if (!armorEl) {
+      const hud = document.getElementById('hud');
+      if (hud) {
+        armorEl = document.createElement('div');
+        armorEl.id = 'meter-armor-display';
+        armorEl.style.cssText = 'position:fixed;bottom:75px;left:50%;transform:translateX(-50%);background:rgba(20,24,30,0.85);border:1px solid rgba(255,255,255,0.2);padding:3px 10px;border-radius:12px;color:#e0e8f0;font-size:12px;font-weight:bold;z-index:90;display:none;';
+        hud.appendChild(armorEl);
+      }
+    }
+    if (armorEl) {
+      if (armVal > 0) {
+        armorEl.style.display = 'block';
+        let sh = '';
+        for (let i = 0; i < Math.min(10, Math.ceil(armVal / 2)); i++) sh += '🛡️';
+        armorEl.innerHTML = `${sh} <span style="margin-left:4px;">${armVal}</span>`;
+      } else {
+        armorEl.style.display = 'none';
+      }
+    }
+
+    // Map item scroll overlay when holding map
+    const held = this.player ? this.player.heldStack() : null;
+    let mapOverlay = document.getElementById('map-item-overlay');
+    if (held && (held.id === ITEM.MAP || String(held.id).includes('MAP'))) {
+      if (!mapOverlay) {
+        mapOverlay = document.createElement('div');
+        mapOverlay.id = 'map-item-overlay';
+        mapOverlay.style.cssText = 'position:fixed;bottom:100px;right:25px;width:150px;height:150px;background:rgba(220,195,150,0.95);border:4px solid #7a4a20;border-radius:8px;box-shadow:0 6px 16px rgba(0,0,0,0.6);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99;font-family:sans-serif;color:#3a2010;font-weight:bold;';
+        document.body.appendChild(mapOverlay);
+      }
+      mapOverlay.style.display = 'flex';
+      const cx = Math.floor(this.player.position.x / 16);
+      const cz = Math.floor(this.player.position.z / 16);
+      mapOverlay.innerHTML = `<div style="font-size:11px;letter-spacing:1px;margin-bottom:6px;border-bottom:1px solid #9a6a30;padding-bottom:2px;">📜 MAP RECORD</div><div style="font-size:26px;line-height:1;">📍</div><div style="font-size:11px;margin-top:4px;">Chunk (${cx}, ${cz})</div>`;
+    } else if (mapOverlay) {
+      mapOverlay.style.display = 'none';
+    }
+
+    // Compass item rotating needle overlay
+    let compassOverlay = document.getElementById('compass-item-overlay');
+    if (held && (held.id === ITEM.COMPASS || String(held.id).includes('COMPASS'))) {
+      if (!compassOverlay) {
+        compassOverlay = document.createElement('div');
+        compassOverlay.id = 'compass-item-overlay';
+        compassOverlay.style.cssText = 'position:fixed;bottom:100px;left:25px;width:96px;height:96px;background:rgba(25,28,35,0.92);border:3px solid #e0c060;border-radius:50%;box-shadow:0 6px 16px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:99;';
+        document.body.appendChild(compassOverlay);
+      }
+      compassOverlay.style.display = 'flex';
+      const from = { x: this.player.position.x, z: this.player.position.z };
+      const to = { x: this._spawnPos ? this._spawnPos.x : 0, z: this._spawnPos ? this._spawnPos.z : 0 };
+      const rad = compassNeedleAngle(this.player.yaw, from, to);
+      const deg = (rad * 180) / Math.PI;
+      compassOverlay.innerHTML = `<div style="width:5px;height:46px;background:linear-gradient(to bottom, #ff2222 50%, #ffffff 50%);transform:rotate(${deg}deg);transform-origin:center center;border-radius:3px;box-shadow:0 0 6px rgba(255,50,50,0.5);"></div>`;
+    } else if (compassOverlay) {
+      compassOverlay.style.display = 'none';
+    }
+
     document.querySelectorAll('#hotbar .hotbar-slot').forEach((el, i) => {
       el.classList.toggle('active', i === this.player.hotbarIndex);
       const stack = this.player.slots[i];
@@ -6913,6 +7167,7 @@ export class Game {
         if (!countEl) {
           countEl = document.createElement('span');
           countEl.className = 'hb-count';
+          countEl.style.cssText = 'position:absolute;bottom:2px;right:4px;font-size:12px;font-weight:bold;color:#ffffff;text-shadow:1px 1px 2px #000, -1px -1px 2px #000;background:rgba(0,0,0,0.5);padding:0 3px;border-radius:3px;';
           el.appendChild(countEl);
         }
         countEl.textContent = String(stack.count);
@@ -7068,9 +7323,10 @@ const hbName = document.getElementById('hotbar-name');
     }
 
     this._flowerTimer = (this._flowerTimer || 0) + dt;
-    if (this._flowerTimer > 2.0) { // Update flower patches every 2 seconds
+    if (this._flowerTimer > 2.0) { // Update flower patches & environmental details every 2 seconds
       this._flowerTimer = 0;
       this.updateFlowers();
+      this.updateEnvironmentalDetails();
     }
 
     this._pebbleTimer = (this._pebbleTimer || 0) + dt;

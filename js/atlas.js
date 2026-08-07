@@ -310,6 +310,193 @@ function drawPlanks(ctx, x0, y0) {
     }
     ctx.strokeStyle = 'rgba(90,60,25,0.7)';
   }
+  // Detailed oak knot holes (concentric dark oval with lighter outline ring)
+  const knotPositions = [{ x: 10, y: 5 }, { x: 22, y: 21 }];
+  for (const k of knotPositions) {
+    const kx = x0 + k.x;
+    const ky = y0 + k.y;
+    ctx.fillStyle = 'rgba(70, 40, 15, 0.85)';
+    ctx.beginPath();
+    ctx.ellipse(kx, ky, 2.5, 1.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(210, 170, 110, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(kx, ky, 3.8, 2.6, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+export function drawBirchPlanks(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [225, 215, 190], 0.12, 115);
+  const rand = createSeededRand(115);
+  ctx.strokeStyle = 'rgba(110, 95, 75, 0.65)';
+  for (let y = 0; y < TILE_PX; y += 8) {
+    ctx.beginPath(); ctx.moveTo(x0, y0 + y); ctx.lineTo(x0 + TILE_PX, y0 + y); ctx.stroke();
+    for (let k = 0; k < 2; k++) {
+      const bx = x0 + Math.floor(rand() * 24);
+      const by = y0 + y + 2 + Math.floor(rand() * 3);
+      ctx.fillStyle = 'rgba(45, 40, 35, 0.75)';
+      ctx.fillRect(bx, by, 3 + Math.floor(rand() * 4), 1);
+    }
+  }
+}
+
+export function drawSprucePlanksWithResin(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [105, 68, 38], 0.18, 215);
+  const rand = createSeededRand(215);
+  ctx.strokeStyle = 'rgba(45, 25, 12, 0.75)';
+  for (let y = 0; y < TILE_PX; y += 8) {
+    ctx.beginPath(); ctx.moveTo(x0, y0 + y); ctx.lineTo(x0 + TILE_PX, y0 + y); ctx.stroke();
+  }
+  for (let i = 0; i < 4; i++) {
+    const rx = x0 + 4 + rand() * 24;
+    const ry = y0 + 4 + rand() * 24;
+    ctx.fillStyle = 'rgba(235, 175, 40, 0.85)';
+    ctx.beginPath(); ctx.arc(rx, ry, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255, 240, 180, 0.9)'; ctx.fillRect(rx - 0.5, ry - 0.5, 1, 1);
+  }
+}
+
+export function drawGranite(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [185, 130, 115], 0.25, 415);
+  const rand = createSeededRand(415);
+  for (let i = 0; i < 22; i++) {
+    const gx = x0 + rand() * 30;
+    const gy = y0 + rand() * 30;
+    ctx.fillStyle = rand() > 0.4 ? 'rgba(245, 230, 220, 0.75)' : 'rgba(60, 45, 45, 0.8)';
+    ctx.fillRect(gx, gy, 1 + rand() * 2, 1 + rand() * 2);
+  }
+}
+
+export function drawDiorite(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [220, 225, 225], 0.2, 515);
+  const rand = createSeededRand(515);
+  for (let i = 0; i < 24; i++) {
+    const dx = x0 + rand() * 30;
+    const dy = y0 + rand() * 30;
+    ctx.fillStyle = rand() > 0.3 ? 'rgba(50, 55, 60, 0.82)' : 'rgba(160, 165, 170, 0.6)';
+    ctx.fillRect(dx, dy, 1 + rand() * 2, 1 + rand() * 2);
+  }
+}
+
+export function drawAndesite(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [115, 120, 122], 0.22, 615);
+  const rand = createSeededRand(615);
+  for (let i = 0; i < 20; i++) {
+    const ax = x0 + rand() * 30;
+    const ay = y0 + rand() * 30;
+    ctx.fillStyle = rand() > 0.5 ? 'rgba(70, 75, 78, 0.75)' : 'rgba(160, 168, 172, 0.5)';
+    ctx.fillRect(ax, ay, 1 + rand() * 2.5, 1 + rand() * 2.5);
+  }
+}
+
+export function drawPolishedGranite(ctx, x0, y0) {
+  drawGranite(ctx, x0, y0);
+  ctx.strokeStyle = 'rgba(255, 240, 230, 0.35)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(x0 + 1, y0 + 1, TILE_PX - 2, TILE_PX - 2);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.fillRect(x0 + 3, y0 + 3, 10, 4);
+}
+
+export function drawPolishedDiorite(ctx, x0, y0) {
+  drawDiorite(ctx, x0, y0);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(x0 + 1, y0 + 1, TILE_PX - 2, TILE_PX - 2);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'; ctx.fillRect(x0 + 3, y0 + 3, 10, 4);
+}
+
+export function drawPolishedAndesite(ctx, x0, y0) {
+  drawAndesite(ctx, x0, y0);
+  ctx.strokeStyle = 'rgba(200, 210, 215, 0.35)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(x0 + 1, y0 + 1, TILE_PX - 2, TILE_PX - 2);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.fillRect(x0 + 3, y0 + 3, 10, 4);
+}
+
+const CONCRETE_COLORS = {
+  white: '#e9ecef', orange: '#f07f1d', magenta: '#bd36b9', light_blue: '#3ab3da',
+  yellow: '#fed83d', lime: '#70b919', pink: '#ed8dac', gray: '#3e4447',
+  light_gray: '#8e8e86', cyan: '#158991', purple: '#792aac', blue: '#35399d',
+  brown: '#6b4429', green: '#495b24', red: '#a12722', black: '#141519'
+};
+
+export function drawConcreteTexture(ctx, x0, y0, colorKey = 'white') {
+  const hex = CONCRETE_COLORS[colorKey] || CONCRETE_COLORS.white;
+  ctx.fillStyle = hex;
+  ctx.fillRect(x0, y0, TILE_PX, TILE_PX);
+  fillNoise(ctx, x0, y0, [128, 128, 128], 0.04, 715, 40);
+}
+
+export function drawTerracottaTexture(ctx, x0, y0, colorKey = 'natural') {
+  const baseRgb = colorKey === 'natural' ? [150, 92, 66] : [140, 100, 80];
+  fillNoise(ctx, x0, y0, baseRgb, 0.12, 815);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+  for (let y = 4; y < TILE_PX; y += 8) {
+    ctx.fillRect(x0, y0 + y, TILE_PX, 2);
+  }
+}
+
+export function drawPrismarine(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [40, 110, 105], 0.25, 915);
+  const rand = createSeededRand(915);
+  for (let i = 0; i < 12; i++) {
+    const px = x0 + 3 + rand() * 24;
+    const py = y0 + 3 + rand() * 24;
+    ctx.fillStyle = 'rgba(90, 220, 200, 0.85)';
+    ctx.beginPath(); ctx.arc(px, py, 1.8, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+export function drawNetherBricks(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [48, 22, 28], 0.2, 1015);
+  ctx.strokeStyle = 'rgba(24, 10, 14, 0.9)'; ctx.lineWidth = 1.5;
+  for (let y = 0; y <= TILE_PX; y += 8) {
+    ctx.beginPath(); ctx.moveTo(x0, y0 + y); ctx.lineTo(x0 + TILE_PX, y0 + y); ctx.stroke();
+  }
+  for (let r = 0; r < 4; r++) {
+    const y1 = y0 + r * 8;
+    const xOffs = r % 2 === 0 ? [8, 24] : [0, 16, 32];
+    for (const xo of xOffs) {
+      ctx.beginPath(); ctx.moveTo(x0 + xo, y1); ctx.lineTo(x0 + xo, y1 + 8); ctx.stroke();
+    }
+  }
+}
+
+export function drawAcaciaLeaves(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [170, 125, 45], 0.4, 1115, 230);
+  const r = rnd(1116);
+  for (let i = 0; i < 22; i++) {
+    ctx.fillStyle = r() > 0.5 ? 'rgba(190, 95, 30, 0.5)' : 'rgba(140, 150, 40, 0.45)';
+    ctx.beginPath(); ctx.arc(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1.5 + r() * 2.5, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+export function drawDarkOakLeaves(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [28, 48, 28], 0.5, 1215, 240);
+  const r = rnd(1216);
+  for (let i = 0; i < 24; i++) {
+    ctx.fillStyle = r() > 0.4 ? 'rgba(15, 25, 18, 0.7)' : 'rgba(22, 22, 38, 0.55)';
+    ctx.beginPath(); ctx.arc(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1.5 + r() * 2.5, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+export function drawAzaleaLeaves(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [75, 165, 52], 0.35, 1315, 230);
+  const r = rnd(1316);
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = '#ff88bb';
+    ctx.beginPath(); ctx.arc(x0 + 4 + r() * 24, y0 + 4 + r() * 24, 1.5, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+export function drawFloweringAzaleaLeaves(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [65, 155, 48], 0.35, 1415, 230);
+  const r = rnd(1416);
+  for (let i = 0; i < 12; i++) {
+    const fx = x0 + 4 + r() * 24;
+    const fy = y0 + 4 + r() * 24;
+    ctx.fillStyle = r() > 0.3 ? '#ff66aa' : '#ffffff';
+    ctx.beginPath(); ctx.arc(fx, fy, 2.2, 0, Math.PI * 2); ctx.fill();
+  }
 }
 
 function drawCobble(ctx, x0, y0) {
@@ -1046,3 +1233,88 @@ paint(TILE.WALL, drawWall);
 
   return { canvas, texture, material, greedyMaterial, crackMaterial, uvsForTile: tileUVs };
 }
+
+export function drawItemIconToCanvas(ctx, itemType, x0 = 0, y0 = 0, sz = 32) {
+  ctx.save();
+  const s = sz / 32;
+  ctx.scale(s, s);
+
+  const it = String(itemType || '').toLowerCase();
+  const lx = x0 / s;
+  const ly = y0 / s;
+  ctx.clearRect(lx, ly, 32, 32);
+
+  if (it.includes('pickaxe')) {
+    const mat = it.includes('diamond') ? '#40e0d0' : it.includes('gold') ? '#ffd700' : it.includes('iron') ? '#d8d8d8' : it.includes('stone') ? '#888888' : '#a06a3b';
+    ctx.strokeStyle = '#6b4423'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(lx + 6, ly + 26); ctx.lineTo(lx + 22, ly + 10); ctx.stroke();
+    ctx.strokeStyle = mat; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(lx + 10, ly + 6); ctx.quadraticCurveTo(lx + 24, ly + 8, lx + 26, ly + 22); ctx.stroke();
+  } else if (it.includes('axe')) {
+    const mat = it.includes('diamond') ? '#40e0d0' : it.includes('gold') ? '#ffd700' : it.includes('iron') ? '#d8d8d8' : it.includes('stone') ? '#888888' : '#a06a3b';
+    ctx.strokeStyle = '#6b4423'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(lx + 6, ly + 26); ctx.lineTo(lx + 22, ly + 10); ctx.stroke();
+    ctx.fillStyle = mat;
+    ctx.beginPath(); ctx.moveTo(lx + 16, ly + 6); ctx.lineTo(lx + 26, ly + 12); ctx.lineTo(lx + 20, ly + 20); ctx.closePath(); ctx.fill();
+  } else if (it.includes('shovel')) {
+    const mat = it.includes('diamond') ? '#40e0d0' : it.includes('gold') ? '#ffd700' : it.includes('iron') ? '#d8d8d8' : it.includes('stone') ? '#888888' : '#a06a3b';
+    ctx.strokeStyle = '#6b4423'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(lx + 6, ly + 26); ctx.lineTo(lx + 20, ly + 12); ctx.stroke();
+    ctx.fillStyle = mat;
+    ctx.beginPath(); ctx.arc(lx + 23, ly + 9, 5, 0, Math.PI * 2); ctx.fill();
+  } else if (it.includes('hoe')) {
+    const mat = it.includes('diamond') ? '#40e0d0' : it.includes('gold') ? '#ffd700' : it.includes('iron') ? '#d8d8d8' : it.includes('stone') ? '#888888' : '#a06a3b';
+    ctx.strokeStyle = '#6b4423'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(lx + 6, ly + 26); ctx.lineTo(lx + 22, ly + 10); ctx.stroke();
+    ctx.strokeStyle = mat; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(lx + 18, ly + 8); ctx.lineTo(lx + 27, ly + 12); ctx.stroke();
+  } else if (it.includes('sword')) {
+    const mat = it.includes('diamond') ? '#40e0d0' : it.includes('gold') ? '#ffd700' : it.includes('iron') ? '#d8d8d8' : it.includes('stone') ? '#888888' : '#a06a3b';
+    ctx.strokeStyle = mat; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(lx + 10, ly + 22); ctx.lineTo(lx + 26, ly + 6); ctx.stroke();
+    ctx.strokeStyle = '#6b4423'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(lx + 6, ly + 22); ctx.lineTo(lx + 14, ly + 26); ctx.stroke();
+    ctx.strokeStyle = '#4a2e18'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(lx + 6, ly + 26); ctx.lineTo(lx + 4, ly + 28); ctx.stroke();
+  } else if (it.includes('helmet') || it.includes('chest') || it.includes('leggings') || it.includes('boots') || it.includes('armor')) {
+    const mat = it.includes('diamond') ? '#40e0d0' : it.includes('gold') ? '#ffd700' : it.includes('chain') ? '#aaaaaa' : it.includes('leather') ? '#8b5a2b' : '#d8d8d8';
+    ctx.fillStyle = mat;
+    ctx.beginPath(); ctx.arc(lx + 16, ly + 16, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.stroke();
+  } else if (it.includes('apple')) {
+    ctx.fillStyle = '#ee2222';
+    ctx.beginPath(); ctx.arc(lx + 16, ly + 18, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#6b4423'; ctx.fillRect(lx + 15, ly + 6, 2, 4);
+    ctx.fillStyle = '#44aa22'; ctx.beginPath(); ctx.ellipse(lx + 19, ly + 7, 3, 1.5, Math.PI/4, 0, Math.PI*2); ctx.fill();
+  } else if (it.includes('chicken') || it.includes('meat') || it.includes('pork') || it.includes('food')) {
+    ctx.fillStyle = '#d49b4b'; ctx.beginPath(); ctx.ellipse(lx + 18, ly + 14, 8, 6, Math.PI/6, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#eeeeee'; ctx.fillRect(lx + 6, ly + 19, 6, 3);
+  } else if (it.includes('bread')) {
+    ctx.fillStyle = '#c48b3b'; ctx.beginPath(); ctx.ellipse(lx + 16, ly + 16, 12, 6, -Math.PI/6, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#7a4e15'; ctx.lineWidth = 1.5;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath(); ctx.moveTo(lx + 10 + i * 5, ly + 12); ctx.lineTo(lx + 12 + i * 5, ly + 19); ctx.stroke();
+    }
+  } else if (it.includes('cake')) {
+    ctx.fillStyle = '#8b5a2b'; ctx.fillRect(lx + 6, ly + 14, 20, 10);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(lx + 6, ly + 10, 20, 6);
+    ctx.fillStyle = '#ee2222'; ctx.fillRect(lx + 10, ly + 8, 3, 3); ctx.fillRect(lx + 19, ly + 8, 3, 3);
+  } else if (it.includes('repeater') || it.includes('comparator') || it.includes('observer') || it.includes('piston')) {
+    ctx.fillStyle = '#888888'; ctx.fillRect(lx + 4, ly + 10, 24, 16);
+    ctx.fillStyle = '#ee2222'; ctx.fillRect(lx + 10, ly + 6, 3, 5); ctx.fillRect(lx + 19, ly + 6, 3, 5);
+  } else {
+    ctx.fillStyle = '#aa8866'; ctx.fillRect(lx + 8, ly + 8, 16, 16);
+  }
+
+  ctx.restore();
+}
+
+export function generateItemIconDataUrl(itemType) {
+  if (typeof document === 'undefined') return '';
+  const cv = document.createElement('canvas');
+  cv.width = 32; cv.height = 32;
+  const c = cv.getContext('2d');
+  drawItemIconToCanvas(c, itemType, 0, 0, 32);
+  return cv.toDataURL();
+}
+
