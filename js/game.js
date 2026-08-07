@@ -903,6 +903,14 @@ export class Game {
     this._bindInventoryUi();
     this._bindPauseUi();
 
+    this._initCraftingSystem();
+    this._initInventoryExtensions();
+    this._initAchievementsAndStats();
+    this._initMultiplayerExtensions();
+    this._initSaveSystem();
+    this._initPerformanceSystem();
+    this._initAccessibilitySystem();
+
     this._last = performance.now();
     this._raf = 0;
   }
@@ -912,6 +920,369 @@ export class Game {
       this.saveGame({ quiet: true });
     }
   };
+
+  // =========================================================================
+  // SYSTEMS 1-7: CRAFTING, INVENTORY, ACHIEVEMENTS, CO-OP, SAVE, PERF, ACCESS
+  // =========================================================================
+  _initCraftingSystem() {
+    this._crafting3x3Grid = new Array(9).fill(null);
+    this._brewingStands = new Map(); // key "x,y,z" -> { top: null, bottom: [null, null, null], brewTime: 0 }
+    this._shapelessRecipes = [
+      { id: 'yellow_dye', name: 'Yellow Dye', ingredients: ['dandelion'], result: { id: 'yellow_dye', count: 2 } },
+      { id: 'red_dye', name: 'Red Dye', ingredients: ['rose'], result: { id: 'red_dye', count: 2 } },
+      { id: 'blue_dye', name: 'Blue Dye', ingredients: ['blue_flower'], result: { id: 'blue_dye', count: 2 } },
+      { id: 'orange_dye', name: 'Orange Dye', ingredients: ['red_dye', 'yellow_dye'], result: { id: 'orange_dye', count: 2 } },
+      { id: 'purple_dye', name: 'Purple Dye', ingredients: ['red_dye', 'blue_dye'], result: { id: 'purple_dye', count: 2 } },
+      { id: 'white_dye', name: 'White Dye', ingredients: ['bone_meal'], result: { id: 'white_dye', count: 3 } },
+      { id: 'mushroom_stew', name: 'Mushroom Stew', ingredients: ['red_mushroom', 'brown_mushroom', 'bowl'], result: { id: 'mushroom_stew', count: 1 } },
+      { id: 'pumpkin_pie', name: 'Pumpkin Pie', ingredients: ['pumpkin', 'sugar', 'egg'], result: { id: 'pumpkin_pie', count: 1 } },
+      { id: 'fruit_salad', name: 'Fruit Salad', ingredients: ['berries', 'coconut'], result: { id: 'fruit_salad', count: 1 } }
+    ];
+  }
+
+  _matchShapelessRecipe(itemsArr) {
+    if (!itemsArr || !itemsArr.length) return null;
+    const present = itemsArr.filter(x => x && x.id != null).map(x => x.id);
+    if (!present.length) return null;
+    for (const r of this._shapelessRecipes) {
+      if (r.ingredients.length === present.length) {
+        const sortedA = [...r.ingredients].sort();
+        const sortedB = [...present].sort();
+        if (sortedA.every((val, idx) => val === sortedB[idx])) {
+          return r;
+        }
+      }
+    }
+    return null;
+  }
+
+  _tickCraftingAndStations(dt) {
+    this._tickFurnaces(dt);
+    this._tickBrewingStands(dt);
+    this._tickHoppers(dt);
+    this._tickBeacon(dt);
+  }
+
+  _tickBrewingStands(dt) {
+    if (!this._brewingStands || !this._brewingStands.size) return;
+    for (const [key, b] of this._brewingStands.entries()) {
+      if (b.top && b.bottom.some(s => s != null)) {
+        b.brewTime = (b.brewTime || 0) + dt;
+        if (b.brewTime >= 20.0) {
+          b.brewTime = 0;
+          const ing = b.top.id;
+          b.bottom = b.bottom.map(s => {
+            if (!s) return null;
+            if (ing === 'sugar') return { id: 'speed_potion', count: 1 };
+            if (ing === 'spider_eye') return { id: 'poison_potion', count: 1 };
+            if (ing === 'blaze_powder') return { id: 'strength_potion', count: 1 };
+            if (ing === 'glistering_melon') return { id: 'healing_potion', count: 1 };
+            return { id: 'awkward_potion', count: 1 };
+          });
+          b.top.count--;
+          if (b.top.count <= 0) b.top = null;
+          this.audio?.ui?.();
+        }
+      } else {
+        b.brewTime = 0;
+      }
+    }
+  }
+
+  _getBookshelfCountAround(bx, by, bz) {
+    if (!this.world) return 0;
+    let count = 0;
+    for (let dx = -2; dx <= 2; dx++) {
+      for (let dz = -2; dz <= 2; dz++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          if (dx === 0 && dz === 0) continue;
+          if (this.world.getBlock(bx + dx, by + dy, bz + dz) === BLOCK.BOOKSHELF) {
+            count++;
+          }
+        }
+      }
+    }
+    return Math.min(count, 15);
+  }
+
+  _getEnchantmentOptions(bookshelfCount) {
+    const maxLevel = Math.max(1, Math.min(30, Math.floor(bookshelfCount * 2)));
+    return [
+      { name: 'Protection I', level: Math.max(1, Math.floor(maxLevel * 0.3)), cost: 1, type: 'armor' },
+      { name: 'Efficiency II', level: Math.max(1, Math.floor(maxLevel * 0.6)), cost: 2, type: 'tool' },
+      { name: 'Sharpness III', level: maxLevel, cost: 3, type: 'weapon' }
+    ];
+  }
+
+  _repairOrRenameItem(itemA, itemB, newName) {
+    if (!itemA) return null;
+    const res = { ...itemA };
+    if (itemB && itemA.id === itemB.id) {
+      const durA = itemA.durability ?? 100;
+      const durB = itemB.durability ?? 100;
+      res.durability = Math.min(100, durA + durB + 12);
+    }
+    if (newName && newName.trim()) {
+      res.customName = newName.trim();
+    }
+    return res;
+  }
+
+  _initInventoryExtensions() {
+    this._shulkerBoxes = new Map();
+    this._beaconActive = null;
+    this._beaconBuffTimer = 0;
+  }
+
+  _checkDoubleChest(key) {
+    if (!this._chests || !key) return null;
+    const parts = key.split(',').map(Number);
+    if (parts.length !== 3) return null;
+    const [x, y, z] = parts;
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (const [dx, dz] of dirs) {
+      const adjKey = `${x + dx},${y},${z + dz}`;
+      if (this._chests.has(adjKey)) {
+        return { isDouble: true, adjKey };
+      }
+    }
+    return null;
+  }
+
+  _tickHoppers(dt) {
+    if (!this.world || !this._chests) return;
+    this._hopperTimer = (this._hopperTimer || 0) + dt;
+    if (this._hopperTimer < 0.4) return;
+    this._hopperTimer = 0;
+  }
+
+  _triggerDispenserOrDropper(x, y, z, isDispenser = true) {
+    if (!this.world || !this.player) return;
+    const item = this.player.heldId();
+    if (!item) return;
+    if (isDispenser) {
+      const props = propsOf(item);
+      if (props?.warmth) {
+        equipItem(this.player.equipment, item);
+        this.player.notify(`Dispenser equipped ${displayName(item)}!`);
+      } else if (item === ITEM.TORCH || item === ITEM.SOUL_TORCH) {
+        if (this.world.getBlock(x, y + 1, z) === BLOCK.AIR) {
+          this.world.setBlock(x, y + 1, z, BLOCK.TORCH);
+          this.player.notify('Dispenser placed torch.');
+        }
+      } else {
+        this._throwHeldItem();
+      }
+    } else {
+      this._throwHeldItem();
+    }
+  }
+
+  _tickBeacon(dt) {
+    if (!this.player || !this.world) return;
+    this._beaconBuffTimer = (this._beaconBuffTimer || 0) + dt;
+    if (this._beaconBuffTimer >= 4.0) {
+      this._beaconBuffTimer = 0;
+      if (this._beaconActive) {
+        this.survival.stamina = Math.min(100, (this.survival.stamina || 100) + 15);
+      }
+    }
+  }
+
+  _initAchievementsAndStats() {
+    this.stats = {
+      blocksMined: 0,
+      blocksPlaced: 0,
+      distanceWalked: 0,
+      animalsBred: 0,
+      fishCaught: 0,
+      damageDealt: 0,
+      damageTaken: 0,
+      mobsKilled: 0,
+      itemsCrafted: 0,
+      timePlayedSec: 0,
+    };
+    this._advancementsUnlocked = new Set(['root', 'stone_age']);
+    this._dailyChallenges = [
+      { id: 'c1', desc: 'Mine 50 Stone', target: 50, progress: 0, reward: '10 Planks', claimed: false },
+      { id: 'c2', desc: 'Catch 3 Fish', target: 3, progress: 0, reward: '5 Cooked Fish', claimed: false },
+      { id: 'c3', desc: 'Craft 1 Furnace', target: 1, progress: 0, reward: '8 Coal', claimed: false }
+    ];
+  }
+
+  _recordStat(key, amount = 1) {
+    if (!this.stats) this._initAchievementsAndStats();
+    if (typeof this.stats[key] === 'number') {
+      this.stats[key] += amount;
+    } else {
+      this.stats[key] = amount;
+    }
+    if (key === 'blocksMined' && this._dailyChallenges?.[0]) {
+      this._dailyChallenges[0].progress = Math.min(this._dailyChallenges[0].target, this.stats.blocksMined);
+    }
+    if (key === 'fishCaught' && this._dailyChallenges?.[1]) {
+      this._dailyChallenges[1].progress = Math.min(this._dailyChallenges[1].target, this.stats.fishCaught);
+    }
+    if (key === 'itemsCrafted' && this._dailyChallenges?.[2]) {
+      this._dailyChallenges[2].progress = Math.min(this._dailyChallenges[2].target, this.stats.itemsCrafted);
+    }
+  }
+
+  _triggerAchievementToast(id, title, desc, icon = '🏆') {
+    if (this._ttsEnabled) {
+      this._speak(`Advancement Unlocked: ${title}`);
+    }
+    if (typeof document !== 'undefined') {
+      let toastEl = document.getElementById('fs-achievement-toast');
+      if (!toastEl) {
+        toastEl = document.createElement('div');
+        toastEl.id = 'fs-achievement-toast';
+        toastEl.style.cssText = 'position:fixed;top:20px;right:20px;background:rgba(20,25,40,0.92);border:2px solid #fbbf24;border-radius:10px;padding:12px 18px;color:#fff;display:flex;align-items:center;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,0.6);z-index:99999;transition:all 0.4s ease;transform:translateX(120%);';
+        document.body.appendChild(toastEl);
+      }
+      toastEl.innerHTML = `<span style="font-size:24px;">${icon}</span><div><div style="font-size:11px;color:#fbbf24;font-weight:bold;text-transform:uppercase;">Advancement Made!</div><div style="font-size:14px;font-weight:bold;">${title}</div><div style="font-size:11px;color:#94a3b8;">${desc}</div></div>`;
+      toastEl.style.transform = 'translateX(0%)';
+      setTimeout(() => {
+        if (toastEl) toastEl.style.transform = 'translateX(120%)';
+      }, 3500);
+    }
+  }
+
+  _initMultiplayerExtensions() {
+    this._chatMessages = [];
+    this._coopTradeState = { active: false, p1Items: [], p2Items: [], p1Ready: false, p2Ready: false };
+    this._floatingNumbers = [];
+  }
+
+  _syncCoopWorldState(dt) {
+    if (!this.coopMode || !this.player2) return;
+    if (this.player && this.player2) {
+      const dist = this.player.position.distanceTo(this.player2.position);
+      this._bothPlayersClose = dist < 15;
+    }
+    if (this._floatingNumbers && this._floatingNumbers.length) {
+      for (let i = this._floatingNumbers.length - 1; i >= 0; i--) {
+        const fn = this._floatingNumbers[i];
+        fn.life += dt;
+        fn.pos.y += dt * 0.8;
+        if (fn.life >= 1.2) {
+          if (fn.mesh && this.scene) this.scene.remove(fn.mesh);
+          this._floatingNumbers.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  _addChatMessage(sender, text, color = '#38bdf8') {
+    const msg = { sender, text, color, time: Date.now() };
+    this._chatMessages.push(msg);
+    if (this._chatMessages.length > 50) this._chatMessages.shift();
+    if (this._ttsEnabled && sender !== 'System') {
+      this._speak(`${sender} says: ${text}`);
+    }
+  }
+
+  _initSaveSystem() {
+    this._currentSaveSlot = 1;
+    this._autoSaveTimer = 0;
+    this._checkpointState = null;
+    this._worldBackup = null;
+  }
+
+  _createAutoSaveCheckpoint() {
+    if (!this.started || !this.player) return;
+    this._checkpointState = this.captureState();
+    this.player.notify('Auto-save checkpoint created.');
+  }
+
+  _restoreCheckpoint() {
+    if (!this._checkpointState) return false;
+    this._bootWorld({
+      seed: this.seed,
+      freshPlayer: false,
+      saveData: this._checkpointState,
+      notify: 'Restored from checkpoint!'
+    });
+    return true;
+  }
+
+  _copySeedToClipboard() {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(String(this.seed));
+      this.player?.notify?.(`Copied Seed: ${this.seed}`);
+    }
+  }
+
+  _createWorldBackup() {
+    if (!this._worldBackup && this.started) {
+      this._worldBackup = this.captureState();
+    }
+  }
+
+  _initPerformanceSystem() {
+    this._particlePool = [];
+    this._maxParticles = 60;
+  }
+
+  _optimizeChunkVisibility() {
+    if (!this.world || !this.player || !this.camera) return;
+    const renderDist = this.settings.renderDistance ?? 5;
+    const px = Math.floor(this.player.position.x / 16);
+    const pz = Math.floor(this.player.position.z / 16);
+    if (this.world.chunks) {
+      for (const [key, chunk] of this.world.chunks.entries()) {
+        const dx = Math.abs(chunk.cx - px);
+        const dz = Math.abs(chunk.cz - pz);
+        if (dx > renderDist + 1 || dz > renderDist + 1) {
+          if (chunk.mesh) chunk.mesh.visible = false;
+        } else {
+          if (chunk.mesh) chunk.mesh.visible = true;
+        }
+      }
+    }
+  }
+
+  _updatePerformanceHUD(dt) {
+    if (typeof document === 'undefined') return;
+    const fpsEl = document.getElementById('fs-fps-overlay');
+    if (!fpsEl) return;
+    const fps = Math.round(this._fps || 60);
+    const ms = ((dt || 0.016) * 1000).toFixed(1);
+    const chunks = this.world?.chunks?.size || 0;
+    fpsEl.textContent = `FPS: ${fps} | Frame: ${ms}ms | Chunks: ${chunks} | RD: ${this.settings.renderDistance ?? 5}`;
+  }
+
+  _initAccessibilitySystem() {
+    this._colorblindMode = this.settings.colorblindMode || 'none';
+    this._uiScale = this.settings.uiScale || 1.0;
+    this._motionSensitivity = this.settings.motionSensitivity ?? 1.0;
+    this._ttsEnabled = this.settings.ttsEnabled || false;
+  }
+
+  _speak(text) {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window && this._ttsEnabled) {
+      try {
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 1.1;
+        window.speechSynthesis.speak(u);
+      } catch (e) {}
+    }
+  }
+
+  _applyMotionSensitivity(val) {
+    this._motionSensitivity = Math.max(0, Math.min(1, val));
+    this.settings.motionSensitivity = this._motionSensitivity;
+    writeSettings(this.settings);
+  }
+
+  _applyUIScale(scale) {
+    this._uiScale = Math.max(0.8, Math.min(1.6, scale));
+    this.settings.uiScale = this._uiScale;
+    writeSettings(this.settings);
+    if (typeof document !== 'undefined' && document.documentElement) {
+      document.documentElement.style.setProperty('--fs-ui-scale', String(this._uiScale));
+    }
+  }
 
   _bindInventoryUi() {
     const panel = document.getElementById('inventory-screen');
@@ -1971,6 +2342,7 @@ export class Game {
     if (recipeId === 'snare') this._unlock('first_snare');
     if (recipeId === 'chest') this._unlock('first_chest');
     if (recipeId === 'cook_meat') this._unlock('first_cook');
+    this._recordStat('itemsCrafted', 1);
     this._invNeedsPaint = true;
     this._paintInventory();
   }
@@ -1991,6 +2363,10 @@ export class Game {
 
     // survival keeps ticking even in inventory (you're still cold/hungry)
     this.time.tick(dt);
+    this._tickCraftingAndStations(dt);
+    this._syncCoopWorldState(dt);
+    this._optimizeChunkVisibility();
+    this._updatePerformanceHUD(dt);
     this._crossHitT = Math.max(0, this._crossHitT - dt);
     this._bowCd = Math.max(0, this._bowCd - dt);
     this._bowCd2 = Math.max(0, (this._bowCd2 || 0) - dt);
