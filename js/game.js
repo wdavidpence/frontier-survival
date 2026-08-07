@@ -3,6 +3,8 @@ import { World } from './world.js?v=285';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=283';
 import { GameTime } from './time.js?v=220';
+import { getSunForTime } from './lighting-palette.js?v=1';
+import { torchFalloff } from './torch-falloff.js?v=1';
 import { AudioBus } from './audio.js?v=220';
 import {
   DEFAULT_SURVIVAL,
@@ -149,25 +151,176 @@ export class Game {
     this.renderer.toneMappingExposure = 1.08;
 
     this.scene = new THREE.Scene();
-    this.skyDome = new THREE.Mesh(
-      new THREE.SphereGeometry(900, 32, 16),
-      new THREE.ShaderMaterial({
-        side: THREE.BackSide,
-        depthWrite: false,
-        depthTest: false,
-        uniforms: {
-          topColor: { value: new THREE.Color(0x4f86c6) },
-          horizonColor: { value: new THREE.Color(0xd9ecff) },
-          groundColor: { value: new THREE.Color(0x9bb0c4) },
-        },
-        vertexShader: 'varying vec3 vLocal; void main(){ vLocal=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-        fragmentShader: 'uniform vec3 topColor; uniform vec3 horizonColor; uniform vec3 groundColor; varying vec3 vLocal; void main(){ float h=clamp(normalize(vLocal).y,-1.0,1.0); float t=smoothstep(-0.12,0.42,h); vec3 sky=mix(horizonColor,topColor,t); sky=mix(groundColor,sky,smoothstep(-0.42,-0.04,h)); gl_FragColor=vec4(sky,1.0); }',
-      }),
-    );
+    const skyMat = new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      depthTest: false,
+      uniforms: {
+        topColor: { value: new THREE.Color(0x4f86c6) },
+        bottomColor: { value: new THREE.Color(0xd9ecff) },
+        offset: { value: 0.0 },
+        exponent: { value: 0.6 },
+      },
+      vertexShader: 'varying vec3 vLocal; void main(){ vLocal=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+      fragmentShader: 'uniform vec3 topColor; uniform vec3 bottomColor; uniform float offset; uniform float exponent; varying vec3 vLocal; void main(){ float h=normalize(vLocal).y; float t=max(pow(max(h+offset,0.0),exponent),0.0); gl_FragColor=vec4(mix(bottomColor,topColor,t),1.0); }',
+    });
+    this.skyDome = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), skyMat);
+    this.skyUniforms = skyMat.uniforms;
     this.skyDome.renderOrder = -100;
     this.scene.add(this.skyDome);
+
+    const sunDiscGeo = new THREE.CircleGeometry(6, 32);
+    const sunDiscMat = new THREE.MeshBasicMaterial({
+      color: 0xffffee,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+    });
+    this.sunDisc = new THREE.Mesh(sunDiscGeo, sunDiscMat);
+    this.sunDisc.renderOrder = -99;
+    this.scene.add(this.sunDisc);
+
+    const moonGeo = new THREE.CircleGeometry(4, 24);
+    const moonMat = new THREE.MeshBasicMaterial({
+      color: 0xccccdd,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
+    this.moonDisc = new THREE.Mesh(moonGeo, moonMat);
+    this.moonDisc.renderOrder = -98;
+    this.scene.add(this.moonDisc);
+
     this.scene.background = new THREE.Color(0x87b5ff);
-    this.scene.fog = new THREE.Fog(0x87b5ff, 40, 120);
+    this.scene.fog = new THREE.Fog(0x87b5ff, 60, 180);
+
+    // Water surface reflection plane
+    const waterGeo = new THREE.PlaneGeometry(400, 400, 64, 64);
+    const waterMat = new THREE.MeshPhongMaterial({
+      color: 0x2266aa,
+      transparent: true,
+      opacity: 0.6,
+      shininess: 80,
+      specular: 0x4488cc,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    this.waterSurface = new THREE.Mesh(waterGeo, waterMat);
+    this.waterSurface.rotation.x = -Math.PI / 2;
+    this.waterSurface.position.y = 31.5; // Just below surface blocks
+    this.waterSurface.renderOrder = -50;
+    this.scene.add(this.waterSurface);
+
+    // Grass blade particles — instanced patches on terrain
+    this._grassBlades = null;
+    this._grassTimer = 0;
+    const GRASS_COUNT = 3000;
+    const bladeGeo = new THREE.PlaneGeometry(0.1, 0.5);
+    const bladeMat = new THREE.MeshBasicMaterial({
+      color: 0x44aa22,
+      transparent: true,
+      opacity: 0.8,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    this._grassBlades = new THREE.InstancedMesh(bladeGeo, bladeMat, GRASS_COUNT);
+    this._grassBlades.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._grassBlades.frustumCulled = false;
+    this.scene.add(this._grassBlades);
+
+    // Pre-compute dummy matrices
+    this._grassDummy = new THREE.Object3D();
+    this._grassMatrices = [];
+    let gseed = 7777;
+    const grnd = () => { gseed = (gseed * 16807) % 2147483647; return (gseed - 1) / 2147483646; };
+    for (let i = 0; i < GRASS_COUNT; i++) {
+      this._grassDummy.position.set(
+        (grnd() - 0.5) * 300,
+        0,
+        (grnd() - 0.5) * 300
+      );
+      this._grassDummy.rotation.set(
+        (grnd() - 0.5) * 0.3,
+        grnd() * Math.PI * 2,
+        (grnd() - 0.5) * 0.3
+      );
+      this._grassDummy.scale.setScalar(0.5 + grnd() * 1.0);
+      this._grassDummy.updateMatrix();
+      this._grassBlades.setMatrixAt(i, this._grassDummy.matrix);
+    }
+    this._grassBlades.instanceMatrix.needsUpdate = true;
+
+    // Vine / foliage overlays — instanced hanging vines on tree leaves
+    const VINE_COUNT = 800;
+    const vineGeo = new THREE.CylinderGeometry(0.03, 0.05, 1.2, 4);
+    const vineMat = new THREE.MeshBasicMaterial({
+      color: 0x2e8b57,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+    });
+    this._vines = new THREE.InstancedMesh(vineGeo, vineMat, VINE_COUNT);
+    this._vines.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._vines.frustumCulled = false;
+    this.scene.add(this._vines);
+    this._vineDummy = new THREE.Object3D();
+    for (let i = 0; i < VINE_COUNT; i++) {
+      this._vineDummy.position.set(0, -1000, 0);
+      this._vineDummy.scale.setScalar(0);
+      this._vineDummy.updateMatrix();
+      this._vines.setMatrixAt(i, this._vineDummy.matrix);
+    }
+    this._vines.instanceMatrix.needsUpdate = true;
+
+    // Moss overlays on stone/dirt blocks near ground level in forest/tropical biomes
+    this._mossPatches = null;
+    this._mossTimer = 0;
+    const MOSS_COUNT = 600;
+    const mossGeo = new THREE.PlaneGeometry(0.8, 0.8);
+    const mossMat = new THREE.MeshBasicMaterial({
+      color: 0x3d7023,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    this._mossPatches = new THREE.InstancedMesh(mossGeo, mossMat, MOSS_COUNT);
+    this._mossPatches.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._mossPatches.frustumCulled = false;
+    this.scene.add(this._mossPatches);
+    this._mossDummy = new THREE.Object3D();
+    for (let i = 0; i < MOSS_COUNT; i++) {
+      this._mossDummy.position.set(0, -1000, 0);
+      this._mossDummy.scale.setScalar(0);
+      this._mossDummy.updateMatrix();
+      this._mossPatches.setMatrixAt(i, this._mossDummy.matrix);
+    }
+    this._mossPatches.instanceMatrix.needsUpdate = true;
+
+    // Flower patches on grass blocks
+    this._flowerPatches = null;
+    this._flowerTimer = 0;
+    const FLOWER_COUNT = 400;
+    const flowerGeo = new THREE.PlaneGeometry(0.35, 0.35);
+    const flowerMat = new THREE.MeshBasicMaterial({
+      color: 0xe85d75,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    this._flowerPatches = new THREE.InstancedMesh(flowerGeo, flowerMat, FLOWER_COUNT);
+    this._flowerPatches.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._flowerPatches.frustumCulled = false;
+    this.scene.add(this._flowerPatches);
+    this._flowerDummy = new THREE.Object3D();
+    for (let i = 0; i < FLOWER_COUNT; i++) {
+      this._flowerDummy.position.set(0, -1000, 0);
+      this._flowerDummy.scale.setScalar(0);
+      this._flowerDummy.updateMatrix();
+      this._flowerPatches.setMatrixAt(i, this._flowerDummy.matrix);
+    }
+    this._flowerPatches.instanceMatrix.needsUpdate = true;
 
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 200);
     /** P2 camera for local split-screen (active when coopMode). */
@@ -178,24 +331,99 @@ export class Game {
     this._tmpRight = new THREE.Vector3();
     this._tmpFwd = new THREE.Vector3();
 
+    // Contact shadow sprite under player
+    if (typeof document !== 'undefined') {
+      try {
+        const shadowCanvas = document.createElement('canvas');
+        shadowCanvas.width = 64;
+        shadowCanvas.height = 64;
+        const shadowCtx = shadowCanvas.getContext?.('2d');
+        if (shadowCtx) {
+          const gradient = shadowCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+          gradient.addColorStop(0, 'rgba(0,0,0,0.5)');
+          gradient.addColorStop(1, 'rgba(0,0,0,0)');
+          shadowCtx.fillStyle = gradient;
+          shadowCtx.fillRect(0, 0, 64, 64);
+        }
+        const shadowTexture = new THREE.CanvasTexture(shadowCanvas);
+        const shadowMat = new THREE.SpriteMaterial({
+          map: shadowTexture,
+          transparent: true,
+          depthWrite: false,
+          opacity: 0.6,
+        });
+        this.playerShadow = new THREE.Sprite(shadowMat);
+        this.playerShadow.scale.set(2, 1.4, 1);
+        this.scene.add(this.playerShadow);
+      } catch (e) {
+        const shadowMat = new THREE.SpriteMaterial({
+          transparent: true,
+          depthWrite: false,
+          opacity: 0.6,
+        });
+        this.playerShadow = new THREE.Sprite(shadowMat);
+        this.playerShadow.scale.set(2, 1.4, 1);
+        this.scene.add(this.playerShadow);
+      }
+    }
+
     // Apply render distance from settings
     this._applyRenderDistance();
 
-    this.ambient = new THREE.AmbientLight(0x7895b4, 0.52);
-    this.sun = new THREE.DirectionalLight(0xffe4bd, 1.0);
-    this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(1024, 1024);
-    this.sun.shadow.camera.near = 1;
-    this.sun.shadow.camera.far = 180;
-    this.sun.shadow.camera.left = -72;
-    this.sun.shadow.camera.right = 72;
-    this.sun.shadow.camera.top = 72;
-    this.sun.shadow.camera.bottom = -72;
-    this.sun.position.set(32, 72, 24);
-    this.scene.add(this.ambient, this.sun);
+    this.sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    this.sunLight.castShadow = true;
+    this.sunLight.shadow.mapSize.set(2048, 2048);
+    this.sunLight.shadow.camera.near = 1;
+    this.sunLight.shadow.camera.far = 250;
+    this.sunLight.shadow.camera.left = -100;
+    this.sunLight.shadow.camera.right = 100;
+    this.sunLight.shadow.camera.top = 100;
+    this.sunLight.shadow.camera.bottom = -100;
+    this.sunLight.shadow.bias = -0.001;
+    this.sunLight.shadow.normalBias = 0.02;
 
-    this.hemi = new THREE.HemisphereLight(0xa9d4ff, 0x4d3825, 0.52);
-    this.scene.add(this.hemi);
+    this.sunTarget = new THREE.Object3D();
+    this.sunTarget.position.set(0, 40, 0);
+    this.scene.add(this.sunTarget);
+    this.sunLight.target = this.sunTarget;
+
+    this.ambientLight = new THREE.HemisphereLight(0x86a8d7, 0x3a4a2a, 0.6);
+    this.scene.add(this.ambientLight, this.sunLight);
+
+    // Aliases for backwards compatibility
+    this.sun = this.sunLight;
+    this.ambient = this.ambientLight;
+    this.hemi = this.ambientLight;
+
+    // Torch point light pool
+    this._torchLights = [];
+    const TORCH_LIGHT_MAX = 24; // Max visible torches
+    for (let i = 0; i < TORCH_LIGHT_MAX; i++) {
+      const light = new THREE.PointLight(0xffaa44, 0, 12, 2);
+      light.visible = false;
+      this.scene.add(light);
+      this._torchLights.push(light);
+    }
+    this._torchUpdateTimer = 0;
+    this._waterTimer = 0;
+
+    // Glow block point light pool
+    this._glowLights = [];
+    const GLOW_LIGHT_MAX = 16;
+    for (let i = 0; i < GLOW_LIGHT_MAX; i++) {
+      const light = new THREE.PointLight(0xffddaa, 0, 10, 2);
+      light.visible = false;
+      this.scene.add(light);
+      this._glowLights.push(light);
+    }
+    this._glowTimer = 0;
+
+    // Underwater caustics light
+    this._causticsLight = new THREE.PointLight(0x44ccff, 0, 25, 2);
+    this._causticsLight.visible = false;
+    this.scene.add(this._causticsLight);
+
+
 
     this.clouds = new VoxelCloudLayer(this.scene);
 
@@ -1214,7 +1442,7 @@ export class Game {
     if (!this.paused && this.started) this.update(dt);
     // ALWAYS paint the canvas — update() does not render. Missing this freezes the world
     // while DOM HUD (key debug) still updates — looks exactly like "WASD broken".
-    this.render();
+    this.render(dt);
   };
 
   _applyHelpVisibility() {
@@ -1763,7 +1991,7 @@ export class Game {
         z: this.player.position.z,
       });
       this.fauna.applySnares(dt);
-      this._syncAnimalMeshes();
+      this._syncAnimalMeshes(dt);
     }
 
     if (this.survival.health < this.prevHealth - 0.5) this.audio.hurt();
@@ -2214,6 +2442,183 @@ export class Game {
         L.visible = false;
       }
     }
+  }
+
+  updateTorchLights() {
+    if (!this.player || !this.world) return;
+
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+
+    // Find torch blocks near the player
+    const torchPositions = [];
+    const searchRadius = 32;
+    const TORCH = 'TORCH';
+
+    for (let x = px - searchRadius; x <= px + searchRadius; x++) {
+      for (let z = pz - searchRadius; z <= pz + searchRadius; z++) {
+        for (let y = Math.max(0, py - 8); y <= py + 16; y++) {
+          const block = this.world.getBlock(x, y, z);
+          if (block && (block === BLOCK.TORCH || block === BLOCK.SOUL_TORCH || block === BLOCK.REDSTONE_TORCH || String(block).includes(TORCH))) {
+            const dist = Math.hypot(x - px, y - py, z - pz);
+            if (dist < searchRadius) {
+              torchPositions.push({ x: x + 0.5, y: y + 1, z: z + 0.5, dist });
+            }
+          }
+        }
+      }
+    }
+
+    // Sort by distance, use nearest ones
+    torchPositions.sort((a, b) => a.dist - b.dist);
+
+    // Update light pool
+    for (let i = 0; i < this._torchLights.length; i++) {
+      const light = this._torchLights[i];
+      if (i < torchPositions.length) {
+        const tp = torchPositions[i];
+        light.position.set(tp.x, tp.y, tp.z);
+        const intensity = Math.max(0.5, 1.5 - tp.dist * 0.03);
+        light.intensity = intensity;
+        light.visible = true;
+        // Slight color variation based on position hash
+        const hue = 0.07 + (tp.x * 0.001 + tp.z * 0.002) % 0.03;
+        light.color.setHSL(hue, 0.9, 0.6);
+      } else {
+        light.visible = false;
+      }
+    }
+  }
+
+  updateGlowBlocks() {
+    if (!this.player || !this.world || !this._glowLights) return;
+
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+
+    const glowPositions = [];
+    const searchRadius = 32;
+
+    for (let x = px - searchRadius; x <= px + searchRadius; x++) {
+      for (let z = pz - searchRadius; z <= pz + searchRadius; z++) {
+        for (let y = Math.max(0, py - 12); y <= py + 16; y++) {
+          const block = this.world.getBlock(x, y, z);
+          if (!block) continue;
+
+          let color = null;
+          let intensity = 1.2;
+          let distance = 10;
+
+          if ((BLOCK.GLOWSTONE && block === BLOCK.GLOWSTONE) || block === 34 /* LAMP */) {
+            color = 0xffe082;
+            intensity = 1.8;
+            distance = 12;
+          } else if (block === BLOCK.LAVA || block === 38) {
+            color = 0xff5500;
+            intensity = 2.0;
+            distance = 14;
+          } else if ((BLOCK.CORAL && block === BLOCK.CORAL) || block === 48) {
+            color = 0x44eedd;
+            intensity = 1.0;
+            distance = 8;
+          } else if ((BLOCK.SEAPLANT && block === BLOCK.SEAPLANT) || block === 49 /* KELP */ || block === 50 /* SEAGRASS */) {
+            color = 0x22ffaa;
+            intensity = 0.9;
+            distance = 6;
+          } else if ((BLOCK.LILY_PAD && block === BLOCK.LILY_PAD) || block === 55 /* MUSHROOM */) {
+            color = 0xaa66ff;
+            intensity = 0.8;
+            distance = 6;
+          } else if (typeof block === 'string' && (block.includes('GLOW') || block.includes('LAMP') || block.includes('CORAL') || block.includes('BIOLUM'))) {
+            color = 0xffe082;
+            intensity = 1.2;
+            distance = 10;
+          }
+
+          if (color !== null) {
+            const dist = Math.hypot(x - px, y - py, z - pz);
+            if (dist < searchRadius) {
+              glowPositions.push({ x: x + 0.5, y: y + 0.5, z: z + 0.5, dist, color, intensity, distance });
+            }
+          }
+        }
+      }
+    }
+
+    glowPositions.sort((a, b) => a.dist - b.dist);
+
+    for (let i = 0; i < this._glowLights.length; i++) {
+      const light = this._glowLights[i];
+      if (i < glowPositions.length) {
+        const gp = glowPositions[i];
+        light.position.set(gp.x, gp.y, gp.z);
+        light.color.setHex(gp.color);
+        light.distance = gp.distance;
+        light.intensity = Math.max(0.2, gp.intensity * (1 - gp.dist / searchRadius));
+        light.visible = true;
+      } else {
+        light.visible = false;
+      }
+    }
+  }
+
+  updateWeather(dt) {
+    if (!this._weatherParticles) return;
+    
+    // Random weather transitions based on game time
+    this._weatherTimer += dt;
+    if (this._weatherTimer > 60) { // Check every 60 seconds
+      this._weatherTimer = 0;
+      const shouldWeather = Math.random() < 0.3; // 30% chance
+      if (shouldWeather && !this._weatherActive) {
+        this._weatherActive = true;
+        this._weatherType = Math.random() < 0.7 ? 'rain' : 'snow';
+      } else if (!shouldWeather && this._weatherActive) {
+        this._weatherActive = false;
+      }
+    }
+    
+    // Smooth opacity transition
+    const targetOpacity = this._weatherActive ? 0.7 : 0;
+    this._weatherParticles.material.opacity += (targetOpacity - this._weatherParticles.material.opacity) * dt * 2;
+    
+    // Update color based on type
+    if (this._weatherType === 'snow') {
+      this._weatherParticles.material.color.setHex(0xeeeeff);
+      this._weatherParticles.material.size = 0.5;
+    } else {
+      this._weatherParticles.material.color.setHex(0x8899bb);
+      this._weatherParticles.material.size = 0.3;
+    }
+    
+    if (!this._weatherActive && this._weatherParticles.material.opacity < 0.01) return;
+    
+    // Update particle positions
+    const positions = this._weatherParticles.geometry.attributes.position.array;
+    const px = this.player ? this.player.position.x : 0;
+    const py = this.player ? this.player.position.y : 30;
+    const pz = this.player ? this.player.position.z : 0;
+    
+    for (let i = 0; i < this._wpVelocities.length / 3; i++) {
+      positions[i*3]   += this._wpVelocities[i*3] * dt * 60;
+      positions[i*3+1] += this._wpVelocities[i*3+1] * dt * 60;
+      positions[i*3+2] += this._wpVelocities[i*3+2] * dt * 60;
+      
+      // Reset particles that fall below ground or drift too far
+      if (positions[i*3+1] < py - 20 || 
+          Math.abs(positions[i*3] - px) > 120 || 
+          Math.abs(positions[i*3+2] - pz) > 120) {
+        positions[i*3]   = px + (Math.random() - 0.5) * 200;
+        positions[i*3+1] = py + 60 + Math.random() * 60;
+        positions[i*3+2] = pz + (Math.random() - 0.5) * 200;
+      }
+    }
+    this._weatherParticles.geometry.attributes.position.needsUpdate = true;
+    
+    // Move particle cloud center with player
+    this._weatherParticles.position.set(px, 0, pz);
   }
 
   _handleMining(dt) {
@@ -2911,8 +3316,10 @@ export class Game {
     const layout = animalPartLayout(type, spec);
     const g = new THREE.Group();
     for (const part of layout.parts) {
+      const isEye = part.role === 'eye' || part.name.startsWith('eye');
       const mat = new THREE.MeshLambertMaterial({
         color: new THREE.Color(part.color[0], part.color[1], part.color[2]),
+        emissive: isEye ? new THREE.Color(0x111111) : new THREE.Color(0x000000),
       });
       const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(part.sx, part.sy, part.sz),
@@ -2920,22 +3327,46 @@ export class Game {
       );
       mesh.position.set(part.x, part.y, part.z);
       mesh.name = part.name;
+      mesh.castShadow = !isEye;
+      mesh.receiveShadow = !isEye;
       mesh.userData.role = part.role || part.name;
       mesh.userData.baseColor = [part.color[0], part.color[1], part.color[2]];
+      mesh.userData.baseY = part.y;
       g.add(mesh);
     }
+
+    // Contact shadow underneath creature
+    const shadowScale = Math.max(0.25, Math.max(spec.scale?.[0] || 0.5, spec.scale?.[2] || 0.7) * 0.55);
+    const shadowGeo = new THREE.CircleGeometry(shadowScale, 16);
+    const shadowMat = new THREE.MeshBasicMaterial({
+      color: 0x000000,
+      transparent: true,
+      opacity: 0.35,
+      depthWrite: false,
+    });
+    const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+    shadowMesh.name = 'contactShadow';
+    shadowMesh.rotation.x = -Math.PI / 2;
+    shadowMesh.position.set(0, 0.015, 0);
+    g.add(shadowMesh);
+
     g.userData.type = type;
     g.userData.legNames = layout.legNames || [];
     g.userData.wingNames = layout.wingNames || [];
-    g.userData.phase = 0;
+    g.userData.eyeNames = layout.eyeNames || [];
+    g.userData.phase = Math.random() * Math.PI * 2;
+    g.userData.isNew = true;
     return g;
   }
 
-  _syncAnimalMeshes() {
+  _syncAnimalMeshes(dt = 0.016) {
     if (!this.fauna) return;
-    this._animClock = (this._animClock || 0) + 0.016;
+    const delta = (typeof dt === 'number' && dt > 0) ? Math.min(dt, 0.1) : 0.016;
+    this._animClock = (this._animClock || 0) + delta;
     const living = this.fauna.living();
     const seen = new Set();
+    const isNight = !!(this.dayCycle && typeof this.dayCycle.isNight === 'function' && this.dayCycle.isNight());
+
     for (const a of living) {
       seen.add(a.id);
       let mesh = this._animalMeshes.get(a.id);
@@ -2944,37 +3375,106 @@ export class Game {
         this._animalMeshes.set(a.id, mesh);
         this.scene.add(mesh);
       }
-      mesh.position.set(a.x, a.y, a.z);
-      mesh.rotation.y = a.yaw || 0;
+
+      // Smooth position interpolation
+      const targetX = a.x;
+      const targetY = a.y;
+      const targetZ = a.z;
+      if (mesh.userData.isNew) {
+        mesh.position.set(targetX, targetY, targetZ);
+        mesh.userData.isNew = false;
+      } else {
+        const dx = targetX - mesh.position.x;
+        const dy = targetY - mesh.position.y;
+        const dz = targetZ - mesh.position.z;
+        if (dx * dx + dy * dy + dz * dz > 64) {
+          mesh.position.set(targetX, targetY, targetZ);
+        } else {
+          const lerpSpd = Math.min(1, delta * 10);
+          mesh.position.x += dx * lerpSpd;
+          mesh.position.y += dy * lerpSpd;
+          mesh.position.z += dz * lerpSpd;
+        }
+      }
+
+      // Smooth yaw rotation lerp
+      const targetYaw = a.yaw || 0;
+      const currentYaw = mesh.rotation.y;
+      let diff = targetYaw - currentYaw;
+      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      mesh.rotation.y = currentYaw + diff * Math.min(1, delta * 8);
+
       const spec = SPECIES[a.type] || SPECIES.hare;
       const spd = Math.hypot(a.vx || 0, a.vz || 0);
       const speed01 = Math.max(0, Math.min(1, spd / Math.max(0.1, spec.speed || 1)));
-      mesh.userData.phase = (mesh.userData.phase || 0) + 0.016 * (6 + speed01 * 10);
+
+      // Flap frequency & movement phase scaling
+      const isFlyer = a.type === 'bird' || a.type === 'bat';
+      const animSpeed = isFlyer
+        ? ((a.type === 'bat' ? 16 : 12) + speed01 * (a.type === 'bat' ? 14 : 18))
+        : (6 + speed01 * 10);
+      mesh.userData.phase = (mesh.userData.phase || 0) + delta * animSpeed;
+      const phase = mesh.userData.phase;
+
       const legs = mesh.userData.legNames || [];
       const wings = mesh.userData.wingNames || [];
-      const pose = animalLimbPose({}, legs, wings, mesh.userData.phase, speed01, a.type);
+      const pose = animalLimbPose({}, legs, wings, phase, speed01, a.type);
+
+      const hurt = a.hp < a.maxHp * 0.5;
+
       for (const child of mesh.children) {
+        if (child.name === 'contactShadow') {
+          const heightOffset = Math.max(0, mesh.position.y - a.y);
+          const heightFade = Math.max(0, 1 - heightOffset * 0.3);
+          if (child.material) child.material.opacity = 0.35 * heightFade;
+          continue;
+        }
+
+        // Apply limb & wing animations
         const pr = pose[child.name];
         if (pr) {
           child.rotation.x = pr.rx || 0;
           child.rotation.z = pr.rz || 0;
         }
-      }
-      const hurt = a.hp < a.maxHp * 0.5;
-      mesh.traverse((c) => {
-        if (c.isMesh && c.material?.color) {
-          const base = c.userData.baseColor || spec.color || [0.5, 0.5, 0.5];
-          c.material.color.setRGB(
+
+        // Head/body bobbing for walking/standing/flying animals
+        if ((child.userData.role === 'head' || child.userData.role === 'body') && child.userData.baseY !== undefined) {
+          const bobAmt = isFlyer ? 0.04 : (0.015 + 0.02 * speed01);
+          child.position.y = child.userData.baseY + Math.sin(phase * 0.5) * bobAmt;
+        }
+
+        // Eye details & night glow for nocturnal/predatory creatures (bat, wolf)
+        const isEye = child.userData.role === 'eye' || child.name.startsWith('eye');
+        if (isEye && child.material) {
+          if (isNight && (a.type === 'bat' || a.type === 'wolf')) {
+            child.material.emissive?.setRGB(0.8, 0.1, 0.1);
+          } else {
+            child.material.emissive?.setRGB(0.05, 0.05, 0.05);
+          }
+        }
+
+        // Hurt tint update
+        if (child.isMesh && child.material?.color && !isEye) {
+          const base = child.userData.baseColor || spec.color || [0.5, 0.5, 0.5];
+          child.material.color.setRGB(
             hurt ? Math.min(1, base[0] + 0.25) : base[0],
             hurt ? base[1] * 0.7 : base[1],
             hurt ? base[2] * 0.7 : base[2],
           );
         }
-      });
+      }
     }
+
     for (const [id, mesh] of this._animalMeshes) {
       if (!seen.has(id)) {
         this.scene.remove(mesh);
+        mesh.traverse?.((c) => {
+          c.geometry?.dispose?.();
+          if (c.material) {
+            if (Array.isArray(c.material)) c.material.forEach((m) => m.dispose?.());
+            else c.material.dispose?.();
+          }
+        });
         this._animalMeshes.delete(id);
       }
     }
@@ -3240,6 +3740,102 @@ export class Game {
     // biome notify: show biome name periodically (existing logic)
   }
 
+  updateSunLight() {
+    if (!this.time) return;
+    const tickNum = typeof this.time.tick === 'number' ? this.time.tick : Math.floor((this.time.elapsed || 0) * 50);
+    const timeOfDay = ((tickNum % 24000) + 24000) % 24000 / 24000;
+    const palette = getSunForTime(timeOfDay);
+    const sunColor = new THREE.Color(palette.sun[0], palette.sun[1], palette.sun[2]);
+    const skyColor = new THREE.Color(palette.skyTop[0], palette.skyTop[1], palette.skyTop[2]);
+    const groundColor = new THREE.Color(palette.ground[0], palette.ground[1], palette.ground[2]);
+
+    // Sun intensity: 0 at night, 1.2 at noon
+    const sunIntensity = Math.max(0, Math.sin(timeOfDay * Math.PI * 2 - Math.PI / 2)) * 1.2;
+
+    if (this.sunLight) {
+      this.sunLight.color.copy(sunColor);
+      this.sunLight.intensity = Math.max(0.05, sunIntensity); // minimum 5% at night
+
+      // Sun position arcs across the sky
+      const angle = timeOfDay * Math.PI * 2 - Math.PI / 2;
+      const radius = 100;
+      this.sunLight.position.set(
+        Math.cos(angle) * radius * 0.7,
+        Math.max(Math.sin(angle) * radius, -10), // dont go below horizon
+        30 + Math.cos(angle * 0.5) * 20
+      );
+    }
+
+    // Hemisphere ambient shifts with time
+    if (this.ambientLight) {
+      this.ambientLight.color.copy(skyColor);
+      this.ambientLight.groundColor.copy(groundColor);
+      this.ambientLight.intensity = 0.15 + sunIntensity * 0.4;
+    }
+
+    // Sky dome color update
+    if (this.skyDome?.material) {
+      if (this.skyDome.material.color) {
+        this.skyDome.material.color.copy(skyColor);
+      }
+      if (this.skyDome.material.uniforms?.topColor) {
+        this.skyDome.material.uniforms.topColor.value.copy(skyColor);
+      }
+    }
+
+    // Fog update
+    if (this.scene) {
+      this.scene.background = skyColor;
+      if (this.scene.fog) {
+        this.scene.fog.color.copy(skyColor);
+      } else {
+        this.scene.fog = new THREE.Fog(skyColor, 60, 180);
+      }
+    }
+
+    // Sun disc follows the light direction
+    if (this.sunDisc) {
+      const dir = this.sunLight.position.clone().normalize();
+      this.sunDisc.position.copy(dir.multiplyScalar(178));
+      this.sunDisc.lookAt(this.camera.position);
+      const isDay = this.sunLight.intensity > 0.3;
+      this.sunDisc.material.opacity = isDay ? 0.95 : Math.max(0, (this.sunLight.intensity - 0.05) / 0.25);
+    }
+
+    // Moon opposite the sun
+    if (this.moonDisc) {
+      const sunDir = this.sunLight.position.clone().normalize();
+      this.moonDisc.position.copy(sunDir.multiplyScalar(-178));
+      this.moonDisc.lookAt(this.camera.position);
+      const moonOpacity = this.sunLight.intensity < 0.5 ? Math.max(0, (0.5 - this.sunLight.intensity) / 0.45) * 0.8 : 0;
+      this.moonDisc.material.opacity = moonOpacity;
+    }
+  }
+
+  updatePlayerShadow() {
+    if (!this.playerShadow || !this.player?.position) return;
+
+    this.playerShadow.position.set(
+      this.player.position.x,
+      this.player.position.y - 0.9,
+      this.player.position.z
+    );
+
+    let sunIntensity = 1;
+    if (this.time && typeof this.time.sunIntensity === 'function') {
+      sunIntensity = this.time.sunIntensity();
+    } else if (this.sunLight) {
+      sunIntensity = Math.min(1, Math.max(0, this.sunLight.intensity / 1.2));
+    }
+
+    const sunFactor = Math.max(0, Math.min(1, sunIntensity));
+    const opacity = 0.1 + sunFactor * 0.6;
+    this.playerShadow.material.opacity = Math.max(0.1, Math.min(0.7, opacity));
+
+    const scaleFactor = 1.4 - sunFactor * 0.4;
+    this.playerShadow.scale.set(2 * scaleFactor, 1.4 * scaleFactor, 1);
+  }
+
   _updateLighting() {
     const sunI = this.time.sunIntensity();
     this.hemi.color.setHex(0x9ec9ff);
@@ -3257,12 +3853,13 @@ export class Game {
     this.scene.background = color;
     if (this.skyDome) {
       this.skyDome.position.copy(this.camera.position);
-      const top = color.clone().multiplyScalar(0.62);
-      const horizon = color.clone().lerp(new THREE.Color(0xfff0d2), 0.28);
-      const ground = new THREE.Color(0x71808b).lerp(color, 0.2);
-      this.skyDome.material.uniforms.topColor.value.copy(top);
-      this.skyDome.material.uniforms.horizonColor.value.copy(horizon);
-      this.skyDome.material.uniforms.groundColor.value.copy(ground);
+      this.skyTopColor = color.clone().multiplyScalar(0.62);
+      this.skyBottomColor = color.clone().lerp(new THREE.Color(0xfff0d2), 0.28);
+      // Sky gradient update via uniforms
+      if (this.skyUniforms) {
+        this.skyUniforms.topColor.value.copy(this.skyTopColor);
+        this.skyUniforms.bottomColor.value.copy(this.skyBottomColor);
+      }
     }
     this.scene.fog.color.copy(color);
     const plan = this._terrainVisibilityPlan();
@@ -3294,6 +3891,311 @@ export class Game {
       );
     }
   }
+
+  applyUnderwaterVisuals() {
+    if (!this.scene || !this.camera) return;
+    const py = this.player ? this.player.position.y : 30;
+    const waterLevel = 32;
+    const isUnderwater = py < waterLevel - 1;
+
+    if (isUnderwater) {
+      const depth = waterLevel - py;
+      const res = underwaterFogStyle(typeof depth === 'object' ? depth : { underwater: true, depth });
+      const style = {
+        near: (res && typeof res.near === 'number') ? res.near : Math.max(1.5, 3.5 - depth * 0.08),
+        far: (res && typeof res.far === 'number') ? res.far : Math.max(16, 30 - depth * 0.55),
+      };
+
+      // Blue-green underwater fog
+      this.scene.fog = new THREE.Fog(
+        new THREE.Color(0.05, 0.25, 0.35),
+        style.near,
+        style.far
+      );
+
+      // Dark blue tint on background
+      this.scene.background = new THREE.Color(0.02, 0.12, 0.22);
+
+      // Reduce camera far to match underwater visibility
+      this.camera.far = style.far + 20;
+      this.camera.updateProjectionMatrix();
+
+      // Reduce sun intensity underwater
+      if (this.sunLight) {
+        this.sunLight.intensity = Math.max(0.02, 0.3 - depth * 0.02);
+      }
+
+      // Animated water caustics light pattern underwater
+      if (this._causticsLight) {
+        const time = this.time ? (this.time.elapsed || 0) : Date.now() * 0.001;
+        const px = this.player ? this.player.position.x : 0;
+        const pz = this.player ? this.player.position.z : 0;
+        const causticX = px + Math.sin(time * 1.5) * 3;
+        const causticZ = pz + Math.cos(time * 2.1) * 3;
+        const causticY = py + 4 + Math.sin(time * 3.0) * 0.5;
+
+        this._causticsLight.position.set(causticX, causticY, causticZ);
+        const causticPulse = 0.6 + Math.sin(time * 4.0) * 0.25 + Math.cos(time * 2.7) * 0.15;
+        this._causticsLight.intensity = Math.max(0.2, causticPulse * Math.max(0.3, 1.0 - depth * 0.03));
+        const blueHue = 0.52 + Math.sin(time * 1.2) * 0.04;
+        this._causticsLight.color.setHSL(blueHue, 0.85, 0.6);
+        this._causticsLight.visible = true;
+      }
+    } else {
+      // Restore normal visibility when above water
+      if (this.scene.fog) {
+        this.scene.fog.near = 60;
+        this.scene.fog.far = 180;
+      }
+      this.camera.far = 200;
+      this.camera.updateProjectionMatrix();
+      if (this._causticsLight) {
+        this._causticsLight.visible = false;
+      }
+    }
+  }
+
+  updateWaterSurface(dt) {
+    if (!this.waterSurface) return;
+
+    const positions = this.waterSurface.geometry.attributes.position;
+    const time = this.time ? (this.time.elapsed || 0) : 0;
+
+    // Gentle wave animation on vertices
+    for (let i = 0; i < positions.count; i++) {
+      const x = positions.getX(i);
+      const z = positions.getY(i); // Y in plane space = Z in world
+      // Two overlapping sine waves for natural look
+      const wave1 = Math.sin(x * 0.15 + time * 1.2) * 0.15;
+      const wave2 = Math.sin(z * 0.1 + time * 0.8) * 0.1;
+      const wave3 = Math.sin((x + z) * 0.08 + time * 1.5) * 0.05;
+      positions.setZ(i, wave1 + wave2 + wave3);
+    }
+    positions.needsUpdate = true;
+
+    // Move water surface with player (keep it centered)
+    if (this.player) {
+      this.waterSurface.position.x = this.player.position.x;
+      this.waterSurface.position.z = this.player.position.z;
+    }
+
+    // Water color shifts with time of day
+    if (this.sunLight) {
+      const sunI = this.sunLight.intensity;
+      // Darker blue at night, lighter blue-green during day
+      const r = 0.1 + sunI * 0.15;
+      const g = 0.2 + sunI * 0.35;
+      const b = 0.4 + sunI * 0.45;
+      this.waterSurface.material.color.setRGB(r, g, b);
+      this.waterSurface.material.specular.setRGB(
+        0.2 + sunI * 0.4,
+        0.3 + sunI * 0.4,
+        0.4 + sunI * 0.5
+      );
+    }
+  }
+
+  updateGrassBlades(dt) {
+    if (!this._grassBlades || !this.player || !this.world) return;
+    
+    const px = Math.floor(this.player.position.x);
+    const py = this.player.position.y;
+    const pz = Math.floor(this.player.position.z);
+    const time = this.time ? (this.time.elapsed || 0) : 0;
+    
+    // Distribute grass blades around player on grass-level height
+    const range = 40;
+    let idx = 0;
+    let vineIdx = 0;
+    const maxVines = 800;
+    
+    for (let x = px - range; x <= px + range && idx < 3000; x += 2) {
+      for (let z = pz - range; z <= pz + range && idx < 3000; z += 2) {
+        // Check if there is grass at this position
+        try {
+          let grassY = -1;
+          const baseY = Math.floor(py);
+          for (let y = baseY + 4; y >= baseY - 6; y--) {
+            const block = this.world.getBlock(x, y, z);
+            if (block === BLOCK.GRASS) {
+              grassY = y;
+              break;
+            }
+            if (this._vines && vineIdx < maxVines &&
+                (block === BLOCK.LEAVES || block === BLOCK.SPRUCE_LEAVES || block === BLOCK.SEQUOIA_LEAVES || block === BLOCK.PALM_LEAVES)) {
+              if (this.world.getBlock(x, y - 1, z) === BLOCK.AIR) {
+                const swayV = Math.sin(time * 1.5 + x * 0.4 + z * 0.6) * 0.08;
+                const vx = x + 0.5 + Math.sin(x * 13 + z * 7) * 0.35;
+                const vz = z + 0.5 + Math.cos(x * 7 + z * 13) * 0.35;
+                const vy = y - 0.6;
+                this._vineDummy.position.set(vx, vy, vz);
+                this._vineDummy.rotation.set(swayV, (x + z) * 0.5, swayV * 0.5);
+                this._vineDummy.scale.set(0.8 + ((x * 5 + z) % 5) * 0.1, 0.8 + ((x * 3 + z) % 7) * 0.1, 0.8);
+                this._vineDummy.updateMatrix();
+                this._vines.setMatrixAt(vineIdx, this._vineDummy.matrix);
+                vineIdx++;
+              }
+            }
+          }
+
+          if (grassY !== -1 && idx < 3000) {
+            const sway = Math.sin(time * 2 + x * 0.5 + z * 0.3) * 0.1;
+            const targetY = grassY + 1;
+            
+            this._grassDummy.position.set(
+              x + ((x * 7 + z * 13) % 5) / 5,
+              targetY,
+              z + ((x * 11 + z * 3) % 5) / 5
+            );
+            this._grassDummy.rotation.set(
+              sway,
+              ((x * 7 + z * 13) % 6) / 6 * Math.PI * 2,
+              sway * 0.5
+            );
+            this._grassDummy.scale.setScalar(0.5 + (((x * 3 + z) % 7) / 7) * 0.8);
+            this._grassDummy.updateMatrix();
+            this._grassBlades.setMatrixAt(idx, this._grassDummy.matrix);
+            idx++;
+          }
+        } catch(e) { /* skip invalid positions */ }
+      }
+    }
+    
+    // Hide remaining instances
+    for (let i = idx; i < 3000; i++) {
+      this._grassDummy.position.set(0, -1000, 0);
+      this._grassDummy.scale.setScalar(0);
+      this._grassDummy.updateMatrix();
+      this._grassBlades.setMatrixAt(i, this._grassDummy.matrix);
+    }
+    
+    this._grassBlades.instanceMatrix.needsUpdate = true;
+
+    if (this._vines) {
+      for (let i = vineIdx; i < maxVines; i++) {
+        this._vineDummy.position.set(0, -1000, 0);
+        this._vineDummy.scale.setScalar(0);
+        this._vineDummy.updateMatrix();
+        this._vines.setMatrixAt(i, this._vineDummy.matrix);
+      }
+      this._vines.instanceMatrix.needsUpdate = true;
+    }
+    
+    // Grass color shifts with time of day
+    if (this.sunLight) {
+      const sunI = this.sunLight.intensity;
+      const g = 0.3 + sunI * 0.6;
+      this._grassBlades.material.color.setRGB(0.2 + sunI * 0.2, g, 0.1);
+      this._grassBlades.material.opacity = 0.5 + sunI * 0.3;
+      if (this._vines) {
+        this._vines.material.color.setRGB(0.1 + sunI * 0.25, 0.4 + sunI * 0.4, 0.15);
+      }
+    }
+  }
+
+  updateMossPatches() {
+    if (!this._mossPatches || !this.player || !this.world) return;
+
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+
+    const range = 35;
+    let idx = 0;
+    const maxMoss = 600;
+
+    for (let x = px - range; x <= px + range && idx < maxMoss; x += 2) {
+      for (let z = pz - range; z <= pz + range && idx < maxMoss; z += 2) {
+        try {
+          const b = biomeAt(x, z, this.seed);
+          if (b !== BIOME.FOREST && b !== BIOME.TROPICAL) continue;
+
+          for (let y = py + 4; y >= py - 6; y--) {
+            const block = this.world.getBlock(x, y, z);
+            if ((block === BLOCK.STONE || block === BLOCK.COBBLE || block === BLOCK.DIRT) &&
+                (this.world.getBlock(x, y + 1, z) === BLOCK.AIR)) {
+              this._mossDummy.position.set(
+                x + 0.5 + Math.sin(x * 7 + z * 13) * 0.15,
+                y + 1.01,
+                z + 0.5 + Math.cos(x * 11 + z * 5) * 0.15
+              );
+              this._mossDummy.rotation.set(-Math.PI / 2, 0, (x * 3 + z * 7) * 0.2);
+              this._mossDummy.scale.setScalar(0.7 + ((x * 3 + z) % 5) * 0.1);
+              this._mossDummy.updateMatrix();
+              this._mossPatches.setMatrixAt(idx, this._mossDummy.matrix);
+              idx++;
+              break;
+            }
+          }
+        } catch (e) { /* silent catch */ }
+      }
+    }
+
+    for (let i = idx; i < maxMoss; i++) {
+      this._mossDummy.position.set(0, -1000, 0);
+      this._mossDummy.scale.setScalar(0);
+      this._mossDummy.updateMatrix();
+      this._mossPatches.setMatrixAt(i, this._mossDummy.matrix);
+    }
+    this._mossPatches.instanceMatrix.needsUpdate = true;
+
+    if (this.sunLight) {
+      const sunI = this.sunLight.intensity;
+      this._mossPatches.material.color.setRGB(0.15 + sunI * 0.1, 0.35 + sunI * 0.3, 0.1);
+    }
+  }
+
+  updateFlowers() {
+    if (!this._flowerPatches || !this.player || !this.world) return;
+
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+
+    const range = 35;
+    let idx = 0;
+    const maxFlowers = 400;
+
+    for (let x = px - range; x <= px + range && idx < maxFlowers; x += 2) {
+      for (let z = pz - range; z <= pz + range && idx < maxFlowers; z += 2) {
+        try {
+          if (((x * 17 + z * 31) % 5) > 1) continue;
+
+          for (let y = py + 4; y >= py - 6; y--) {
+            const block = this.world.getBlock(x, y, z);
+            if ((block === BLOCK.GRASS || (BLOCK.FLOWER && block === BLOCK.FLOWER)) &&
+                (this.world.getBlock(x, y + 1, z) === BLOCK.AIR)) {
+              this._flowerDummy.position.set(
+                x + 0.3 + ((x * 13 + z * 7) % 5) * 0.1,
+                y + 1.02,
+                z + 0.3 + ((x * 5 + z * 11) % 5) * 0.1
+              );
+              this._flowerDummy.rotation.set(-Math.PI / 2, 0, (x * 5 + z * 9) * 0.3);
+              this._flowerDummy.scale.setScalar(0.4 + ((x * 3 + z * 2) % 4) * 0.15);
+              this._flowerDummy.updateMatrix();
+              this._flowerPatches.setMatrixAt(idx, this._flowerDummy.matrix);
+              idx++;
+              break;
+            }
+          }
+        } catch (e) { /* silent catch */ }
+      }
+    }
+
+    for (let i = idx; i < maxFlowers; i++) {
+      this._flowerDummy.position.set(0, -1000, 0);
+      this._flowerDummy.scale.setScalar(0);
+      this._flowerDummy.updateMatrix();
+      this._flowerPatches.setMatrixAt(i, this._flowerDummy.matrix);
+    }
+    this._flowerPatches.instanceMatrix.needsUpdate = true;
+
+    if (this.sunLight) {
+      const sunI = this.sunLight.intensity;
+      this._flowerPatches.material.color.setRGB(0.7 + sunI * 0.2, 0.2 + sunI * 0.2, 0.4 + sunI * 0.2);
+    }
+  }
+
 
   /** Apply a clear blue-green cast and short-range fog while the camera is submerged. */
   _updateWaterVisuals() {
@@ -3663,7 +4565,45 @@ const hbName = document.getElementById('hotbar-name');
     this.camera2.rotation.x = this._p2Pitch;
   }
 
-  render() {
+  render(dt = 0.016) {
+    this.updateSunLight();
+    this.updatePlayerShadow();
+    this.applyUnderwaterVisuals();
+    this._waterTimer += dt;
+    if (this._waterTimer > 0.033) { // ~30fps
+      this._waterTimer = 0;
+      this.updateWaterSurface(dt);
+    }
+
+    this._grassTimer += dt;
+    if (this._grassTimer > 1) { // Update grass every second (expensive)
+      this._grassTimer = 0;
+      this.updateGrassBlades(dt);
+    }
+
+    this._mossTimer = (this._mossTimer || 0) + dt;
+    if (this._mossTimer > 2.0) { // Update moss patches every 2 seconds
+      this._mossTimer = 0;
+      this.updateMossPatches();
+    }
+
+    this._flowerTimer = (this._flowerTimer || 0) + dt;
+    if (this._flowerTimer > 2.0) { // Update flower patches every 2 seconds
+      this._flowerTimer = 0;
+      this.updateFlowers();
+    }
+
+    this._torchUpdateTimer += dt;
+    if (this._torchUpdateTimer > 0.5) { // Update torches twice per second
+      this._torchUpdateTimer = 0;
+      this.updateTorchLights();
+    }
+    this._glowTimer = (this._glowTimer || 0) + dt;
+    if (this._glowTimer > 2.0) { // Update glow blocks every 2 seconds
+      this._glowTimer = 0;
+      this.updateGlowBlocks();
+    }
+    this.updateWeather(dt);
     const r = this.renderer;
     const w = window.innerWidth;
     const h = window.innerHeight;

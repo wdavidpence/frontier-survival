@@ -56,57 +56,165 @@ function tileOrigin(index) {
   return { x: tx * TILE_PX, y: ty * TILE_PX };
 }
 
+function createSeededRand(initialSeed = 42) {
+  let seed = initialSeed;
+  return () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+}
+
 function drawGrassTop(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [70, 140, 55], 0.55, 11);
-  const r = rnd(99);
-  ctx.fillStyle = 'rgba(40,100,30,0.35)';
-  for (let i = 0; i < 40; i++) {
-    ctx.fillRect(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1 + r() * 2, 1 + r() * 2);
+  const rand = createSeededRand(101);
+  const baseR = 76, baseG = 145, baseB = 52;
+  for (let y = 0; y < TILE_PX; y++) {
+    for (let x = 0; x < TILE_PX; x++) {
+      const noise = (rand() - 0.5) * 0.14;
+      let r = clamp(baseR * (1 + noise));
+      let g = clamp(baseG * (1 + noise));
+      let b = clamp(baseB * (1 + noise));
+
+      // Scatter small dark-green dots (blades of grass)
+      if (rand() < 0.08) {
+        r = clamp(baseR * 0.55);
+        g = clamp(baseG * 0.70);
+        b = clamp(baseB * 0.50);
+      }
+
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x0 + x, y0 + y, 1, 1);
+    }
   }
 }
 
 function drawDirt(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [120, 85, 50], 0.5, 22);
-  const r = rnd(3);
-  for (let i = 0; i < 12; i++) {
-    ctx.fillStyle = `rgba(60,40,25,${0.15 + r() * 0.2})`;
-    ctx.fillRect(x0 + r() * 28, y0 + r() * 28, 2 + r() * 3, 2);
+  const rand = createSeededRand(202);
+  const baseR = 120, baseG = 85, baseB = 50;
+  for (let y = 0; y < TILE_PX; y++) {
+    for (let x = 0; x < TILE_PX; x++) {
+      const noise = (rand() - 0.5) * 0.16;
+      let r = clamp(baseR * (1 + noise));
+      let g = clamp(baseG * (1 + noise));
+      let b = clamp(baseB * (1 + noise));
+
+      // Small darker spots (pebbles / organic matter)
+      if (rand() < 0.04) {
+        r = clamp(r * 0.60);
+        g = clamp(g * 0.55);
+        b = clamp(b * 0.55);
+      }
+
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x0 + x, y0 + y, 1, 1);
+    }
   }
 }
 
 function drawGrassSide(ctx, x0, y0) {
-  drawDirt(ctx, x0, y0);
-  ctx.fillStyle = '#4a8a38';
-  ctx.fillRect(x0, y0, TILE_PX, 8);
-  const r = rnd(7);
-  for (let i = 0; i < 10; i++) {
-    ctx.fillStyle = r() > 0.5 ? '#3d7a2e' : '#5a9a40';
-    const x = x0 + r() * TILE_PX;
-    ctx.fillRect(x, y0 + 6 + r() * 4, 1, 3 + r() * 4);
+  const rand = createSeededRand(303);
+  const dirtR = 120, dirtG = 85, dirtB = 50;
+  const grassR = 76, grassG = 145, grassB = 52;
+  const grassDepth = Math.floor(TILE_PX * (1 / 3));
+
+  for (let y = 0; y < TILE_PX; y++) {
+    for (let x = 0; x < TILE_PX; x++) {
+      // Overhang grass variation on top 1/3
+      const isGrass = (y < grassDepth - 1) || (y < grassDepth + 2 && rand() > 0.45);
+      const baseR = isGrass ? grassR : dirtR;
+      const baseG = isGrass ? grassG : dirtG;
+      const baseB = isGrass ? grassB : dirtB;
+
+      const noise = (rand() - 0.5) * 0.15;
+      let r = clamp(baseR * (1 + noise));
+      let g = clamp(baseG * (1 + noise));
+      let b = clamp(baseB * (1 + noise));
+
+      if (!isGrass && rand() < 0.04) {
+        r = clamp(r * 0.60);
+        g = clamp(g * 0.55);
+        b = clamp(b * 0.55);
+      } else if (isGrass && rand() < 0.08) {
+        r = clamp(grassR * 0.55);
+        g = clamp(grassG * 0.70);
+        b = clamp(grassB * 0.50);
+      }
+
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x0 + x, y0 + y, 1, 1);
+    }
   }
 }
 
 function drawStone(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [140, 140, 148], 0.35, 44);
-  const r = rnd(8);
-  ctx.strokeStyle = 'rgba(80,80,90,0.35)';
-  for (let i = 0; i < 6; i++) {
-    ctx.beginPath();
-    ctx.moveTo(x0 + r() * TILE_PX, y0 + r() * TILE_PX);
-    ctx.lineTo(x0 + r() * TILE_PX, y0 + r() * TILE_PX);
-    ctx.stroke();
+  const rand = createSeededRand(404);
+  const baseR = 140, baseG = 140, baseB = 148;
+  for (let y = 0; y < TILE_PX; y++) {
+    for (let x = 0; x < TILE_PX; x++) {
+      const noise = (rand() - 0.5) * 0.10;
+      let r = clamp(baseR * (1 + noise));
+      let g = clamp(baseG * (1 + noise));
+      let b = clamp(baseB * (1 + noise));
+
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x0 + x, y0 + y, 1, 1);
+
+      // Occasional 1-2 pixel dark crack lines
+      if (rand() < 0.02 && x > 1 && y > 1) {
+        const darkerGray = clamp(baseR * 0.55);
+        ctx.fillStyle = `rgb(${darkerGray},${darkerGray},${darkerGray})`;
+        if (rand() < 0.5) {
+          ctx.fillRect(x0 + x, y0 + y, 2, 1);
+        } else {
+          ctx.fillRect(x0 + x, y0 + y, 1, 2);
+        }
+      }
+    }
   }
 }
 
 function drawSand(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [220, 200, 140], 0.25, 55);
+  const rand = createSeededRand(505);
+  const baseR = 220, baseG = 200, baseB = 140;
+  for (let y = 0; y < TILE_PX; y++) {
+    for (let x = 0; x < TILE_PX; x++) {
+      const noise = (rand() - 0.5) * 0.08;
+      let r = clamp(baseR * (1 + noise));
+      let g = clamp(baseG * (1 + noise));
+      let b = clamp(baseB * (1 + noise));
+
+      // Slightly darker spots for depth
+      if (rand() < 0.06) {
+        r = clamp(r * 0.88);
+        g = clamp(g * 0.88);
+        b = clamp(b * 0.88);
+      }
+
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x0 + x, y0 + y, 1, 1);
+    }
+  }
 }
 
 function drawWater(ctx, x0, y0) {
-  // Keep alpha high enough that opaque-pass alphaTest/discard does not punch holes
-  fillNoise(ctx, x0, y0, [40, 90, 190], 0.3, 66, 220);
-  ctx.fillStyle = 'rgba(180,220,255,0.25)';
-  ctx.fillRect(x0 + 4, y0 + 8, 20, 3);
+  const rand = createSeededRand(606);
+  const baseR = 40, baseG = 90, baseB = 190;
+  const alpha = 220;
+  for (let y = 0; y < TILE_PX; y++) {
+    for (let x = 0; x < TILE_PX; x++) {
+      const noise = (rand() - 0.5) * 0.10;
+      let r = clamp(baseR * (1 + noise));
+      let g = clamp(baseG * (1 + noise));
+      let b = clamp(baseB * (1 + noise));
+
+      ctx.fillStyle = `rgba(${r},${g},${b},${alpha / 255})`;
+      ctx.fillRect(x0 + x, y0 + y, 1, 1);
+    }
+  }
+
+  // Lighter blue streaks for water highlights
+  ctx.fillStyle = 'rgba(180,220,255,0.4)';
+  ctx.fillRect(x0 + 4, y0 + 8, 20, 2);
+  ctx.fillRect(x0 + 10, y0 + 20, 16, 2);
 }
 
 function drawLogSide(ctx, x0, y0) {
