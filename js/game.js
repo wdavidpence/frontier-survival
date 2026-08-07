@@ -140,7 +140,7 @@ export class Game {
     this._invOwner = 'p1';
     this.seed = (Math.random() * 1e6) | 0;
 
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', precision: 'highp' });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setClearColor(0x87b5ff, 1);
@@ -151,6 +151,14 @@ export class Game {
     // highlights while a small exposure lift preserves dark tree silhouettes.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.08;
+
+    this.msaaSamples = this.settings.msaaSamples ?? 4;
+    this.bloomIntensity = this.settings.bloomIntensity ?? 0.6;
+    this.dofFocusDistance = this.settings.dofFocusDistance ?? 15.0;
+    this.dofStrength = this.settings.dofStrength ?? 0.4;
+    this.vignetteStrength = this.settings.vignetteStrength ?? 0.35;
+    this.filmGrainIntensity = this.settings.filmGrainIntensity ?? 0.08;
+    this.shadowBlurRadius = this.settings.shadowBlurRadius ?? 3.5;
 
     this.scene = new THREE.Scene();
     const skyMat = new THREE.ShaderMaterial({
@@ -917,6 +925,7 @@ export class Game {
     this._initBlockPhysicsAAA();
     this._initCombatAAA();
     this._initWorldGenAAA();
+    this._initAAAGraphicsPolish();
 
     this._last = performance.now();
     this._raf = 0;
@@ -7698,10 +7707,15 @@ const hbName = document.getElementById('hotbar-name');
 
   render(dt = 0.016) {
     this.updateSunLight();
+    this._updateAAAShadows();
     this.updateAtmosphericEffects(dt);
+    this._updateAAASkyAtmosphere(dt);
     this.updateEnvironmentalParticles(dt);
+    this._updateAAATerrainVisuals(dt);
     this.updatePlayerShadow();
     this.applyUnderwaterVisuals();
+    this._updateAAAWater(dt);
+    this._updateAAAUISystem(dt);
     this._waterTimer += dt;
     if (this._waterTimer > 0.033) { // ~30fps
       this._waterTimer = 0;
@@ -7779,9 +7793,13 @@ const hbName = document.getElementById('hotbar-name');
     const w = window.innerWidth;
     const h = window.innerHeight;
     if (!this.coopMode || !this.camera2 || !this.started) {
-      r.setScissorTest(false);
-      r.setViewport(0, 0, w, h);
-      r.render(this.scene, this.camera);
+      if (this._postShaderMat && this._msaaRenderTarget) {
+        this._renderAAAPostProcess(dt);
+      } else {
+        r.setScissorTest(false);
+        r.setViewport(0, 0, w, h);
+        r.render(this.scene, this.camera);
+      }
       return;
     }
 
@@ -9655,6 +9673,512 @@ const hbName = document.getElementById('hotbar-name');
       this.player?.notify?.('A Wandering Trader has arrived nearby!', 5);
       this.playSpatialSFX('ui', this.player.position.x + 5, this.player.position.y, this.player.position.z);
     }
+  }
+
+  // =========================================================================
+  // AAA-QUALITY GRAPHICS & VISUAL POLISH SYSTEM
+  // =========================================================================
+  _initAAAGraphicsPolish() {
+    if (this._aaaGraphicsInited) return;
+    this._aaaGraphicsInited = true;
+
+    this.msaaSamples = this.settings.msaaSamples ?? 4;
+    this.bloomIntensity = this.settings.bloomIntensity ?? 0.6;
+    this.dofFocusDistance = this.settings.dofFocusDistance ?? 15.0;
+    this.dofStrength = this.settings.dofStrength ?? 0.4;
+    this.vignetteStrength = this.settings.vignetteStrength ?? 0.35;
+    this.filmGrainIntensity = this.settings.filmGrainIntensity ?? 0.08;
+    this.shadowBlurRadius = this.settings.shadowBlurRadius ?? 3.5;
+    this._previewItemYaw = 0;
+    this._erosionAcc = 0;
+
+    this._initAAARenderingPipeline();
+    this._initAAAMaterialSystem();
+    this._initAAAUISystem();
+  }
+
+  _initAAARenderingPipeline() {
+    if (typeof document === 'undefined') return;
+    const w = window.innerWidth || 1024;
+    const h = window.innerHeight || 768;
+
+    try {
+      this._msaaRenderTarget = new THREE.WebGLRenderTarget(w, h, {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat,
+        samples: this.msaaSamples || 4,
+      });
+      this._msaaRenderTarget.depthTexture = new THREE.DepthTexture();
+      this._msaaRenderTarget.depthTexture.type = THREE.UnsignedIntType;
+
+      this._postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+      this._postScene = new THREE.Scene();
+
+      this._postShaderMat = new THREE.ShaderMaterial({
+        uniforms: {
+          tDiffuse: { value: null },
+          tDepth: { value: null },
+          uResolution: { value: new THREE.Vector2(w, h) },
+          uTime: { value: 0 },
+          uBloomIntensity: { value: this.bloomIntensity },
+          uDoFFocusDistance: { value: this.dofFocusDistance },
+          uDoFStrength: { value: this.dofStrength },
+          uVignette: { value: this.vignetteStrength },
+          uFilmGrain: { value: this.filmGrainIntensity },
+          uChromaticAberration: { value: 0.0 },
+          uMotionBlur: { value: new THREE.Vector2(0, 0) },
+          uSunPosScreen: { value: new THREE.Vector3(0.5, 0.5, 1.0) },
+          uSunFlareIntensity: { value: 0.0 },
+          uUnderwater: { value: 0.0 },
+          uCameraNear: { value: 0.1 },
+          uCameraFar: { value: 300.0 },
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D tDiffuse;
+          uniform sampler2D tDepth;
+          uniform vec2 uResolution;
+          uniform float uTime;
+          uniform float uBloomIntensity;
+          uniform float uDoFFocusDistance;
+          uniform float uDoFStrength;
+          uniform float uVignette;
+          uniform float uFilmGrain;
+          uniform float uChromaticAberration;
+          uniform vec2 uMotionBlur;
+          uniform vec3 uSunPosScreen;
+          uniform float uSunFlareIntensity;
+          uniform float uUnderwater;
+          uniform float uCameraNear;
+          uniform float uCameraFar;
+
+          varying vec2 vUv;
+
+          float getLinearDepth(float z) {
+            return (2.0 * uCameraNear * uCameraFar) / (uCameraFar + uCameraNear - z * (uCameraFar - uCameraNear));
+          }
+
+          void main() {
+            vec2 uv = vUv;
+
+            // 1. Water Refraction Distortion
+            if (uUnderwater > 0.5) {
+              uv += vec2(sin(uv.y * 35.0 + uTime * 3.0) * 0.003, cos(uv.x * 35.0 + uTime * 2.5) * 0.003);
+            }
+
+            // 2. Chromatic Aberration (RGB Split)
+            vec2 caOffset = (uv - 0.5) * uChromaticAberration;
+            float r = texture2D(tDiffuse, uv + caOffset).r;
+            float g = texture2D(tDiffuse, uv).g;
+            float b = texture2D(tDiffuse, uv - caOffset).b;
+            vec3 color = vec3(r, g, b);
+
+            // 3. Motion Blur Trail
+            if (length(uMotionBlur) > 0.001) {
+              vec3 mbAcc = color;
+              vec2 mbDir = uMotionBlur * 0.006;
+              for (int i = 1; i <= 3; i++) {
+                mbAcc += texture2D(tDiffuse, uv + mbDir * float(i)).rgb;
+              }
+              color = mbAcc / 4.0;
+            }
+
+            // 4. Depth of Field (DoF) Blur
+            float depthVal = texture2D(tDepth, uv).r;
+            float linDepth = getLinearDepth(depthVal);
+            float coc = clamp(abs(linDepth - uDoFFocusDistance) * uDoFStrength * 0.04, 0.0, 1.0);
+            if (coc > 0.02) {
+              vec3 blurCol = vec3(0.0);
+              float totalW = 0.0;
+              vec2 step = (1.0 / uResolution) * coc * 2.5;
+              for (float x = -1.0; x <= 1.0; x += 1.0) {
+                for (float y = -1.0; y <= 1.0; y += 1.0) {
+                  float w = 1.0 / (1.0 + length(vec2(x, y)));
+                  blurCol += texture2D(tDiffuse, uv + vec2(x, y) * step).rgb * w;
+                  totalW += w;
+                }
+              }
+              color = mix(color, blurCol / totalW, coc);
+            }
+
+            // 5. Bloom for light sources (torches, glowstone, sun, moon)
+            vec3 bloom = vec3(0.0);
+            vec2 bStep = (1.0 / uResolution) * 3.5;
+            bloom += texture2D(tDiffuse, uv + vec2(-bStep.x, -bStep.y)).rgb;
+            bloom += texture2D(tDiffuse, uv + vec2(bStep.x, -bStep.y)).rgb;
+            bloom += texture2D(tDiffuse, uv + vec2(-bStep.x, bStep.y)).rgb;
+            bloom += texture2D(tDiffuse, uv + vec2(bStep.x, bStep.y)).rgb;
+            bloom = max(bloom * 0.25 - vec3(0.65), vec3(0.0)) * uBloomIntensity;
+            color += bloom;
+
+            // 6. Sunset/Sunrise Lens Flare
+            if (uSunPosScreen.z > 0.0 && uSunFlareIntensity > 0.01) {
+              vec2 sunUv = uSunPosScreen.xy;
+              float distToSun = length(sunUv - uv);
+              float streak = exp(-abs(uv.y - sunUv.y) * 100.0) * exp(-abs(uv.x - sunUv.x) * 3.5);
+              vec3 flareCol = vec3(1.0, 0.7, 0.35) * streak * uSunFlareIntensity * 0.7;
+
+              vec2 sunCenterRay = (vec2(0.5) - sunUv);
+              for (int i = 1; i <= 3; i++) {
+                vec2 ghostPos = sunUv + sunCenterRay * (float(i) * 0.45);
+                float ghostDist = length(uv - ghostPos);
+                float ghost = smoothstep(0.04 + float(i)*0.01, 0.0, ghostDist);
+                vec3 ghostTint = vec3(0.4 + float(i)*0.15, 0.6, 1.0 - float(i)*0.2);
+                flareCol += ghostTint * ghost * uSunFlareIntensity * 0.25;
+              }
+              color += flareCol;
+            }
+
+            // 7. Color Grading LUT (Warm highlights, cool shadows)
+            vec3 coolShadows = vec3(0.92, 0.96, 1.12);
+            vec3 warmHighlights = vec3(1.12, 1.04, 0.92);
+            float luma = dot(color, vec3(0.299, 0.587, 0.114));
+            vec3 graded = mix(color * coolShadows, color * warmHighlights, smoothstep(0.25, 0.75, luma));
+            color = mix(color, graded, 0.6);
+
+            // 8. Film Grain Overlay
+            float noise = (fract(sin(dot(uv * (uTime * 0.1 + 1.0), vec2(12.9898, 78.233))) * 43758.5453) - 0.5);
+            color += noise * uFilmGrain * (1.0 - luma * 0.5);
+
+            // 9. Vignette Effect
+            vec2 d = abs(uv - 0.5) * 2.0;
+            float vig = 1.0 - dot(d, d) * (uVignette * 0.35);
+            color *= clamp(vig, 0.0, 1.0);
+
+            // 10. Underwater light attenuation
+            if (uUnderwater > 0.5) {
+              color = mix(color, vec3(0.02, 0.1, 0.22), 0.4);
+            }
+
+            gl_FragColor = vec4(color, 1.0);
+          }
+        `,
+        depthTest: false,
+        depthWrite: false,
+      });
+
+      this._postQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this._postShaderMat);
+      this._postScene.add(this._postQuad);
+    } catch (_) {}
+  }
+
+  _initAAAMaterialSystem() {
+    if (typeof document === 'undefined') return;
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.fillStyle = 'rgb(128, 128, 255)';
+    ctx.fillRect(0, 0, 256, 256);
+
+    const imgData = ctx.getImageData(0, 0, 256, 256);
+    const d = imgData.data;
+    for (let y = 0; y < 256; y++) {
+      for (let x = 0; x < 256; x++) {
+        const idx = (y * 256 + x) * 4;
+        const nx = (Math.sin(x * 0.2) * Math.cos(y * 0.2) * 40) | 0;
+        const ny = (Math.cos(x * 0.2) * Math.sin(y * 0.2) * 40) | 0;
+        d[idx] = Math.min(255, Math.max(0, 128 + nx));
+        d[idx + 1] = Math.min(255, Math.max(0, 128 + ny));
+        d[idx + 2] = 255;
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+
+    this._blockNormalMap = new THREE.CanvasTexture(canvas);
+    this._blockNormalMap.wrapS = THREE.RepeatWrapping;
+    this._blockNormalMap.wrapT = THREE.RepeatWrapping;
+
+    if (this.world?.material) {
+      this.world.material.normalMap = this._blockNormalMap;
+      this.world.material.normalScale = new THREE.Vector2(0.6, 0.6);
+    }
+  }
+
+  _updateAAAShadows() {
+    if (!this.sunLight?.shadow) return;
+
+    this.sunLight.shadow.radius = this.shadowBlurRadius || 3.5;
+    this.sunLight.shadow.bias = -0.0005;
+    this.sunLight.shadow.normalBias = 0.03;
+
+    if (this.player?.position) {
+      const p = this.player.position;
+      this.sunTarget.position.set(p.x, p.y, p.z);
+
+      const rDist = this.worldRadius || 5;
+      const extent = Math.min(120, rDist * 16 + 20);
+      this.sunLight.shadow.camera.left = -extent;
+      this.sunLight.shadow.camera.right = extent;
+      this.sunLight.shadow.camera.top = extent;
+      this.sunLight.shadow.camera.bottom = -extent;
+      this.sunLight.shadow.camera.near = 1;
+      this.sunLight.shadow.camera.far = extent * 2.5;
+      this.sunLight.shadow.camera.updateProjectionMatrix();
+    }
+
+    if (this.sunLight && this.ambientLight) {
+      const intensity = Math.min(1, Math.max(0, this.sunLight.intensity / 1.2));
+      if (intensity < 0.2) {
+        this.ambientLight.groundColor.setHex(0x101a2e);
+      } else if (intensity < 0.6) {
+        this.ambientLight.groundColor.setHex(0x5c3523);
+      } else {
+        this.ambientLight.groundColor.setHex(0x344626);
+      }
+    }
+
+    if (this.coopMode && this.player2?.position && !this.p2Shadow) {
+      if (this.playerShadow?.material) {
+        this.p2Shadow = new THREE.Sprite(this.playerShadow.material.clone());
+        this.p2Shadow.scale.set(2, 1.4, 1);
+        this.scene.add(this.p2Shadow);
+      }
+    }
+    if (this.p2Shadow && this.player2?.position) {
+      this.p2Shadow.position.set(this.player2.position.x, this.player2.position.y - 0.9, this.player2.position.z);
+    }
+  }
+
+  _updateAAATerrainVisuals(dt) {
+    this._erosionAcc += dt;
+    if (this._erosionAcc > 4.0) {
+      this._erosionAcc = 0;
+      this._updateTerrainErosion();
+    }
+  }
+
+  _updateTerrainErosion() {
+    if (!this.world || !this.player?.position) return;
+    const px = Math.floor(this.player.position.x);
+    const pz = Math.floor(this.player.position.z);
+    for (let dx = -8; dx <= 8; dx += 4) {
+      for (let dz = -8; dz <= 8; dz += 4) {
+        const wx = px + dx;
+        const wz = pz + dz;
+        const b = this.world.getBlock(wx, 62, wz);
+        if (b === BLOCK.DIRT || b === BLOCK.GRASS) {
+          const adjWater = (
+            this.world.getBlock(wx + 1, 62, wz) === BLOCK.WATER ||
+            this.world.getBlock(wx - 1, 62, wz) === BLOCK.WATER ||
+            this.world.getBlock(wx, 62, wz + 1) === BLOCK.WATER ||
+            this.world.getBlock(wx, 62, wz - 1) === BLOCK.WATER
+          );
+          if (adjWater) {
+            this.world.setBlock(wx, 62, wz, BLOCK.SAND);
+          }
+        }
+      }
+    }
+  }
+
+  _updateAAAWater(dt) {
+    if (!this.player?.position) return;
+    const px = this.player.position.x;
+    const py = this.player.position.y;
+    const pz = this.player.position.z;
+
+    if (this._causticsLight) {
+      const inWater = this._cameraInWater || (this.world?.getBlock(Math.floor(px), Math.floor(py), Math.floor(pz)) === BLOCK.WATER);
+      if (inWater) {
+        this._causticsLight.visible = true;
+        this._causticsLight.position.set(px, py - 0.5, pz);
+        this._causticsLight.intensity = 1.2 + Math.sin(performance.now() * 0.005) * 0.4;
+      } else {
+        this._causticsLight.visible = false;
+      }
+    }
+
+    if (this._cameraInWater && Math.random() < 0.1) {
+      this.playSpatialSFX('water_splash', px, py, pz);
+    }
+  }
+
+  _updateAAASkyAtmosphere(dt) {
+    if (!this.sunLight || !this._postShaderMat) return;
+
+    const sunPos = this.sunLight.position.clone();
+    sunPos.project(this.camera);
+
+    const isVisible = sunPos.z < 1.0 && sunPos.x >= -1.2 && sunPos.x <= 1.2 && sunPos.y >= -1.2 && sunPos.y <= 1.2;
+    const sunScreenX = (sunPos.x + 1.0) * 0.5;
+    const sunScreenY = (sunPos.y + 1.0) * 0.5;
+
+    const sunIntensity = Math.min(1, Math.max(0, this.sunLight.intensity / 1.2));
+    const isSunsetDawn = sunIntensity > 0.1 && sunIntensity < 0.6;
+    const flareIntensity = isVisible && isSunsetDawn ? (0.6 - Math.abs(sunIntensity - 0.35) * 2.0) * 1.5 : 0.0;
+
+    const uniforms = this._postShaderMat.uniforms;
+    if (uniforms) {
+      uniforms.uSunPosScreen.value.set(sunScreenX, sunScreenY, isVisible ? 1.0 : -1.0);
+      uniforms.uSunFlareIntensity.value = Math.max(0, flareIntensity);
+      uniforms.uUnderwater.value = this._cameraInWater ? 1.0 : 0.0;
+      uniforms.uTime.value = (performance.now() * 0.001) % 1000.0;
+    }
+  }
+
+  _renderAAAPostProcess(dt) {
+    const r = this.renderer;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    if (this._msaaRenderTarget.width !== w || this._msaaRenderTarget.height !== h) {
+      this._msaaRenderTarget.setSize(w, h);
+      this._postShaderMat.uniforms.uResolution.value.set(w, h);
+    }
+
+    if (this.camera) {
+      const yaw = this.camera.rotation.y;
+      const pitch = this.camera.rotation.x;
+      const dyaw = yaw - (this._lastCamYaw || 0);
+      const dpitch = pitch - (this._lastCamPitch || 0);
+      this._lastCamYaw = yaw;
+      this._lastCamPitch = pitch;
+
+      const rotSpeed = Math.sqrt(dyaw * dyaw + dpitch * dpitch) / Math.max(0.001, dt);
+      const isSprinting = this.player?.sprinting || false;
+
+      const caVal = Math.min(0.02, rotSpeed * 0.003 + (isSprinting ? 0.004 : 0.0));
+      this._postShaderMat.uniforms.uChromaticAberration.value = caVal;
+      this._postShaderMat.uniforms.uMotionBlur.value.set(dyaw * 2.0, dpitch * 2.0);
+    }
+
+    this._postShaderMat.uniforms.tDiffuse.value = this._msaaRenderTarget.texture;
+    this._postShaderMat.uniforms.tDepth.value = this._msaaRenderTarget.depthTexture;
+
+    r.setRenderTarget(this._msaaRenderTarget);
+    r.clear();
+    r.render(this.scene, this.camera);
+
+    r.setRenderTarget(null);
+    r.render(this._postScene, this._postCamera);
+  }
+
+  _initAAAUISystem() {
+    if (typeof document === 'undefined') return;
+
+    try {
+      if (!document.getElementById('aaa-ui-styles')) {
+        const style = document.createElement('style');
+        style.id = 'aaa-ui-styles';
+        style.textContent = `
+          #damage-flash-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 99998; opacity: 0;
+            transition: opacity 0.25s ease-out;
+            box-shadow: inset 0 0 100px rgba(239, 68, 68, 0.8);
+          }
+          #damage-flash-overlay.flash-damage { opacity: 1; box-shadow: inset 0 0 120px rgba(239, 68, 68, 0.85); }
+          #damage-flash-overlay.flash-heal { opacity: 1; box-shadow: inset 0 0 120px rgba(16, 185, 129, 0.7); }
+
+          #item-tooltip-box {
+            position: fixed; display: none; pointer-events: none; z-index: 100000;
+            background: rgba(15, 23, 42, 0.95); border: 2px solid #fbbf24;
+            border-radius: 8px; padding: 8px 12px; color: #fff; font-family: sans-serif;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8); max-width: 220px;
+          }
+          #item-tooltip-box .tt-title { font-size: 13px; font-weight: 700; color: #fbbf24; margin-bottom: 2px; }
+          #item-tooltip-box .tt-desc { font-size: 11px; color: #cbd5e1; margin-bottom: 4px; line-height: 1.3; }
+          #item-tooltip-box .tt-durability { width: 100%; height: 5px; background: rgba(255,255,255,0.2); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+          #item-tooltip-box .tt-durability-fill { height: 100%; background: linear-gradient(90deg, #10b981, #34d399); }
+          #item-tooltip-box .tt-enchant { font-size: 10px; color: #c084fc; font-weight: 600; text-shadow: 0 0 6px rgba(192, 132, 252, 0.8); }
+
+          #achievement-toast {
+            position: fixed; top: 20px; right: -320px; width: 280px;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 2px solid #fbbf24; border-radius: 10px; padding: 10px 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7), 0 0 15px rgba(251, 191, 36, 0.4);
+            transition: right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 99999; pointer-events: none; display: flex; align-items: center; gap: 10px;
+          }
+          #achievement-toast.show { right: 20px; }
+          #achievement-toast .toast-icon { font-size: 24px; }
+          #achievement-toast .toast-title { font-size: 13px; font-weight: bold; color: #fbbf24; }
+          #achievement-toast .toast-desc { font-size: 11px; color: #94a3b8; }
+        `;
+        document.head?.appendChild(style);
+      }
+
+      if (document.body && !document.getElementById('damage-flash-overlay')) {
+        const flash = document.createElement('div');
+        flash.id = 'damage-flash-overlay';
+        document.body.appendChild(flash);
+      }
+
+      if (document.body && !document.getElementById('item-tooltip-box')) {
+        const tt = document.createElement('div');
+        tt.id = 'item-tooltip-box';
+        tt.innerHTML = `
+          <div class="tt-title">Item Name</div>
+          <div class="tt-desc">Item description details</div>
+          <div class="tt-durability"><div class="tt-durability-fill" style="width:100%;"></div></div>
+          <div class="tt-enchant">Unbreaking I</div>
+        `;
+        document.body.appendChild(tt);
+      }
+
+      if (document.body && !document.getElementById('achievement-toast')) {
+        const toast = document.createElement('div');
+        toast.id = 'achievement-toast';
+        toast.innerHTML = `
+          <div class="toast-icon">🏆</div>
+          <div>
+            <div class="toast-title">Achievement Unlocked!</div>
+            <div class="toast-desc">Details...</div>
+          </div>
+        `;
+        document.body.appendChild(toast);
+      }
+    } catch (_) {}
+  }
+
+  _updateAAAUISystem(dt) {
+    if (this.survival && typeof this.survival.health === 'number') {
+      if (this.prevHealth != null && this.survival.health < this.prevHealth - 0.5) {
+        this._triggerScreenFlash('damage');
+      } else if (this.prevHealth != null && this.survival.health > this.prevHealth + 1.0) {
+        this._triggerScreenFlash('heal');
+      }
+      this.prevHealth = this.survival.health;
+    }
+  }
+
+  _triggerScreenFlash(type = 'damage') {
+    if (typeof document === 'undefined') return;
+    const overlay = document.getElementById('damage-flash-overlay');
+    if (!overlay) return;
+
+    overlay.className = type === 'damage' ? 'flash-damage' : 'flash-heal';
+    setTimeout(() => {
+      if (overlay) overlay.className = '';
+    }, 400);
+  }
+
+  _showAchievementToast(title, desc) {
+    if (typeof document === 'undefined') return;
+    const toast = document.getElementById('achievement-toast');
+    if (!toast) return;
+
+    const tTitle = toast.querySelector('.toast-title');
+    const tDesc = toast.querySelector('.toast-desc');
+    if (tTitle) tTitle.textContent = title;
+    if (tDesc) tDesc.textContent = desc;
+
+    toast.classList.add('show');
+    this.playSpatialSFX('ui_achievement', this.player?.position?.x || 0, this.player?.position?.y || 0, this.player?.position?.z || 0);
+
+    setTimeout(() => {
+      if (toast) toast.classList.remove('show');
+    }, 4000);
   }
 
   _renderAAA_VFX(dt) {
