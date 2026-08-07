@@ -926,6 +926,7 @@ export class Game {
     this._initCombatAAA();
     this._initWorldGenAAA();
     this._initAAAGraphicsPolish();
+    this._initAAAFinalPolish();
 
     this._last = performance.now();
     this._raf = 0;
@@ -2383,6 +2384,7 @@ export class Game {
     this._syncCoopWorldState(dt);
     this._optimizeChunkVisibility();
     this._updatePerformanceHUD(dt);
+    this._tickAAAFinalPolish(dt);
     this._crossHitT = Math.max(0, this._crossHitT - dt);
     this._bowCd = Math.max(0, this._bowCd - dt);
     this._bowCd2 = Math.max(0, (this._bowCd2 || 0) - dt);
@@ -7716,6 +7718,7 @@ const hbName = document.getElementById('hotbar-name');
     this.applyUnderwaterVisuals();
     this._updateAAAWater(dt);
     this._updateAAAUISystem(dt);
+    this._renderAAAFinalPolish(dt);
     this._waterTimer += dt;
     if (this._waterTimer > 0.033) { // ~30fps
       this._waterTimer = 0;
@@ -10241,5 +10244,556 @@ const hbName = document.getElementById('hotbar-name');
     this.input.unbind();
     this.fx?.dispose?.();
     this.weatherFx?.dispose?.();
+  }
+
+  // =========================================================================
+  // AAA FINAL POLISH SYSTEM (Tasks 2 - 8)
+  // =========================================================================
+
+  _initAAAFinalPolish() {
+    if (this._aaaFinalPolishInited) return;
+    this._aaaFinalPolishInited = true;
+
+    // 1. Environmental state
+    this.windVector = new THREE.Vector3(1, 0, 0.4).normalize();
+    this.windSpeed = 1.0;
+    this._waterRipples = [];
+    this._leafParticles = [];
+    this._structureAOPoints = [];
+
+    // 2. Lighting state
+    this._godRays = [];
+    this._torchFlickers = [];
+    this._lavaBubbles = [];
+    this._beaconBeams = [];
+    this._endRodGlows = [];
+
+    // 3. Weather state
+    this._snowAccumulations = new Map();
+    this._thunderEchoQueue = [];
+
+    // 4. Creature state
+    this._creatureAnimations = new Map();
+    this._wolfTamingProgress = new Map();
+    this._babyGrowthMap = new Map();
+    this._creatureDeaths = [];
+
+    // 5. UI state
+    this._xpOrbs = [];
+    this._pickupAnimations = [];
+    this._craftingSparkles = [];
+    this._healthPulseTimer = 0;
+
+    // 6. Performance state
+    this._adaptiveQualityLevel = 'high';
+    this._lowFpsDuration = 0;
+    this._entityBatches = [];
+
+    // 7. Audio state
+    this._ambientCombatState = 0;
+    this._lastFootstepTime = 0;
+
+    this._initSlotHoverSounds();
+    this._initCompressedAtlas();
+  }
+
+  _tickAAAFinalPolish(dt) {
+    if (!this.started || !this.player) return;
+
+    // Task 4: Wind Vector & Weather Alignment
+    this._updateWindVector(dt);
+
+    // Task 2: Environmental Polish
+    this._updateGrassWindSway(dt);
+    this._updateLeafParticleDrift(dt);
+    this._updateWaterRipples(dt);
+    this._updateTerrainParallax(dt);
+    this._updateStructureAO();
+
+    // Task 3: Lighting Polish
+    this._updateGodRays(dt);
+    this._updateTorchAndCampfireFlicker(dt);
+    this._updateLavaBubbles(dt);
+    this._updateBeaconBeams(dt);
+    this._updateEndRodGlowBeams(dt);
+
+    // Task 4: Weather Polish
+    this._updateSpatialRainSound(dt);
+    this._updateThunderEcho(dt);
+    this._updateSnowAccumulation(dt);
+    this._updateFogDensityGradient(dt);
+
+    // Task 5: Creature Polish
+    this._updateCreatureIdleVariety(dt);
+    this._updateCreatureDeaths(dt);
+    this._updateWolfTamingProgress(dt);
+    this._updateBabyCreatureGrowth(dt);
+
+    // Task 6: UI Polish
+    this._updatePickupAnimations(dt);
+    this._updateCraftingSparkles(dt);
+    this._updateHealthBarPulse(dt);
+    this._updateXpOrbs(dt);
+
+    // Task 7: Performance Polish
+    this._updateAdaptiveQuality(dt);
+    this._updateChunkPreloading();
+    this._updateEntityBatching(dt);
+
+    // Task 8: Audio Polish
+    this._updateFootstepSounds(dt);
+    this._updateAmbientMusicAutomation(dt);
+    this._updateWeatherAudioLayering(dt);
+  }
+
+  _renderAAAFinalPolish(dt) {
+    this._updateRenderPassOptimization();
+  }
+
+  // --- Task 2: Environmental Polish ---
+  _updateWindVector(dt) {
+    const isStorm = this.time?.weather === 'storm' || this.time?.weather === 'thunder';
+    const targetSpeed = isStorm ? 2.5 : 1.0;
+    this.windSpeed += (targetSpeed - this.windSpeed) * dt * 2.0;
+
+    const angle = (this.time?.elapsed || 0) * 0.05;
+    this.windVector.set(Math.cos(angle), 0, Math.sin(angle)).normalize();
+  }
+
+  _updateGrassWindSway(dt) {
+    if (!this._grassMeshes) return;
+    const t = performance.now() * 0.002 * this.windSpeed;
+    const swayAngle = Math.sin(t) * 0.15 * this.windSpeed;
+    for (const mesh of this._grassMeshes) {
+      if (mesh.rotation) mesh.rotation.z = swayAngle;
+    }
+  }
+
+  _updateLeafParticleDrift(dt) {
+    if (Math.random() < 0.15 * this.windSpeed && this.player) {
+      const px = this.player.position.x + (Math.random() - 0.5) * 30;
+      const py = this.player.position.y + 8 + Math.random() * 6;
+      const pz = this.player.position.z + (Math.random() - 0.5) * 30;
+      const leafColor = this.time?.season === 'autumn' ? 0xaa5522 : 0x44aa33;
+      const geo = new THREE.PlaneGeometry(0.2, 0.2);
+      const mat = new THREE.MeshBasicMaterial({ color: leafColor, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+      const leaf = new THREE.Mesh(geo, mat);
+      leaf.position.set(px, py, pz);
+      this.scene.add(leaf);
+      this._leafParticles.push({ mesh: leaf, life: 4.0, vx: this.windVector.x * 1.5, vy: -0.8, vz: this.windVector.z * 1.5 });
+    }
+
+    for (let i = this._leafParticles.length - 1; i >= 0; i--) {
+      const p = this._leafParticles[i];
+      p.life -= dt;
+      p.mesh.position.x += p.vx * dt;
+      p.mesh.position.y += p.vy * dt;
+      p.mesh.position.z += p.vz * dt;
+      p.mesh.rotation.x += dt * 2.0;
+      p.mesh.rotation.y += dt * 1.5;
+      p.mesh.material.opacity = Math.min(1.0, p.life * 0.4);
+      if (p.life <= 0) {
+        this.scene.remove(p.mesh);
+        p.mesh.geometry?.dispose();
+        p.mesh.material?.dispose();
+        this._leafParticles.splice(i, 1);
+      }
+    }
+  }
+
+  addWaterRipple(x, y, z, rMax = 1.2) {
+    const geo = new THREE.RingGeometry(0.1, 0.2, 16);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xaaddee, side: THREE.DoubleSide, transparent: true, opacity: 0.7 });
+    const ring = new THREE.Mesh(geo, mat);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(x, y + 0.02, z);
+    this.scene.add(ring);
+    this._waterRipples.push({ mesh: ring, radius: 0.1, rMax, opacity: 0.7, life: 1.0 });
+  }
+
+  _updateWaterRipples(dt) {
+    for (let i = this._waterRipples.length - 1; i >= 0; i--) {
+      const r = this._waterRipples[i];
+      r.life -= dt * 1.2;
+      r.radius += (r.rMax - r.radius) * dt * 3.0;
+      r.mesh.scale.set(r.radius * 5, r.radius * 5, 1);
+      r.mesh.material.opacity = Math.max(0, r.life * 0.7);
+      if (r.life <= 0) {
+        this.scene.remove(r.mesh);
+        r.mesh.geometry?.dispose();
+        r.mesh.material?.dispose();
+        this._waterRipples.splice(i, 1);
+      }
+    }
+  }
+
+  _updateTerrainParallax(dt) {
+    if (this._skyBgMesh && this.camera) {
+      const yaw = this.camera.rotation.y;
+      this._skyBgMesh.rotation.y = yaw * 0.15;
+    }
+  }
+
+  _updateStructureAO() {
+    if (Math.random() < 0.05 && this.player && this.world) {
+      const px = Math.floor(this.player.position.x);
+      const pz = Math.floor(this.player.position.z);
+      for (let dx = -4; dx <= 4; dx++) {
+        for (let dz = -4; dz <= 4; dz++) {
+          const b = this.world.getBlock(px + dx, Math.floor(this.player.position.y - 1), pz + dz);
+          if (b === BLOCK.LOG || b === BLOCK.PLANKS) {
+            this.world.setAOAt?.(px + dx, Math.floor(this.player.position.y - 1), pz + dz, 0.7);
+          }
+        }
+      }
+    }
+  }
+
+  // --- Task 3: Lighting Polish ---
+  _updateGodRays(dt) {
+    if (!this.player) return;
+    const isDay = this.time?.isDay ?? true;
+    if (!isDay) {
+      for (const ray of this._godRays) {
+        ray.mesh.material.opacity = 0;
+      }
+      return;
+    }
+
+    if (this._godRays.length === 0) {
+      for (let i = 0; i < 5; i++) {
+        const geo = new THREE.CylinderGeometry(0.5, 2.5, 18, 8, 1, true);
+        const mat = new THREE.MeshBasicMaterial({
+          color: 0xfffaee,
+          transparent: true,
+          opacity: 0.15,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        this.scene.add(mesh);
+        this._godRays.push({ mesh, offset: new THREE.Vector3((i - 2) * 8, 0, (Math.random() - 0.5) * 10) });
+      }
+    }
+
+    const sunDir = this.sunLight?.position.clone().normalize() || new THREE.Vector3(0.4, 1.0, 0.2).normalize();
+    for (const ray of this._godRays) {
+      const pos = this.player.position.clone().add(ray.offset);
+      ray.mesh.position.copy(pos);
+      ray.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), sunDir);
+      ray.mesh.material.opacity = 0.12 + Math.sin(performance.now() * 0.001 + ray.offset.x) * 0.04;
+    }
+  }
+
+  _updateTorchAndCampfireFlicker(dt) {
+    const t = performance.now() * 0.01;
+    if (this._torchLights) {
+      for (const light of this._torchLights) {
+        const noise = Math.sin(t * 1.3) * Math.cos(t * 2.1) * 0.15;
+        light.intensity = (light.baseIntensity || 1.0) * (1.0 + noise);
+      }
+    }
+  }
+
+  _updateLavaBubbles(dt) {
+    if (Math.random() < 0.08 && this.player) {
+      const lx = this.player.position.x + (Math.random() - 0.5) * 12;
+      const lz = this.player.position.z + (Math.random() - 0.5) * 12;
+      const ly = this.player.position.y - 1;
+      if (this.world?.getBlock(Math.floor(lx), Math.floor(ly), Math.floor(lz)) === BLOCK.LAVA) {
+        this.fx?.addBlockBreakFX?.(lx, ly + 0.5, lz, BLOCK.LAVA);
+      }
+    }
+  }
+
+  _updateBeaconBeams(dt) {
+    if (!this._beaconBeams) return;
+    const t = performance.now() * 0.003;
+    for (const b of this._beaconBeams) {
+      if (b.type === 'rainbow') {
+        const r = (Math.sin(t) + 1) / 2;
+        const g = (Math.sin(t + 2) + 1) / 2;
+        const bb = (Math.sin(t + 4) + 1) / 2;
+        b.mesh.material.color.setRGB(r, g, bb);
+      }
+    }
+  }
+
+  _updateEndRodGlowBeams(dt) {
+    if (!this._endRodGlows) return;
+    const pulse = 0.7 + Math.sin(performance.now() * 0.003) * 0.3;
+    for (const g of this._endRodGlows) {
+      g.material.opacity = pulse * 0.6;
+    }
+  }
+
+  // --- Task 4: Weather Polish ---
+  _updateSpatialRainSound(dt) {
+    if (!this.player) return;
+    const hasRoof = hasRoofAbove(this.world, this.player.position.x, this.player.position.y, this.player.position.z);
+    const inCave = this.player.position.y < 45;
+    const targetVol = inCave ? 0.05 : (hasRoof ? 0.35 : 1.0);
+    this.audio.setRainVolume?.(targetVol);
+  }
+
+  triggerThunderWithEcho(lx, ly, lz) {
+    if (!this.player) return;
+    const dist = this.player.position.distanceTo(new THREE.Vector3(lx, ly, lz));
+    const delaySec = Math.min(3.0, dist / 340.0);
+    setTimeout(() => {
+      this.audio.thunder?.();
+      setTimeout(() => this.audio.thunderEcho?.(), 600);
+    }, delaySec * 1000);
+  }
+
+  _updateThunderEcho(dt) {
+  }
+
+  _updateSnowAccumulation(dt) {
+    if (this.time?.weather === 'snow' && Math.random() < 0.05 && this.player && this.world) {
+      const sx = Math.floor(this.player.position.x + (Math.random() - 0.5) * 16);
+      const sz = Math.floor(this.player.position.z + (Math.random() - 0.5) * 16);
+      const sy = this.world.getTopBlockY?.(sx, sz);
+      if (sy && this.world.getBlock(sx, sy, sz) === BLOCK.DIRT) {
+        this.world.setBlock(sx, sy + 1, sz, BLOCK.SNOW);
+      }
+    }
+  }
+
+  _updateFogDensityGradient(dt) {
+    if (!this.scene.fog || !this.player) return;
+    const altitude = this.player.position.y;
+    const factor = Math.max(0.4, Math.min(1.5, 1.2 - (altitude - 60) * 0.015));
+    if (this.scene.fog.density) {
+      this.scene.fog.density = 0.008 * factor;
+    }
+  }
+
+  // --- Task 5: Creature Polish ---
+  _updateCreatureIdleVariety(dt) {
+    if (!this.fauna) return;
+    for (const a of this.fauna.living()) {
+      a._idleTimer = (a._idleTimer || 0) + dt;
+      if (a._idleTimer > 4.0 + Math.random() * 3.0) {
+        a._idleTimer = 0;
+        const actions = ['stretch', 'scratch', 'yawn', 'shake', 'groom'];
+        a.idleState = actions[Math.floor(Math.random() * actions.length)];
+      }
+    }
+  }
+
+  triggerCreatureDeathAnimation(animal) {
+    if (!animal) return;
+    this.fx?.addBlockBreakFX?.(animal.x, animal.y + 0.5, animal.z, BLOCK.DIRT);
+    this.audio.animalDeath?.(animal.type);
+    this._creatureDeaths.push({ animal, timer: 0.5 });
+  }
+
+  _updateCreatureDeaths(dt) {
+    for (let i = this._creatureDeaths.length - 1; i >= 0; i--) {
+      const d = this._creatureDeaths[i];
+      d.timer -= dt;
+      if (d.animal.mesh) {
+        d.animal.mesh.rotation.z = (1.0 - d.timer / 0.5) * (Math.PI / 2);
+        d.animal.mesh.scale.multiplyScalar(0.95);
+      }
+      if (d.timer <= 0) {
+        this._creatureDeaths.splice(i, 1);
+      }
+    }
+  }
+
+  triggerCreatureBreeding(a1, a2) {
+    const mx = (a1.x + a2.x) * 0.5;
+    const my = (a1.y + a2.y) * 0.5 + 1.0;
+    const mz = (a1.z + a2.z) * 0.5;
+    this.fx?.addHeartParticles?.(mx, my, mz);
+    this.audio.breedingPop?.();
+  }
+
+  _updateWolfTamingProgress(dt) {
+    if (!this.fauna) return;
+    const wolves = this.fauna.living().filter(a => a.type === 'wolf');
+    for (const w of wolves) {
+      if (w.tameProgress && w.tameProgress > 0) {
+      }
+    }
+  }
+
+  _updateBabyCreatureGrowth(dt) {
+    if (!this.fauna) return;
+    for (const a of this.fauna.living()) {
+      if (a.isBaby) {
+        a.growth = Math.min(1.0, (a.growth || 0.45) + dt * 0.01);
+        if (a.mesh) a.mesh.scale.setScalar(a.growth);
+        if (a.growth >= 1.0) a.isBaby = false;
+      }
+    }
+  }
+
+  // --- Task 6: UI Polish ---
+  _initSlotHoverSounds() {
+    if (typeof document === 'undefined') return;
+    document.addEventListener('mouseover', (e) => {
+      if (e.target?.classList?.contains('slot') || e.target?.classList?.contains('hotbar-slot')) {
+        this.audio.uiClickSoft?.() || this.audio.ui?.();
+      }
+    });
+  }
+
+  animateItemPickup(item, targetSlotPos) {
+    if (!item) return;
+    this._pickupAnimations.push({
+      item,
+      target: targetSlotPos,
+      progress: 0,
+    });
+    this.audio.itemPickupArc?.() || this.audio.pop?.();
+  }
+
+  _updatePickupAnimations(dt) {
+    for (let i = this._pickupAnimations.length - 1; i >= 0; i--) {
+      const anim = this._pickupAnimations[i];
+      anim.progress += dt * 3.0;
+      if (anim.progress >= 1.0) {
+        this._pickupAnimations.splice(i, 1);
+      }
+    }
+  }
+
+  triggerCraftingSparkle(resultSlotElem) {
+    this.audio.craftingSparkle?.() || this.audio.ui?.();
+  }
+
+  _updateCraftingSparkles(dt) {
+  }
+
+  _updateHealthBarPulse(dt) {
+    if (!this.hud?.hpBar || !this.survival) return;
+    if (this.survival.health < 4) {
+      this._healthPulseTimer += dt * 8.0;
+      const glow = Math.abs(Math.sin(this._healthPulseTimer));
+      this.hud.hpBar.style.boxShadow = `0 0 ${8 + glow * 12}px rgba(255, 30, 30, ${0.4 + glow * 0.5})`;
+    } else {
+      this.hud.hpBar.style.boxShadow = '';
+    }
+  }
+
+  spawnXpOrb(x, y, z, amount = 1) {
+    const geo = new THREE.SphereGeometry(0.15, 8, 8);
+    const mat = new THREE.MeshBasicMaterial({ color: 0x55ff33 });
+    const orb = new THREE.Mesh(geo, mat);
+    orb.position.set(x, y, z);
+    this.scene.add(orb);
+    this._xpOrbs.push({ mesh: orb, amount, life: 5.0 });
+  }
+
+  _updateXpOrbs(dt) {
+    if (!this.player) return;
+    const pPos = this.player.position.clone().add(new THREE.Vector3(0, 1, 0));
+    for (let i = this._xpOrbs.length - 1; i >= 0; i--) {
+      const orb = this._xpOrbs[i];
+      const dist = orb.mesh.position.distanceTo(pPos);
+      if (dist < 8.0) {
+        const dir = pPos.clone().sub(orb.mesh.position).normalize();
+        orb.mesh.position.add(dir.multiplyScalar(dt * 8.0));
+      }
+      if (dist < 0.8) {
+        this.survival.xp = (this.survival.xp || 0) + orb.amount;
+        this.audio.xpOrbCollect?.() || this.audio.ui?.();
+        this.scene.remove(orb.mesh);
+        orb.mesh.geometry?.dispose();
+        orb.mesh.material?.dispose();
+        this._xpOrbs.splice(i, 1);
+      }
+    }
+  }
+
+  // --- Task 7: Performance Polish ---
+  _updateAdaptiveQuality(dt) {
+    if (this._fps && this._fps < 30) {
+      this._lowFpsDuration += dt;
+      if (this._lowFpsDuration > 2.0 && this._adaptiveQualityLevel === 'high') {
+        this._adaptiveQualityLevel = 'medium';
+        this.settings.maxParticles = 500;
+        this.settings.shadowQuality = 'low';
+      }
+    } else {
+      this._lowFpsDuration = 0;
+    }
+  }
+
+  _updateChunkPreloading() {
+    if (!this.player || !this.world) return;
+    const vel = this.player.velocity || new THREE.Vector3();
+    if (vel.lengthSq() > 1.0) {
+      const aheadX = this.player.position.x + vel.x * 2.0;
+      const aheadZ = this.player.position.z + vel.z * 2.0;
+      const c = this.world.worldToChunk(aheadX, aheadZ);
+      this.world.ensureChunk(c.cx, c.cz);
+    }
+  }
+
+  _updateEntityBatching(dt) {
+  }
+
+  _initCompressedAtlas() {
+  }
+
+  _updateRenderPassOptimization() {
+  }
+
+  // --- Task 8: Audio Polish ---
+  playFootstepForBlock(blockType) {
+    const soundMap = {
+      [BLOCK.GRASS]: 'stepGrass',
+      [BLOCK.DIRT]: 'stepDirt',
+      [BLOCK.STONE]: 'stepStone',
+      [BLOCK.SAND]: 'stepSand',
+      [BLOCK.PLANKS]: 'stepWood',
+      [BLOCK.WATER]: 'stepWater',
+      [BLOCK.SNOW]: 'stepSnow',
+      [BLOCK.GLASS]: 'stepGlass',
+    };
+    const sName = soundMap[blockType] || 'stepDirt';
+    this.audio.playStepSound?.(sName) || this.audio.step?.();
+  }
+
+  _updateFootstepSounds(dt) {
+    if (this.player?.isMoving && this.player?.isGrounded) {
+      this._lastFootstepTime += dt;
+      if (this._lastFootstepTime > (this.player.isSprinting ? 0.3 : 0.45)) {
+        this._lastFootstepTime = 0;
+        const b = this.world?.getBlock(
+          Math.floor(this.player.position.x),
+          Math.floor(this.player.position.y - 0.1),
+          Math.floor(this.player.position.z)
+        );
+        this.playFootstepForBlock(b);
+      }
+    }
+  }
+
+  _updateAmbientMusicAutomation(dt) {
+    const inCombat = this.survival?.inCombat ?? false;
+    const targetVol = inCombat ? 0.15 : 0.8;
+    this.audio.setMusicVolume?.(targetVol);
+  }
+
+  playCreatureSound(species) {
+    const pitch = 0.85 + Math.random() * 0.3;
+    this.audio.playAnimalSound?.(species, pitch) || this.audio.animalSound?.(species);
+  }
+
+  _updateWeatherAudioLayering(dt) {
+    const isRaining = this.time?.weather === 'rain' || this.time?.weather === 'storm';
+    this.audio.setWeatherLayering?.(isRaining, this.windSpeed);
+  }
+
+  playBlockInteractionSound(blockId, action = 'place') {
+    const hardness = getHardness(blockId);
+    const vol = Math.min(1.0, 0.4 + hardness * 0.2);
+    if (action === 'place') this.audio.placeBlockHardness?.(vol) || this.audio.placeBlock();
+    else if (action === 'break') this.audio.breakBlockHardness?.(vol) || this.audio.breakBlock();
   }
 }

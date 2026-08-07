@@ -245,16 +245,237 @@ function drawLogSide(ctx, x0, y0) {
 }
 
 function drawLogTop(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [145, 110, 65], 0.2, 88);
-  ctx.strokeStyle = 'rgba(85, 55, 25, 0.65)';
-  // Concentric annual growth rings
-  for (const r of [3, 6, 9, 12, 14]) {
+  drawLogEndTexture(ctx, x0, y0, 'oak');
+}
+
+export function drawLogEndTexture(ctx, x0, y0, woodType = 'oak') {
+  const configs = {
+    oak: { heart: [160, 125, 75], sap: [200, 160, 105], ring: 'rgba(90, 60, 25, 0.7)', bark: 'rgba(65, 40, 18, 0.95)' },
+    birch: { heart: [215, 200, 170], sap: [235, 225, 205], ring: 'rgba(175, 155, 120, 0.65)', bark: 'rgba(230, 230, 225, 0.95)' },
+    spruce: { heart: [115, 80, 50], sap: [150, 110, 70], ring: 'rgba(75, 45, 25, 0.75)', bark: 'rgba(55, 35, 20, 0.95)' },
+    jungle: { heart: [155, 105, 65], sap: [185, 135, 90], ring: 'rgba(105, 60, 30, 0.7)', bark: 'rgba(85, 50, 25, 0.95)' },
+    dark_oak: { heart: [75, 50, 25], sap: [110, 75, 45], ring: 'rgba(45, 25, 10, 0.8)', bark: 'rgba(30, 18, 8, 0.95)' },
+    acacia: { heart: [175, 90, 45], sap: [205, 125, 70], ring: 'rgba(120, 50, 20, 0.75)', bark: 'rgba(85, 70, 60, 0.95)' },
+  };
+  const cfg = configs[woodType] || configs.oak;
+  fillNoise(ctx, x0, y0, cfg.heart, 0.18, 88);
+  const rand = createSeededRand(88);
+
+  // Sapwood outer ring tint
+  ctx.fillStyle = `rgba(${cfg.sap[0]},${cfg.sap[1]},${cfg.sap[2]}, 0.4)`;
+  ctx.beginPath();
+  ctx.arc(x0 + 16, y0 + 16, 14, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Fine organic growth rings with wobble
+  ctx.strokeStyle = cfg.ring;
+  for (const r of [2, 4.5, 7, 9.5, 12, 14]) {
     ctx.beginPath();
-    ctx.arc(x0 + 16, y0 + 16, r, 0, Math.PI * 2);
+    for (let a = 0; a <= Math.PI * 2 + 0.1; a += 0.2) {
+      const wobble = (rand() - 0.5) * 0.4;
+      const rx = (r + wobble) * Math.cos(a);
+      const ry = (r + wobble) * Math.sin(a);
+      if (a === 0) ctx.moveTo(x0 + 16 + rx, y0 + 16 + ry);
+      else ctx.lineTo(x0 + 16 + rx, y0 + 16 + ry);
+    }
     ctx.stroke();
   }
-  // Dark outer bark border
-  ctx.strokeStyle = 'rgba(65, 40, 18, 0.85)';
+
+  // Radial crack rays
+  ctx.strokeStyle = 'rgba(40, 20, 10, 0.4)';
+  for (let i = 0; i < 4; i++) {
+    const angle = rand() * Math.PI * 2;
+    const len = 4 + rand() * 8;
+    ctx.beginPath();
+    ctx.moveTo(x0 + 16 + Math.cos(angle) * 2, y0 + 16 + Math.sin(angle) * 2);
+    ctx.lineTo(x0 + 16 + Math.cos(angle) * len, y0 + 16 + Math.sin(angle) * len);
+    ctx.stroke();
+  }
+
+  // Bark rim border
+  ctx.strokeStyle = cfg.bark;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.lineWidth = 1;
+}
+
+export const WOOL_COLORS = {
+  white: [233, 236, 236],
+  orange: [240, 118, 19],
+  magenta: [189, 68, 179],
+  light_blue: [58, 175, 217],
+  yellow: [248, 197, 39],
+  lime: [112, 185, 25],
+  pink: [237, 141, 172],
+  gray: [62, 68, 71],
+  light_gray: [142, 142, 134],
+  cyan: [21, 137, 145],
+  purple: [121, 42, 172],
+  blue: [53, 57, 157],
+  brown: [114, 71, 40],
+  green: [89, 119, 22],
+  red: [160, 39, 34],
+  black: [20, 21, 25],
+};
+
+export function drawWoolTexture(ctx, x0, y0, colorKey = 'white') {
+  const rgb = WOOL_COLORS[colorKey] || WOOL_COLORS.white;
+  fillNoise(ctx, x0, y0, rgb, 0.15, 303);
+  const rand = createSeededRand(303);
+
+  // Woven fuzzy cross-hatch fabric weave
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.12)';
+  for (let p = 0; p < TILE_PX; p += 2) {
+    ctx.beginPath();
+    ctx.moveTo(x0 + p, y0); ctx.lineTo(x0 + p, y0 + TILE_PX);
+    ctx.moveTo(x0, y0 + p); ctx.lineTo(x0 + TILE_PX, y0 + p);
+    ctx.stroke();
+  }
+
+  // Micro fuzzy pilled tufts (raised fleece bumps)
+  for (let i = 0; i < 35; i++) {
+    const fx = x0 + Math.floor(rand() * (TILE_PX - 2));
+    const fy = y0 + Math.floor(rand() * (TILE_PX - 2));
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.fillRect(fx, fy, 2, 1);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.fillRect(fx, fy + 1, 2, 1);
+  }
+}
+
+export function drawCarpetTexture(ctx, x0, y0, colorKey = 'white') {
+  drawWoolTexture(ctx, x0, y0, colorKey);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+  ctx.fillRect(x0, y0, TILE_PX, 1);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+  ctx.fillRect(x0, y0 + TILE_PX - 2, TILE_PX, 2);
+}
+
+export function drawBannerTexture(ctx, x0, y0, baseColor = 'white', pattern = 'stripes') {
+  const rgb = WOOL_COLORS[baseColor] || WOOL_COLORS.white;
+  ctx.fillStyle = '#6b4423';
+  ctx.fillRect(x0, y0, TILE_PX, 4);
+  ctx.fillStyle = '#d8a050';
+  ctx.fillRect(x0, y0, 2, 4);
+  ctx.fillRect(x0 + TILE_PX - 2, y0, 2, 4);
+
+  ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+  ctx.fillRect(x0 + 4, y0 + 4, 24, 28);
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.12)';
+  for (let x = 6; x < 28; x += 4) {
+    ctx.fillRect(x0 + x, y0 + 4, 2, 28);
+  }
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(20, 20, 20, 0.85)';
+  ctx.strokeStyle = 'rgba(20, 20, 20, 0.85)';
+  ctx.lineWidth = 2;
+
+  if (pattern === 'stripes') {
+    ctx.fillRect(x0 + 8, y0 + 4, 4, 28);
+    ctx.fillRect(x0 + 16, y0 + 4, 4, 28);
+  } else if (pattern === 'cross') {
+    ctx.fillRect(x0 + 4, y0 + 16, 24, 4);
+    ctx.fillRect(x0 + 14, y0 + 4, 4, 28);
+  } else if (pattern === 'border') {
+    ctx.strokeRect(x0 + 5, y0 + 5, 22, 26);
+  } else if (pattern === 'creeper') {
+    ctx.fillRect(x0 + 10, y0 + 10, 4, 4);
+    ctx.fillRect(x0 + 18, y0 + 10, 4, 4);
+    ctx.fillRect(x0 + 13, y0 + 14, 6, 8);
+    ctx.fillRect(x0 + 11, y0 + 18, 3, 6);
+    ctx.fillRect(x0 + 18, y0 + 18, 3, 6);
+  } else {
+    const grad = ctx.createLinearGradient(x0, y0 + 4, x0, y0 + 32);
+    grad.addColorStop(0, 'rgba(255,255,255,0.4)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.4)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x0 + 4, y0 + 4, 24, 28);
+  }
+  ctx.restore();
+}
+
+export function drawShieldTexture(ctx, x0, y0, variant = 'iron', emblem = null) {
+  fillNoise(ctx, x0, y0, [155, 115, 70], 0.18, 606);
+  ctx.strokeStyle = 'rgba(80, 50, 20, 0.6)';
+  for (let x = 6; x < TILE_PX; x += 6) {
+    ctx.beginPath();
+    ctx.moveTo(x0 + x, y0); ctx.lineTo(x0 + x, y0 + TILE_PX);
+    ctx.stroke();
+  }
+
+  const isIron = variant === 'iron';
+  const rimColor = isIron ? 'rgba(215, 215, 220, 0.95)' : 'rgba(110, 60, 30, 0.95)';
+  const rivetColor = isIron ? '#444444' : '#d0a060';
+
+  ctx.strokeStyle = rimColor;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x0 + 1, y0 + 1, TILE_PX - 2, TILE_PX - 2);
+
+  ctx.fillStyle = rivetColor;
+  const rivets = [[3, 3], [28, 3], [3, 28], [28, 28], [16, 3], [16, 28], [3, 16], [28, 16]];
+  for (const [rx, ry] of rivets) {
+    ctx.fillRect(x0 + rx - 1, y0 + ry - 1, 2, 2);
+  }
+
+  ctx.fillStyle = isIron ? '#cccccc' : '#8b5a2b';
+  ctx.beginPath();
+  ctx.arc(x0 + 16, y0 + 16, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = isIron ? '#555555' : '#4a2e18';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.beginPath();
+  ctx.moveTo(x0 + 8, y0 + 10); ctx.lineTo(x0 + 13, y0 + 22);
+  ctx.moveTo(x0 + 18, y0 + 7); ctx.lineTo(x0 + 24, y0 + 15);
+  ctx.stroke();
+}
+
+export function drawElytraTexture(ctx, x0, y0, side = 'left') {
+  fillNoise(ctx, x0, y0, [195, 195, 190], 0.12, 707);
+
+  ctx.fillStyle = 'rgba(150, 155, 150, 0.85)';
+  ctx.beginPath();
+  if (side === 'left') {
+    ctx.moveTo(x0 + 28, y0 + 2);
+    ctx.quadraticCurveTo(x0 + 12, y0 + 8, x0 + 4, y0 + 28);
+    ctx.lineTo(x0 + 18, y0 + 30);
+    ctx.closePath();
+  } else {
+    ctx.moveTo(x0 + 4, y0 + 2);
+    ctx.quadraticCurveTo(x0 + 20, y0 + 8, x0 + 28, y0 + 28);
+    ctx.lineTo(x0 + 14, y0 + 30);
+    ctx.closePath();
+  }
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(90, 95, 90, 0.65)';
+  ctx.lineWidth = 1.5;
+  const spineX0 = side === 'left' ? x0 + 28 : x0 + 4;
+  const spineY0 = y0 + 2;
+  const tipX = side === 'left' ? x0 + 4 : x0 + 28;
+
+  ctx.beginPath();
+  ctx.moveTo(spineX0, spineY0);
+  ctx.lineTo(tipX, y0 + 28);
+  ctx.stroke();
+
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(70, 75, 70, 0.45)';
+  for (let i = 1; i <= 4; i++) {
+    const t = i / 5;
+    const vx = spineX0 + (tipX - spineX0) * t;
+    const vy = spineY0 + (y0 + 28 - spineY0) * t;
+    ctx.beginPath();
+    ctx.moveTo(vx, vy);
+    ctx.lineTo(vx + (side === 'left' ? 6 : -6), vy + 6);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = 'rgba(40, 45, 40, 0.9)';
   ctx.lineWidth = 2;
   ctx.strokeRect(x0, y0, TILE_PX, TILE_PX);
   ctx.lineWidth = 1;
@@ -1299,6 +1520,21 @@ export function drawItemIconToCanvas(ctx, itemType, x0 = 0, y0 = 0, sz = 32) {
     ctx.fillStyle = '#8b5a2b'; ctx.fillRect(lx + 6, ly + 14, 20, 10);
     ctx.fillStyle = '#ffffff'; ctx.fillRect(lx + 6, ly + 10, 20, 6);
     ctx.fillStyle = '#ee2222'; ctx.fillRect(lx + 10, ly + 8, 3, 3); ctx.fillRect(lx + 19, ly + 8, 3, 3);
+  } else if (it.includes('shield')) {
+    drawShieldTexture(ctx, lx, ly, it.includes('leather') ? 'leather' : 'iron');
+  } else if (it.includes('elytra')) {
+    drawElytraTexture(ctx, lx, ly, 'left');
+  } else if (it.includes('banner')) {
+    drawBannerTexture(ctx, lx, ly, 'white', 'stripes');
+  } else if (it.includes('carpet')) {
+    const col = Object.keys(WOOL_COLORS).find(c => it.includes(c)) || 'white';
+    drawCarpetTexture(ctx, lx, ly, col);
+  } else if (it.includes('wool')) {
+    const col = Object.keys(WOOL_COLORS).find(c => it.includes(c)) || 'white';
+    drawWoolTexture(ctx, lx, ly, col);
+  } else if (it.includes('log') && (it.includes('top') || it.includes('end'))) {
+    const wood = it.includes('birch') ? 'birch' : it.includes('spruce') ? 'spruce' : it.includes('jungle') ? 'jungle' : it.includes('dark') ? 'dark_oak' : it.includes('acacia') ? 'acacia' : 'oak';
+    drawLogEndTexture(ctx, lx, ly, wood);
   } else if (it.includes('repeater') || it.includes('comparator') || it.includes('observer') || it.includes('piston')) {
     ctx.fillStyle = '#888888'; ctx.fillRect(lx + 4, ly + 10, 24, 16);
     ctx.fillStyle = '#ee2222'; ctx.fillRect(lx + 10, ly + 6, 3, 5); ctx.fillRect(lx + 19, ly + 6, 3, 5);
