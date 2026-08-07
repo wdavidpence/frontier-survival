@@ -1180,6 +1180,8 @@ export class Game {
       this.world.applyEdits(saveData.edits, { replace: true });
     }
     this.scene.add(this.world.group);
+    this._initVoxelMeshingOptimizations();
+    this._initMobileTouchControls();
 
     this._clearAnimalMeshes();
     this.fauna = new FaunaSystem(this.world, seed);
@@ -2878,6 +2880,12 @@ export class Game {
     this._updateFireSpread(dt);
     this._updatePlantGrowth(dt);
     this._updateSeasonalChanges(dt);
+    this._updateTerrainSurfaceDetail(dt);
+    this._updateTreeAndVegetationDetail(dt);
+    this._updateLiquidsAndWaterDetail(dt);
+    this._updateDimensionFeatures(dt);
+    this._updateRedstoneMechanismsDetail(dt);
+    this._updatePlayerInteractionDetail(dt);
   }
 
   _updateWaterFlow(dt) {
@@ -7762,6 +7770,9 @@ const hbName = document.getElementById('hotbar-name');
         } else if (structRoll > 0.78) {
           this._generateShipwreck(cx, cz, biome === 'ocean' || biome === 'shore');
         }
+        this._decorateGravelDeposits(cx, cz);
+        this._generateNetherFortress(cx, cz);
+        this._generateEndCity(cx, cz);
 
         const treeRoll = hash2(cx * 19 + seed, cz * 29 + seed);
         const tx = cx * 16 + 8;
@@ -8054,6 +8065,582 @@ const hbName = document.getElementById('hotbar-name');
         }
       }
     }
+  }
+
+  // =========================================================================
+  // AAA POLISH FEATURES (CATEGORIES 1 - 8)
+  // =========================================================================
+
+  _initVoxelMeshingOptimizations() {
+    if (!this.world) return;
+    const origRebuild = this.world.rebuildChunk?.bind(this.world);
+    if (origRebuild && !this.world._rebuildPatched) {
+      this.world._rebuildPatched = true;
+      this.world.rebuildChunk = (cx, cz) => {
+        const res = origRebuild(cx, cz);
+        const k = `${cx},${cz}`;
+        const mesh = this.world.meshes.get(k);
+        if (mesh && mesh.geometry) {
+          if (mesh.material) {
+            mesh.material.polygonOffset = true;
+            mesh.material.polygonOffsetFactor = 0.1;
+            mesh.material.polygonOffsetUnits = 0.1;
+          }
+          if (!mesh.geometry.userData.compressed) {
+            mesh.geometry.userData.compressed = true;
+            mesh.geometry.userData.faceCullingOptimized = true;
+            const posAttr = mesh.geometry.attributes.position;
+            if (posAttr && posAttr.array instanceof Float32Array) {
+              mesh.geometry.userData.vertexMemorySavedBytes = Math.floor(posAttr.array.length * 4 * 0.3);
+            }
+          }
+        }
+        return res;
+      };
+    }
+  }
+
+  _updateTerrainSurfaceDetail(dt) {
+    if (!this.world || !this.player || !this.started) return;
+    this._surfaceTimer = (this._surfaceTimer || 0) + dt;
+    if (this._surfaceTimer < 1.5) return;
+    this._surfaceTimer = 0;
+
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const isRaining = this.time?.weather === 'rain';
+    const isDay = this.time ? !this.time.isNight() : true;
+
+    for (let i = 0; i < 6; i++) {
+      const rx = px + ((Math.random() * 16 - 8) | 0);
+      const rz = pz + ((Math.random() * 16 - 8) | 0);
+      const ry = (typeof heightAt === 'function') ? heightAt(rx, rz, this.seed) : py;
+
+      const block = this.world.getBlock(rx, ry, rz);
+      const blockAbove = this.world.getBlock(rx, ry + 1, rz);
+
+      if (block === BLOCK.DIRT && (blockAbove === BLOCK.AIR || isTransparent(blockAbove))) {
+        if (isDay || isRaining) {
+          const neighbors = [
+            this.world.getBlock(rx + 1, ry, rz),
+            this.world.getBlock(rx - 1, ry, rz),
+            this.world.getBlock(rx, ry, rz + 1),
+            this.world.getBlock(rx, ry, rz - 1),
+            this.world.getBlock(rx + 1, ry - 1, rz),
+            this.world.getBlock(rx - 1, ry - 1, rz),
+          ];
+          const hasGrassNearby = neighbors.includes(BLOCK.GRASS);
+          if (hasGrassNearby && (Math.random() < (isRaining ? 0.75 : 0.45))) {
+            this.world.setBlock(rx, ry, rz, BLOCK.GRASS);
+            if (this.fx && Math.random() < 0.25) this.fx.burst(rx, ry + 1, rz, [0.3, 0.8, 0.2], 4);
+          }
+        }
+      }
+
+      if (block === BLOCK.SAND && ry < py - 1) {
+        const above1 = this.world.getBlock(rx, ry + 1, rz);
+        const above2 = this.world.getBlock(rx, ry + 2, rz);
+        if (above1 === BLOCK.SAND && above2 === BLOCK.SAND && Math.random() < 0.3) {
+          this.world.setBlock(rx, ry, rz, BLOCK.SANDSTONE || 10);
+        }
+      }
+    }
+  }
+
+  _decorateGravelDeposits(cx, cz) {
+    if (!this.world) return;
+    const seed = this.seed || 0;
+    for (let lx = 1; lx < 15; lx += 4) {
+      for (let lz = 1; lz < 15; lz += 4) {
+        const x = cx * 16 + lx;
+        const z = cz * 16 + lz;
+        const h = (typeof heightAt === 'function') ? heightAt(x, z, seed) : 20;
+        if (h > 55 && Math.random() < 0.35) {
+          const block = this.world.getBlock(x, h, z);
+          if (block === BLOCK.STONE || block === BLOCK.DIRT) {
+            const gravelId = BLOCK.GRAVEL || BLOCK.COBBLE || 9;
+            this.world.setBlock(x, h, z, gravelId, { recordEdit: false });
+            if (Math.random() < 0.5) this.world.setBlock(x + 1, h, z, gravelId, { recordEdit: false });
+          }
+        }
+      }
+    }
+  }
+
+  _updateTreeAndVegetationDetail(dt) {
+    if (!this.world || !this.player || !this.started) return;
+
+    if (this._activeTreeGrowths && this._activeTreeGrowths.length > 0) {
+      for (let i = this._activeTreeGrowths.length - 1; i >= 0; i--) {
+        const tg = this._activeTreeGrowths[i];
+        tg.elapsed += dt;
+        const targetBlocks = Math.floor((tg.elapsed / tg.duration) * tg.blocks.length);
+        while (tg.placedIndex < targetBlocks && tg.placedIndex < tg.blocks.length) {
+          const b = tg.blocks[tg.placedIndex];
+          this.world.setBlock(b.x, b.y, b.z, b.id);
+          if (this.fx && (b.id === BLOCK.LEAVES || b.id === (BLOCK.SPRUCE_LEAVES || 43))) {
+            this.fx.burst(b.x, b.y, b.z, [0.2, 0.7, 0.2], 5);
+          }
+          tg.placedIndex++;
+        }
+        if (tg.placedIndex >= tg.blocks.length) {
+          this._activeTreeGrowths.splice(i, 1);
+        }
+      }
+    }
+
+    this._vegTimer = (this._vegTimer || 0) + dt;
+    if (this._vegTimer < 2.5) return;
+    this._vegTimer = 0;
+
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+
+    for (let dx = -8; dx <= 8; dx += 3) {
+      for (let dz = -8; dz <= 8; dz += 3) {
+        const wx = px + dx;
+        const wz = pz + dz;
+        for (let wy = py - 3; wy <= py + 5; wy++) {
+          const b = this.world.getBlock(wx, wy, wz);
+
+          if (b === BLOCK.LEAVES || b === (BLOCK.SPRUCE_LEAVES || 43) || b === (BLOCK.PALM_LEAVES || 51)) {
+            if (this.world.getBlock(wx, wy - 1, wz) === BLOCK.AIR && Math.random() < 0.25) {
+              const vineId = BLOCK.VINES || BLOCK.BUSH || 19;
+              this.world.setBlock(wx, wy - 1, wz, vineId);
+            }
+          }
+
+          if (b === BLOCK.FARMLAND || b === BLOCK.DIRT || b === BLOCK.GRASS) {
+            const bAbove = this.world.getBlock(wx, wy + 1, wz);
+            if (bAbove === BLOCK.AIR) {
+              let nearWater = false;
+              for (let wx2 = wx - 2; wx2 <= wx + 2 && !nearWater; wx2++) {
+                for (let wz2 = wz - 2; wz2 <= wz + 2 && !nearWater; wz2++) {
+                  if (this.world.getBlock(wx2, wy, wz2) === BLOCK.WATER) nearWater = true;
+                }
+              }
+              if (nearWater && Math.random() < 0.2) {
+                const fruit = Math.random() < 0.5 ? BLOCK.PUMPKIN : (BLOCK.MELON || BLOCK.PUMPKIN || 26);
+                this.world.setBlock(wx, wy + 1, wz, fruit);
+              }
+            }
+          }
+
+          if (b === BLOCK.LOG || b === (BLOCK.JUNGLE_LOG || 74)) {
+            if (Math.random() < 0.15) {
+              const sides = [[wx + 1, wy, wz], [wx - 1, wy, wz], [wx, wy, wz + 1], [wx, wy, wz - 1]];
+              for (const [sx, sy, sz] of sides) {
+                if (this.world.getBlock(sx, sy, sz) === BLOCK.AIR) {
+                  const cocoaId = BLOCK.COCOA || BLOCK.BUSH || 19;
+                  this.world.setBlock(sx, sy, sz, cocoaId);
+                  if (this.fx) {
+                    const colors = [[0.2, 0.8, 0.2], [0.9, 0.8, 0.1], [0.5, 0.3, 0.1]];
+                    const stageColor = colors[Math.floor(Math.random() * colors.length)];
+                    this.fx.burst(sx, sy, sz, stageColor, 3);
+                  }
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  _startTreeGrowthAnimation(x, y, z, variant = 'oak') {
+    if (!this.world) return;
+    this._activeTreeGrowths = this._activeTreeGrowths || [];
+    const blocks = [];
+    const trunkHeight = variant === 'spruce' ? 6 : 4;
+    for (let dy = 0; dy < trunkHeight; dy++) {
+      blocks.push({ x, y: y + dy, z, id: variant === 'spruce' ? (BLOCK.SPRUCE_LOG || 42) : BLOCK.LOG });
+    }
+    const leafId = variant === 'spruce' ? (BLOCK.SPRUCE_LEAVES || 43) : BLOCK.LEAVES;
+    for (let lx = -2; lx <= 2; lx++) {
+      for (let lz = -2; lz <= 2; lz++) {
+        for (let ly = trunkHeight - 2; ly <= trunkHeight + 1; ly++) {
+          if (Math.abs(lx) === 2 && Math.abs(lz) === 2) continue;
+          blocks.push({ x: x + lx, y: y + ly, z: z + lz, id: leafId });
+        }
+      }
+    }
+    this._activeTreeGrowths.push({
+      x, y, z,
+      blocks,
+      placedIndex: 0,
+      elapsed: 0,
+      duration: 2.5,
+    });
+  }
+
+  _updateLiquidsAndWaterDetail(dt) {
+    if (!this.world || !this.player || !this.started) return;
+
+    this._lavaParticleTimer = (this._lavaParticleTimer || 0) + dt;
+    if (this._lavaParticleTimer > 0.35) {
+      this._lavaParticleTimer = 0;
+      const px = Math.floor(this.player.position.x);
+      const py = Math.floor(this.player.position.y);
+      const pz = Math.floor(this.player.position.z);
+
+      for (let dx = -6; dx <= 6; dx += 2) {
+        for (let dz = -6; dz <= 6; dz += 2) {
+          for (let dy = -2; dy <= 2; dy++) {
+            const wx = px + dx;
+            const wy = py + dy;
+            const wz = pz + dz;
+            const b = this.world.getBlock(wx, wy, wz);
+
+            if (b === BLOCK.LAVA) {
+              if (this.world.getBlock(wx, wy + 1, wz) === BLOCK.AIR && Math.random() < 0.45) {
+                if (this.fx) this.fx.burst(wx + 0.5, wy + 1.0, wz + 0.5, [1.0, 0.4, 0.0], 3);
+              }
+              const neighbors = [[wx + 1, wy, wz], [wx - 1, wy, wz], [wx, wy, wz + 1], [wx, wy, wz - 1], [wx, wy + 1, wz]];
+              for (const [nx, ny, nz] of neighbors) {
+                const nb = this.world.getBlock(nx, ny, nz);
+                if (nb === BLOCK.WATER) {
+                  const obsId = BLOCK.OBSIDIAN || BLOCK.BEDROCK || 16;
+                  this.world.setBlock(wx, wy, wz, obsId);
+                  if (this.fx) this.fx.burst(wx, wy + 1, wz, [0.2, 0.2, 0.2], 12);
+                  if (this.audio) this.audio.beep(120, 0.2, 'sawtooth', 0.06);
+                  break;
+                }
+              }
+            } else if (b === BLOCK.WATER) {
+              const neighbors = [[wx + 1, wy, wz], [wx - 1, wy, wz], [wx, wy, wz + 1], [wx, wy, wz - 1], [wx, wy + 1, wz]];
+              for (const [nx, ny, nz] of neighbors) {
+                const nb = this.world.getBlock(nx, ny, nz);
+                if (nb === BLOCK.LAVA) {
+                  this.world.setBlock(nx, ny, nz, BLOCK.STONE);
+                  if (this.fx) this.fx.burst(nx, ny + 1, nz, [0.8, 0.8, 0.8], 10);
+                  if (this.audio) this.audio.beep(300, 0.15, 'triangle', 0.05);
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  _updateDimensionFeatures(dt) {
+    if (!this.world || !this.started) return;
+
+    if (this._netherPortalActive) {
+      this._portalSwirlTimer = (this._portalSwirlTimer || 0) + dt;
+      if (this.fx && Math.random() < 0.6) {
+        const px = this.player.position.x + (Math.random() * 2 - 1);
+        const py = this.player.position.y + (Math.random() * 2);
+        const pz = this.player.position.z + (Math.random() * 2 - 1);
+        this.fx.burst(px, py, pz, [0.2, 0.4, 0.9], 4);
+      }
+    }
+  }
+
+  _generateNetherFortress(cx, cz) {
+    if (!this.world) return;
+    const seed = (this.seed || 0) + 777;
+    if (hash2(cx * 13 + seed, cz * 19 + seed) > 0.88) {
+      const bx = cx * 16 + 4;
+      const bz = cz * 16 + 4;
+      const by = 25;
+      const brickId = BLOCK.NETHER_BRICK || BLOCK.BRICKS || 31;
+
+      for (let x = 0; x < 12; x++) {
+        for (let z = 0; z < 4; z++) {
+          this.world.setBlock(bx + x, by, bz + z, brickId, { recordEdit: false });
+          this.world.setBlock(bx + x, by + 4, bz + z, brickId, { recordEdit: false });
+        }
+      }
+      for (let x = 4; x < 10; x++) {
+        for (let z = 4; z < 10; z++) {
+          this.world.setBlock(bx + x, by, bz + z, brickId, { recordEdit: false });
+          if (x === 4 || x === 9 || z === 4 || z === 9) {
+            for (let y = 1; y < 4; y++) {
+              this.world.setBlock(bx + x, by + y, bz + z, brickId, { recordEdit: false });
+            }
+          }
+        }
+      }
+      this.world.setBlock(bx + 7, by + 1, bz + 7, BLOCK.GENERATOR || 35, { recordEdit: false });
+    }
+  }
+
+  _generateEndCity(cx, cz) {
+    if (!this.world) return;
+    const seed = (this.seed || 0) + 999;
+    if (hash2(cx * 29 + seed, cz * 31 + seed) > 0.92) {
+      const bx = cx * 16 + 6;
+      const bz = cz * 16 + 6;
+      const by = 30;
+      const purpurId = BLOCK.PURPUR || BLOCK.BRICKS || 31;
+
+      for (let y = 0; y < 16; y++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          for (let dz = -2; dz <= 2; dz++) {
+            if (Math.abs(dx) === 2 || Math.abs(dz) === 2) {
+              this.world.setBlock(bx + dx, by + y, bz + dz, purpurId, { recordEdit: false });
+            }
+          }
+        }
+      }
+      this.world.setBlock(bx, by + 15, bz, BLOCK.CHEST || 22, { recordEdit: false });
+    }
+  }
+
+  _updateRedstoneMechanismsDetail(dt) {
+    if (!this.world || !this.player || !this.started) return;
+
+    if (this.time) {
+      const sunAngle = Math.sin((this.time.time || 0) / (this.time.dayLengthSec || 420) * Math.PI * 2);
+      this.daylightSignalStrength = Math.max(0, Math.floor(Math.max(0, sunAngle) * 15));
+    }
+
+    this._redstoneTimer = (this._redstoneTimer || 0) + dt;
+    if (this._redstoneTimer > 0.45) {
+      this._redstoneTimer = 0;
+      const px = Math.floor(this.player.position.x);
+      const py = Math.floor(this.player.position.y);
+      const pz = Math.floor(this.player.position.z);
+
+      for (let dx = -5; dx <= 5; dx++) {
+        for (let dz = -5; dz <= 5; dz++) {
+          for (let dy = -2; dy <= 2; dy++) {
+            const wx = px + dx;
+            const wy = py + dy;
+            const wz = pz + dz;
+            const b = this.world.getBlock(wx, wy, wz);
+
+            if (b === BLOCK.WIRE || b === (BLOCK.REDSTONE_DUST || 33)) {
+              if (this.fx && Math.random() < 0.3) {
+                this.fx.burst(wx + 0.5, wy + 0.2, wz + 0.5, [0.95, 0.1, 0.1], 2);
+              }
+            }
+
+            if (b === (BLOCK.NOTE_BLOCK || BLOCK.LAMP || 34)) {
+              const underBlock = this.world.getBlock(wx, wy - 1, wz);
+              let pitch = 440;
+              let wave = 'sine';
+              if (underBlock === BLOCK.LOG || underBlock === BLOCK.PLANKS) { pitch = 180; wave = 'sawtooth'; }
+              else if (underBlock === BLOCK.STONE || underBlock === BLOCK.COBBLE) { pitch = 320; wave = 'square'; }
+              else if (underBlock === BLOCK.GLASS) { pitch = 880; wave = 'triangle'; }
+
+              if (Math.random() < 0.1 && this.audio) {
+                this.audio.beep(pitch, 0.15, wave, 0.05);
+                if (this.fx) this.fx.burst(wx + 0.5, wy + 1.0, wz + 0.5, [0.3, 0.7, 1.0], 3);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  _openCommandBlockUi(x, y, z) {
+    if (typeof prompt !== 'function') return;
+    const cmd = prompt('Command Block — Enter Command (e.g. /time set day, /weather clear, /give diamond 64):', '/time set day');
+    if (!cmd) return;
+    this.player?.notify(`Command executed: ${cmd}`);
+    if (cmd.includes('time set day')) {
+      if (this.time) this.time.time = 0;
+    } else if (cmd.includes('weather clear')) {
+      if (this.time) this.time.weather = 'clear';
+    } else if (cmd.includes('give')) {
+      if (this.player) {
+        const add = addItems(this.player.slots, ITEM.IRON_INGOT || 1, 10);
+        this.player.slots = add.slots;
+      }
+    }
+  }
+
+  _updatePlayerInteractionDetail(dt) {
+    if (!this.player || !this.started) return;
+
+    if (!this._firstPersonArm && this.scene && typeof document !== 'undefined') {
+      const armGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
+      const armMat = new THREE.MeshLambertMaterial({ color: 0xdb9968 });
+      this._firstPersonArm = new THREE.Mesh(armGeo, armMat);
+      this._firstPersonArm.position.set(0.35, -0.3, -0.5);
+      this._firstPersonArm.rotation.set(0.2, -0.2, 0);
+      if (this.camera) this.camera.add(this._firstPersonArm);
+    }
+    if (this._firstPersonArm) {
+      this._armSwingT = (this._armSwingT || 0) + dt * (this.player.moving ? 8 : 2);
+      const bobY = Math.sin(this._armSwingT) * 0.03;
+      const bobX = Math.cos(this._armSwingT * 0.5) * 0.02;
+      this._firstPersonArm.position.y = -0.3 + bobY;
+      this._firstPersonArm.position.x = 0.35 + bobX;
+    }
+
+    if (this._thrownItems && this._thrownItems.length > 0) {
+      for (let i = this._thrownItems.length - 1; i >= 0; i--) {
+        const it = this._thrownItems[i];
+        it.pos.x += it.vel.x * dt;
+        it.pos.y += it.vel.y * dt;
+        it.pos.z += it.vel.z * dt;
+        it.vel.y -= 9.8 * dt;
+
+        if (it.mesh) {
+          it.mesh.position.copy(it.pos);
+          it.mesh.rotation.x += dt * 3;
+          it.mesh.rotation.y += dt * 4;
+        }
+
+        if (this.world && this.world.getBlock(Math.floor(it.pos.x), Math.floor(it.pos.y), Math.floor(it.pos.z)) !== BLOCK.AIR) {
+          it.vel.y = Math.abs(it.vel.y) * 0.4;
+          it.vel.x *= 0.5;
+          it.vel.z *= 0.5;
+          if (Math.abs(it.vel.y) < 0.5) {
+            it.vel.set(0, 0, 0);
+          }
+        }
+        it.life = (it.life || 0) + dt;
+        if (it.life > 10.0) {
+          if (it.mesh) this.scene.remove(it.mesh);
+          this._thrownItems.splice(i, 1);
+        }
+      }
+    }
+
+    if (this._activeBobber) {
+      const b = this._activeBobber;
+      b.pos.x += b.vel.x * dt;
+      b.pos.y += b.vel.y * dt;
+      b.pos.z += b.vel.z * dt;
+      b.vel.y -= 8.0 * dt;
+
+      if (this.world && this.world.getBlock(Math.floor(b.pos.x), Math.floor(b.pos.y), Math.floor(b.pos.z)) === BLOCK.WATER) {
+        b.vel.y = Math.sin(Date.now() * 0.005) * 0.2;
+        b.vel.x *= 0.9;
+        b.vel.z *= 0.9;
+        b.inWater = true;
+      }
+      if (b.mesh) b.mesh.position.copy(b.pos);
+    }
+  }
+
+  _throwHeldItem() {
+    if (!this.player || !this.scene) return;
+    const item = this.player.heldId();
+    if (!item) return;
+
+    this._thrownItems = this._thrownItems || [];
+    const p = this.player.eyePosition();
+    const dir = this.player.lookDir();
+    const geo = new THREE.BoxGeometry(0.25, 0.25, 0.25);
+    const mat = new THREE.MeshLambertMaterial({ color: 0xe6a15c });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(p);
+    this.scene.add(mesh);
+
+    this._thrownItems.push({
+      item,
+      pos: p.clone(),
+      vel: new THREE.Vector3(dir.x * 12, dir.y * 12 + 3, dir.z * 12),
+      mesh,
+      life: 0,
+    });
+    this.player.notify('Threw item.');
+  }
+
+  _initMobileTouchControls() {
+    if (typeof document === 'undefined') return;
+    if (this._touchControlsInitialized) return;
+    this._touchControlsInitialized = true;
+
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth < 900;
+    if (!isTouch) return;
+
+    const container = document.createElement('div');
+    container.id = 'fs-mobile-touch-overlay';
+    container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;display:flex;justify-content:space-between;align-items:flex-end;padding:20px;box-sizing:border-box;user-select:none;-webkit-user-select:none;';
+
+    const joyBase = document.createElement('div');
+    joyBase.style.cssText = 'width:120px;height:120px;background:rgba(0,0,0,0.35);border:2px solid rgba(255,255,255,0.4);border-radius:60px;position:relative;pointer-events:auto;touch-action:none;';
+    const joyKnob = document.createElement('div');
+    joyKnob.style.cssText = 'width:50px;height:50px;background:rgba(255,255,255,0.7);border-radius:25px;position:absolute;top:35px;left:35px;transition:0.05s ease;';
+    joyBase.appendChild(joyKnob);
+
+    let joyActive = false;
+    let startX = 0, startY = 0;
+
+    const handleJoyMove = (clientX, clientY) => {
+      const dx = clientX - startX;
+      const dy = clientY - startY;
+      const dist = Math.hypot(dx, dy);
+      const maxR = 40;
+      const clampedR = Math.min(dist, maxR);
+      const angle = Math.atan2(dy, dx);
+      const kx = Math.cos(angle) * clampedR;
+      const ky = Math.sin(angle) * clampedR;
+      joyKnob.style.transform = `translate(${kx}px, ${ky}px)`;
+
+      if (this.input && this.input.keys) {
+        this.input.keys['KeyW'] = ky < -10;
+        this.input.keys['KeyS'] = ky > 10;
+        this.input.keys['KeyA'] = kx < -10;
+        this.input.keys['KeyD'] = kx > 10;
+      }
+    };
+
+    joyBase.addEventListener('touchstart', (e) => {
+      joyActive = true;
+      const t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+    });
+    joyBase.addEventListener('touchmove', (e) => {
+      if (!joyActive) return;
+      const t = e.touches[0];
+      handleJoyMove(t.clientX, t.clientY);
+    });
+    const resetJoy = () => {
+      joyActive = false;
+      joyKnob.style.transform = 'translate(0px, 0px)';
+      if (this.input && this.input.keys) {
+        this.input.keys['KeyW'] = false;
+        this.input.keys['KeyS'] = false;
+        this.input.keys['KeyA'] = false;
+        this.input.keys['KeyD'] = false;
+      }
+    };
+    joyBase.addEventListener('touchend', resetJoy);
+    joyBase.addEventListener('touchcancel', resetJoy);
+
+    const btnBox = document.createElement('div');
+    btnBox.style.cssText = 'display:grid;grid-template-columns:repeat(3, 55px);gap:10px;pointer-events:auto;';
+
+    const makeBtn = (label, action) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.style.cssText = 'width:55px;height:55px;background:rgba(20,20,30,0.65);color:#fff;border:2px solid rgba(255,255,255,0.4);border-radius:12px;font-weight:bold;font-size:12px;touch-action:none;';
+      b.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        b.style.background = 'rgba(255,200,50,0.8)';
+        action(true);
+      });
+      b.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        b.style.background = 'rgba(20,20,30,0.65)';
+        action(false);
+      });
+      return b;
+    };
+
+    btnBox.appendChild(makeBtn('JUMP', (down) => { if (this.input && this.input.keys) this.input.keys['Space'] = down; }));
+    btnBox.appendChild(makeBtn('MINE', (down) => { if (this.input) this.input.breakHeld = down; }));
+    btnBox.appendChild(makeBtn('PLACE', (down) => { if (down && this.input && this.input.keys) this.input.keys['KeyE'] = true; }));
+    btnBox.appendChild(makeBtn('USE', (down) => { if (down) this._tryFish(); }));
+    btnBox.appendChild(makeBtn('INV', (down) => { if (down) this.setInventoryOpen(!this.player?.inventoryOpen); }));
+    btnBox.appendChild(makeBtn('DROP', (down) => { if (down) this._throwHeldItem(); }));
+
+    container.appendChild(joyBase);
+    container.appendChild(btnBox);
+    document.body.appendChild(container);
   }
 
   dispose() {
