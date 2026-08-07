@@ -2,7 +2,6 @@
  * Greedy meshing for voxel chunks (rectangle merge of same-type faces).
  * Pure logic — no Three.js.
  */
-import { biomeAt, BIOME } from './biomes.js';
 
 function faceVisible(id, nid, waterId, isTransparent, isSolid) {
   if (id === 0 || id == null) return false;
@@ -16,8 +15,6 @@ function faceVisible(id, nid, waterId, isTransparent, isSolid) {
 function packKey(tile, r, g, b, a) {
   return `${tile}|${(r * 1000) | 0}|${(g * 1000) | 0}|${(b * 1000) | 0}|${(a * 100) | 0}`;
 }
-
-const clamp = (v) => Math.max(0, Math.min(1, v));
 
 /**
  * @param {object} opts
@@ -43,11 +40,11 @@ export function greedyMeshChunk(opts) {
   const sizes = [sizeX, sizeY, sizeZ];
 
   const dirs = [
-    { axis: 0, sign: 1, name: 'east', shade: 0.6, du: 2, dv: 1 },
-    { axis: 0, sign: -1, name: 'west', shade: 0.9, du: 2, dv: 1 },
-    { axis: 1, sign: 1, name: 'top', shade: 1.15, du: 0, dv: 2 },
-    { axis: 1, sign: -1, name: 'bottom', shade: 0.5, du: 0, dv: 2 },
-    { axis: 2, sign: 1, name: 'south', shade: 0.75, du: 0, dv: 1 },
+    { axis: 0, sign: 1, name: 'east', shade: 0.7, du: 2, dv: 1 },
+    { axis: 0, sign: -1, name: 'west', shade: 0.85, du: 2, dv: 1 },
+    { axis: 1, sign: 1, name: 'top', shade: 1.0, du: 0, dv: 2 },
+    { axis: 1, sign: -1, name: 'bottom', shade: 0.55, du: 0, dv: 2 },
+    { axis: 2, sign: 1, name: 'south', shade: 0.8, du: 0, dv: 1 },
     { axis: 2, sign: -1, name: 'north', shade: 0.75, du: 0, dv: 1 },
   ];
 
@@ -81,9 +78,9 @@ export function greedyMeshChunk(opts) {
 
           const tile = tileFor(id, name);
           const col = colorFor(id, name);
-          const r = clamp(col[0] * shade);
-          const g = clamp(col[1] * shade);
-          const b = clamp(col[2] * shade);
+          const r = Math.min(1, col[0] * shade * 1.15);
+          const g = Math.min(1, col[1] * shade * 1.15);
+          const b = Math.min(1, col[2] * shade * 1.15);
           const a = id === waterId ? 0.65 : 1;
           mask[uu + vv * uSize] = { tile, r, g, b, a, id, bx: wx, by: wy, bz: wz };
         }
@@ -179,16 +176,6 @@ export function quadsToArrays(quads) {
     const n = [0, 0, 0];
     n[q.axis] = q.sign;
 
-    // Biome color tinting — one lookup per quad (world coords of its min corner)
-    let biomeTint = null;
-    try {
-      const biome = biomeAt(q.bx, q.bz);
-      if (biome === BIOME.TROPICAL) biomeTint = [0.05, 0.1, 0]; // richer green
-      else if (biome === BIOME.FOREST) biomeTint = [0, 0.05, 0]; // deep green
-      else if (biome === BIOME.DESERT) biomeTint = [0.08, 0.04, -0.02]; // warm sand
-      else if (biome === BIOME.TUNDRA) biomeTint = [0.04, 0.04, 0.06]; // cool white-blue
-    } catch (e) {}
-
     const stepU = [0, 0, 0];
     const stepV = [0, 0, 0];
     stepU[q.du] = 1;
@@ -215,22 +202,13 @@ export function quadsToArrays(quads) {
           ];
 
     for (const [uu, vv] of wind) {
-      const x = origin[0] + stepU[0] * uu + stepV[0] * vv;
-      const y = origin[1] + stepU[1] * uu + stepV[1] * vv;
-      const z = origin[2] + stepU[2] * uu + stepV[2] * vv;
-      positions.push(x, y, z);
+      positions.push(
+        origin[0] + stepU[0] * uu + stepV[0] * vv,
+        origin[1] + stepU[1] * uu + stepV[1] * vv,
+        origin[2] + stepU[2] * uu + stepV[2] * vv,
+      );
       normals.push(n[0], n[1], n[2]);
-      // Subtle per-vertex noise for natural terrain variation
-      const noise = ((Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1) * 0.06 - 0.03;
-      let r = clamp(q.r + noise);
-      let g = clamp(q.g + noise);
-      let b = clamp(q.b + noise);
-      if (biomeTint) {
-        r = clamp(r + biomeTint[0]);
-        g = clamp(g + biomeTint[1]);
-        b = clamp(b + biomeTint[2]);
-      }
-      colors.push(r, g, b, q.a);
+      colors.push(q.r, q.g, q.b, q.a);
       uvs.push(uu, vv);
       tiles.push(q.tile);
     }
