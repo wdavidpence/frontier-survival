@@ -104,9 +104,22 @@ function drawSand(ctx, x0, y0) {
 
 function drawWater(ctx, x0, y0) {
   // Keep alpha high enough that opaque-pass alphaTest/discard does not punch holes
-  fillNoise(ctx, x0, y0, [40, 90, 190], 0.3, 66, 220);
-  ctx.fillStyle = 'rgba(180,220,255,0.25)';
-  ctx.fillRect(x0 + 4, y0 + 8, 20, 3);
+  fillNoise(ctx, x0, y0, [35, 100, 195], 0.28, 66, 225);
+  // Layered staggered wave & foam highlights (restrained opacity for seamless tiling)
+  ctx.fillStyle = 'rgba(175, 225, 255, 0.22)';
+  ctx.fillRect(x0 + 3, y0 + 5, 14, 2);
+  ctx.fillRect(x0 + 20, y0 + 7, 9, 2);
+  ctx.fillStyle = 'rgba(220, 245, 255, 0.28)';
+  ctx.fillRect(x0 + 8, y0 + 14, 16, 2);
+  ctx.fillRect(x0 + 2, y0 + 16, 4, 1);
+  ctx.fillStyle = 'rgba(155, 215, 255, 0.18)';
+  ctx.fillRect(x0 + 4, y0 + 23, 11, 2);
+  ctx.fillRect(x0 + 18, y0 + 25, 10, 2);
+  // Subtle shoreline/foam flecks
+  ctx.fillStyle = 'rgba(235, 250, 255, 0.25)';
+  ctx.fillRect(x0 + 11, y0 + 13, 3, 1);
+  ctx.fillRect(x0 + 22, y0 + 6, 2, 1);
+  ctx.fillRect(x0 + 6, y0 + 22, 2, 1);
 }
 
 function drawLogSide(ctx, x0, y0) {
