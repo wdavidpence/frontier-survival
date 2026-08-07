@@ -97,6 +97,7 @@ import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=220';
 import { wearTool, durabilityRatio } from './durability.js?v=220';
 import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=220';
 import { tickLogic, COMPONENT } from './logic.js?v=220';
+import { heightAt, hash2, fbm, forestFloorDetail, getOreBlock, isCaveBlock, riverCarving, ridgeNoise, GEN_SEA_LEVEL } from './gen.js?v=285';
 import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=245';
 import {
   chestKey,
@@ -838,6 +839,9 @@ export class Game {
     this._recipeFilter = '';
     this._fishCd = 0;
     this._campFuel = new Map(); // "x,y,z" -> fuel 0..100
+    this._decoratedChunks = new Set();
+    this._initSkyAtmosphere();
+    this._initBlockAnimations();
     this._furnaces = new Map(); // "x,y,z" -> furnace-tick state
     /** Slab half meta "x,y,z" -> 0 bottom / 1 top (additive until mesh uses it). */
     this._slabHalf = new Map();
@@ -2561,6 +2565,9 @@ export class Game {
     this._updatePlayerPhysics(dt);
     this._updateWeatherSystem(dt);
     this._updateCoopSystem(dt);
+    this._updateSkyAtmosphere(dt);
+    this._updateBlockAnimations(dt);
+    this._decorateNearbyWorld(dt);
 
     // periodic autosave
     this._autosaveAcc += dt;
@@ -3981,6 +3988,7 @@ export class Game {
       const next = toggleDoor(hit.id, BLOCK.DOOR_CLOSED, BLOCK.DOOR_OPEN);
       if (next == null) return;
       this.world.setBlock(hit.x, hit.y, hit.z, next);
+      this._triggerDoorAnimation(hit.x, hit.y, hit.z, next === BLOCK.DOOR_OPEN);
       this.audio.placeBlock();
       this.player.notify(next === BLOCK.DOOR_CLOSED ? 'Door closed.' : 'Door opened.');
       this._scanLights(true);
@@ -7219,6 +7227,577 @@ const hbName = document.getElementById('hotbar-name');
     this.saveGame({ quiet: true });
     this._scanLights(true);
     this.input.requestLock?.();
+  }
+
+  // --- AAA Visual Polish Systems: Sky Atmosphere, Animations, Structures, Trees, Oceans ---
+
+  _initSkyAtmosphere() {
+    this.cloudLayers = [];
+    const cloudConfigs = [
+      { height: 115, speed: 0.8, opacity: 0.6, scale: 1.0 },
+      { height: 150, speed: 0.45, opacity: 0.4, scale: 1.3 },
+      { height: 185, speed: 0.2, opacity: 0.25, scale: 1.7 }
+    ];
+    for (const cfg of cloudConfigs) {
+      const layer = new VoxelCloudLayer(this.scene);
+      layer.height = cfg.height;
+      layer.speed = cfg.speed;
+      layer.scale = cfg.scale;
+      if (layer.mesh && layer.mesh.material) {
+        layer.mesh.material.opacity = cfg.opacity;
+      }
+      this.cloudLayers.push(layer);
+    }
+
+    const rainbowCanvas = document.createElement('canvas');
+    rainbowCanvas.width = 256;
+    rainbowCanvas.height = 128;
+    const rctx = rainbowCanvas.getContext('2d');
+    if (rctx) {
+      const grad = rctx.createLinearGradient(0, 0, 256, 0);
+      grad.addColorStop(0.0, 'rgba(255, 0, 0, 0)');
+      grad.addColorStop(0.2, 'rgba(255, 0, 0, 0.7)');
+      grad.addColorStop(0.35, 'rgba(255, 165, 0, 0.7)');
+      grad.addColorStop(0.5, 'rgba(255, 255, 0, 0.7)');
+      grad.addColorStop(0.65, 'rgba(0, 128, 0, 0.7)');
+      grad.addColorStop(0.8, 'rgba(0, 0, 255, 0.7)');
+      grad.addColorStop(0.9, 'rgba(238, 130, 238, 0.7)');
+      grad.addColorStop(1.0, 'rgba(238, 130, 238, 0)');
+      rctx.fillStyle = grad;
+      rctx.beginPath();
+      rctx.arc(128, 128, 110, Math.PI, 2 * Math.PI);
+      rctx.lineWidth = 24;
+      rctx.strokeStyle = grad;
+      rctx.stroke();
+    }
+    const rainbowTex = new THREE.CanvasTexture(rainbowCanvas);
+    const rainbowMat = new THREE.SpriteMaterial({
+      map: rainbowTex,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false
+    });
+    this.rainbowSprite = new THREE.Sprite(rainbowMat);
+    this.rainbowSprite.scale.set(180, 90, 1);
+    this.rainbowSprite.renderOrder = -80;
+    this.scene.add(this.rainbowSprite);
+    this._rainbowTimer = 0;
+    this._wasRaining = false;
+
+    const auroraCanvas = document.createElement('canvas');
+    auroraCanvas.width = 256;
+    auroraCanvas.height = 64;
+    const actx = auroraCanvas.getContext('2d');
+    if (actx) {
+      const grad = actx.createLinearGradient(0, 0, 0, 64);
+      grad.addColorStop(0, 'rgba(0, 255, 150, 0)');
+      grad.addColorStop(0.5, 'rgba(50, 255, 180, 0.8)');
+      grad.addColorStop(0.8, 'rgba(180, 50, 255, 0.6)');
+      grad.addColorStop(1, 'rgba(180, 50, 255, 0)');
+      actx.fillStyle = grad;
+      actx.fillRect(0, 0, 256, 64);
+    }
+    const auroraTex = new THREE.CanvasTexture(auroraCanvas);
+    const auroraMat = new THREE.SpriteMaterial({
+      map: auroraTex,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    this.auroraSprite = new THREE.Sprite(auroraMat);
+    this.auroraSprite.scale.set(240, 60, 1);
+    this.auroraSprite.renderOrder = -85;
+    this.scene.add(this.auroraSprite);
+
+    this._activeMeteors = [];
+    this._meteorCooldown = 0;
+  }
+
+  _updateSkyAtmosphere(dt) {
+    if (!this.player) return;
+    const pPos = this.player.position;
+
+    if (this.cloudLayers) {
+      for (let i = 0; i < this.cloudLayers.length; i++) {
+        this.cloudLayers[i].update?.(dt * (1 + i * 0.3));
+      }
+    }
+
+    const isRaining = this.weatherFx?.isRaining || false;
+    if (this._wasRaining && !isRaining) {
+      this._rainbowTimer = 45;
+    }
+    this._wasRaining = isRaining;
+
+    if (this._rainbowTimer > 0) {
+      this._rainbowTimer -= dt;
+      const targetOpacity = Math.min(1, this._rainbowTimer / 5) * 0.6;
+      if (this.rainbowSprite) {
+        this.rainbowSprite.material.opacity = THREE.MathUtils.lerp(this.rainbowSprite.material.opacity, targetOpacity, dt * 2);
+        this.rainbowSprite.position.set(pPos.x + 80, pPos.y + 40, pPos.z - 120);
+      }
+    } else if (this.rainbowSprite) {
+      this.rainbowSprite.material.opacity = THREE.MathUtils.lerp(this.rainbowSprite.material.opacity, 0, dt * 2);
+    }
+
+    const isNight = this.time?.isNight?.() ?? (this.time?.timeOfDay < 0.25 || this.time?.timeOfDay > 0.75);
+    const curBiome = biomeAt ? biomeAt(pPos.x, pPos.z, this.world?.seed) : 'forest';
+    const isColdBiome = curBiome === 'tundra' || curBiome === BIOME?.TUNDRA;
+    if (this.auroraSprite) {
+      const targetAurora = (isNight && isColdBiome) ? 0.75 : 0;
+      this.auroraSprite.material.opacity = THREE.MathUtils.lerp(this.auroraSprite.material.opacity, targetAurora, dt * 1.5);
+      if (this.auroraSprite.material.opacity > 0.01) {
+        const t = performance.now() * 0.001;
+        const waveX = Math.sin(t * 0.5) * 20;
+        const waveY = Math.cos(t * 0.7) * 8;
+        this.auroraSprite.position.set(pPos.x + waveX, pPos.y + 70 + waveY, pPos.z - 150);
+      }
+    }
+
+    if (isNight && Math.random() < 0.008 && this._meteorCooldown <= 0) {
+      this._meteorCooldown = 8.0;
+      const angle = Math.random() * Math.PI * 2;
+      const meteor = {
+        x: pPos.x + Math.cos(angle) * 120,
+        y: pPos.y + 110 + Math.random() * 30,
+        z: pPos.z + Math.sin(angle) * 120,
+        vx: (Math.random() - 0.5) * 80,
+        vy: -30 - Math.random() * 20,
+        vz: (Math.random() - 0.5) * 80,
+        life: 1.2
+      };
+      this._activeMeteors.push(meteor);
+    }
+    this._meteorCooldown = Math.max(0, this._meteorCooldown - dt);
+
+    for (let i = this._activeMeteors.length - 1; i >= 0; i--) {
+      const m = this._activeMeteors[i];
+      m.x += m.vx * dt;
+      m.y += m.vy * dt;
+      m.z += m.vz * dt;
+      m.life -= dt;
+      if (this.fx && Math.random() < 0.7) {
+        this.fx.spawnBreakParticle?.(m.x, m.y, m.z, [1.0, 0.9, 0.4]);
+      }
+      if (m.life <= 0) {
+        this._activeMeteors.splice(i, 1);
+      }
+    }
+  }
+
+  _initBlockAnimations() {
+    this._animatedBlocks = [];
+  }
+
+  _triggerDoorAnimation(x, y, z, isOpen) {
+    const doorGeo = new THREE.BoxGeometry(0.2, 2.0, 0.9);
+    const doorMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.8 });
+    const mesh = new THREE.Mesh(doorGeo, doorMat);
+    mesh.position.set(x + 0.5, y + 1.0, z + 0.5);
+    this.scene.add(mesh);
+    this._animatedBlocks.push({
+      mesh,
+      type: 'door',
+      time: 0,
+      duration: 0.2,
+      startRot: isOpen ? 0 : Math.PI / 2,
+      endRot: isOpen ? Math.PI / 2 : 0
+    });
+  }
+
+  _triggerTrapdoorAnimation(x, y, z, isOpen) {
+    const geo = new THREE.BoxGeometry(0.9, 0.15, 0.9);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x6e4723, roughness: 0.8 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x + 0.5, y + 0.9, z + 0.5);
+    this.scene.add(mesh);
+    this._animatedBlocks.push({
+      mesh,
+      type: 'trapdoor',
+      time: 0,
+      duration: 0.15,
+      startRot: isOpen ? 0 : Math.PI / 2,
+      endRot: isOpen ? Math.PI / 2 : 0
+    });
+  }
+
+  _triggerPistonAnimation(x, y, z, isExtending) {
+    const headGeo = new THREE.BoxGeometry(0.9, 0.2, 0.9);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.5 });
+    const mesh = new THREE.Mesh(headGeo, mat);
+    mesh.position.set(x + 0.5, y + 0.5, z + 0.5);
+    this.scene.add(mesh);
+    this.audio?.placeBlock?.();
+    this._animatedBlocks.push({
+      mesh,
+      type: 'piston',
+      time: 0,
+      duration: 0.15,
+      startOffset: isExtending ? 0 : 0.8,
+      endOffset: isExtending ? 0.8 : 0,
+      baseY: y + 0.5
+    });
+  }
+
+  _updateBlockAnimations(dt) {
+    if (!this._animatedBlocks) return;
+    for (let i = this._animatedBlocks.length - 1; i >= 0; i--) {
+      const anim = this._animatedBlocks[i];
+      anim.time += dt;
+      const progress = Math.min(1, anim.time / anim.duration);
+      const ease = progress * progress * (3 - 2 * progress);
+
+      if (anim.type === 'door' || anim.type === 'trapdoor') {
+        anim.mesh.rotation.y = THREE.MathUtils.lerp(anim.startRot, anim.endRot, ease);
+      } else if (anim.type === 'piston') {
+        const offset = THREE.MathUtils.lerp(anim.startOffset, anim.endOffset, ease);
+        anim.mesh.position.y = anim.baseY + offset;
+      }
+
+      if (progress >= 1) {
+        this.scene.remove(anim.mesh);
+        anim.mesh.geometry?.dispose?.();
+        anim.mesh.material?.dispose?.();
+        this._animatedBlocks.splice(i, 1);
+      }
+    }
+
+    if (this.player && this.fx && Math.random() < 0.3) {
+      const px = Math.floor(this.player.position.x);
+      const py = Math.floor(this.player.position.y);
+      const pz = Math.floor(this.player.position.z);
+      for (let dx = -4; dx <= 4; dx++) {
+        for (let dz = -4; dz <= 4; dz++) {
+          for (let dy = -2; dy <= 2; dy++) {
+            if (this.world?.getBlock(px + dx, py + dy, pz + dz) === BLOCK.WIRE) {
+              const pulse = Math.sin(performance.now() * 0.005) * 0.3 + 0.7;
+              this.fx.spawnBreakParticle?.(px + dx + 0.5, py + dy + 0.2, pz + dz + 0.5, [pulse, 0.1, 0.1]);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  _decorateNearbyWorld(dt) {
+    if (!this.world || !this.player) return;
+    const centerChunk = this.world.worldToChunk(this.player.position.x, this.player.position.z);
+    const radius = 3;
+
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dz = -radius; dz <= radius; dz++) {
+        const cx = centerChunk.cx + dx;
+        const cz = centerChunk.cz + dz;
+        const key = `${cx},${cz}`;
+        if (this._decoratedChunks.has(key)) continue;
+        this._decoratedChunks.add(key);
+
+        const seed = this.world.seed || 0;
+        const structRoll = hash2(cx * 37 + seed, cz * 43 + seed);
+        const biome = biomeAt ? biomeAt(cx * 16 + 8, cz * 16 + 8, seed) : 'forest';
+
+        if (structRoll > 0.94) {
+          this._generateVillage(cx, cz);
+        } else if (structRoll > 0.88) {
+          this._generateDungeon(cx, cz);
+        } else if (structRoll > 0.83) {
+          this._generateTemple(cx, cz, biome === 'desert');
+        } else if (structRoll > 0.78) {
+          this._generateShipwreck(cx, cz, biome === 'ocean' || biome === 'shore');
+        }
+
+        const treeRoll = hash2(cx * 19 + seed, cz * 29 + seed);
+        const tx = cx * 16 + 8;
+        const tz = cz * 16 + 8;
+        const ty = heightAt(tx, tz, seed);
+        if (ty >= GEN_SEA_LEVEL + 1) {
+          if (biome === 'forest') {
+            if (treeRoll > 0.7) this._generateCustomTree(tx, ty, tz, 'oak');
+            else if (treeRoll > 0.4) this._generateCustomTree(tx, ty, tz, 'birch');
+            else if (treeRoll > 0.2) this._generateCustomTree(tx, ty, tz, 'red_mushroom');
+          } else if (biome === 'tundra') {
+            if (treeRoll > 0.5) this._generateCustomTree(tx, ty, tz, 'spruce');
+            else this._generateCustomTree(tx, ty, tz, 'dead');
+          } else if (biome === 'tropical') {
+            if (treeRoll > 0.5) this._generateCustomTree(tx, ty, tz, 'jungle');
+          }
+        }
+
+        this._decorateUnderwaterEcosystem(cx, cz);
+      }
+    }
+  }
+
+  _generateVillage(cx, cz) {
+    const seed = this.world?.seed || 0;
+    const startX = cx * 16 + 4;
+    const startZ = cz * 16 + 4;
+    const surfaceY = heightAt(startX, startZ, seed);
+    if (surfaceY < GEN_SEA_LEVEL + 2 || surfaceY > 40) return;
+
+    this._buildHouse(startX, surfaceY, startZ, 5, 4, 5);
+    this._buildHouse(startX + 7, surfaceY, startZ + 2, 4, 4, 4);
+
+    for (let rx = startX - 2; rx <= startX + 12; rx++) {
+      const ry = heightAt(rx, startZ + 1, seed);
+      this.world.setBlock(rx, ry, startZ + 1, BLOCK.COBBLE, { recordEdit: false });
+    }
+
+    const farmX = startX - 4;
+    const farmZ = startZ + 7;
+    for (let fx = 0; fx < 4; fx++) {
+      for (let fz = 0; fz < 4; fz++) {
+        const bx = farmX + fx, bz = farmZ + fz;
+        const by = heightAt(bx, bz, seed);
+        if (fx === 1 && fz === 1) {
+          this.world.setBlock(bx, by, bz, BLOCK.WATER, { recordEdit: false });
+        } else {
+          this.world.setBlock(bx, by, bz, BLOCK.FARMLAND, { recordEdit: false });
+          this.world.setBlock(bx, by + 1, bz, BLOCK.CROP, { recordEdit: false });
+        }
+      }
+    }
+  }
+
+  _buildHouse(x, y, z, w, h, d) {
+    for (let dx = 0; dx < w; dx++) {
+      for (let dz = 0; dz < d; dz++) {
+        for (let dy = 0; dy < h; dy++) {
+          const isCorner = (dx === 0 || dx === w - 1) && (dz === 0 || dz === d - 1);
+          const isWall = (dx === 0 || dx === w - 1 || dz === 0 || dz === d - 1);
+          const bx = x + dx, by = y + dy, bz = z + dz;
+          if (dy === 0) {
+            this.world.setBlock(bx, by, bz, BLOCK.COBBLE, { recordEdit: false });
+          } else if (dy === h - 1) {
+            this.world.setBlock(bx, by, bz, BLOCK.PLANKS, { recordEdit: false });
+          } else if (isWall) {
+            if (isCorner) {
+              this.world.setBlock(bx, by, bz, BLOCK.LOG, { recordEdit: false });
+            } else if (dx === Math.floor(w / 2) && dz === 0 && dy === 1) {
+              this.world.setBlock(bx, by, bz, BLOCK.DOOR_CLOSED, { recordEdit: false });
+            } else {
+              this.world.setBlock(bx, by, bz, BLOCK.PLANKS, { recordEdit: false });
+            }
+          } else {
+            this.world.setBlock(bx, by, bz, BLOCK.AIR, { recordEdit: false });
+          }
+        }
+      }
+    }
+    this.world.setBlock(x + 1, y + 2, z + 1, BLOCK.TORCH, { recordEdit: false });
+  }
+
+  _generateDungeon(cx, cz) {
+    const dx = cx * 16 + 5;
+    const dz = cz * 16 + 5;
+    const dy = 12;
+
+    for (let x = 0; x < 7; x++) {
+      for (let z = 0; z < 7; z++) {
+        for (let y = 0; y < 4; y++) {
+          const bx = dx + x, by = dy + y, bz = dz + z;
+          const isWall = (x === 0 || x === 6 || z === 0 || z === 6 || y === 0 || y === 3);
+          if (isWall) {
+            this.world.setBlock(bx, by, bz, (hash2(bx, bz) > 0.5 ? BLOCK.COBBLE : BLOCK.BRICKS), { recordEdit: false });
+          } else {
+            this.world.setBlock(bx, by, bz, BLOCK.AIR, { recordEdit: false });
+          }
+        }
+      }
+    }
+
+    const chestX = dx + 1, chestY = dy + 1, chestZ = dz + 1;
+    this.world.setBlock(chestX, chestY, chestZ, BLOCK.CHEST, { recordEdit: false });
+    const key = `${chestX},${chestY},${chestZ}`;
+    if (!this._chests.has(key)) {
+      const slots = emptySlots(18);
+      slots[0] = { id: ITEM.IRON_INGOT, count: 4 };
+      slots[1] = { id: ITEM.TORCH, count: 12 };
+      slots[2] = { id: ITEM.RATION || 1, count: 5 };
+      slots[3] = { id: BLOCK.WIRE, count: 8 };
+      setChestSlots(this._chests, key, slots);
+    }
+
+    this.world.setBlock(dx + 1, dy + 2, dz + 5, BLOCK.TORCH, { recordEdit: false });
+    this.world.setBlock(dx + 5, dy + 2, dz + 1, BLOCK.TORCH, { recordEdit: false });
+  }
+
+  _generateTemple(cx, cz, isDesert) {
+    const seed = this.world?.seed || 0;
+    const tx = cx * 16 + 3;
+    const tz = cz * 16 + 3;
+    const ty = heightAt(tx, tz, seed);
+    if (ty < GEN_SEA_LEVEL + 1) return;
+
+    const mainBlock = isDesert ? BLOCK.SANDSTONE : BLOCK.COBBLE;
+    for (let layer = 0; layer < 4; layer++) {
+      const size = 7 - layer * 2;
+      for (let x = 0; x < size; x++) {
+        for (let z = 0; z < size; z++) {
+          const bx = tx + layer + x, bz = tz + layer + z, by = ty + layer;
+          this.world.setBlock(bx, by, bz, mainBlock, { recordEdit: false });
+        }
+      }
+    }
+
+    const chestX = tx + 3, chestY = ty, chestZ = tz + 3;
+    this.world.setBlock(chestX, chestY, chestZ, BLOCK.CHEST, { recordEdit: false });
+    const key = `${chestX},${chestY},${chestZ}`;
+    if (!this._chests.has(key)) {
+      const slots = emptySlots(18);
+      slots[0] = { id: BLOCK.GOLD_ORE || 56, count: 6 };
+      slots[1] = { id: BLOCK.DIAMOND_ORE || 57, count: 2 };
+      slots[2] = { id: BLOCK.EMERALD_ORE || 58, count: 3 };
+      setChestSlots(this._chests, key, slots);
+    }
+  }
+
+  _generateShipwreck(cx, cz, isUnderwater) {
+    const seed = this.world?.seed || 0;
+    const sx = cx * 16 + 4;
+    const sz = cz * 16 + 4;
+    const sy = isUnderwater ? Math.max(3, heightAt(sx, sz, seed)) : heightAt(sx, sz, seed);
+
+    for (let i = 0; i < 6; i++) {
+      this.world.setBlock(sx + i, sy, sz, BLOCK.LOG, { recordEdit: false });
+      this.world.setBlock(sx + i, sy + 1, sz, BLOCK.PLANKS, { recordEdit: false });
+      if (i % 2 === 0) {
+        this.world.setBlock(sx + i, sy + 2, sz, BLOCK.FENCE, { recordEdit: false });
+      }
+    }
+    for (let i = 0; i < 4; i++) {
+      this.world.setBlock(sx + i, sy + 1, sz + 2, BLOCK.LOG, { recordEdit: false });
+    }
+
+    const chestX = sx + 2, chestY = sy + 1, chestZ = sz + 1;
+    this.world.setBlock(chestX, chestY, chestZ, BLOCK.CHEST, { recordEdit: false });
+    const key = `${chestX},${chestY},${chestZ}`;
+    if (!this._chests.has(key)) {
+      const slots = emptySlots(18);
+      slots[0] = { id: ITEM.IRON_INGOT, count: 3 };
+      slots[1] = { id: BLOCK.STICK_PILE || 53, count: 16 };
+      slots[2] = { id: BLOCK.COAL_ORE, count: 8 };
+      setChestSlots(this._chests, key, slots);
+    }
+  }
+
+  _generateCustomTree(x, y, z, variant) {
+    if (variant === 'oak') {
+      for (let dy = 0; dy < 5; dy++) {
+        this.world.setBlock(x, y + dy, z, BLOCK.LOG, { recordEdit: false });
+      }
+      for (let lx = -2; lx <= 2; lx++) {
+        for (let lz = -2; lz <= 2; lz++) {
+          for (let ly = 3; ly <= 5; ly++) {
+            if (Math.abs(lx) === 2 && Math.abs(lz) === 2 && ly === 5) continue;
+            if (this.world.getBlock(x + lx, y + ly, z + lz) === BLOCK.AIR) {
+              this.world.setBlock(x + lx, y + ly, z + lz, BLOCK.LEAVES, { recordEdit: false });
+            }
+          }
+        }
+      }
+    } else if (variant === 'birch') {
+      for (let dy = 0; dy < 7; dy++) {
+        this.world.setBlock(x, y + dy, z, BLOCK.LOG, { recordEdit: false });
+      }
+      for (let lx = -1; lx <= 1; lx++) {
+        for (let lz = -1; lz <= 1; lz++) {
+          for (let ly = 5; ly <= 7; ly++) {
+            if (this.world.getBlock(x + lx, y + ly, z + lz) === BLOCK.AIR) {
+              this.world.setBlock(x + lx, y + ly, z + lz, BLOCK.LEAVES, { recordEdit: false });
+            }
+          }
+        }
+      }
+    } else if (variant === 'spruce') {
+      for (let dy = 0; dy < 8; dy++) {
+        this.world.setBlock(x, y + dy, z, BLOCK.SPRUCE_LOG || BLOCK.LOG, { recordEdit: false });
+      }
+      const layers = [
+        { r: 0, y: 8 },
+        { r: 1, y: 7 },
+        { r: 1, y: 6 },
+        { r: 2, y: 5 },
+        { r: 1, y: 4 },
+        { r: 2, y: 3 }
+      ];
+      for (const l of layers) {
+        for (let lx = -l.r; lx <= l.r; lx++) {
+          for (let lz = -l.r; lz <= l.r; lz++) {
+            if (this.world.getBlock(x + lx, y + l.y, z + lz) === BLOCK.AIR) {
+              this.world.setBlock(x + lx, y + l.y, z + lz, BLOCK.SPRUCE_LEAVES || BLOCK.LEAVES, { recordEdit: false });
+            }
+          }
+        }
+      }
+    } else if (variant === 'jungle') {
+      for (let dx = 0; dx < 2; dx++) {
+        for (let dz = 0; dz < 2; dz++) {
+          for (let dy = 0; dy < 11; dy++) {
+            this.world.setBlock(x + dx, y + dy, z + dz, BLOCK.LOG, { recordEdit: false });
+          }
+        }
+      }
+      for (let lx = -3; lx <= 4; lx++) {
+        for (let lz = -3; lz <= 4; lz++) {
+          for (let ly = 10; ly <= 12; ly++) {
+            if (this.world.getBlock(x + lx, y + ly, z + lz) === BLOCK.AIR) {
+              this.world.setBlock(x + lx, y + ly, z + lz, BLOCK.LEAVES, { recordEdit: false });
+            }
+          }
+        }
+      }
+    } else if (variant === 'dead') {
+      for (let dy = 0; dy < 5; dy++) {
+        this.world.setBlock(x, y + dy, z, BLOCK.LOG, { recordEdit: false });
+      }
+      this.world.setBlock(x + 1, y + 3, z, BLOCK.LOG, { recordEdit: false });
+      this.world.setBlock(x - 1, y + 4, z, BLOCK.LOG, { recordEdit: false });
+      this.world.setBlock(x, y + 3, z + 1, BLOCK.LOG, { recordEdit: false });
+    } else if (variant === 'red_mushroom' || variant === 'brown_mushroom') {
+      for (let dy = 0; dy < 4; dy++) {
+        this.world.setBlock(x, y + dy, z, BLOCK.DAMP_SOIL || BLOCK.DIRT, { recordEdit: false });
+      }
+      const capBlock = BLOCK.MUSHROOM || BLOCK.LEAVES;
+      for (let lx = -2; lx <= 2; lx++) {
+        for (let lz = -2; lz <= 2; lz++) {
+          this.world.setBlock(x + lx, y + 4, z + lz, capBlock, { recordEdit: false });
+        }
+      }
+    }
+  }
+
+  _decorateUnderwaterEcosystem(cx, cz) {
+    const seed = this.world?.seed || 0;
+    for (let lx = 2; lx < 14; lx += 3) {
+      for (let lz = 2; lz < 14; lz += 3) {
+        const x = cx * 16 + lx;
+        const z = cz * 16 + lz;
+        const h = heightAt(x, z, seed);
+        if (h < GEN_SEA_LEVEL - 1) {
+          const biome = biomeAt ? biomeAt(x, z, seed) : 'ocean';
+          const roll = hash2(x * 17 + seed, z * 23 + seed);
+
+          if (h > GEN_SEA_LEVEL - 5 && (biome === 'tropical' || biome === 'shore' || biome === 'ocean')) {
+            if (roll > 0.6) {
+              this.world.setBlock(x, h + 1, z, BLOCK.CORAL || 48, { recordEdit: false });
+              if (roll > 0.8) {
+                this.world.setBlock(x + 1, h + 1, z, BLOCK.CORAL || 48, { recordEdit: false });
+                this.world.setBlock(x, h + 2, z, BLOCK.CORAL || 48, { recordEdit: false });
+              }
+            }
+          }
+
+          if (roll < 0.45 && h < GEN_SEA_LEVEL - 2) {
+            const kelpHeight = Math.min(GEN_SEA_LEVEL - h - 1, 3 + Math.floor(roll * 8));
+            for (let ky = 1; ky <= kelpHeight; ky++) {
+              this.world.setBlock(x, h + ky, z, (ky % 2 === 0 ? BLOCK.KELP : BLOCK.SEAGRASS), { recordEdit: false });
+            }
+          }
+        }
+      }
+    }
   }
 
   dispose() {
