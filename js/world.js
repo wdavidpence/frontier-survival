@@ -14,6 +14,107 @@ export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
 export const SEA_LEVEL = 16;
 
+/**
+ * Creates upgraded custom ShaderMaterial for voxel terrain with:
+ * - Cel/toon shading (3 discrete light bands)
+ * - Face normal-based lighting
+ * - Subtle edge outlines for voxel look
+ * - vertexColors: true for biome tinting
+ */
+export function createTerrainShaderMaterial(baseMaterial = null) {
+  let texture = null;
+  if (baseMaterial) {
+    if (baseMaterial.uniforms && baseMaterial.uniforms.atlas) {
+      texture = baseMaterial.uniforms.atlas.value;
+    } else if (baseMaterial.map) {
+      texture = baseMaterial.map;
+    }
+  }
+
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      atlas: { value: texture },
+      sunIntensity: { value: 1.0 },
+      ambientColor: { value: new THREE.Color(0.48, 0.5, 0.58) },
+      sunColor: { value: new THREE.Color(1.0, 0.95, 0.85) },
+      sunDir: { value: new THREE.Vector3(0.4, 1.0, 0.2).normalize() },
+      uTime: { value: 0 },
+    },
+    vertexShader: `
+      attribute float tile;
+      varying vec2 vUv;
+      varying vec4 vColor;
+      varying vec2 vAuvBase;
+      varying vec3 vNormal;
+      varying vec3 vWorldPos;
+
+      void main() {
+        vUv = uv;
+        vColor = color;
+        float tx = mod(tile, 16.0);
+        float ty = floor(tile / 16.0);
+        vAuvBase = vec2(tx / 16.0, 1.0 - (ty + 1.0) / 16.0);
+        vNormal = normalize(normalMatrix * normal);
+        vec4 worldPos = modelMatrix * vec4(position, 1.0);
+        vWorldPos = worldPos.xyz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D atlas;
+      uniform float sunIntensity;
+      uniform vec3 ambientColor;
+      uniform vec3 sunColor;
+      uniform vec3 sunDir;
+      varying vec2 vUv;
+      varying vec4 vColor;
+      varying vec2 vAuvBase;
+      varying vec3 vNormal;
+      varying vec3 vWorldPos;
+
+      void main() {
+        vec2 tUv = fract(vUv);
+        vec2 clampedTuv = clamp(tUv, 0.02, 0.98);
+        vec2 auv = vAuvBase + vec2(clampedTuv.x / 16.0, clampedTuv.y / 16.0);
+        vec4 tex = texture2D(atlas, auv);
+        if (tex.a < 0.35) discard;
+
+        // Face normal-based lighting
+        vec3 norm = normalize(vNormal);
+        float faceShade = abs(norm.y) > 0.8 ? 1.0 : (abs(norm.x) > 0.8 ? 0.85 : 0.72);
+
+        // Cel/toon shading (3 discrete light bands)
+        float ndl = max(0.0, dot(norm, normalize(sunDir)));
+        float toonBand;
+        if (ndl > 0.60) {
+          toonBand = 1.0;
+        } else if (ndl > 0.20) {
+          toonBand = 0.65;
+        } else {
+          toonBand = 0.35;
+        }
+
+        // Subtle edge outlines for voxel block face boundary
+        vec2 edgeDist = min(tUv, vec2(1.0) - tUv);
+        float minEdge = min(edgeDist.x, edgeDist.y);
+        float edgeFactor = smoothstep(0.0, 0.035, minEdge);
+        float outline = mix(0.78, 1.0, edgeFactor);
+
+        vec3 light = ambientColor + sunColor * toonBand * faceShade * sunIntensity;
+        // Keep vColor for biome tinting
+        vec3 biomeTint = max(vColor.rgb, vec3(0.15));
+        vec3 finalRgb = tex.rgb * biomeTint * light * outline;
+
+        gl_FragColor = vec4(finalRgb, 1.0);
+      }
+    `,
+    vertexColors: true,
+    transparent: false,
+    depthWrite: true,
+    side: THREE.DoubleSide,
+  });
+}
+
 export class World {
   /**
    * @param {object} opts
@@ -41,15 +142,8 @@ export class World {
     this.group = new THREE.Group();
     this.dirty = new Set();
     this.edits = new Map();
-    // Prefer atlas greedyMaterial (passed in). Fallback is fully opaque DoubleSide solids.
-    this.material =
-      material ||
-      new THREE.MeshLambertMaterial({
-        vertexColors: true,
-        transparent: false,
-        depthWrite: true,
-        side: THREE.DoubleSide,
-      });
+    // Upgraded ShaderMaterial with toon shading, face normals, and subtle edge outlines
+    this.material = createTerrainShaderMaterial(material);
     if (this.material) {
       this.material.transparent = false;
       this.material.depthWrite = true;

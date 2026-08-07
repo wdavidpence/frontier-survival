@@ -157,18 +157,24 @@ function drawStone(ctx, x0, y0) {
 
       ctx.fillStyle = `rgb(${r},${g},${b})`;
       ctx.fillRect(x0 + x, y0 + y, 1, 1);
-
-      // Occasional 1-2 pixel dark crack lines
-      if (rand() < 0.02 && x > 1 && y > 1) {
-        const darkerGray = clamp(baseR * 0.55);
-        ctx.fillStyle = `rgb(${darkerGray},${darkerGray},${darkerGray})`;
-        if (rand() < 0.5) {
-          ctx.fillRect(x0 + x, y0 + y, 2, 1);
-        } else {
-          ctx.fillRect(x0 + x, y0 + y, 1, 2);
-        }
-      }
     }
+  }
+
+  // Thin dark stone crack lines
+  ctx.strokeStyle = 'rgba(40,40,46,0.65)';
+  ctx.lineWidth = 1;
+  const crackRand = rnd(404);
+  for (let i = 0; i < 3; i++) {
+    let cx = x0 + 4 + crackRand() * 24;
+    let cy = y0 + 4 + crackRand() * 24;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    for (let s = 0; s < 3; s++) {
+      cx += (crackRand() - 0.5) * 8;
+      cy += (crackRand() - 0.5) * 8;
+      ctx.lineTo(cx, cy);
+    }
+    ctx.stroke();
   }
 }
 
@@ -177,21 +183,21 @@ function drawSand(ctx, x0, y0) {
   const baseR = 220, baseG = 200, baseB = 140;
   for (let y = 0; y < TILE_PX; y++) {
     for (let x = 0; x < TILE_PX; x++) {
-      const noise = (rand() - 0.5) * 0.08;
+      // Dune wave pattern variation
+      const duneWave = Math.sin((y + x * 0.3) * 0.4) * 0.06;
+      const noise = (rand() - 0.5) * 0.08 + duneWave;
       let r = clamp(baseR * (1 + noise));
       let g = clamp(baseG * (1 + noise));
       let b = clamp(baseB * (1 + noise));
 
-      // Slightly darker spots for depth
-      if (rand() < 0.06) {
-        r = clamp(r * 0.88);
-        g = clamp(g * 0.88);
-        b = clamp(b * 0.88);
-      }
-
       ctx.fillStyle = `rgb(${r},${g},${b})`;
       ctx.fillRect(x0 + x, y0 + y, 1, 1);
     }
+  }
+  // Subtle horizontal dune ripple lines
+  ctx.fillStyle = 'rgba(175, 155, 95, 0.35)';
+  for (let y = 6; y < TILE_PX; y += 10) {
+    ctx.fillRect(x0, y0 + y, TILE_PX, 1);
   }
 }
 
@@ -219,45 +225,90 @@ function drawWater(ctx, x0, y0) {
 
 function drawLogSide(ctx, x0, y0) {
   fillNoise(ctx, x0, y0, [105, 70, 35], 0.25, 77);
-  ctx.strokeStyle = 'rgba(60,35,15,0.5)';
-  for (let x = 4; x < TILE_PX; x += 7) {
+  const rand = createSeededRand(77);
+  // Vertical dark bark grooves
+  ctx.strokeStyle = 'rgba(45, 25, 10, 0.75)';
+  for (let x = 4; x < TILE_PX; x += 6) {
     ctx.beginPath();
     ctx.moveTo(x0 + x, y0);
-    ctx.lineTo(x0 + x + 1, y0 + TILE_PX);
+    ctx.lineTo(x0 + x + (rand() - 0.5) * 2, y0 + TILE_PX);
+    ctx.stroke();
+  }
+  // Light bark highlights
+  ctx.strokeStyle = 'rgba(155, 110, 60, 0.4)';
+  for (let x = 5; x < TILE_PX; x += 6) {
+    ctx.beginPath();
+    ctx.moveTo(x0 + x, y0);
+    ctx.lineTo(x0 + x, y0 + TILE_PX);
     ctx.stroke();
   }
 }
 
 function drawLogTop(ctx, x0, y0) {
   fillNoise(ctx, x0, y0, [145, 110, 65], 0.2, 88);
-  ctx.strokeStyle = 'rgba(90,60,30,0.6)';
-  ctx.beginPath();
-  ctx.arc(x0 + 16, y0 + 16, 10, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(x0 + 16, y0 + 16, 5, 0, Math.PI * 2);
-  ctx.stroke();
+  ctx.strokeStyle = 'rgba(85, 55, 25, 0.65)';
+  // Concentric annual growth rings
+  for (const r of [3, 6, 9, 12, 14]) {
+    ctx.beginPath();
+    ctx.arc(x0 + 16, y0 + 16, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // Dark outer bark border
+  ctx.strokeStyle = 'rgba(65, 40, 18, 0.85)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.lineWidth = 1;
 }
 
 function drawLeaves(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [55, 120, 45], 0.45, 101, 230);
+  fillNoise(ctx, x0, y0, [55, 125, 45], 0.45, 101, 230);
   const r = rnd(12);
-  for (let i = 0; i < 25; i++) {
-    ctx.fillStyle = r() > 0.5 ? 'rgba(30,90,25,0.5)' : 'rgba(80,150,50,0.4)';
+  for (let i = 0; i < 24; i++) {
+    ctx.fillStyle = r() > 0.5 ? 'rgba(25,75,20,0.55)' : 'rgba(95,175,60,0.45)';
     ctx.beginPath();
-    ctx.arc(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1 + r() * 2, 0, Math.PI * 2);
+    ctx.arc(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1 + r() * 2.5, 0, Math.PI * 2);
     ctx.fill();
+  }
+  // Subtle darker leaf vein network
+  ctx.strokeStyle = 'rgba(20, 65, 15, 0.45)';
+  for (let i = 0; i < 5; i++) {
+    const vx = x0 + 4 + r() * 22;
+    const vy = y0 + 4 + r() * 22;
+    ctx.beginPath();
+    ctx.moveTo(vx, vy);
+    ctx.lineTo(vx + (r() - 0.5) * 8, vy + 4);
+    ctx.stroke();
   }
 }
 
 function drawPlanks(ctx, x0, y0) {
   fillNoise(ctx, x0, y0, [185, 150, 90], 0.15, 15);
-  ctx.strokeStyle = 'rgba(100,70,30,0.55)';
+  const rand = createSeededRand(15);
+  ctx.strokeStyle = 'rgba(90,60,25,0.7)';
   for (let y = 0; y < TILE_PX; y += 8) {
+    // Horizontal seam line
     ctx.beginPath();
     ctx.moveTo(x0, y0 + y);
     ctx.lineTo(x0 + TILE_PX, y0 + y);
     ctx.stroke();
+    // Bevel highlight
+    ctx.strokeStyle = 'rgba(235, 205, 150, 0.4)';
+    ctx.beginPath();
+    ctx.moveTo(x0, y0 + y + 1);
+    ctx.lineTo(x0 + TILE_PX, y0 + y + 1);
+    ctx.stroke();
+    // Horizontal wood grain streaks
+    for (let k = 0; k < 3; k++) {
+      const gy = y0 + y + 2 + Math.floor(rand() * 4);
+      ctx.strokeStyle = rand() > 0.5 ? 'rgba(130, 90, 40, 0.35)' : 'rgba(215, 175, 110, 0.3)';
+      ctx.beginPath();
+      const startX = x0 + Math.floor(rand() * 8);
+      const endX = startX + 8 + Math.floor(rand() * 16);
+      ctx.moveTo(startX, gy);
+      ctx.lineTo(Math.min(x0 + TILE_PX, endX), gy);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(90,60,25,0.7)';
   }
 }
 
@@ -282,7 +333,22 @@ function drawSandstone(ctx, x0, y0) {
 }
 
 function drawSnow(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [235, 240, 248], 0.12, 50);
+  fillNoise(ctx, x0, y0, [242, 246, 252], 0.1, 50);
+  const r = rnd(50);
+  for (let y = 0; y < TILE_PX; y++) {
+    for (let x = 0; x < TILE_PX; x++) {
+      if (x < 3 || y < 3 || x > 28 || y > 28) {
+        if (r() < 0.25) {
+          ctx.fillStyle = 'rgba(180, 210, 245, 0.4)';
+          ctx.fillRect(x0 + x, y0 + y, 1, 1);
+        }
+      } else if (r() < 0.04) {
+        // Sparkling snow crystal dot
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.fillRect(x0 + x, y0 + y, 1, 1);
+      }
+    }
+  }
 }
 
 function drawIce(ctx, x0, y0) {
@@ -292,11 +358,17 @@ function drawIce(ctx, x0, y0) {
 function drawCoal(ctx, x0, y0) {
   drawStone(ctx, x0, y0);
   const r = rnd(70);
-  for (let i = 0; i < 10; i++) {
-    ctx.fillStyle = 'rgba(15,15,18,0.85)';
+  for (let i = 0; i < 11; i++) {
+    const cx = x0 + 4 + r() * 23;
+    const cy = y0 + 4 + r() * 23;
+    const rad = 1.8 + r() * 2.2;
+    ctx.fillStyle = 'rgba(20, 20, 24, 0.95)';
     ctx.beginPath();
-    ctx.arc(x0 + 4 + r() * 24, y0 + 4 + r() * 24, 1.5 + r() * 2.5, 0, Math.PI * 2);
+    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
     ctx.fill();
+    // Specular highlight dot
+    ctx.fillStyle = 'rgba(220, 220, 240, 0.85)';
+    ctx.fillRect(cx - 0.5, cy - 0.5, 1, 1);
   }
 }
 
@@ -329,7 +401,14 @@ function drawCampfire(ctx, x0, y0) {
 }
 
 function drawBedrock(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [40, 40, 48], 0.4, 2);
+  fillNoise(ctx, x0, y0, [38, 38, 44], 0.45, 2);
+  const r = rnd(2);
+  for (let i = 0; i < 12; i++) {
+    ctx.fillStyle = r() > 0.4 ? 'rgba(15, 15, 20, 0.75)' : 'rgba(65, 52, 38, 0.6)';
+    const rx = x0 + r() * 24;
+    const ry = y0 + r() * 24;
+    ctx.fillRect(rx, ry, 2 + r() * 6, 2 + r() * 6);
+  }
 }
 
 function drawBed(ctx, x0, y0) {
@@ -345,11 +424,16 @@ function drawBed(ctx, x0, y0) {
 function drawIronOre(ctx, x0, y0) {
   drawStone(ctx, x0, y0);
   const r = rnd(71);
-  for (let i = 0; i < 9; i++) {
-    ctx.fillStyle = 'rgba(180,160,140,0.9)';
+  for (let i = 0; i < 10; i++) {
+    const cx = x0 + 5 + r() * 22;
+    const cy = y0 + 5 + r() * 22;
+    const rad = 1.6 + r() * 2;
+    ctx.fillStyle = 'rgba(190, 160, 130, 0.95)';
     ctx.beginPath();
-    ctx.arc(x0 + 5 + r() * 22, y0 + 5 + r() * 22, 1.5 + r() * 2, 0, Math.PI * 2);
+    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = 'rgba(245, 230, 210, 0.9)';
+    ctx.fillRect(cx - 0.5, cy - 0.5, 1, 1);
   }
 }
 
@@ -468,9 +552,22 @@ function drawDoorOpen(ctx, x0, y0) {
 }
 
 function drawGlassTile(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [195, 215, 235], 0.15, 55);
-  ctx.strokeStyle = 'rgba(160,180,210,0.4)';
-  ctx.strokeRect(x0 + 6, y0 + 6, TILE_PX - 12, TILE_PX - 12);
+  ctx.fillStyle = 'rgba(210, 235, 255, 0.25)';
+  ctx.fillRect(x0, y0, TILE_PX, TILE_PX);
+  fillNoise(ctx, x0, y0, [195, 215, 235], 0.1, 55, 80);
+  ctx.strokeStyle = 'rgba(175, 210, 240, 0.7)';
+  ctx.strokeRect(x0 + 1, y0 + 1, TILE_PX - 2, TILE_PX - 2);
+  ctx.strokeStyle = 'rgba(230, 245, 255, 0.5)';
+  ctx.strokeRect(x0 + 4, y0 + 4, TILE_PX - 8, TILE_PX - 8);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(x0 + 6, y0 + 18);
+  ctx.lineTo(x0 + 18, y0 + 6);
+  ctx.moveTo(x0 + 12, y0 + 26);
+  ctx.lineTo(x0 + 26, y0 + 12);
+  ctx.stroke();
+  ctx.lineWidth = 1;
 }
 
 function drawClay(ctx, x0, y0) {
@@ -478,14 +575,37 @@ function drawClay(ctx, x0, y0) {
 }
 
 function drawBricks(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [170, 77, 55], 0.2, 77);
-  ctx.strokeStyle = 'rgba(80,30,15,0.5)';
-  for (let i = 0; i < 4; i++) {
+  fillNoise(ctx, x0, y0, [170, 70, 50], 0.2, 77);
+  const rand = createSeededRand(77);
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 2; col++) {
+      const bx = x0 + (row % 2 === 1 ? (col * 16 + 8) % 32 : col * 16);
+      const by = y0 + row * 8;
+      const shade = (rand() - 0.5) * 40;
+      ctx.fillStyle = `rgb(${clamp(170 + shade)},${clamp(70 + shade * 0.5)},${clamp(50 + shade * 0.5)})`;
+      ctx.fillRect(bx + 1, by + 1, 14, 6);
+    }
+  }
+  ctx.strokeStyle = 'rgba(195, 190, 182, 0.85)';
+  ctx.lineWidth = 1.5;
+  for (let y = 0; y <= TILE_PX; y += 8) {
     ctx.beginPath();
-    ctx.moveTo(x0 + 8 + i * 12, y0);
-    ctx.lineTo(x0 + 8 + i * 12, y0 + TILE_PX);
+    ctx.moveTo(x0, y0 + y);
+    ctx.lineTo(x0 + TILE_PX, y0 + y);
     ctx.stroke();
   }
+  for (let row = 0; row < 4; row++) {
+    const y1 = y0 + row * 8;
+    const y2 = y0 + (row + 1) * 8;
+    const xOffsets = row % 2 === 0 ? [0, 16, 32] : [8, 24];
+    for (const xOff of xOffsets) {
+      ctx.beginPath();
+      ctx.moveTo(x0 + xOff, y1);
+      ctx.lineTo(x0 + xOff, y2);
+      ctx.stroke();
+    }
+  }
+  ctx.lineWidth = 1;
 }
 
 function drawFurnace(ctx, x0, y0) {
@@ -611,35 +731,58 @@ function drawSequoiaLeaves(ctx, x0, y0) {
 }
 
 function drawSpruceLogSide(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [72, 48, 25], 0.3, 300);
-  ctx.strokeStyle = 'rgba(40,25,10,0.6)';
+  fillNoise(ctx, x0, y0, [65, 42, 22], 0.3, 300);
+  const rand = createSeededRand(300);
+  ctx.strokeStyle = 'rgba(35,20,10,0.7)';
   for (let x = 4; x < TILE_PX; x += 6) {
     ctx.beginPath();
     ctx.moveTo(x0 + x, y0);
     ctx.lineTo(x0 + x, y0 + TILE_PX);
     ctx.stroke();
   }
+  // Horizontal bark cracks
+  ctx.strokeStyle = 'rgba(25, 12, 5, 0.85)';
+  for (let i = 0; i < 7; i++) {
+    const cx = x0 + Math.floor(rand() * 20);
+    const cy = y0 + 4 + Math.floor(rand() * 24);
+    const len = 6 + Math.floor(rand() * 10);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(Math.min(x0 + TILE_PX, cx + len), cy);
+    ctx.stroke();
+  }
 }
 
 function drawSpruceLogTop(ctx, x0, y0) {
   fillNoise(ctx, x0, y0, [95, 68, 38], 0.25, 301);
-  ctx.strokeStyle = 'rgba(60,38,15,0.7)';
-  ctx.beginPath();
-  ctx.arc(x0 + 16, y0 + 16, 10, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(x0 + 16, y0 + 16, 5, 0, Math.PI * 2);
-  ctx.stroke();
+  ctx.strokeStyle = 'rgba(55,35,15,0.75)';
+  for (const r of [4, 8, 12, 14]) {
+    ctx.beginPath();
+    ctx.arc(x0 + 16, y0 + 16, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(40,22,10,0.9)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.lineWidth = 1;
 }
 
 function drawSpruceLeaves(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [35, 85, 42], 0.45, 302, 225);
+  fillNoise(ctx, x0, y0, [32, 82, 40], 0.45, 302, 225);
   const r = rnd(303);
-  for (let i = 0; i < 22; i++) {
-    ctx.fillStyle = r() > 0.5 ? 'rgba(20,65,30,0.5)' : 'rgba(48,110,52,0.35)';
+  ctx.strokeStyle = 'rgba(15, 55, 22, 0.7)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 18; i++) {
+    const nx = x0 + 4 + r() * 24;
+    const ny = y0 + 4 + r() * 24;
     ctx.beginPath();
-    ctx.arc(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1 + r() * 2, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(nx, ny);
+    ctx.lineTo(nx + (r() - 0.5) * 6, ny + (r() - 0.5) * 6);
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(65, 135, 70, 0.4)';
+  for (let i = 0; i < 10; i++) {
+    ctx.fillRect(x0 + r() * 28, y0 + r() * 28, 2, 2);
   }
 }
 
@@ -842,9 +985,11 @@ paint(TILE.WALL, drawWall);
       varying vec4 vColor;
       varying vec2 vAuvBase;
       varying vec3 vNormal;
+      varying float vTile;
       void main() {
         vUv = uv;
         vColor = color;
+        vTile = tile;
         // Pre-compute atlas UV base in vertex shader (avoids mod/floor per fragment)
         float tx = mod(tile, ${ATLAS_N}.0);
         float ty = floor(tile / ${ATLAS_N}.0);
@@ -863,6 +1008,7 @@ paint(TILE.WALL, drawWall);
       varying vec4 vColor;
       varying vec2 vAuvBase;
       varying vec3 vNormal;
+      varying float vTile;
       void main() {
         vec2 tUv = fract(vUv);
         // tiny inset to reduce bleeding
@@ -871,6 +1017,13 @@ paint(TILE.WALL, drawWall);
         vec4 tex = texture2D(atlas, auv);
         // Soft cutout for leaves/plants only. Force opaque write so solids never see-through.
         if (tex.a < 0.35) discard;
+        // Procedural moss growth on stone/cobble top surfaces
+        if ((abs(vTile - 3.0) < 0.5 || abs(vTile - 10.0) < 0.5) && vNormal.y > 0.3) {
+          float mossNoise = sin(tUv.x * 24.0) * cos(tUv.y * 24.0);
+          if (mossNoise > 0.1) {
+            tex.rgb = mix(tex.rgb, vec3(0.22, 0.48, 0.16), 0.45);
+          }
+        }
         float ndl = max(0.0, abs(dot(normalize(vNormal), normalize(sunDir))));
         vec3 light = ambientColor + sunColor * ndl * sunIntensity;
         vec3 rgb = tex.rgb * max(vColor.rgb, vec3(0.15)) * light;

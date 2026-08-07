@@ -55,6 +55,7 @@ import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=242';
 import { createBlockAtlas } from './atlas.js?v=285';
+import { ATLAS_N } from './atlas-core.js?v=285';
 import { BreakFX, WeatherFX } from './fx.js?v=245';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
@@ -181,8 +182,31 @@ export class Game {
     this.scene.add(this.sunDisc);
 
     const moonGeo = new THREE.CircleGeometry(4, 24);
+    // Crater detail painted onto a canvas so the moon disc isn't flat-shaded.
+    let moonSurfaceTexture = null;
+    if (typeof document !== 'undefined') {
+      const moonCanvas = document.createElement('canvas');
+      moonCanvas.width = 128;
+      moonCanvas.height = 128;
+      const mctx = moonCanvas.getContext?.('2d');
+      if (mctx) {
+        mctx.fillStyle = '#d9d9e8';
+        mctx.beginPath();
+        mctx.arc(64, 64, 64, 0, Math.PI * 2);
+        mctx.fill();
+        const craters = [[40, 36, 13], [82, 48, 9], [54, 84, 11], [92, 88, 6], [28, 78, 7], [70, 22, 5], [20, 44, 5]];
+        mctx.fillStyle = 'rgba(130,130,158,0.5)';
+        for (const [cx, cy, cr] of craters) {
+          mctx.beginPath();
+          mctx.arc(cx, cy, cr, 0, Math.PI * 2);
+          mctx.fill();
+        }
+        moonSurfaceTexture = new THREE.CanvasTexture(moonCanvas);
+      }
+    }
     const moonMat = new THREE.MeshBasicMaterial({
-      color: 0xccccdd,
+      color: 0xffffff,
+      map: moonSurfaceTexture,
       transparent: true,
       opacity: 0,
       depthWrite: false,
@@ -191,19 +215,279 @@ export class Game {
     this.moonDisc.renderOrder = -98;
     this.scene.add(this.moonDisc);
 
-    this.scene.background = new THREE.Color(0x87b5ff);
-    this.scene.fog = new THREE.Fog(0x87b5ff, 60, 180);
-
-    // Water surface reflection plane
-    const waterGeo = new THREE.PlaneGeometry(400, 400, 64, 64);
-    const waterMat = new THREE.MeshPhongMaterial({
-      color: 0x2266aa,
+    // Soft glow halo behind the moon disc.
+    let moonHaloTexture = null;
+    if (typeof document !== 'undefined') {
+      const moonHaloCanvas = document.createElement('canvas');
+      moonHaloCanvas.width = 64;
+      moonHaloCanvas.height = 64;
+      const hctx = moonHaloCanvas.getContext?.('2d');
+      if (hctx) {
+        const hgrad = hctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        hgrad.addColorStop(0, 'rgba(220,230,255,0.9)');
+        hgrad.addColorStop(0.4, 'rgba(180,200,255,0.35)');
+        hgrad.addColorStop(1, 'rgba(180,200,255,0)');
+        hctx.fillStyle = hgrad;
+        hctx.fillRect(0, 0, 64, 64);
+        moonHaloTexture = new THREE.CanvasTexture(moonHaloCanvas);
+      }
+    }
+    const moonGlowMat = new THREE.SpriteMaterial({
+      map: moonHaloTexture,
+      color: 0xaad0ff,
       transparent: true,
-      opacity: 0.6,
-      shininess: 80,
-      specular: 0x4488cc,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+      opacity: 0,
+    });
+    this.moonGlow = new THREE.Sprite(moonGlowMat);
+    this.moonGlow.scale.set(16, 16, 1);
+    this.moonGlow.renderOrder = -97;
+    this.scene.add(this.moonGlow);
+
+    // --- Night sky: star field, constellations, Milky Way band -----------
+    const STAR_COUNT = 2000;
+    const STAR_RADIUS = 175;
+    const starPositions = new Float32Array(STAR_COUNT * 3);
+    for (let i = 0; i < STAR_COUNT; i++) {
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(Math.random()); // upper hemisphere only
+      starPositions[i * 3] = STAR_RADIUS * Math.sin(phi) * Math.cos(theta);
+      starPositions[i * 3 + 1] = STAR_RADIUS * Math.cos(phi);
+      starPositions[i * 3 + 2] = STAR_RADIUS * Math.sin(phi) * Math.sin(theta);
+    }
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMat = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 0.5,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: false,
+    });
+    this.starField = new THREE.Points(starGeo, starMat);
+    this.starField.renderOrder = -100.3;
+    this.scene.add(this.starField);
+
+    // Simple constellation patterns (ordered polylines of points on the star
+    // sphere): Big Dipper, Orion (belt + shoulders/feet), Cassiopeia, Southern Cross.
+    const constellationPolylines = [
+      [[-60, 90, -110], [-45, 95, -115], [-30, 92, -120], [-15, 88, -118], [0, 78, -125], [10, 65, -122], [-5, 60, -110]],
+      [[65, 90, -95], [70, 70, -100], [60, 45, -108]],
+      [[108, 88, -98], [100, 66, -104], [112, 42, -110]],
+      [[70, 70, -100], [85, 68, -102], [100, 66, -104]],
+      [[-100, 100, 40], [-80, 115, 45], [-60, 102, 48], [-40, 118, 44], [-20, 105, 40]],
+      [[30, 130, 90], [30, 100, 95]],
+      [[10, 118, 92], [50, 112, 93]],
+    ];
+    const constellationPositions = [];
+    for (const line of constellationPolylines) {
+      for (let i = 0; i < line.length - 1; i++) {
+        constellationPositions.push(...line[i], ...line[i + 1]);
+      }
+    }
+    const constellationGeo = new THREE.BufferGeometry();
+    constellationGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(constellationPositions), 3));
+    const constellationMat = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      depthTest: false,
+    });
+    this.constellationLines = new THREE.LineSegments(constellationGeo, constellationMat);
+    this.constellationLines.renderOrder = -100.2;
+    this.scene.add(this.constellationLines);
+
+    // Milky Way: a soft gradient band wrapped around a thin open cylinder.
+    let milkyWayTexture = null;
+    if (typeof document !== 'undefined') {
+      const mwCanvas = document.createElement('canvas');
+      mwCanvas.width = 512;
+      mwCanvas.height = 64;
+      const wctx = mwCanvas.getContext?.('2d');
+      if (wctx) {
+        const wgrad = wctx.createLinearGradient(0, 0, 0, 64);
+        wgrad.addColorStop(0, 'rgba(210,225,255,0)');
+        wgrad.addColorStop(0.5, 'rgba(225,235,255,0.9)');
+        wgrad.addColorStop(1, 'rgba(210,225,255,0)');
+        wctx.fillStyle = wgrad;
+        wctx.fillRect(0, 0, 512, 64);
+        milkyWayTexture = new THREE.CanvasTexture(mwCanvas);
+      }
+    }
+    const milkyWayGeo = new THREE.CylinderGeometry(174, 174, 40, 48, 1, true);
+    const milkyWayMat = new THREE.MeshBasicMaterial({
+      map: milkyWayTexture,
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+    });
+    this.milkyWay = new THREE.Mesh(milkyWayGeo, milkyWayMat);
+    this.milkyWay.rotation.z = Math.PI * 0.18; // tilt the band across the sky
+    this.milkyWay.rotation.x = Math.PI * 0.06;
+    this.milkyWay.renderOrder = -100.1;
+    this.scene.add(this.milkyWay);
+
+    // Soft additive radial-gradient texture reused for bloom halos (torches,
+    // glow blocks, sun) and the sunset/sunrise lens flare.
+    this._glowHaloTexture = null;
+    if (typeof document !== 'undefined') {
+      const glowCanvas = document.createElement('canvas');
+      glowCanvas.width = 64;
+      glowCanvas.height = 64;
+      const gctx = glowCanvas.getContext?.('2d');
+      if (gctx) {
+        const grad = gctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        grad.addColorStop(0, 'rgba(255,255,255,0.95)');
+        grad.addColorStop(0.35, 'rgba(255,224,160,0.55)');
+        grad.addColorStop(1, 'rgba(255,180,80,0)');
+        gctx.fillStyle = grad;
+        gctx.fillRect(0, 0, 64, 64);
+        this._glowHaloTexture = new THREE.CanvasTexture(glowCanvas);
+      }
+    }
+
+    // Sun bloom / god-ray-ish glow + sunrise/sunset lens flare (single sprite)
+    const sunGlowMat = new THREE.SpriteMaterial({
+      map: this._glowHaloTexture,
+      color: 0xfff2d6,
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+      opacity: 0,
+    });
+    this.sunGlow = new THREE.Sprite(sunGlowMat);
+    this.sunGlow.scale.set(46, 46, 1);
+    this.sunGlow.renderOrder = -97;
+    this.scene.add(this.sunGlow);
+
+    this.scene.background = new THREE.Color(0x87b5ff);
+    this.scene.fog = new THREE.FogExp2(0x87b5ff, 0.007);
+    this.scene.fog.near = 60;
+    this.scene.fog.far = 180;
+
+    // Volumetric light rays from sun direction (simple cone mesh)
+    const lightRayGeo = new THREE.ConeGeometry(18, 90, 16, 1, true);
+    const lightRayMat = new THREE.MeshBasicMaterial({
+      color: 0xfff5cc,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    this.volumetricLightRays = new THREE.Mesh(lightRayGeo, lightRayMat);
+    this.volumetricLightRays.renderOrder = -80;
+    this.scene.add(this.volumetricLightRays);
+
+    // Sunset/Sunrise Lens flare sprite & Horizon glow
+    const lensFlareMat = new THREE.SpriteMaterial({
+      map: this._glowHaloTexture,
+      color: 0xff8833,
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+      opacity: 0,
+    });
+    this.lensFlareSprite = new THREE.Sprite(lensFlareMat);
+    this.lensFlareSprite.scale.set(65, 65, 1);
+    this.lensFlareSprite.renderOrder = -96;
+    this.scene.add(this.lensFlareSprite);
+
+    const horizonGlowGeo = new THREE.PlaneGeometry(350, 40);
+    const horizonGlowMat = new THREE.MeshBasicMaterial({
+      color: 0xff7733,
+      transparent: true,
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    this.horizonGlowMesh = new THREE.Mesh(horizonGlowGeo, horizonGlowMat);
+    this.horizonGlowMesh.renderOrder = -95;
+    this.scene.add(this.horizonGlowMesh);
+
+    // Water surface reflection plane — Fresnel reflections + light blue SSS + multi-frequency waves
+    const waterGeo = new THREE.PlaneGeometry(400, 400, 64, 64);
+    const waterMat = new THREE.ShaderMaterial({
+      transparent: true,
       depthWrite: false,
       side: THREE.DoubleSide,
+      uniforms: {
+        uColor: { value: new THREE.Color(0x2266aa) },
+        uSunColor: { value: new THREE.Color(0xffffff) },
+        uSunDir: { value: new THREE.Vector3(0.4, 1.0, 0.2) },
+        uTime: { value: 0 },
+        uOpacity: { value: 0.55 },
+        uSunIntensity: { value: 1.0 },
+      },
+      vertexShader: `
+        varying vec3 vWorldPos;
+        uniform float uTime;
+        void main() {
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          // Multi-frequency wave displacement
+          float w1 = sin(worldPos.x * 0.35 + uTime * 1.4) * 0.12;
+          float w2 = sin(worldPos.z * 0.45 - uTime * 1.1) * 0.08;
+          float w3 = sin((worldPos.x + worldPos.z) * 0.8 + uTime * 1.8) * 0.04;
+          worldPos.y += w1 + w2 + w3;
+          vWorldPos = worldPos.xyz;
+          gl_Position = projectionMatrix * viewMatrix * worldPos;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uColor;
+        uniform vec3 uSunColor;
+        uniform vec3 uSunDir;
+        uniform float uTime;
+        uniform float uOpacity;
+        uniform float uSunIntensity;
+        varying vec3 vWorldPos;
+
+        void main() {
+          // Multiple frequency layers for animated normal
+          vec3 N = normalize(vec3(
+            sin(vWorldPos.x * 0.35 + uTime * 1.4) * 0.15 + sin(vWorldPos.z * 0.8 - uTime * 2.0) * 0.08,
+            1.0,
+            sin(vWorldPos.z * 0.45 + uTime * 1.1) * 0.15 + sin(vWorldPos.x * 0.7 + uTime * 1.8) * 0.08
+          ));
+          vec3 V = normalize(cameraPosition - vWorldPos);
+
+          // Fresnel reflections
+          float fresnel = clamp(pow(1.0 - max(dot(N, V), 0.0), 3.5) * 0.88 + 0.08, 0.0, 1.0);
+          vec3 skyReflect = mix(uColor * 1.4, uSunColor, 0.4);
+
+          // Subsurface scattering approximation: light blue glow
+          float sssDir = max(0.0, dot(V, -normalize(uSunDir) + N * 0.3));
+          float sssFactor = pow(sssDir, 2.2) * 0.6 + max(0.0, dot(N, normalize(uSunDir))) * 0.25;
+          vec3 sssGlow = vec3(0.15, 0.80, 0.95) * sssFactor * (0.3 + 0.7 * uSunIntensity);
+
+          // Animated caustic interference pattern
+          float c1 = sin(vWorldPos.x * 0.6 + uTime * 1.3) * sin(vWorldPos.z * 0.6 - uTime * 1.1);
+          float c2 = sin(vWorldPos.x * 1.3 - uTime * 0.7) * sin(vWorldPos.z * 1.3 + uTime * 0.9);
+          float caustic = smoothstep(0.55, 0.95, max(c1, c2) * 0.5 + 0.5);
+
+          // Water depth color variation: shallow cyan-blue to deep dark navy
+          vec3 deep = vec3(0.04, 0.12, 0.38);
+          vec3 shallow = vec3(0.38, 0.85, 0.96);
+          float depthFactor = clamp((32.0 - vWorldPos.y) * 0.15 + (1.0 - fresnel) * 0.5, 0.0, 1.0);
+          vec3 baseWater = mix(shallow, deep, depthFactor);
+          vec3 rgb = mix(baseWater, skyReflect, fresnel * 0.5) + sssGlow * 0.45 + vec3(0.5, 0.85, 0.95) * caustic * 0.18;
+
+          float alpha = clamp(uOpacity + fresnel * 0.35, 0.0, 0.92);
+          gl_FragColor = vec4(rgb, alpha);
+        }
+      `,
     });
     this.waterSurface = new THREE.Mesh(waterGeo, waterMat);
     this.waterSurface.rotation.x = -Math.PI / 2;
@@ -314,13 +598,85 @@ export class Game {
     this._flowerPatches.frustumCulled = false;
     this.scene.add(this._flowerPatches);
     this._flowerDummy = new THREE.Object3D();
-    for (let i = 0; i < FLOWER_COUNT; i++) {
-      this._flowerDummy.position.set(0, -1000, 0);
-      this._flowerDummy.scale.setScalar(0);
-      this._flowerDummy.updateMatrix();
-      this._flowerPatches.setMatrixAt(i, this._flowerDummy.matrix);
-    }
     this._flowerPatches.instanceMatrix.needsUpdate = true;
+
+    // Environmental Particles (Pollen, Fireflies, Snow hints)
+    const POLLEN_COUNT = 220;
+    const pollenGeo = new THREE.BufferGeometry();
+    const pollenPos = new Float32Array(POLLEN_COUNT * 3);
+    for (let i = 0; i < POLLEN_COUNT * 3; i += 3) {
+      pollenPos[i] = (Math.random() - 0.5) * 60;
+      pollenPos[i + 1] = Math.random() * 15;
+      pollenPos[i + 2] = (Math.random() - 0.5) * 60;
+    }
+    pollenGeo.setAttribute('position', new THREE.BufferAttribute(pollenPos, 3));
+    const pollenMat = new THREE.PointsMaterial({
+      color: 0xd8ee44,
+      size: 0.28,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+    });
+    this._pollenParticles = new THREE.Points(pollenGeo, pollenMat);
+    this.scene.add(this._pollenParticles);
+
+    const FIREFLY_COUNT = 150;
+    const fireflyGeo = new THREE.BufferGeometry();
+    const fireflyPos = new Float32Array(FIREFLY_COUNT * 3);
+    for (let i = 0; i < FIREFLY_COUNT * 3; i += 3) {
+      fireflyPos[i] = (Math.random() - 0.5) * 50;
+      fireflyPos[i + 1] = 1 + Math.random() * 5;
+      fireflyPos[i + 2] = (Math.random() - 0.5) * 50;
+    }
+    fireflyGeo.setAttribute('position', new THREE.BufferAttribute(fireflyPos, 3));
+    const fireflyMat = new THREE.PointsMaterial({
+      color: 0xeeff55,
+      size: 0.45,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+    });
+    this._fireflyParticles = new THREE.Points(fireflyGeo, fireflyMat);
+    this.scene.add(this._fireflyParticles);
+
+    const SNOW_COUNT = 180;
+    const snowGeo = new THREE.BufferGeometry();
+    const snowPos = new Float32Array(SNOW_COUNT * 3);
+    for (let i = 0; i < SNOW_COUNT * 3; i += 3) {
+      snowPos[i] = (Math.random() - 0.5) * 70;
+      snowPos[i + 1] = Math.random() * 20;
+      snowPos[i + 2] = (Math.random() - 0.5) * 70;
+    }
+    snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3));
+    const snowMat = new THREE.PointsMaterial({
+      color: 0xf0f8ff,
+      size: 0.35,
+      transparent: true,
+      opacity: 0,
+    });
+    this._snowHintParticles = new THREE.Points(snowGeo, snowMat);
+    this.scene.add(this._snowHintParticles);
+
+    // Pebble/rock detail patches on dirt blocks
+    const PEBBLE_COUNT = 400;
+    const pebbleGeo = new THREE.DodecahedronGeometry(0.08, 0);
+    const pebbleMat = new THREE.MeshBasicMaterial({
+      color: 0x888888,
+      transparent: true,
+      opacity: 0.85,
+    });
+    this._pebblePatches = new THREE.InstancedMesh(pebbleGeo, pebbleMat, PEBBLE_COUNT);
+    this._pebblePatches.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this._pebblePatches.frustumCulled = false;
+    this.scene.add(this._pebblePatches);
+    this._pebbleDummy = new THREE.Object3D();
+    for (let i = 0; i < PEBBLE_COUNT; i++) {
+      this._pebbleDummy.position.set(0, -1000, 0);
+      this._pebbleDummy.scale.setScalar(0);
+      this._pebbleDummy.updateMatrix();
+      this._pebblePatches.setMatrixAt(i, this._pebbleDummy.matrix);
+    }
+    this._pebblePatches.instanceMatrix.needsUpdate = true;
 
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 200);
     /** P2 camera for local split-screen (active when coopMode). */
@@ -2178,11 +2534,571 @@ export class Game {
     this._updateHud();
     if ((this.player?.inventoryOpen || this.player2?.inventoryOpen) && this._invNeedsPaint) this._paintInventory();
 
+    // Enhanced systems update
+    this._updateCreatureEcology(dt);
+    this._updateAudioSystem(dt);
+    this._updateEnvironmentalInteractivity(dt);
+    this._updatePlayerPhysics(dt);
+    this._updateWeatherSystem(dt);
+    this._updateCoopSystem(dt);
+
     // periodic autosave
     this._autosaveAcc += dt;
     if (this._autosaveAcc >= this._autosaveInterval) {
       this._autosaveAcc = 0;
       this.saveGame({ quiet: true });
+    }
+  }
+
+  _updateCreatureEcology(dt) {
+    if (!this.fauna || !this.started) return;
+    this._ecologyTimer = (this._ecologyTimer || 0) + dt;
+
+    // 1. Biome-based Creature Spawning (every 15s)
+    if (this._ecologyTimer > 15) {
+      this._ecologyTimer = 0;
+      const px = this.player ? this.player.position.x : 0;
+      const pz = this.player ? this.player.position.z : 0;
+      const curBiome = biomeAt(Math.floor(px), Math.floor(pz), this.seed);
+      const isNight = this.time.isNight();
+
+      let desiredSpecies = ['hare', 'cow', 'chicken'];
+      if (curBiome === 'forest' || curBiome === BIOME.FOREST) {
+        desiredSpecies = ['wolf', 'deer', 'fox', 'boar', 'bear'];
+      } else if (curBiome === 'ocean' || curBiome === BIOME.OCEAN || curBiome === 'shore' || curBiome === BIOME.SHORE || curBiome === 'tropical' || curBiome === BIOME.TROPICAL) {
+        desiredSpecies = ['tropical_fish', 'sea_turtle', 'reef_shark', 'crab', 'alligator'];
+      }
+      if (isNight) {
+        desiredSpecies.push('bat');
+      }
+
+      for (const spId of desiredSpecies) {
+        const count = this.fauna.countLiving(spId);
+        const spec = SPECIES[spId];
+        if (spec && count < (spec.count || 3)) {
+          const ang = Math.random() * Math.PI * 2;
+          const rad = 20 + Math.random() * 18;
+          const sx = px + Math.cos(ang) * rad;
+          const sz = pz + Math.sin(ang) * rad;
+          const sy = (this.world && typeof groundY === 'function') ? groundY(this.world, sx, sz) : 20;
+          if (spec.aquatic) {
+            const wY = (this.world && typeof waterSurfaceY === 'function') ? waterSurfaceY(this.world, sx, sz) : null;
+            if (wY !== null) {
+              const anim = this.fauna._make(spec, sx, wY - (spec.swimDepth || 0.8), sz);
+              this.fauna.animals.push(anim);
+            }
+          } else if (this.world) {
+            const bBelow = this.world.getBlock(Math.floor(sx), Math.floor(sy - 1), Math.floor(sz));
+            if (bBelow !== BLOCK.WATER && bBelow !== BLOCK.AIR) {
+              const anim = this.fauna._make(spec, sx, sy, sz);
+              this.fauna.animals.push(anim);
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Creature AI (Food/Water seeking), Predator/Prey & Tamed Companion dynamics
+    const living = this.fauna.living();
+    const mode = this.modeDef();
+    const isNight = this.time.isNight();
+
+    for (const a of living) {
+      if (a.dead) continue;
+      const spec = SPECIES[a.type];
+      if (!spec) continue;
+
+      // Herbivore / creature AI: seeking food & water when wandering
+      if (a.state === 'wander' && Math.random() < 0.15) {
+        const seekRadius = 8;
+        let foodX = null, foodZ = null;
+        for (let dx = -seekRadius; dx <= seekRadius && foodX === null; dx += 2) {
+          for (let dz = -seekRadius; dz <= seekRadius && foodX === null; dz += 2) {
+            const bx = Math.floor(a.x + dx);
+            const bz = Math.floor(a.z + dz);
+            const by = Math.floor(a.y);
+            const bId = this.world.getBlock(bx, by, bz);
+            const bBelow = this.world.getBlock(bx, by - 1, bz);
+            if (bId === BLOCK.GRASS || bId === BLOCK.CROP || bId === BLOCK.BUSH || bBelow === BLOCK.WATER) {
+              foodX = bx + 0.5;
+              foodZ = bz + 0.5;
+            }
+          }
+        }
+        if (foodX !== null) {
+          a.targetX = foodX;
+          a.targetZ = foodZ;
+          const distToFood = Math.hypot(foodX - a.x, foodZ - a.z);
+          if (distToFood < 1.5 && this.fx) {
+            this.fx.burst(a.x, a.y + 0.3, a.z, [0.3, 0.8, 0.3], 4);
+          }
+        }
+      }
+
+      // Handle breeding & inLove timer
+      if (a._inLove > 0) {
+        a._inLove -= dt;
+        for (const partner of living) {
+          if (partner !== a && partner.type === a.type && partner._inLove > 0 && !partner.dead) {
+            const dx = a.x - partner.x;
+            const dz = a.z - partner.z;
+            if (dx * dx + dz * dz < 10) {
+              a._inLove = 0;
+              partner._inLove = 0;
+              const baby = this.fauna._make(spec, (a.x + partner.x) * 0.5, (a.y + partner.y) * 0.5, (a.z + partner.z) * 0.5);
+              baby.isBaby = true;
+              baby.hp = Math.max(2, Math.floor(spec.hp * 0.5));
+              this.fauna.animals.push(baby);
+              if (this.fx) this.fx.burst(baby.x, baby.y + 0.5, baby.z, [1, 0.4, 0.7], 15);
+              if (this.audio) this.audio.toast();
+              if (this.player) this.player.notify(`A baby ${spec.name} was born!`, 3);
+              break;
+            }
+          }
+        }
+      }
+
+      // Tamed Companion behavior (wolves follow and protect player)
+      if (a.tamed && this.player) {
+        const px = this.player.position.x;
+        const pz = this.player.position.z;
+        const pdx = px - a.x;
+        const pdz = pz - a.z;
+        const pdist = Math.hypot(pdx, pdz);
+
+        if (pdist > 22) {
+          // Teleport companion closer if too far
+          a.x = px + (Math.random() - 0.5) * 3;
+          a.z = pz + (Math.random() - 0.5) * 3;
+          a.y = (this.world && typeof groundY === 'function') ? groundY(this.world, a.x, a.z) : this.player.position.y;
+        } else if (pdist > 5 && a.state !== 'chase') {
+          a.state = 'wander';
+          a.targetX = px + (Math.random() - 0.5) * 4;
+          a.targetZ = pz + (Math.random() - 0.5) * 4;
+        }
+
+        if (this._lastPlayerAttackedAnimal && !this._lastPlayerAttackedAnimal.dead && this._lastPlayerAttackedAnimal !== a) {
+          const target = this._lastPlayerAttackedAnimal;
+          const tdx = target.x - a.x;
+          const tdz = target.z - a.z;
+          const tdist = Math.hypot(tdx, tdz);
+          if (tdist < 16) {
+            a.state = 'chase';
+            a.vx = (tdx / tdist) * spec.speed * 1.35;
+            a.vz = (tdz / tdist) * spec.speed * 1.35;
+            if (tdist < 1.6 && (a.attackTimer || 0) <= 0) {
+              a.attackTimer = 1.2;
+              this.fauna.damageAnimal(target, 8);
+              if (this.audio) this.audio.hit();
+            }
+          }
+        }
+      }
+
+      // Predator vs Prey dynamics
+      if (spec.hostile && !a.tamed) {
+        const preyTypes = ['hare', 'chicken', 'deer', 'tropical_fish'];
+        for (const prey of living) {
+          if (!prey.dead && preyTypes.includes(prey.type)) {
+            const dx = prey.x - a.x;
+            const dz = prey.z - a.z;
+            const d2 = dx * dx + dz * dz;
+            if (d2 < 12 * 12 && a.state !== 'chase') {
+              a.state = 'chase';
+              const dist = Math.sqrt(d2);
+              a.vx = (dx / dist) * spec.speed;
+              a.vz = (dz / dist) * spec.speed;
+              if (dist < (spec.attackRange || 1.4) && (a.attackTimer || 0) <= 0) {
+                a.attackTimer = spec.attackCd || 1.4;
+                this.fauna.damageAnimal(prey, spec.damage || 10);
+                if (this.fx) this.fx.burst(prey.x, prey.y + 0.4, prey.z, [0.8, 0.1, 0.1], 8);
+                if (this.audio) this.audio.hit();
+              }
+              break;
+            }
+          }
+        }
+
+        if (isNight && mode.hostilePolicy === 'hunt' && this.player) {
+          const pdx = this.player.position.x - a.x;
+          const pdz = this.player.position.z - a.z;
+          if (pdx * pdx + pdz * pdz < 18 * 18) {
+            a.state = 'chase';
+            a.aggro = true;
+          }
+        }
+      }
+    }
+  }
+
+  _updateAudioSystem(dt) {
+    if (!this.audio || !this.started) return;
+
+    // Ambient mix tick
+    const px = this.player ? Math.floor(this.player.position.x) : 0;
+    const pz = this.player ? Math.floor(this.player.position.z) : 0;
+    const curBiome = biomeAt(px, pz, this.seed);
+    const nearWater = this.world ? this.world.getBlock(px, Math.floor(this.player?.position.y || 20), pz) === BLOCK.WATER : false;
+    this.audio.tickAmbient(dt, {
+      biome: curBiome,
+      isNight: this.time.isNight(),
+      weather: this.time.weather,
+      nearWater,
+      dayPhase: this.time.getSunProgress?.() || 0.25,
+      dead: !!this.survival?.dead,
+    });
+
+    // Night crickets
+    if (this.time.isNight() && !this.survival?.dead) {
+      this._cricketTimer = (this._cricketTimer || 0) - dt;
+      if (this._cricketTimer <= 0) {
+        this._cricketTimer = 6 + Math.random() * 8;
+        this.audio.beep(4200 + Math.random() * 600, 0.03, 'sine', 0.02);
+      }
+    }
+
+    // Creature vocalizations
+    this._sfxCreatureTimer = (this._sfxCreatureTimer || 0) + dt;
+    if (this._sfxCreatureTimer > 8) {
+      this._sfxCreatureTimer = 0;
+      if (this.fauna && this.player) {
+        const ppos = this.player.position;
+        for (const a of this.fauna.living()) {
+          const dx = a.x - ppos.x;
+          const dz = a.z - ppos.z;
+          if (dx * dx + dz * dz < 18 * 18) {
+            if (a.type === 'cow') {
+              this.audio.beep(130, 0.35, 'sawtooth', 0.08);
+              break;
+            } else if (a.type === 'chicken') {
+              this.audio.beep(650, 0.04, 'sine', 0.06);
+              setTimeout(() => this.audio.beep?.(750, 0.04, 'sine', 0.05), 60);
+              break;
+            } else if (a.type === 'bird' || a.type === 'bat') {
+              this.audio.beep(1400, 0.05, 'triangle', 0.05);
+              break;
+            } else if (a.type === 'wolf' && (this.time.isNight() || a.tamed)) {
+              if (this.audio._wolfHowl) this.audio._wolfHowl();
+              break;
+            } else if (a.type === 'hare' || a.type === 'fox') {
+              this.audio.beep(950, 0.03, 'sine', 0.04);
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Footstep leaves rustling
+    if (this.player && this.player.onGround && (this.player.vx || this.player.vz)) {
+      const feetId = this.world.getBlock(
+        Math.floor(this.player.position.x),
+        Math.floor(this.player.position.y),
+        Math.floor(this.player.position.z)
+      );
+      if (feetId === BLOCK.LEAVES || feetId === BLOCK.SPRUCE_LEAVES || feetId === BLOCK.BUSH || feetId === BLOCK.PALM_LEAVES) {
+        if (Math.random() < 0.25) {
+          this.audio.beep(380 + Math.random() * 140, 0.04, 'triangle', 0.03);
+        }
+      }
+    }
+  }
+
+  _fellTree(x, y, z) {
+    if (!this.world) return;
+    const trunkIds = [BLOCK.LOG, BLOCK.SPRUCE_LOG, BLOCK.SEQUOIA_LOG];
+    const leafIds = [BLOCK.LEAVES, BLOCK.SPRUCE_LEAVES, BLOCK.SEQUOIA_LEAVES, BLOCK.PALM_LEAVES];
+
+    let topY = y;
+    for (let cy = y + 1; cy <= y + 12; cy++) {
+      const b = this.world.getBlock(x, cy, z);
+      if (trunkIds.includes(b)) {
+        topY = cy;
+        this.world.setBlock(x, cy, z, BLOCK.AIR);
+        const dropItem = b === BLOCK.SPRUCE_LOG ? ITEM.SPRUCE_LOG : (b === BLOCK.SEQUOIA_LOG ? ITEM.SEQUOIA_LOG : ITEM.LOG);
+        if (this.player) {
+          const add = addItems(this.player.slots, dropItem, 1);
+          this.player.slots = add.slots;
+        }
+        if (this.fx) this.fx.burst(x, cy, z, [0.45, 0.3, 0.15], 6);
+      } else {
+        break;
+      }
+    }
+
+    for (let dx = -2; dx <= 2; dx++) {
+      for (let dz = -2; dz <= 2; dz++) {
+        for (let dy = topY - 2; dy <= topY + 3; dy++) {
+          const lb = this.world.getBlock(x + dx, dy, z + dz);
+          if (leafIds.includes(lb)) {
+            if (Math.random() < 0.75) {
+              this.world.setBlock(x + dx, dy, z + dz, BLOCK.AIR);
+              if (this.fx) this.fx.burst(x + dx, dy, z + dz, [0.2, 0.7, 0.2], 5);
+              if (Math.random() < 0.1 && this.player) {
+                const item = Math.random() < 0.3 ? ITEM.APPLE : ITEM.STICK;
+                this.player.slots = addItems(this.player.slots, item, 1).slots;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  _updateEnvironmentalInteractivity(dt) {
+    this._updateWaterFlow(dt);
+    this._updateFireSpread(dt);
+    this._updatePlantGrowth(dt);
+    this._updateSeasonalChanges(dt);
+  }
+
+  _updateWaterFlow(dt) {
+    this._waterFlowTimer = (this._waterFlowTimer || 0) + dt;
+    if (this._waterFlowTimer < 0.4) return;
+    this._waterFlowTimer = 0;
+
+    if (!this.world || !this.player) return;
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+
+    const rad = 6;
+    for (let dx = -rad; dx <= rad; dx += 2) {
+      for (let dz = -rad; dz <= rad; dz += 2) {
+        for (let dy = -2; dy <= 2; dy++) {
+          const wx = px + dx;
+          const wy = py + dy;
+          const wz = pz + dz;
+          if (this.world.getBlock(wx, wy, wz) === BLOCK.WATER) {
+            if (this.world.getBlock(wx, wy - 1, wz) === BLOCK.AIR) {
+              this.world.setBlock(wx, wy - 1, wz, BLOCK.WATER);
+              return;
+            }
+            const neighbors = [[wx + 1, wy, wz], [wx - 1, wy, wz], [wx, wy, wz + 1], [wx, wy, wz - 1]];
+            for (const [nx, ny, nz] of neighbors) {
+              if (this.world.getBlock(nx, ny, nz) === BLOCK.AIR && isSolid(this.world.getBlock(nx, ny - 1, nz))) {
+                if (Math.random() < 0.3) {
+                  this.world.setBlock(nx, ny, nz, BLOCK.WATER);
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  _updateFireSpread(dt) {
+    this._fireSpreadTimer = (this._fireSpreadTimer || 0) + dt;
+    if (this._fireSpreadTimer < 1.5) return;
+    this._fireSpreadTimer = 0;
+
+    if (this.time.weather === 'rain') return;
+    if (!this.world || !this.player) return;
+
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const flammable = [BLOCK.LOG, BLOCK.PLANKS, BLOCK.LEAVES, BLOCK.BUSH, BLOCK.SPRUCE_LOG, BLOCK.SPRUCE_LEAVES, BLOCK.STICK_PILE];
+
+    for (let dx = -5; dx <= 5; dx++) {
+      for (let dz = -5; dz <= 5; dz++) {
+        for (let dy = -2; dy <= 2; dy++) {
+          const fx = px + dx;
+          const fy = py + dy;
+          const fz = pz + dz;
+          if (this.world.getBlock(fx, fy, fz) === BLOCK.CAMPFIRE) {
+            const neighbors = [
+              [fx + 1, fy, fz], [fx - 1, fy, fz],
+              [fx, fy + 1, fz], [fx, fy, fz + 1], [fx, fy, fz - 1]
+            ];
+            for (const [nx, ny, nz] of neighbors) {
+              const nb = this.world.getBlock(nx, ny, nz);
+              if (flammable.includes(nb) && Math.random() < 0.15) {
+                this.world.setBlock(nx, ny, nz, BLOCK.AIR);
+                if (this.fx) this.fx.burst(nx, ny, nz, [0.9, 0.4, 0.1], 8);
+                if (this.audio) this.audio.beep(200, 0.05, 'sawtooth', 0.04);
+                return;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  _updatePlantGrowth(dt) {
+    this._plantGrowthTimer = (this._plantGrowthTimer || 0) + dt;
+    if (this._plantGrowthTimer < 4.0) return;
+    this._plantGrowthTimer = 0;
+
+    if (!this.world || !this.player) return;
+    const season = Math.floor((this.time.dayNumber || 0) / 4) % 4;
+    if ((season === 0 || season === 1) && Math.random() < 0.35) {
+      const px = Math.floor(this.player.position.x) + ((Math.random() * 12 - 6) | 0);
+      const pz = Math.floor(this.player.position.z) + ((Math.random() * 12 - 6) | 0);
+      const py = (typeof groundY === 'function') ? groundY(this.world, px, pz) : 20;
+      if (this.world.getBlock(px, py - 1, pz) === BLOCK.GRASS && this.world.getBlock(px, py, pz) === BLOCK.AIR) {
+        this.world.setBlock(px, py, pz, Math.random() < 0.5 ? BLOCK.BUSH : BLOCK.FLOWER);
+      }
+    }
+  }
+
+  _updateSeasonalChanges(dt) {
+    this._seasonTimer = (this._seasonTimer || 0) + dt;
+    if (this._seasonTimer < 5.0) return;
+    this._seasonTimer = 0;
+
+    const season = Math.floor((this.time.dayNumber || 0) / 4) % 4;
+    if (season === 3 || this.time.weather === 'snow') {
+      if (this.player && this.world) {
+        const px = Math.floor(this.player.position.x) + ((Math.random() * 16 - 8) | 0);
+        const pz = Math.floor(this.player.position.z) + ((Math.random() * 16 - 8) | 0);
+        const b = biomeAt(px, pz, this.seed);
+        if (b !== 'desert' && b !== BIOME.DESERT && b !== 'tropical' && b !== BIOME.TROPICAL) {
+          const py = (typeof groundY === 'function') ? groundY(this.world, px, pz) : 20;
+          if (this.world.getBlock(px, py, pz) === BLOCK.AIR && isSolid(this.world.getBlock(px, py - 1, pz))) {
+            this.world.setBlock(px, py, pz, BLOCK.SNOW);
+          }
+        }
+      }
+    } else if (season === 0 || this.time.weather === 'clear') {
+      // Snow melts in warm clear weather
+      if (this.player && this.world && Math.random() < 0.4) {
+        const px = Math.floor(this.player.position.x) + ((Math.random() * 16 - 8) | 0);
+        const pz = Math.floor(this.player.position.z) + ((Math.random() * 16 - 8) | 0);
+        const py = (typeof groundY === 'function') ? groundY(this.world, px, pz) : 20;
+        if (this.world.getBlock(px, py, pz) === BLOCK.SNOW) {
+          this.world.setBlock(px, py, pz, BLOCK.AIR);
+        }
+      }
+    }
+  }
+
+  _updatePlayerPhysics(dt) {
+    if (!this.player || !this.started || !this.world) return;
+
+    const eyeY = this.player.position.y + 1.6;
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+    const eyeId = this.world.getBlock(px, Math.floor(eyeY), pz);
+    const feetId = this.world.getBlock(px, py, pz);
+
+    // Swimming & underwater movement
+    const inWater = eyeId === BLOCK.WATER || feetId === BLOCK.WATER;
+    if (inWater) {
+      if (this.input && this.input.wantsJump && this.input.wantsJump()) {
+        this.player.position.y += 4.2 * dt;
+      }
+      if (Math.random() < 0.15 && this.fx) {
+        this.fx.burst(this.player.position.x, this.player.position.y + 0.8, this.player.position.z, [0.6, 0.8, 1.0], 3);
+      }
+    }
+
+    // Climbing Mechanics (Ladders, Vines, Roots, Scaffolding)
+    const isClimbable = feetId === BLOCK.LADDER || feetId === BLOCK.VINES || feetId === BLOCK.ROOTS || feetId === BLOCK.SCAFFOLDING || eyeId === BLOCK.LADDER;
+    if (isClimbable && this.input) {
+      if (this.input.wantsForward?.() || this.input.wantsJump?.()) {
+        this.player.position.y += 3.8 * dt;
+      } else if (this.input.wantsBack?.() || this.input.crouching) {
+        this.player.position.y -= 3.2 * dt;
+      }
+    }
+
+    // Fall damage calculation on landing
+    if (!this.player.onGround) {
+      if (this._fallStartY === undefined || this.player.position.y > this._fallStartY) {
+        this._fallStartY = this.player.position.y;
+      }
+    } else {
+      if (this._fallStartY !== undefined) {
+        const fallDist = this._fallStartY - this.player.position.y;
+        this._fallStartY = undefined;
+
+        const landingBlock = feetId || this.world.getBlock(px, py - 1, pz);
+        const isSafeLanding = landingBlock === BLOCK.WATER || landingBlock === BLOCK.LEAVES || landingBlock === BLOCK.SNOW;
+        if (fallDist > 3.8 && !isSafeLanding) {
+          const dmg = Math.round((fallDist - 3.2) * 7.5);
+          this.survival = applyDamage(this.survival, dmg, 'fall');
+          if (this.audio) this.audio.hurt();
+          this.player.notify(dmg > 20 ? 'Oof — hard landing!' : 'Rough fall!', 2);
+        }
+      }
+    }
+  }
+
+  _updateWeatherSystem(dt) {
+    if (!this.started || !this.scene) return;
+
+    if (this.time.weather === 'rain' || this.time.weather === 'snow') {
+      this._lightningTimer = (this._lightningTimer || 0) + dt;
+      if (this._lightningTimer > 16.0) {
+        this._lightningTimer = 0;
+        if (this.audio && this.audio.thunder) this.audio.thunder();
+
+        if (this.player && this.world) {
+          const lx = this.player.position.x + (Math.random() * 30 - 15);
+          const lz = this.player.position.z + (Math.random() * 30 - 15);
+          const ly = (typeof groundY === 'function') ? groundY(this.world, lx, lz) : 20;
+
+          const boltGeo = new THREE.CylinderGeometry(0.1, 0.4, 60, 6);
+          const boltMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95 });
+          const boltMesh = new THREE.Mesh(boltGeo, boltMat);
+          boltMesh.position.set(lx, ly + 30, lz);
+          this.scene.add(boltMesh);
+
+          if (this.fx) this.fx.burst(lx, ly, lz, [1.0, 0.9, 0.4], 20);
+
+          // Fire on impact if flammable block
+          const bAt = this.world.getBlock(Math.floor(lx), Math.floor(ly), Math.floor(lz));
+          if (bAt === BLOCK.LOG || bAt === BLOCK.LEAVES || bAt === BLOCK.GRASS) {
+            this.world.setBlock(Math.floor(lx), Math.floor(ly), Math.floor(lz), BLOCK.AIR);
+          }
+
+          setTimeout(() => {
+            this.scene.remove(boltMesh);
+            boltGeo.dispose();
+            boltMat.dispose();
+          }, 180);
+        }
+      }
+    }
+
+    if (this.scene.fog) {
+      if (this.time.weather === 'rain' || this.time.weather === 'snow') {
+        this.scene.fog.near = 15;
+        this.scene.fog.far = 60;
+      } else {
+        this.scene.fog.near = 40;
+        this.scene.fog.far = 130;
+      }
+    }
+  }
+
+  _updateCoopSystem(dt) {
+    if (!this.coopMode || !this.player2 || !this.started) return;
+
+    const d2 = horizDistance ? horizDistance(this.player.position, this.player2.position) : Math.hypot(this.player.position.x - this.player2.position.x, this.player.position.z - this.player2.position.z);
+    if (d2 < 4.0) {
+      this._lastHeat = Math.max(this._lastHeat || 0, 10);
+    }
+    // Shared revival mechanism
+    if (this.survival?.dead && !this.survival2?.dead && d2 < 3.5) {
+      if (this.input2?.consumeAction?.() || this.input2?.consumePlace?.()) {
+        this.survival.dead = false;
+        this.survival.health = 25;
+        this.player.notify('Revived by P2!', 3);
+        if (this.audio) this.audio.toast();
+      }
+    } else if (this.survival2?.dead && !this.survival?.dead && d2 < 3.5) {
+      if (this.input?.consumeAction?.() || this.input?.consumePlace?.()) {
+        this.survival2.dead = false;
+        this.survival2.health = 25;
+        this.player2.notify('Revived by P1!', 3);
+        if (this.audio) this.audio.toast();
+      }
     }
   }
 
@@ -2473,18 +3389,27 @@ export class Game {
     // Sort by distance, use nearest ones
     torchPositions.sort((a, b) => a.dist - b.dist);
 
-    // Update light pool
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const tick200 = Math.floor(now / 200);
+
+    // Update light pool with ±10% flicker every 200ms & warmer color temperature shift
     for (let i = 0; i < this._torchLights.length; i++) {
       const light = this._torchLights[i];
       if (i < torchPositions.length) {
         const tp = torchPositions[i];
         light.position.set(tp.x, tp.y, tp.z);
-        const intensity = Math.max(0.5, 1.5 - tp.dist * 0.03);
-        light.intensity = intensity;
+        const baseIntensity = Math.max(0.5, 1.5 - tp.dist * 0.03);
+
+        // Torch flickering: ±10% variation every 200ms
+        const hash = Math.sin(tick200 * 12.9898 + i * 78.233 + tp.x * 3.1) * 43758.5453;
+        const flicker = ((hash - Math.floor(hash)) - 0.5) * 0.20; // -0.10 to +0.10
+        light.intensity = Math.max(0.2, baseIntensity * (1.0 + flicker));
         light.visible = true;
-        // Slight color variation based on position hash
-        const hue = 0.07 + (tp.x * 0.001 + tp.z * 0.002) % 0.03;
-        light.color.setHSL(hue, 0.9, 0.6);
+
+        // Subtle color temperature shift (warmer hue & lower lightness when flickering dimmer)
+        const baseHue = 0.07 + (tp.x * 0.001 + tp.z * 0.002) % 0.03;
+        const warmerHue = Math.max(0.03, baseHue + flicker * 0.12);
+        light.color.setHSL(warmerHue, 0.95, 0.58 + flicker * 0.08);
       } else {
         light.visible = false;
       }
@@ -2651,6 +3576,7 @@ export class Game {
           dmg = maceSmashDamage(fallDist, dmg);
         }
         const res = this.fauna.damageAnimal(ah.animal, dmg);
+        this._lastPlayerAttackedAnimal = ah.animal;
         this.audio.breakBlock();
         this._meleeCd = held?.tool === 'weapon' ? 0.42 : 0.35;
         this._crossHitT = 0.22;
@@ -2744,7 +3670,10 @@ export class Game {
             dropCount = 1;
           }
         }
-        if (hit.id === BLOCK.LOG) this._unlock('first_log');
+        if (hit.id === BLOCK.LOG || hit.id === BLOCK.SPRUCE_LOG || hit.id === BLOCK.SEQUOIA_LOG) {
+          this._unlock('first_log');
+          this._fellTree(hit.x, hit.y, hit.z);
+        }
         const col = getColor(hit.id, 'side');
         this.fx.burst(hit.x, hit.y, hit.z, col, 12);
         this.fx.hideCrack();
@@ -3045,9 +3974,9 @@ export class Game {
       return;
     }
 
-    // Feed animal (canFeed/tryFeed) — after held0 defined below
+    // Feed animal (canFeed/tryFeed)
     const ah = this.fauna?.rayHit(origin, dir, 5);
-    if (ah && !ah.animal.tamed) {
+    if (ah) {
         const feedSpec = this.fauna.getSpec(ah.animal.type);
         if (feedSpec && feedSpec.feedItem) {
             const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
@@ -3055,11 +3984,16 @@ export class Game {
                 this.player.slots = cons.slots;
                 const result = tryFeed(ah.animal, cons.id);
                 if (result.fed) {
-                    if (result.tamed) this._unlock('first_tame');
-                    const msg = result.tamed
-                        ? `${feedSpec.name} is now tamed!`
-                        : `${feedSpec.name}: ${Math.round(result.tameProgress)}% tamed`;
+                    ah.animal._inLove = 30;
+                    if (ah.animal.type === 'wolf' || result.tamed) {
+                      ah.animal.tamed = true;
+                      if (result.tamed) this._unlock('first_tame');
+                    }
+                    const msg = ah.animal.tamed
+                        ? `${feedSpec.name} is now your loyal tamed companion!`
+                        : `${feedSpec.name} fed — in love & ready to breed!`;
                     this.audio.eat();
+                    if (this.fx) this.fx.burst(ah.animal.x, ah.animal.y + 0.6, ah.animal.z, [1, 0.4, 0.7], 12);
                     this.player.notify(msg, 3);
                     return;
                 }
@@ -3376,6 +4310,12 @@ export class Game {
         this.scene.add(mesh);
       }
 
+      if (a.isBaby) {
+        mesh.scale.setScalar(0.55);
+      } else {
+        mesh.scale.setScalar(1.0);
+      }
+
       // Smooth position interpolation
       const targetX = a.x;
       const targetY = a.y;
@@ -3480,10 +4420,393 @@ export class Game {
     }
   }
 
+  _initEnhancedUI() {
+    if (this._enhancedUIInited) return;
+    this._enhancedUIInited = true;
+    this._unlockedRecipes = new Set();
+
+    try {
+      const style = document.createElement('style');
+      style.id = 'enhanced-ui-styles';
+      style.textContent = `
+        #bar-health { background: linear-gradient(90deg, #ef4444, #f43f5e, #ec4899) !important; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); transition: width 0.3s ease-out; }
+        #bar-hunger { background: linear-gradient(90deg, #d97706, #f59e0b, #fbbf24) !important; box-shadow: 0 0 8px rgba(217, 119, 6, 0.4); transition: width 0.3s ease-out; }
+        #xp-bar-container { height: 6px; width: 100%; background: rgba(15, 23, 42, 0.7); border-radius: 3px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); margin-top: 4px; }
+        #bar-xp { height: 100%; width: 0%; background: linear-gradient(90deg, #059669, #10b981, #34d399); box-shadow: 0 0 8px rgba(16, 185, 129, 0.8); transition: width 0.3s ease; }
+        
+        #minimap-container { position: fixed; top: 16px; right: 16px; width: 120px; height: 120px; border-radius: 50%; border: 3px solid rgba(251, 191, 36, 0.7); background: rgba(15, 23, 42, 0.85); box-shadow: 0 8px 24px rgba(0,0,0,0.6); overflow: hidden; z-index: 1000; pointer-events: none; }
+        #minimap-canvas { width: 100%; height: 100%; display: block; }
+        
+        #inventory-screen { transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1), transform 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important; }
+        #inventory-screen.hidden { opacity: 0 !important; transform: scale(0.95) translateY(10px) !important; pointer-events: none !important; visibility: hidden; }
+        #inventory-screen:not(.hidden) { opacity: 1 !important; transform: scale(1) translateY(0) !important; pointer-events: auto !important; visibility: visible; }
+        
+        .inv-slot { position: relative; transition: transform 0.15s ease, border-color 0.15s ease; }
+        .inv-slot:hover { transform: scale(1.06); z-index: 10; }
+        .inv-slot.drag-target { border: 2px solid #fbbf24 !important; box-shadow: 0 0 12px #fbbf24 !important; }
+        .inv-count { background: rgba(15, 23, 42, 0.85); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.5); font-weight: 700; font-size: 11px; padding: 1px 4px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.5); position: absolute; bottom: 2px; right: 2px; }
+        
+        #item-3d-preview { position: fixed; display: none; width: 100px; height: 100px; background: rgba(15, 23, 42, 0.92); border: 2px solid rgba(251, 191, 36, 0.7); border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.7); z-index: 9999; pointer-events: none; text-align: center; color: #fff; padding: 4px; }
+        #item-3d-preview canvas { display: block; margin: 0 auto; }
+        #item-3d-preview .preview-name { font-size: 11px; font-weight: 600; color: #fbbf24; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        #crafting-recipe-preview { margin-top: 10px; padding: 10px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: 8px; color: #fff; font-size: 12px; }
+        .recipe-preview-header { font-size: 12px; margin-bottom: 6px; color: #fbbf24; }
+        .recipe-preview-body { display: flex; align-items: center; gap: 8px; }
+        .recipe-grid-3x3 { display: grid; grid-template-columns: repeat(3, 24px); grid-template-rows: repeat(3, 24px); gap: 2px; }
+        .recipe-grid-slot { width: 24px; height: 24px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.2); position: relative; font-size: 9px; }
+        .recipe-grid-slot.empty { background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.08); }
+        .recipe-arrow { font-size: 18px; color: #fbbf24; }
+        .recipe-result-slot { width: 32px; height: 32px; border-radius: 4px; border: 2px solid #fbbf24; position: relative; }
+        .ing-count { position: absolute; bottom: 0; right: 1px; font-size: 9px; font-weight: bold; color: #fff; text-shadow: 0 1px 2px #000; }
+        
+        #inv-drag-ghost { position: fixed; display: none; width: 44px; height: 44px; background: rgba(251, 191, 36, 0.85); border: 2px solid #fff; border-radius: 8px; color: #000; font-weight: bold; font-size: 12px; text-align: center; line-height: 40px; box-shadow: 0 8px 20px rgba(0,0,0,0.6); pointer-events: none; z-index: 99999; }
+        
+        #recipe-unlock-toast { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%) translateY(20px); opacity: 0; background: linear-gradient(135deg, #1e293b, #0f172a); border: 2px solid #fbbf24; border-radius: 10px; color: #fbbf24; padding: 8px 18px; font-weight: 700; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); transition: all 0.3s ease; z-index: 10000; pointer-events: none; }
+        #recipe-unlock-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      `;
+      if (document.head) document.head.appendChild(style);
+
+      const meters = document.getElementById('meters');
+      if (meters && !document.getElementById('xp-bar-container')) {
+        const container = document.createElement('div');
+        container.id = 'xp-bar-container';
+        container.title = 'Experience';
+        const fill = document.createElement('div');
+        fill.id = 'bar-xp';
+        container.appendChild(fill);
+        meters.appendChild(container);
+      }
+
+      if (document.body && !document.getElementById('minimap-container')) {
+        const miniContainer = document.createElement('div');
+        miniContainer.id = 'minimap-container';
+        const miniCanvas = document.createElement('canvas');
+        miniCanvas.id = 'minimap-canvas';
+        miniCanvas.width = 120;
+        miniCanvas.height = 120;
+        miniContainer.appendChild(miniCanvas);
+        document.body.appendChild(miniContainer);
+      }
+
+      if (document.body && !document.getElementById('item-3d-preview')) {
+        const prev = document.createElement('div');
+        prev.id = 'item-3d-preview';
+        const c = document.createElement('canvas');
+        c.width = 72;
+        c.height = 72;
+        const lbl = document.createElement('div');
+        lbl.className = 'preview-name';
+        prev.appendChild(c);
+        prev.appendChild(lbl);
+        document.body.appendChild(prev);
+      }
+
+      if (document.body && !document.getElementById('inv-drag-ghost')) {
+        const ghost = document.createElement('div');
+        ghost.id = 'inv-drag-ghost';
+        document.body.appendChild(ghost);
+      }
+
+      if (document.body && !document.getElementById('recipe-unlock-toast')) {
+        const toast = document.createElement('div');
+        toast.id = 'recipe-unlock-toast';
+        document.body.appendChild(toast);
+      }
+    } catch (_) {}
+  }
+
+  _updateMinimap() {
+    const canvas = document.getElementById('minimap-canvas');
+    if (!canvas || !this.player || !this.world) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const px = Math.floor(this.player.position.x);
+    const pz = Math.floor(this.player.position.z);
+    const py = Math.floor(this.player.position.y);
+    const size = 32;
+    const cellSize = canvas.width / size;
+
+    for (let rz = 0; rz < size; rz++) {
+      for (let rx = 0; rx < size; rx++) {
+        const wx = px - 16 + rx;
+        const wz = pz - 16 + rz;
+        let color = '#3a4a3a';
+
+        const block = this.world.getBlock(wx, py, wz) || this.world.getBlock(wx, py - 1, wz);
+        if (block === BLOCK.WATER) color = '#1e88e5';
+        else if (block === BLOCK.GRASS) color = '#4caf50';
+        else if (block === BLOCK.DIRT) color = '#795548';
+        else if (block === BLOCK.STONE || block === BLOCK.COBBLE) color = '#9e9e9e';
+        else if (block === BLOCK.SAND || block === BLOCK.SANDSTONE) color = '#fbc02d';
+        else if (block === BLOCK.LOG || block === BLOCK.PLANKS) color = '#8d6e63';
+        else if (block === BLOCK.LEAVES || block === BLOCK.SPRUCE_LEAVES) color = '#2e7d32';
+        else if (block === BLOCK.SNOW || block === BLOCK.ICE) color = '#e0f7fa';
+        else if (block === BLOCK.LAVA) color = '#ff5722';
+
+        ctx.fillStyle = color;
+        ctx.fillRect(rx * cellSize, rz * cellSize, cellSize + 0.5, cellSize + 0.5);
+      }
+    }
+
+    if (this._spawnPos) {
+      const sx = Math.floor(this._spawnPos.x);
+      const sz = Math.floor(this._spawnPos.z);
+      const relSx = (sx - px + 16) * cellSize;
+      const relSz = (sz - pz + 16) * cellSize;
+      if (relSx >= 0 && relSx <= canvas.width && relSz >= 0 && relSz <= canvas.height) {
+        ctx.fillStyle = '#ff00ff';
+        ctx.beginPath();
+        ctx.arc(relSx, relSz, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const yaw = this.player.yaw || 0;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(-yaw);
+    ctx.fillStyle = '#ef4444';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -6);
+    ctx.lineTo(5, 6);
+    ctx.lineTo(0, 4);
+    ctx.lineTo(-5, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  _updateXPBar() {
+    const xpBar = document.getElementById('bar-xp');
+    if (!xpBar) return;
+    const kills = this._stats?.kills || 0;
+    const day = this.time?.dayNumber || 1;
+    const xpVal = (kills * 25 + day * 10) % 100;
+    xpBar.style.width = `${xpVal}%`;
+  }
+
+  _render3DItemPreview(canvas, itemId) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (itemId == null) return;
+    const p = propsOf(itemId);
+    const col = p?.color || [0.6, 0.6, 0.6];
+    const r = (col[0] * 255) | 0;
+    const g = (col[1] * 255) | 0;
+    const b = (col[2] * 255) | 0;
+
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2 - 4;
+    const w = 18;
+    const h = 10;
+    const d = 18;
+
+    // Top face
+    ctx.fillStyle = `rgb(${Math.min(255, r + 40)},${Math.min(255, g + 40)},${Math.min(255, b + 40)})`;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - h);
+    ctx.lineTo(cx + w, cy);
+    ctx.lineTo(cx, cy + h);
+    ctx.lineTo(cx - w, cy);
+    ctx.closePath();
+    ctx.fill();
+
+    // Left face
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.beginPath();
+    ctx.moveTo(cx - w, cy);
+    ctx.lineTo(cx, cy + h);
+    ctx.lineTo(cx, cy + h + d);
+    ctx.lineTo(cx - w, cy + d);
+    ctx.closePath();
+    ctx.fill();
+
+    // Right face
+    ctx.fillStyle = `rgb(${Math.max(0, r - 35)},${Math.max(0, g - 35)},${Math.max(0, b - 35)})`;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + h);
+    ctx.lineTo(cx + w, cy);
+    ctx.lineTo(cx + w, cy + d);
+    ctx.lineTo(cx, cy + h + d);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - h);
+    ctx.lineTo(cx + w, cy);
+    ctx.lineTo(cx + w, cy + d);
+    ctx.lineTo(cx, cy + h + d);
+    ctx.lineTo(cx - w, cy + d);
+    ctx.lineTo(cx - w, cy);
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  _showRecipePreview(recipe) {
+    let previewEl = document.getElementById('crafting-recipe-preview');
+    if (!previewEl) {
+      const parent = document.getElementById('inventory-screen') || document.body;
+      previewEl = document.createElement('div');
+      previewEl.id = 'crafting-recipe-preview';
+      parent.appendChild(previewEl);
+    }
+    if (!recipe) {
+      previewEl.style.display = 'none';
+      return;
+    }
+    previewEl.style.display = 'block';
+
+    let gridHtml = '<div class="recipe-grid-3x3">';
+    const ings = recipe.ingredients || [];
+    for (let i = 0; i < 9; i++) {
+      const ing = ings[i];
+      if (ing) {
+        const p = propsOf(ing.id);
+        const col = p?.color || [0.5, 0.5, 0.5];
+        const bg = `rgb(${(col[0]*255)|0},${(col[1]*255)|0},${(col[2]*255)|0})`;
+        gridHtml += `<div class="recipe-grid-slot" style="background:${bg}" title="${displayName(ing.id)} x${ing.count}"><span class="ing-count">${ing.count}</span></div>`;
+      } else {
+        gridHtml += `<div class="recipe-grid-slot empty"></div>`;
+      }
+    }
+    gridHtml += '</div>';
+
+    const resId = recipe.result || recipe.id;
+    const resCount = recipe.count || recipe.resultCount || 1;
+    const resP = propsOf(resId);
+    const resCol = resP?.color || [0.5, 0.5, 0.5];
+    const resBg = `rgb(${(resCol[0]*255)|0},${(resCol[1]*255)|0},${(resCol[2]*255)|0})`;
+
+    previewEl.innerHTML = `
+      <div class="recipe-preview-header">Recipe: <strong>${recipe.name}</strong></div>
+      <div class="recipe-preview-body">
+        ${gridHtml}
+        <div class="recipe-arrow">➔</div>
+        <div class="recipe-result-slot" style="background:${resBg}" title="${displayName(resId)} x${resCount}">
+          <span class="ing-count">${resCount}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  _showRecipeUnlockToast(name) {
+    const toast = document.getElementById('recipe-unlock-toast');
+    if (!toast) return;
+    toast.textContent = `✨ Recipe Unlocked: ${name}`;
+    toast.classList.add('show');
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 3500);
+  }
+
+  _setupSlotInteractions(el, s, i, pl) {
+    if (s.id != null && s.count > 0) {
+      el.draggable = true;
+
+      el.addEventListener('mouseenter', (e) => {
+        const preview = document.getElementById('item-3d-preview');
+        if (!preview) return;
+        preview.style.display = 'block';
+        preview.style.left = `${e.clientX + 14}px`;
+        preview.style.top = `${e.clientY + 14}px`;
+        const c = preview.querySelector('canvas');
+        const lbl = preview.querySelector('.preview-name');
+        if (lbl) lbl.textContent = displayName(s.id);
+        this._render3DItemPreview(c, s.id);
+      });
+
+      el.addEventListener('mousemove', (e) => {
+        const preview = document.getElementById('item-3d-preview');
+        if (preview) {
+          preview.style.left = `${e.clientX + 14}px`;
+          preview.style.top = `${e.clientY + 14}px`;
+        }
+      });
+
+      el.addEventListener('mouseleave', () => {
+        const preview = document.getElementById('item-3d-preview');
+        if (preview) preview.style.display = 'none';
+      });
+
+      el.addEventListener('dragstart', (e) => {
+        this._draggedSlotIndex = i;
+        const ghost = document.getElementById('inv-drag-ghost');
+        if (ghost) {
+          ghost.textContent = displayName(s.id).slice(0, 3);
+          ghost.style.display = 'block';
+          ghost.style.left = `${e.clientX - 22}px`;
+          ghost.style.top = `${e.clientY - 22}px`;
+        }
+      });
+    }
+
+    el.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      el.classList.add('drag-target');
+      const ghost = document.getElementById('inv-drag-ghost');
+      if (ghost) {
+        ghost.style.left = `${e.clientX - 22}px`;
+        ghost.style.top = `${e.clientY - 22}px`;
+      }
+    });
+
+    el.addEventListener('dragleave', () => {
+      el.classList.remove('drag-target');
+    });
+
+    el.addEventListener('drop', (e) => {
+      e.preventDefault();
+      el.classList.remove('drag-target');
+      const ghost = document.getElementById('inv-drag-ghost');
+      if (ghost) ghost.style.display = 'none';
+
+      if (this._draggedSlotIndex != null && this._draggedSlotIndex !== i && pl?.slots) {
+        const temp = pl.slots[i];
+        pl.slots[i] = pl.slots[this._draggedSlotIndex];
+        pl.slots[this._draggedSlotIndex] = temp;
+        this._draggedSlotIndex = null;
+        this._paintInventory();
+      }
+    });
+
+    el.addEventListener('dragend', () => {
+      const ghost = document.getElementById('inv-drag-ghost');
+      if (ghost) ghost.style.display = 'none';
+      const preview = document.getElementById('item-3d-preview');
+      if (preview) preview.style.display = 'none';
+    });
+  }
+
+  _setupRecipeBtnInteractions(btn, r) {
+    btn.addEventListener('mouseenter', () => {
+      this._showRecipePreview(r);
+    });
+    btn.addEventListener('click', () => {
+      this._showRecipePreview(r);
+    });
+  }
+
   _paintInventory() {
     this._invNeedsPaint = false;
     const pl = this._bagPlayer?.() || this.player;
     if (!pl) return;
+
+    if (!this._enhancedUIInited) this._initEnhancedUI();
 
     const bag = document.getElementById('inv-slots');
     if (bag) {
@@ -3505,6 +4828,7 @@ export class Game {
           el.classList.add('empty');
           el.title = i < HOTBAR_SIZE ? `Hotbar ${i + 1}` : 'Empty';
         }
+        this._setupSlotInteractions(el, s, i, pl);
         bag.appendChild(el);
       });
     }
@@ -3526,8 +4850,17 @@ export class Game {
         let desc = r.desc || '';
         if (r.requiresHeat && !heatOk) desc += ' — stand by fire';
         btn.innerHTML = `<strong>${r.name}</strong><span>${desc}</span>`;
+        this._setupRecipeBtnInteractions(btn, r);
         recipesEl.appendChild(btn);
+
+        if (can && this._unlockedRecipes && !this._unlockedRecipes.has(r.id)) {
+          this._unlockedRecipes.add(r.id);
+          if (this._recipeUnlockReady) {
+            this._showRecipeUnlockToast(r.name);
+          }
+        }
       }
+      this._recipeUnlockReady = true;
     }
 
     const eqEl = document.getElementById('equip-slots');
@@ -3810,6 +5143,31 @@ export class Game {
       const moonOpacity = this.sunLight.intensity < 0.5 ? Math.max(0, (0.5 - this.sunLight.intensity) / 0.45) * 0.8 : 0;
       this.moonDisc.material.opacity = moonOpacity;
     }
+
+    // Moon glow halo follows the moon disc; craters are baked into the texture
+    // so they're always visible whenever the disc itself is.
+    if (this.moonGlow && this.moonDisc) {
+      this.moonGlow.position.copy(this.moonDisc.position);
+      this.moonGlow.material.opacity = this.moonDisc.material.opacity * 0.6;
+    }
+
+    // Night sky: stars, constellations and the Milky Way fade in as the sun
+    // dips below sunIntensity 0.2, fully out by 0.5 (day).
+    const nightFactor = this.sunLight.intensity < 0.2
+      ? 1
+      : Math.max(0, 1 - (this.sunLight.intensity - 0.2) / 0.3);
+    if (this.starField) {
+      this.starField.position.copy(this.camera.position);
+      this.starField.material.opacity = nightFactor;
+    }
+    if (this.constellationLines) {
+      this.constellationLines.position.copy(this.camera.position);
+      this.constellationLines.material.opacity = nightFactor * 0.8;
+    }
+    if (this.milkyWay) {
+      this.milkyWay.position.copy(this.camera.position);
+      this.milkyWay.material.opacity = nightFactor * 0.15;
+    }
   }
 
   updatePlayerShadow() {
@@ -3958,20 +5316,13 @@ export class Game {
   updateWaterSurface(dt) {
     if (!this.waterSurface) return;
 
-    const positions = this.waterSurface.geometry.attributes.position;
     const time = this.time ? (this.time.elapsed || 0) : 0;
-
-    // Gentle wave animation on vertices
-    for (let i = 0; i < positions.count; i++) {
-      const x = positions.getX(i);
-      const z = positions.getY(i); // Y in plane space = Z in world
-      // Two overlapping sine waves for natural look
-      const wave1 = Math.sin(x * 0.15 + time * 1.2) * 0.15;
-      const wave2 = Math.sin(z * 0.1 + time * 0.8) * 0.1;
-      const wave3 = Math.sin((x + z) * 0.08 + time * 1.5) * 0.05;
-      positions.setZ(i, wave1 + wave2 + wave3);
+    if (this.waterSurface.material?.uniforms) {
+      const u = this.waterSurface.material.uniforms;
+      if (u.uTime) u.uTime.value = time;
+      if (this.sunLight && u.uSunDir) u.uSunDir.value.copy(this.sunLight.position).normalize();
+      if (this.sunLight && u.uSunIntensity) u.uSunIntensity.value = Math.max(0, Math.min(1, this.sunLight.intensity));
     }
-    positions.needsUpdate = true;
 
     // Move water surface with player (keep it centered)
     if (this.player) {
@@ -3982,16 +5333,14 @@ export class Game {
     // Water color shifts with time of day
     if (this.sunLight) {
       const sunI = this.sunLight.intensity;
-      // Darker blue at night, lighter blue-green during day
       const r = 0.1 + sunI * 0.15;
       const g = 0.2 + sunI * 0.35;
       const b = 0.4 + sunI * 0.45;
-      this.waterSurface.material.color.setRGB(r, g, b);
-      this.waterSurface.material.specular.setRGB(
-        0.2 + sunI * 0.4,
-        0.3 + sunI * 0.4,
-        0.4 + sunI * 0.5
-      );
+      if (this.waterSurface.material?.uniforms?.uColor) {
+        this.waterSurface.material.uniforms.uColor.value.setRGB(r, g, b);
+      } else if (this.waterSurface.material?.color) {
+        this.waterSurface.material.color.setRGB(r, g, b);
+      }
     }
   }
 
@@ -4011,7 +5360,6 @@ export class Game {
     
     for (let x = px - range; x <= px + range && idx < 3000; x += 2) {
       for (let z = pz - range; z <= pz + range && idx < 3000; z += 2) {
-        // Check if there is grass at this position
         try {
           let grassY = -1;
           const baseY = Math.floor(py);
@@ -4039,6 +5387,10 @@ export class Game {
           }
 
           if (grassY !== -1 && idx < 3000) {
+            const b = biomeAt(x, z, this.world.seed);
+            const isPlainsOrTropical = (b === BIOME.PLAINS || b === BIOME.TROPICAL);
+            const tallGrassMult = isPlainsOrTropical ? 1.6 : 1.0;
+
             const sway = Math.sin(time * 2 + x * 0.5 + z * 0.3) * 0.1;
             const targetY = grassY + 1;
             
@@ -4052,7 +5404,8 @@ export class Game {
               ((x * 7 + z * 13) % 6) / 6 * Math.PI * 2,
               sway * 0.5
             );
-            this._grassDummy.scale.setScalar(0.5 + (((x * 3 + z) % 7) / 7) * 0.8);
+            const baseScale = 0.5 + (((x * 3 + z) % 7) / 7) * 0.8;
+            this._grassDummy.scale.set(baseScale, baseScale * tallGrassMult, baseScale);
             this._grassDummy.updateMatrix();
             this._grassBlades.setMatrixAt(idx, this._grassDummy.matrix);
             idx++;
@@ -4159,7 +5512,10 @@ export class Game {
     for (let x = px - range; x <= px + range && idx < maxFlowers; x += 2) {
       for (let z = pz - range; z <= pz + range && idx < maxFlowers; z += 2) {
         try {
-          if (((x * 17 + z * 31) % 5) > 1) continue;
+          const b = biomeAt(x, z, this.world.seed);
+          if (b === BIOME.DESERT || b === BIOME.TUNDRA || b === BIOME.OCEAN) continue;
+          const highDensity = (b === BIOME.PLAINS || b === BIOME.TROPICAL || b === BIOME.FOREST);
+          if (!highDensity && ((x * 17 + z * 31) % 5) > 1) continue;
 
           for (let y = py + 4; y >= py - 6; y--) {
             const block = this.world.getBlock(x, y, z);
@@ -4193,6 +5549,190 @@ export class Game {
     if (this.sunLight) {
       const sunI = this.sunLight.intensity;
       this._flowerPatches.material.color.setRGB(0.7 + sunI * 0.2, 0.2 + sunI * 0.2, 0.4 + sunI * 0.2);
+    }
+  }
+
+  updatePebblePatches() {
+    if (!this._pebblePatches || !this.player || !this.world) return;
+
+    const px = Math.floor(this.player.position.x);
+    const py = Math.floor(this.player.position.y);
+    const pz = Math.floor(this.player.position.z);
+
+    const range = 30;
+    let idx = 0;
+    const maxPebbles = 400;
+
+    for (let x = px - range; x <= px + range && idx < maxPebbles; x += 3) {
+      for (let z = pz - range; z <= pz + range && idx < maxPebbles; z += 3) {
+        try {
+          if (((x * 23 + z * 37) % 7) > 2) continue;
+
+          for (let y = py + 3; y >= py - 5; y--) {
+            const block = this.world.getBlock(x, y, z);
+            if ((block === BLOCK.DIRT || block === BLOCK.DAMP_SOIL || block === BLOCK.COARSE_DIRT) &&
+                (this.world.getBlock(x, y + 1, z) === BLOCK.AIR)) {
+              this._pebbleDummy.position.set(
+                x + 0.3 + ((x * 11 + z * 17) % 5) * 0.1,
+                y + 1.04,
+                z + 0.3 + ((x * 7 + z * 13) % 5) * 0.1
+              );
+              this._pebbleDummy.rotation.set((x % 3) * 0.2, (x * 7 + z * 5) * 0.4, (z % 3) * 0.2);
+              this._pebbleDummy.scale.set(0.12, 0.06, 0.12);
+              this._pebbleDummy.updateMatrix();
+              this._pebblePatches.setMatrixAt(idx, this._pebbleDummy.matrix);
+              idx++;
+              break;
+            }
+          }
+        } catch (e) { /* silent catch */ }
+      }
+    }
+
+    for (let i = idx; i < maxPebbles; i++) {
+      this._pebbleDummy.position.set(0, -1000, 0);
+      this._pebbleDummy.scale.setScalar(0);
+      this._pebbleDummy.updateMatrix();
+      this._pebblePatches.setMatrixAt(i, this._pebbleDummy.matrix);
+    }
+    this._pebblePatches.instanceMatrix.needsUpdate = true;
+  }
+
+  updateEnvironmentalParticles(dt) {
+    if (!this.player) return;
+    const px = this.player.position.x;
+    const py = this.player.position.y;
+    const pz = this.player.position.z;
+    const time = this.time ? (this.time.elapsed || 0) : 0;
+    const currentBiome = biomeAt ? biomeAt(px, pz, this.world ? this.world.seed : 1) : BIOME.FOREST;
+
+    // 1. Floating Pollen (Forest & Tropical)
+    if (this._pollenParticles) {
+      const isPollenBiome = (currentBiome === BIOME.FOREST || currentBiome === BIOME.TROPICAL);
+      const targetOpacity = isPollenBiome ? 0.70 : 0.0;
+      this._pollenParticles.material.opacity += (targetOpacity - this._pollenParticles.material.opacity) * dt * 3.0;
+
+      if (this._pollenParticles.material.opacity > 0.01) {
+        const pos = this._pollenParticles.geometry.attributes.position.array;
+        for (let i = 0; i < pos.length / 3; i++) {
+          pos[i * 3]     += Math.sin(time * 0.9 + i) * dt * 0.6;
+          pos[i * 3 + 1] += Math.cos(time * 0.7 + i * 2) * dt * 0.3;
+          pos[i * 3 + 2] += Math.sin(time * 0.8 + i * 3) * dt * 0.6;
+
+          if (Math.abs(pos[i * 3] - px) > 35) pos[i * 3] = px + (Math.random() - 0.5) * 60;
+          if (pos[i * 3 + 1] < py - 5 || pos[i * 3 + 1] > py + 20) pos[i * 3 + 1] = py + Math.random() * 15;
+          if (Math.abs(pos[i * 3 + 2] - pz) > 35) pos[i * 3 + 2] = pz + (Math.random() - 0.5) * 60;
+        }
+        this._pollenParticles.geometry.attributes.position.needsUpdate = true;
+      }
+    }
+
+    // 2. Fireflies at Night (hovering above ground)
+    if (this._fireflyParticles) {
+      const isNight = this.time ? this.time.isNight() : false;
+      const targetOpacity = isNight ? 0.85 : 0.0;
+      this._fireflyParticles.material.opacity += (targetOpacity - this._fireflyParticles.material.opacity) * dt * 3.0;
+
+      if (this._fireflyParticles.material.opacity > 0.01) {
+        const pos = this._fireflyParticles.geometry.attributes.position.array;
+        for (let i = 0; i < pos.length / 3; i++) {
+          pos[i * 3]     += Math.sin(time * 1.5 + i * 1.7) * dt * 0.8;
+          pos[i * 3 + 1] += Math.sin(time * 2.2 + i * 0.5) * dt * 0.4;
+          pos[i * 3 + 2] += Math.cos(time * 1.3 + i * 2.1) * dt * 0.8;
+
+          if (Math.abs(pos[i * 3] - px) > 30) pos[i * 3] = px + (Math.random() - 0.5) * 50;
+          if (Math.abs(pos[i * 3 + 2] - pz) > 30) pos[i * 3 + 2] = pz + (Math.random() - 0.5) * 50;
+          
+          const groundY = (this.world && typeof heightAt === 'function') 
+            ? heightAt(pos[i * 3], pos[i * 3 + 2], this.world.seed) 
+            : py;
+          if (pos[i * 3 + 1] < groundY + 0.5 || pos[i * 3 + 1] > groundY + 5.0) {
+            pos[i * 3 + 1] = groundY + 1.0 + Math.random() * 3.0;
+          }
+        }
+        this._fireflyParticles.geometry.attributes.position.needsUpdate = true;
+      }
+    }
+
+    // 3. Snow accumulation hints in Tundra
+    if (this._snowHintParticles) {
+      const isTundra = (currentBiome === BIOME.TUNDRA);
+      const targetOpacity = isTundra ? 0.75 : 0.0;
+      this._snowHintParticles.material.opacity += (targetOpacity - this._snowHintParticles.material.opacity) * dt * 3.0;
+
+      if (this._snowHintParticles.material.opacity > 0.01) {
+        const pos = this._snowHintParticles.geometry.attributes.position.array;
+        for (let i = 0; i < pos.length / 3; i++) {
+          pos[i * 3]     += Math.sin(time * 1.1 + i) * dt * 0.8;
+          pos[i * 3 + 1] -= dt * 1.5;
+          pos[i * 3 + 2] += Math.cos(time * 0.9 + i * 2) * dt * 0.8;
+
+          if (pos[i * 3 + 1] < py - 10 || Math.abs(pos[i * 3] - px) > 40 || Math.abs(pos[i * 3 + 2] - pz) > 40) {
+            pos[i * 3]     = px + (Math.random() - 0.5) * 70;
+            pos[i * 3 + 1] = py + 10 + Math.random() * 15;
+            pos[i * 3 + 2] = pz + (Math.random() - 0.5) * 70;
+          }
+        }
+        this._snowHintParticles.geometry.attributes.position.needsUpdate = true;
+      }
+    }
+  }
+
+  updateAtmosphericEffects(dt) {
+    if (!this.scene || !this.sunLight) return;
+    const sunDir = this.sunLight.position.clone().normalize();
+    const sunI = this.time ? this.time.sunIntensity() : 1.0;
+    const sunsetFactor = Math.max(0, 1.0 - Math.abs(sunDir.y) / 0.35);
+
+    // FogExp2 + dynamic gradient
+    const targetDensity = 0.006 + (1.0 - sunI) * 0.008;
+    if (!(this.scene.fog instanceof THREE.FogExp2)) {
+      const curColor = this.scene.fog ? this.scene.fog.color : new THREE.Color(0x87b5ff);
+      this.scene.fog = new THREE.FogExp2(curColor, targetDensity);
+    }
+    this.scene.fog.density = targetDensity;
+    this.scene.fog.near = 1.0 / (targetDensity * 4.0);
+    this.scene.fog.far = 1.0 / targetDensity;
+
+    const sky = this.time ? this.time.skyColor() : { r: 0.5, g: 0.7, b: 1.0 };
+    const skyTopColor = new THREE.Color(sky.r, sky.g, sky.b);
+    const skyBottomColor = skyTopColor.clone().lerp(new THREE.Color(0xff7744), sunsetFactor * 0.75);
+    const fogColor = skyBottomColor.clone().lerp(skyTopColor, 0.35);
+    this.scene.fog.color.copy(fogColor);
+
+    // Volumetric light rays
+    if (this.volumetricLightRays && this.camera) {
+      const rayDist = 45;
+      this.volumetricLightRays.position.copy(this.camera.position).addScaledVector(sunDir, rayDist);
+      this.volumetricLightRays.lookAt(this.camera.position);
+      this.volumetricLightRays.rotateX(Math.PI / 2);
+      const rayOpacity = Math.max(0, (sunI - 0.1) * 0.18 * (1.0 - sunsetFactor * 0.4));
+      this.volumetricLightRays.material.opacity = rayOpacity;
+    }
+
+    // Sunset/Sunrise Lens flare sprite
+    if (this.lensFlareSprite && this.camera) {
+      this.lensFlareSprite.position.copy(this.camera.position).addScaledVector(sunDir, 160);
+      const flareIntensity = sunsetFactor * 0.95;
+      this.lensFlareSprite.material.opacity = flareIntensity;
+      if (flareIntensity > 0.01) {
+        this.lensFlareSprite.material.color.setHSL(0.06 + (1.0 - sunI) * 0.04, 0.95, 0.6);
+        this.lensFlareSprite.scale.set(70 * (1.0 + sunsetFactor * 0.5), 70 * (1.0 + sunsetFactor * 0.5), 1);
+      }
+    }
+
+    // Horizon glow effect
+    if (this.horizonGlowMesh && this.camera) {
+      this.horizonGlowMesh.position.set(
+        this.camera.position.x + sunDir.x * 120,
+        Math.max(16, this.camera.position.y - 2),
+        this.camera.position.z + sunDir.z * 120
+      );
+      this.horizonGlowMesh.lookAt(this.camera.position);
+      this.horizonGlowMesh.material.opacity = sunsetFactor * 0.45;
+      if (sunsetFactor > 0.01) {
+        this.horizonGlowMesh.material.color.setRGB(1.0, 0.45 + sunI * 0.2, 0.25);
+      }
     }
   }
 
@@ -4329,6 +5869,10 @@ export class Game {
   }
 
   _updateHud() {
+    if (!this._enhancedUIInited) this._initEnhancedUI();
+    this._updateMinimap();
+    this._updateXPBar();
+
     const s = this.survival;
     const setBar = (id, value, max = 100) => {
       const el = document.getElementById(id);
@@ -4567,6 +6111,8 @@ const hbName = document.getElementById('hotbar-name');
 
   render(dt = 0.016) {
     this.updateSunLight();
+    this.updateAtmosphericEffects(dt);
+    this.updateEnvironmentalParticles(dt);
     this.updatePlayerShadow();
     this.applyUnderwaterVisuals();
     this._waterTimer += dt;
@@ -4591,6 +6137,12 @@ const hbName = document.getElementById('hotbar-name');
     if (this._flowerTimer > 2.0) { // Update flower patches every 2 seconds
       this._flowerTimer = 0;
       this.updateFlowers();
+    }
+
+    this._pebbleTimer = (this._pebbleTimer || 0) + dt;
+    if (this._pebbleTimer > 2.0) {
+      this._pebbleTimer = 0;
+      this.updatePebblePatches();
     }
 
     this._torchUpdateTimer += dt;
