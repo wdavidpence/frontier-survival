@@ -8,7 +8,8 @@ export class GameTime {
     this.dayLengthSec = dayLengthSec;
     this.elapsed = dayLengthSec * 0.2; // start morning
     this.weather = 'clear';
-    this.weatherTimer = 0;
+    // Let a new world reveal its palette before the first weather roll.
+    this.weatherTimer = 90;
   }
 
   get dayPhase() {
