@@ -193,8 +193,8 @@ function drawWater(ctx, x0, y0) {
 }
 
 function drawLogSide(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [105, 70, 35], 0.25, 77);
-  ctx.strokeStyle = 'rgba(60,35,15,0.5)';
+  fillNoise(ctx, x0, y0, [122, 82, 42], 0.25, 77);
+  ctx.strokeStyle = 'rgba(72,42,18,0.5)';
   for (let x = 4; x < TILE_PX; x += 7) {
     ctx.beginPath();
     ctx.moveTo(x0 + x, y0);
@@ -217,16 +217,16 @@ function drawLogTop(ctx, x0, y0) {
 }
 
 function drawLeaves(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [55, 120, 45], 0.45, 101, 230);
+  fillNoise(ctx, x0, y0, [68, 136, 55], 0.45, 101, 230);
   const r = rnd(12);
   for (let i = 0; i < 25; i++) {
-    ctx.fillStyle = r() > 0.5 ? 'rgba(30,90,25,0.5)' : 'rgba(80,150,50,0.4)';
+    ctx.fillStyle = r() > 0.5 ? 'rgba(42,108,32,0.5)' : 'rgba(96,168,62,0.4)';
     ctx.beginPath();
     ctx.arc(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1 + r() * 2, 0, Math.PI * 2);
     ctx.fill();
   }
   // Foliage leaf edge & sunlight highlights for leaf clump depth
-  ctx.fillStyle = 'rgba(115, 205, 75, 0.35)';
+  ctx.fillStyle = 'rgba(132, 218, 88, 0.35)';
   for (let i = 0; i < 10; i++) {
     ctx.fillRect(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1.5, 1.5);
   }
