@@ -81,6 +81,13 @@ function quadLegs(parts, legNames, w, h, l, legH, legT, y0, color, spreadX, spre
 
 function addEyes(parts, eyeNames, hx, hy, hz, eyeS, eyeColor) {
   const ex = Math.max(0.04, eyeS);
+  // socket: pale rim set slightly behind each eye so it reads clearly
+  // against dark or busy fur/scale colors (silhouette/face contrast pass).
+  const sx = ex * 1.4;
+  const socketZ = hz - ex * 0.25;
+  const socketColor = [0.85, 0.82, 0.76];
+  parts.push(part('socketL', sx, sx, sx * 0.55, -hx * 0.28, hy, socketZ, socketColor, 'eye'));
+  parts.push(part('socketR', sx, sx, sx * 0.55, hx * 0.28, hy, socketZ, socketColor, 'eye'));
   parts.push(part('eyeL', ex, ex, ex * 0.7, -hx * 0.28, hy, hz, eyeColor, 'eye'));
   parts.push(part('eyeR', ex, ex, ex * 0.7, hx * 0.28, hy, hz, eyeColor, 'eye'));
   // pupils: small dark inset poking slightly forward for a visible catch-point

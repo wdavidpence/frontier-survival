@@ -50,6 +50,32 @@ function fillNoise(ctx, x0, y0, base, variance, seed, alpha = 255) {
   ctx.putImageData(img, x0, y0);
 }
 
+// 4x4 Bayer ordered-dither matrix — deterministic pixel-level value variation
+// (no RNG), used as a restrained "microtexture" pass layered atop existing
+// material fills to add grain/depth without altering base readability.
+const BAYER4 = [
+  [0, 8, 2, 10],
+  [12, 4, 14, 6],
+  [3, 11, 1, 9],
+  [15, 7, 13, 5],
+];
+
+function applyMicroTexture(ctx, x0, y0, strength) {
+  const img = ctx.getImageData(x0, y0, TILE_PX, TILE_PX);
+  const d = img.data;
+  for (let j = 0; j < TILE_PX; j++) {
+    const row = BAYER4[j % 4];
+    for (let i = 0; i < TILE_PX; i++) {
+      const delta = (row[i % 4] / 15 - 0.5) * strength;
+      const idx = (j * TILE_PX + i) * 4;
+      d[idx] = clamp(d[idx] + delta);
+      d[idx + 1] = clamp(d[idx + 1] + delta);
+      d[idx + 2] = clamp(d[idx + 2] + delta);
+    }
+  }
+  ctx.putImageData(img, x0, y0);
+}
+
 function tileOrigin(index) {
   const tx = index % ATLAS_N;
   const ty = (index / ATLAS_N) | 0;
@@ -68,9 +94,10 @@ function drawGrassTop(ctx, x0, y0) {
   for (let i = 0; i < 15; i++) {
     ctx.fillRect(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1 + r() * 2, 1);
   }
+  applyMicroTexture(ctx, x0, y0, 5);
 }
 
-function drawDirt(ctx, x0, y0) {
+function drawDirtBase(ctx, x0, y0) {
   fillNoise(ctx, x0, y0, [120, 85, 50], 0.5, 22);
   const r = rnd(3);
   for (let i = 0; i < 12; i++) {
@@ -79,8 +106,13 @@ function drawDirt(ctx, x0, y0) {
   }
 }
 
+function drawDirt(ctx, x0, y0) {
+  drawDirtBase(ctx, x0, y0);
+  applyMicroTexture(ctx, x0, y0, 5);
+}
+
 function drawGrassSide(ctx, x0, y0) {
-  drawDirt(ctx, x0, y0);
+  drawDirtBase(ctx, x0, y0);
   ctx.fillStyle = '#4a8a38';
   ctx.fillRect(x0, y0, TILE_PX, 8);
   const r = rnd(7);
@@ -89,6 +121,7 @@ function drawGrassSide(ctx, x0, y0) {
     const x = x0 + r() * TILE_PX;
     ctx.fillRect(x, y0 + 6 + r() * 4, 1, 3 + r() * 4);
   }
+  applyMicroTexture(ctx, x0, y0, 4);
 }
 
 function drawStone(ctx, x0, y0) {
@@ -110,6 +143,7 @@ function drawStone(ctx, x0, y0) {
   for (let i = 0; i < 8; i++) {
     ctx.fillRect(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1.5, 1.5);
   }
+  applyMicroTexture(ctx, x0, y0, 4);
 }
 
 function drawSand(ctx, x0, y0) {
@@ -129,6 +163,7 @@ function drawSand(ctx, x0, y0) {
   ctx.fillRect(x0 + 4, y0 + 9, 12, 1);
   ctx.fillRect(x0 + 16, y0 + 19, 11, 1);
   ctx.fillRect(x0 + 7, y0 + 26, 14, 1);
+  applyMicroTexture(ctx, x0, y0, 3);
 }
 
 function drawWater(ctx, x0, y0) {
@@ -154,6 +189,7 @@ function drawWater(ctx, x0, y0) {
   ctx.fillRect(x0 + 11, y0 + 13, 3, 1);
   ctx.fillRect(x0 + 22, y0 + 6, 2, 1);
   ctx.fillRect(x0 + 6, y0 + 22, 2, 1);
+  applyMicroTexture(ctx, x0, y0, 3);
 }
 
 function drawLogSide(ctx, x0, y0) {
@@ -165,6 +201,7 @@ function drawLogSide(ctx, x0, y0) {
     ctx.lineTo(x0 + x + 1, y0 + TILE_PX);
     ctx.stroke();
   }
+  applyMicroTexture(ctx, x0, y0, 4);
 }
 
 function drawLogTop(ctx, x0, y0) {
@@ -176,6 +213,7 @@ function drawLogTop(ctx, x0, y0) {
   ctx.beginPath();
   ctx.arc(x0 + 16, y0 + 16, 5, 0, Math.PI * 2);
   ctx.stroke();
+  applyMicroTexture(ctx, x0, y0, 4);
 }
 
 function drawLeaves(ctx, x0, y0) {
