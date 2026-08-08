@@ -52,7 +52,7 @@ import {
 import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=243';
-import { createBlockAtlas } from './atlas.js?v=286';
+import { createBlockAtlas } from './atlas.js?v=287';
 import { BreakFX, WeatherFX } from './fx.js?v=245';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
@@ -1485,10 +1485,24 @@ export class Game {
         this.survival = applyDamage(this.survival, dmg, 'fall');
         this.audio.hurt();
         this.player.notify(dmg > 20 ? 'Hard landing!' : 'Oof — rough landing.', 1.6);
+        this.fx.burst(
+          this.player.position.x - 0.5,
+          this.player.position.y - 0.5,
+          this.player.position.z - 0.5,
+          [0.55, 0.5, 0.42],
+          dmg > 20 ? 10 : 6,
+        );
       }
       if (move.inWater && !this._wasInWater) {
         if (this.audio.splash) this.audio.splash();
         else this.audio.step('water');
+        this.fx.burst(
+          this.player.position.x - 0.5,
+          this.player.position.y - 0.1,
+          this.player.position.z - 0.5,
+          [0.55, 0.75, 1.0],
+          8,
+        );
       }
       this._wasInWater = move.inWater;
 

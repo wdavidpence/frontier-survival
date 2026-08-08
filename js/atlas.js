@@ -63,6 +63,11 @@ function drawGrassTop(ctx, x0, y0) {
   for (let i = 0; i < 40; i++) {
     ctx.fillRect(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1 + r() * 2, 1 + r() * 2);
   }
+  // Restrained grass blade highlights
+  ctx.fillStyle = 'rgba(140,210,90,0.25)';
+  for (let i = 0; i < 15; i++) {
+    ctx.fillRect(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1 + r() * 2, 1);
+  }
 }
 
 function drawDirt(ctx, x0, y0) {
@@ -89,17 +94,41 @@ function drawGrassSide(ctx, x0, y0) {
 function drawStone(ctx, x0, y0) {
   fillNoise(ctx, x0, y0, [140, 140, 148], 0.35, 44);
   const r = rnd(8);
-  ctx.strokeStyle = 'rgba(80,80,90,0.35)';
+  // Dark fissure lines & rock strata
+  ctx.strokeStyle = 'rgba(75, 75, 85, 0.4)';
+  ctx.lineWidth = 1;
   for (let i = 0; i < 6; i++) {
+    const sx = x0 + r() * TILE_PX;
+    const sy = y0 + r() * TILE_PX;
     ctx.beginPath();
-    ctx.moveTo(x0 + r() * TILE_PX, y0 + r() * TILE_PX);
-    ctx.lineTo(x0 + r() * TILE_PX, y0 + r() * TILE_PX);
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx + (r() - 0.5) * 8, sy + (r() - 0.5) * 8);
     ctx.stroke();
+  }
+  // Subtle quartz mineral highlights
+  ctx.fillStyle = 'rgba(215, 215, 225, 0.3)';
+  for (let i = 0; i < 8; i++) {
+    ctx.fillRect(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1.5, 1.5);
   }
 }
 
 function drawSand(ctx, x0, y0) {
   fillNoise(ctx, x0, y0, [220, 200, 140], 0.25, 55);
+  const r = rnd(56);
+  // Sand grain flecks & depth
+  ctx.fillStyle = 'rgba(255, 240, 185, 0.22)';
+  for (let i = 0; i < 16; i++) {
+    ctx.fillRect(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1, 1);
+  }
+  ctx.fillStyle = 'rgba(165, 135, 75, 0.22)';
+  for (let i = 0; i < 14; i++) {
+    ctx.fillRect(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1, 1);
+  }
+  // Gentle dune ripple accents
+  ctx.fillStyle = 'rgba(195, 170, 105, 0.28)';
+  ctx.fillRect(x0 + 4, y0 + 9, 12, 1);
+  ctx.fillRect(x0 + 16, y0 + 19, 11, 1);
+  ctx.fillRect(x0 + 7, y0 + 26, 14, 1);
 }
 
 function drawWater(ctx, x0, y0) {
@@ -115,6 +144,11 @@ function drawWater(ctx, x0, y0) {
   ctx.fillStyle = 'rgba(155, 215, 255, 0.18)';
   ctx.fillRect(x0 + 4, y0 + 23, 11, 2);
   ctx.fillRect(x0 + 18, y0 + 25, 10, 2);
+  // Wave trough shadow accents complement light foam/wave crests
+  ctx.fillStyle = 'rgba(18, 65, 145, 0.18)';
+  ctx.fillRect(x0 + 3, y0 + 8, 12, 1);
+  ctx.fillRect(x0 + 8, y0 + 17, 14, 1);
+  ctx.fillRect(x0 + 18, y0 + 28, 9, 1);
   // Subtle shoreline/foam flecks
   ctx.fillStyle = 'rgba(235, 250, 255, 0.25)';
   ctx.fillRect(x0 + 11, y0 + 13, 3, 1);
@@ -152,6 +186,11 @@ function drawLeaves(ctx, x0, y0) {
     ctx.beginPath();
     ctx.arc(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1 + r() * 2, 0, Math.PI * 2);
     ctx.fill();
+  }
+  // Foliage leaf edge & sunlight highlights for leaf clump depth
+  ctx.fillStyle = 'rgba(115, 205, 75, 0.35)';
+  for (let i = 0; i < 10; i++) {
+    ctx.fillRect(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1.5, 1.5);
   }
 }
 
