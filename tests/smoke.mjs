@@ -4102,3 +4102,10 @@ test('v1.12.21: setup popup and touch overlay are configured for two-controller 
   assert.doesNotMatch(html, /id="touch-look"/);
   assert.match(fsText('js/game.js'), /controllerOnly = this\.coopMode/);
 });
+
+test('controls guide is dismissed on entry while remaining reopenable', () => {
+  const main = fsText('js/main.js');
+  assert.match(main, /function engageControls\(\)[\s\S]*?controlsScreen\?\.classList\.add\('hidden'\)/);
+  assert.match(main, /controlsButtons\.forEach[\s\S]*?controlsScreen\?\.classList\.remove\('hidden'\)/);
+  assert.match(main, /btnCloseControls\?\.addEventListener[\s\S]*?controlsScreen\?\.classList\.add\('hidden'\)/);
+});

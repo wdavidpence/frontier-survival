@@ -210,6 +210,10 @@ function readSeedInput() {
 
 function engageControls() {
   try {
+    // The guide is an optional overlay: never leave it covering the first
+    // playable frame after Start, Continue, or Respawn. It can still be
+    // reopened through the Controls buttons below.
+    controlsScreen?.classList.add('hidden');
     document.body.classList.add('game-active');
     game.input?.clearTransient?.();
     game.input.uiMode = false;
