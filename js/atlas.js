@@ -147,19 +147,20 @@ function drawStone(ctx, x0, y0) {
 }
 
 function drawSand(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [220, 200, 140], 0.25, 55);
+  // Keep beaches warm and readable without blowing out under the sun key.
+  fillNoise(ctx, x0, y0, [158, 144, 98], 0.25, 55);
   const r = rnd(56);
   // Sand grain flecks & depth
-  ctx.fillStyle = 'rgba(255, 240, 185, 0.22)';
+  ctx.fillStyle = 'rgba(220, 198, 145, 0.16)';
   for (let i = 0; i < 16; i++) {
     ctx.fillRect(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1, 1);
   }
-  ctx.fillStyle = 'rgba(165, 135, 75, 0.22)';
+  ctx.fillStyle = 'rgba(118, 88, 48, 0.24)';
   for (let i = 0; i < 14; i++) {
     ctx.fillRect(x0 + r() * TILE_PX, y0 + r() * TILE_PX, 1, 1);
   }
   // Gentle dune ripple accents
-  ctx.fillStyle = 'rgba(195, 170, 105, 0.28)';
+  ctx.fillStyle = 'rgba(145, 115, 65, 0.24)';
   ctx.fillRect(x0 + 4, y0 + 9, 12, 1);
   ctx.fillRect(x0 + 16, y0 + 19, 11, 1);
   ctx.fillRect(x0 + 7, y0 + 26, 14, 1);
@@ -168,19 +169,20 @@ function drawSand(ctx, x0, y0) {
 
 function drawWater(ctx, x0, y0) {
   // Keep alpha high enough that opaque-pass alphaTest/discard does not punch holes
-  fillNoise(ctx, x0, y0, [35, 100, 195], 0.28, 66, 225);
+  // A deeper blue separates the water plane from the muted sand shelf.
+  fillNoise(ctx, x0, y0, [24, 78, 165], 0.28, 66, 255);
   // Layered staggered wave & foam highlights (restrained opacity for seamless tiling)
-  ctx.fillStyle = 'rgba(175, 225, 255, 0.22)';
+  ctx.fillStyle = 'rgba(160, 215, 248, 0.18)';
   ctx.fillRect(x0 + 3, y0 + 5, 14, 2);
   ctx.fillRect(x0 + 20, y0 + 7, 9, 2);
-  ctx.fillStyle = 'rgba(220, 245, 255, 0.28)';
+  ctx.fillStyle = 'rgba(205, 238, 255, 0.22)';
   ctx.fillRect(x0 + 8, y0 + 14, 16, 2);
   ctx.fillRect(x0 + 2, y0 + 16, 4, 1);
-  ctx.fillStyle = 'rgba(155, 215, 255, 0.18)';
+  ctx.fillStyle = 'rgba(135, 200, 248, 0.16)';
   ctx.fillRect(x0 + 4, y0 + 23, 11, 2);
   ctx.fillRect(x0 + 18, y0 + 25, 10, 2);
   // Wave trough shadow accents complement light foam/wave crests
-  ctx.fillStyle = 'rgba(18, 65, 145, 0.18)';
+  ctx.fillStyle = 'rgba(10, 45, 120, 0.24)';
   ctx.fillRect(x0 + 3, y0 + 8, 12, 1);
   ctx.fillRect(x0 + 8, y0 + 17, 14, 1);
   ctx.fillRect(x0 + 18, y0 + 28, 9, 1);
@@ -814,7 +816,8 @@ paint(TILE.WALL, drawWall);
     uniforms: {
       atlas: { value: texture },
       sunIntensity: { value: 1.0 },
-      ambientColor: { value: new THREE.Color(0.48, 0.5, 0.58) },
+      // Lift unlit faces enough to avoid black-looking shoreline patches.
+      ambientColor: { value: new THREE.Color(0.56, 0.56, 0.62) },
       sunColor: { value: new THREE.Color(1.0, 0.95, 0.85) },
       sunDir: { value: new THREE.Vector3(0.4, 1.0, 0.2).normalize() },
     },
