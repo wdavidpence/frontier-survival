@@ -146,7 +146,7 @@ export class Game {
     // Keep the starter island readable: ACES rolls back the sunlit sand
     // highlights while a small exposure lift preserves dark tree silhouettes.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.08;
+    this.renderer.toneMappingExposure = 1.12;
 
     this.scene = new THREE.Scene();
     this.skyDome = new THREE.Mesh(
@@ -181,7 +181,7 @@ export class Game {
     // Apply render distance from settings
     this._applyRenderDistance();
 
-    this.ambient = new THREE.AmbientLight(0x7895b4, 0.52);
+    this.ambient = new THREE.AmbientLight(0x7895b4, 0.58);
     this.sun = new THREE.DirectionalLight(0xffe4bd, 1.0);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(1024, 1024);
@@ -192,9 +192,13 @@ export class Game {
     this.sun.shadow.camera.top = 72;
     this.sun.shadow.camera.bottom = -72;
     this.sun.position.set(32, 72, 24);
-    this.scene.add(this.ambient, this.sun);
+    // A restrained cool fill keeps the sun-facing contact edges legible without
+    // flattening the warm key light or making shadowed terrain read as black.
+    this.fill = new THREE.DirectionalLight(0x9fc8df, 0.16);
+    this.fill.position.set(-28, 24, -20);
+    this.scene.add(this.ambient, this.sun, this.fill);
 
-    this.hemi = new THREE.HemisphereLight(0xa9d4ff, 0x4d3825, 0.52);
+    this.hemi = new THREE.HemisphereLight(0xa9d4ff, 0x4d3825, 0.58);
     this.scene.add(this.hemi);
 
     this.clouds = new VoxelCloudLayer(this.scene);
@@ -3268,8 +3272,9 @@ export class Game {
       this._stormFlashT -= 1 / 60;
     }
     this.sun.intensity = 0.3 + sunI * 1.15;
-    this.ambient.intensity = 0.2 + sunI * 0.48;
-    this.hemi.intensity = 0.24 + sunI * 0.4;
+    this.fill.intensity = 0.06 + sunI * 0.14;
+    this.ambient.intensity = 0.24 + sunI * 0.54;
+    this.hemi.intensity = 0.28 + sunI * 0.44;
     const sky = this.time.skyColor();
     const color = new THREE.Color(sky.r, sky.g, sky.b);
     this.scene.background = color;
@@ -3290,6 +3295,7 @@ export class Game {
     if (this.time.isNight()) {
       this.ambient.color.set(0x223355);
       this.sun.intensity = 0.08;
+      this.fill.intensity = 0.05;
       const held = this.player ? propsOf(this.player.heldId()) : null;
       // held torch slight night vision
       if (held && this.player.heldId() === BLOCK.TORCH) {
@@ -3306,9 +3312,9 @@ export class Game {
         ? 0.32
         : 0.62 + sunI * 0.78;
       mat.uniforms.ambientColor.value.set(
-        this.time.isNight() ? 0.18 : 0.42,
-        this.time.isNight() ? 0.2 : 0.48,
-        this.time.isNight() ? 0.28 : 0.58,
+        this.time.isNight() ? 0.22 : 0.48,
+        this.time.isNight() ? 0.24 : 0.54,
+        this.time.isNight() ? 0.32 : 0.64,
       );
     }
   }
