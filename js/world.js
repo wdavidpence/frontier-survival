@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=285';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=286';
 import { heightAt, hash2, fbm, forestFloorDetail } from './gen.js?v=285';
 import { biomeAt, BIOME } from './biomes.js?v=245';
 import { tileForBlock } from './atlas-core.js?v=285';
@@ -846,6 +846,8 @@ export class World {
       [0, 0], [1, 0], [-1, 0], [0, 1], [0, -1],
       [2, 0], [-2, 0], [0, 2], [0, -2],
       [1, 1], [1, -1], [-1, 1], [-1, -1],
+      [2, 1], [2, -1], [-2, 1], [-2, -1],
+      [1, 2], [-1, 2], [1, -2], [-1, -2],
     ];
     for (const [dx, dz] of fronds) {
       const tx = lx + dx;
@@ -1183,7 +1185,10 @@ export class World {
   findSpawn() {
     // Prefer warm sand above sea level, near the tropical starter coast.
     let best = null;
-    for (let i = 0; i < 400; i++) {
+    // Tropical/coastal seeds can have sparse clearings; sample deeply enough
+    // to avoid falling back to the origin beach and opening the game on a
+    // water-dominant frame.
+    for (let i = 0; i < 1600; i++) {
       const x = Math.floor((hash2(i, this.seed) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.6);
       const z = Math.floor((hash2(this.seed, i + 9) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.6);
       const h = heightAt(x, z, this.seed);

@@ -1,4 +1,4 @@
-import { Game } from './game.js?v=287';
+import { Game } from './game.js?v=289';
 import { hasSave, clearSaveStorage } from './save.js?v=220';
 import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=220';
 import {
@@ -210,6 +210,7 @@ function readSeedInput() {
 
 function engageControls() {
   try {
+    document.body.classList.add('game-active');
     game.input?.clearTransient?.();
     game.input.uiMode = false;
     game.paused = false;
@@ -415,4 +416,4 @@ engageControls = function() {
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.12.28');
+console.info('Frontier Survival boot OK · v1.12.29');

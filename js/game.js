@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=285';
+import { World } from './world.js?v=288';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=283';
 import { GameTime } from './time.js?v=221';
@@ -11,7 +11,7 @@ import {
   drinkWater,
   applyDamage,
 } from './survival.js?v=243';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=285';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=286';
 import {
   ITEM,
   propsOf,
@@ -592,6 +592,10 @@ export class Game {
       const spawn = this.world.findSpawn();
       this._spawnPos = { x: spawn.x, y: spawn.y, z: spawn.z };
       this.player = new Player(spawn, { starterRations: this.modeDef().starterRations });
+      // Fresh spawns face the island interior so the first playable frame
+      // presents terrain and forest rather than an empty water horizon.
+      this.player.yaw = Math.PI;
+      this.input.lookX = this.player.yaw;
       this.survival = { ...DEFAULT_SURVIVAL };
       this.time = new GameTime({ dayLengthSec: 420 });
       this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0 };
@@ -3543,6 +3547,13 @@ export class Game {
         el.dataset.block = displayName(stack.id);
         el.style.setProperty('--dur', String(dr));
         el.classList.toggle('damaged', dr < 0.35);
+        let glyphEl = el.querySelector('.hb-glyph');
+        if (!glyphEl) {
+          glyphEl = document.createElement('span');
+          glyphEl.className = 'hb-glyph';
+          el.appendChild(glyphEl);
+        }
+        glyphEl.textContent = displayName(stack.id).split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
         let countEl = el.querySelector('.hb-count');
         if (!countEl) {
           countEl = document.createElement('span');
@@ -3557,6 +3568,8 @@ export class Game {
         el.dataset.block = '';
         const countEl = el.querySelector('.hb-count');
         if (countEl) countEl.textContent = '';
+        const glyphEl = el.querySelector('.hb-glyph');
+        if (glyphEl) glyphEl.textContent = '';
         el.classList.add('empty');
       }
     });
@@ -3593,7 +3606,8 @@ export class Game {
           const p = propsOf(stack.id);
           const col = p?.color || [0.5, 0.5, 0.5];
           el.style.background = `rgb(${(col[0]*255)|0},${(col[1]*255)|0},${(col[2]*255)|0})`;
-          el.innerHTML = stack.count > 1 ? `<span class="hb-count">${stack.count}</span>` : '';
+          const glyph = displayName(stack.id).split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+          el.innerHTML = `<span class="hb-glyph">${glyph}</span>${stack.count > 1 ? `<span class="hb-count">${stack.count}</span>` : ''}`;
         } else {
           el.style.background = '';
           el.innerHTML = '';
