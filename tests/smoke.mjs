@@ -490,6 +490,17 @@ test('starter inventory has rations', () => {
   const slots = createStarterInventory();
   assert.ok(countItems(slots, ITEM.RATION) >= 3);
   assert.ok(countItems(slots, BLOCK.TORCH) >= 1);
+  assert.strictEqual(countItems(slots, BLOCK.LOG), 1);
+});
+
+test('fresh starter can reach wood pickaxe from Pack & Craft', () => {
+  let slots = createStarterInventory();
+  let res = craftRecipe(slots, 'planks');
+  assert.ok(res.ok, res.error);
+  res = craftRecipe(res.slots, 'wood_pick');
+  assert.ok(res.ok, res.error);
+  assert.strictEqual(countItems(res.slots, ITEM.WOOD_PICK), 1);
+  assert.ok(res.slots.slice(0, 9).some((slot) => slot.id === ITEM.WOOD_PICK));
 });
 
 test('add and remove items', () => {
@@ -497,10 +508,10 @@ test('add and remove items', () => {
   let r = addItems(slots, BLOCK.LOG, 5);
   assert.ok(r.ok);
   slots = r.slots;
-  assert.strictEqual(countItems(slots, BLOCK.LOG), 5);
+  assert.strictEqual(countItems(slots, BLOCK.LOG), 6);
   r = removeItems(slots, BLOCK.LOG, 2);
   assert.ok(r.ok);
-  assert.strictEqual(countItems(r.slots, BLOCK.LOG), 3);
+  assert.strictEqual(countItems(r.slots, BLOCK.LOG), 4);
 });
 
 test('craft planks from log', () => {
@@ -508,7 +519,7 @@ test('craft planks from log', () => {
   slots = addItems(slots, BLOCK.LOG, 1).slots;
   const res = craftRecipe(slots, 'planks');
   assert.ok(res.ok, res.error);
-  assert.strictEqual(countItems(res.slots, BLOCK.LOG), 0);
+  assert.strictEqual(countItems(res.slots, BLOCK.LOG), 1);
   assert.strictEqual(countItems(res.slots, BLOCK.PLANKS), 4);
 });
 

@@ -22,6 +22,9 @@ export function createStarterInventory(rationCount = 6) {
     slots[1] = { id: BLOCK.TORCH, count: 8 };
     slots[2] = { id: ITEM.STICK, count: 12 };
     slots[3] = { id: ITEM.BERRIES, count: 8 };
+    // Make the first Pack & Craft progression reachable immediately:
+    // Planks -> Wood Pickaxe, without requiring a blind first harvest.
+    slots[4] = { id: BLOCK.LOG, count: 1 };
   }
   return slots;
 }
