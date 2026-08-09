@@ -2706,6 +2706,17 @@ test('game source wires resolveBlockDrop and furnace-tick', () => {
   assert.ok(src.includes('palmLeafDrop'));
 });
 
+test('mining path keeps pointer hold, raycast break, remesh, and drop feedback wired', () => {
+  const gameSrc = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  const inputSrc = readFileSync(new URL('../js/input.js', import.meta.url), 'utf8');
+  assert.ok(inputSrc.includes('this.breakHeld = true'), 'LMB must enter the held mining state');
+  assert.ok(gameSrc.includes('this.world.raycast(origin, dir, 6)'), 'mining must select the targeted voxel');
+  assert.ok(gameSrc.includes('this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR)'), 'mining must clear the voxel');
+  assert.ok(gameSrc.includes('resolveBlockDrop(hit.id, dropForBlock)'), 'mining must resolve a block drop');
+  assert.ok(gameSrc.includes('this.player.notify(`+${dropCount} ${displayName(drop)}`'), 'mining must report the awarded drop');
+  assert.ok(gameSrc.includes('this.world.flushDirty()'), 'the frame must flush dirty chunks after a break');
+});
+
 
 test('stair-place facing from yaw', () => {
   assert.ok(['north','south','east','west'].includes(stairFacingFromYaw(0)));
