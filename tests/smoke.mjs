@@ -228,6 +228,7 @@ import {
 } from '../js/equipment.js';
 import { ambientMix } from '../js/audio.js';
 import { greedyMeshChunk, quadsToArrays, countNaiveFaces } from '../js/mesh-greedy.js';
+import { buildMushroomGeometry } from '../js/mushroom-geometry.js';
 import {
   buildSavePayload,
   parseSavePayload,
@@ -724,6 +725,21 @@ test('greedyMeshChunk translucent pass (glass, ice, amethyst)', () => {
 
   const lastQuadAlpha = arrays.colors[arrays.colors.length - 1];
   assert.ok(lastQuadAlpha < 0.99, 'translucent quads ordered second in geometry buffer');
+});
+
+test('mushroom geometry is bounded, opaque, and has stem plus cap depth', () => {
+  const geometry = buildMushroomGeometry([{ x: 4, y: 7, z: -2 }], TILE.MUSHROOM, [0.65, 0.2, 0.16]);
+  const xs = geometry.positions.filter((_, i) => i % 3 === 0);
+  const ys = geometry.positions.filter((_, i) => i % 3 === 1);
+  const zs = geometry.positions.filter((_, i) => i % 3 === 2);
+  assert.ok(Math.min(...xs) > 3.9 && Math.max(...xs) < 5.1);
+  assert.ok(Math.min(...zs) > -2.1 && Math.max(...zs) < -0.9);
+  assert.ok(Math.min(...ys) >= 7 && Math.max(...ys) <= 8);
+  assert.ok(Math.max(...xs) - Math.min(...xs) > 0.8, 'cap has visible width');
+  assert.ok(Math.max(...ys) - Math.min(...ys) > 0.8, 'stem/cap have visible height');
+  assert.ok(geometry.indices.length > 0 && geometry.colors.every((value, i) => i % 4 !== 3 || value === 1));
+  const uvPairs = new Set(Array.from({ length: geometry.uvs.length / 2 }, (_, i) => geometry.uvs.slice(i * 2, i * 2 + 2).join(',')));
+  assert.deepEqual([...uvPairs].sort(), ['0.5,0.24', '0.5,0.75']);
 });
 
 test('save roundtrip preserves seed inventory edits', () => {

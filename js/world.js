@@ -4,6 +4,7 @@ import { heightAt, hash2, fbm, forestFloorDetail } from './gen.js?v=285';
 import { biomeAt, BIOME } from './biomes.js?v=245';
 import { tileForBlock } from './atlas-core.js?v=285';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=246';
+import { buildMushroomGeometry } from './mushroom-geometry.js?v=1';
 import {
   terrainVisibilityPlan,
   chunkDetailTier,
@@ -1048,8 +1049,29 @@ export class World {
       sizeY: WORLD_HEIGHT,
       sizeZ: CHUNK_SIZE,
       waterId: BLOCK.WATER,
+      skipBlock: id => id === BLOCK.MUSHROOM,
     });
     const arrays = quadsToArrays(quads);
+    const mushrooms = [];
+    for (let lz = 0; lz < CHUNK_SIZE; lz++) {
+      for (let ly = 0; ly < WORLD_HEIGHT; ly++) {
+        for (let lx = 0; lx < CHUNK_SIZE; lx++) {
+          if (data[this._idx(lx, ly, lz)] === BLOCK.MUSHROOM) {
+            mushrooms.push({ x: baseX + lx, y: ly, z: baseZ + lz });
+          }
+        }
+      }
+    }
+    if (mushrooms.length) {
+      const mushroom = buildMushroomGeometry(mushrooms, tileForBlock(BLOCK.MUSHROOM), getColor(BLOCK.MUSHROOM));
+      const vertexOffset = arrays.positions.length / 3;
+      arrays.positions.push(...mushroom.positions);
+      arrays.normals.push(...mushroom.normals);
+      arrays.colors.push(...mushroom.colors);
+      arrays.uvs.push(...mushroom.uvs);
+      arrays.tiles.push(...mushroom.tiles);
+      arrays.indices.push(...mushroom.indices.map(index => index + vertexOffset));
+    }
     this._stats.quads = (this._stats.quads || 0) + arrays.quadCount;
 
     const geo = new THREE.BufferGeometry();

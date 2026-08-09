@@ -35,6 +35,7 @@ export function greedyMeshChunk(opts) {
     glassId = 29,
     iceId = 12,
     amethystId = 56,
+    skipBlock = null,
   } = opts;
 
   const quads = [];
@@ -70,6 +71,7 @@ export function greedyMeshChunk(opts) {
           const wz = baseZ + pos[2];
 
           const id = getBlock(wx, wy, wz);
+          if (skipBlock?.(id)) continue;
           const nx = wx + (axis === 0 ? sign : 0);
           const ny = wy + (axis === 1 ? sign : 0);
           const nz = wz + (axis === 2 ? sign : 0);
