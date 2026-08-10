@@ -150,24 +150,44 @@ export class Game {
 
     this.scene = new THREE.Scene();
     this.skyDome = new THREE.Mesh(
-      new THREE.SphereGeometry(900, 32, 16),
+      // Keep the dome inside camera.far so the layered shader actually renders.
+      new THREE.SphereGeometry(180, 32, 16),
       new THREE.ShaderMaterial({
         side: THREE.BackSide,
         depthWrite: false,
         depthTest: false,
         uniforms: {
-          topColor: { value: new THREE.Color(0x4f86c6) },
-          horizonColor: { value: new THREE.Color(0xd9ecff) },
-          groundColor: { value: new THREE.Color(0x9bb0c4) },
+          topColor: { value: new THREE.Color(0x3e78be) },
+          midColor: { value: new THREE.Color(0x74a9e2) },
+          horizonColor: { value: new THREE.Color(0xf4c58f) },
+          groundColor: { value: new THREE.Color(0x71808b) },
+          sunGlowColor: { value: new THREE.Color(0xffd7a2) },
+          sunGlowStrength: { value: 0.22 },
         },
         vertexShader: 'varying vec3 vLocal; void main(){ vLocal=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-        fragmentShader: 'uniform vec3 topColor; uniform vec3 horizonColor; uniform vec3 groundColor; varying vec3 vLocal; void main(){ float h=clamp(normalize(vLocal).y,-1.0,1.0); float t=smoothstep(-0.12,0.42,h); vec3 sky=mix(horizonColor,topColor,t); sky=mix(groundColor,sky,smoothstep(-0.42,-0.04,h)); gl_FragColor=vec4(sky,1.0); }',
+        fragmentShader: 'uniform vec3 topColor; uniform vec3 midColor; uniform vec3 horizonColor; uniform vec3 groundColor; uniform vec3 sunGlowColor; uniform float sunGlowStrength; varying vec3 vLocal; void main(){ float h=clamp(normalize(vLocal).y,-1.0,1.0); float above= smoothstep(-0.08,0.2,h); vec3 sky=mix(horizonColor,midColor,above); sky=mix(sky,topColor,smoothstep(0.18,0.86,h)); float glow=pow(1.0-smoothstep(-0.06,0.3,h),2.0)*sunGlowStrength; sky=mix(sky,sunGlowColor,glow); sky=mix(groundColor,sky,smoothstep(-0.42,-0.02,h)); gl_FragColor=vec4(sky,1.0); }',
       }),
     );
     this.skyDome.renderOrder = -100;
     this.scene.add(this.skyDome);
     this.scene.background = new THREE.Color(0x87b5ff);
     this.scene.fog = new THREE.Fog(0x87b5ff, 40, 120);
+    // Reused palette colors keep the per-frame sky transition allocation-free.
+    this._skyPalette = {
+      top: new THREE.Color(),
+      mid: new THREE.Color(),
+      horizon: new THREE.Color(),
+      ground: new THREE.Color(),
+      glow: new THREE.Color(),
+      fog: new THREE.Color(),
+      warm: new THREE.Color(),
+      weather: new THREE.Color(),
+      nightTop: new THREE.Color(0x10264f),
+      nightMid: new THREE.Color(0x294d78),
+      nightHorizon: new THREE.Color(0x40506f),
+      nightGround: new THREE.Color(0x263142),
+      flash: new THREE.Color(0xd8e8ff),
+    };
 
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 200);
     /** P2 camera for local split-screen (active when coopMode). */
@@ -3264,57 +3284,80 @@ export class Game {
 
   _updateLighting() {
     const sunI = this.time.sunIntensity();
-    this.hemi.color.setHex(0x9ec9ff);
-    // storm lightning flash boost
+    const phase = this.time.dayPhase;
+    const night = this.time.isNight();
+    const palette = this._skyPalette;
+    // Keep a warm band around the two low-sun transitions, but leave the
+    // daytime zenith blue and the night sky readable instead of black.
+    const lowSun = Math.max(0, 1 - Math.min(Math.abs(phase - 0.02), Math.abs(phase - 0.52)) / 0.16);
+    const nightMix = night ? Math.min(1, (phase - 0.55) / 0.12) : 0;
+    const weatherMix = this.time.weather === 'rain' ? 0.2 : this.time.weather === 'snow' ? 0.28 : 0;
+    const flash = this._stormFlashT > 0 ? Math.min(1, this._stormFlashT * 5) : 0;
+
+    palette.top.setHex(0x3e78be).lerp(palette.nightTop, nightMix);
+    palette.mid.setHex(0x74a9e2).lerp(palette.nightMid, nightMix);
+    palette.horizon.setHex(0xf4c58f).lerp(palette.nightHorizon, nightMix);
+    palette.ground.setHex(0x71808b).lerp(palette.nightGround, nightMix);
+    palette.warm.setHex(0xffc27e);
+    palette.horizon.lerp(palette.warm, lowSun * (night ? 0.12 : 0.42));
+    palette.weather.setHex(0x91a7ba);
+    palette.top.lerp(palette.weather, weatherMix);
+    palette.mid.lerp(palette.weather, weatherMix * 0.7);
+    palette.horizon.lerp(palette.weather, weatherMix * 0.45);
+    palette.ground.lerp(palette.weather, weatherMix * 0.55);
+    palette.glow.setHex(0xffd7a2);
+
     if (this._stormFlashT > 0) {
-      this.ambient.intensity += this._stormFlashT * 8;
-      this.scene.background.setHex(0xccddff);
-      this._stormFlashT -= 1 / 60;
+      this._stormFlashT = Math.max(0, this._stormFlashT - 1 / 60);
     }
-    this.sun.intensity = 0.3 + sunI * 1.15;
-    this.fill.intensity = 0.06 + sunI * 0.14;
-    this.ambient.intensity = 0.24 + sunI * 0.54;
-    this.hemi.intensity = 0.28 + sunI * 0.44;
-    const sky = this.time.skyColor();
-    const color = new THREE.Color(sky.r, sky.g, sky.b);
-    this.scene.background = color;
+    this.sun.color.setHex(night ? 0x9bb9e6 : lowSun > 0.1 ? 0xffc486 : 0xffe4bd);
+    this.fill.color.setHex(night ? 0x5578ad : 0x9fc8df);
+    this.ambient.color.setHex(night ? 0x26385c : 0x6688aa);
+    this.hemi.color.setHex(night ? 0x5d76a8 : 0x9ec9ff);
+    this.sun.intensity = (night ? 0.08 : 0.3 + sunI * 1.15) + flash * 1.1;
+    this.fill.intensity = (night ? 0.05 : 0.06 + sunI * 0.14) + flash * 0.22;
+    this.ambient.intensity = (night ? 0.2 : 0.24 + sunI * 0.54) + flash * 1.7;
+    this.hemi.intensity = (night ? 0.3 : 0.28 + sunI * 0.44) + flash * 0.9;
+
+    this.scene.background.copy(palette.mid);
     if (this.skyDome) {
       this.skyDome.position.copy(this.camera.position);
-      const top = color.clone().multiplyScalar(0.62);
-      const horizon = color.clone().lerp(new THREE.Color(0xfff0d2), 0.28);
-      const ground = new THREE.Color(0x71808b).lerp(color, 0.2);
-      this.skyDome.material.uniforms.topColor.value.copy(top);
-      this.skyDome.material.uniforms.horizonColor.value.copy(horizon);
-      this.skyDome.material.uniforms.groundColor.value.copy(ground);
+      const uniforms = this.skyDome.material.uniforms;
+      uniforms.topColor.value.copy(palette.top);
+      uniforms.midColor.value.copy(palette.mid);
+      uniforms.horizonColor.value.copy(palette.horizon);
+      uniforms.groundColor.value.copy(palette.ground);
+      uniforms.sunGlowColor.value.copy(palette.glow);
+      uniforms.sunGlowStrength.value = Math.min(0.28, 0.1 + lowSun * 0.2 + sunI * 0.04);
     }
-    this.scene.fog.color.copy(color);
+    // Fog follows the horizon layer, preserving silhouettes and contact edges.
+    palette.fog.copy(palette.horizon).lerp(palette.mid, 0.28);
+    this.scene.fog.color.copy(palette.fog);
     const plan = this._terrainVisibilityPlan();
     const fog = fogForSun(plan, sunI);
     this.scene.fog.near = fog.near;
     this.scene.fog.far = fog.far;
-    if (this.time.isNight()) {
-      this.ambient.color.set(0x223355);
-      this.sun.intensity = 0.08;
-      this.fill.intensity = 0.05;
+    if (flash > 0) {
+      this.scene.background.lerp(palette.flash, flash * 0.6);
+      this.scene.fog.color.lerp(palette.flash, flash * 0.45);
+    }
+
+    // Held torch keeps a small readable pool at night without flattening shadows.
+    if (night) {
       const held = this.player ? propsOf(this.player.heldId()) : null;
-      // held torch slight night vision
       if (held && this.player.heldId() === BLOCK.TORCH) {
         this.ambient.intensity = Math.max(this.ambient.intensity, 0.28);
-        this.sun.intensity = 0.16;
+        this.sun.intensity = Math.max(this.sun.intensity, 0.16);
       }
-    } else {
-      this.ambient.color.set(0x6688aa);
     }
     // Drive greedy shader lighting
     const mat = this.atlas?.greedyMaterial;
     if (mat?.uniforms) {
-      mat.uniforms.sunIntensity.value = this.time.isNight()
-        ? 0.32
-        : 0.62 + sunI * 0.78;
+      mat.uniforms.sunIntensity.value = night ? 0.32 : 0.62 + sunI * 0.78;
       mat.uniforms.ambientColor.value.set(
-        this.time.isNight() ? 0.22 : 0.48,
-        this.time.isNight() ? 0.24 : 0.54,
-        this.time.isNight() ? 0.32 : 0.64,
+        night ? 0.22 : 0.48,
+        night ? 0.24 : 0.54,
+        night ? 0.32 : 0.64,
       );
     }
   }
