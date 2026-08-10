@@ -146,7 +146,7 @@ export class Game {
     // Keep the starter island readable: ACES rolls back the sunlit sand
     // highlights while a small exposure lift preserves dark tree silhouettes.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.12;
+    this.renderer.toneMappingExposure = 1.22;
 
     this.scene = new THREE.Scene();
     this.skyDome = new THREE.Mesh(
@@ -157,9 +157,9 @@ export class Game {
         depthWrite: false,
         depthTest: false,
         uniforms: {
-          topColor: { value: new THREE.Color(0x3e78be) },
-          midColor: { value: new THREE.Color(0x74a9e2) },
-          horizonColor: { value: new THREE.Color(0xf4c58f) },
+          topColor: { value: new THREE.Color(0x4d91d2) },
+          midColor: { value: new THREE.Color(0x8fc8ef) },
+          horizonColor: { value: new THREE.Color(0xffd2a0) },
           groundColor: { value: new THREE.Color(0x71808b) },
           sunGlowColor: { value: new THREE.Color(0xffd7a2) },
           sunGlowStrength: { value: 0.22 },
@@ -214,7 +214,7 @@ export class Game {
     this.sun.position.set(32, 72, 24);
     // A restrained cool fill keeps the sun-facing contact edges legible without
     // flattening the warm key light or making shadowed terrain read as black.
-    this.fill = new THREE.DirectionalLight(0x9fc8df, 0.16);
+    this.fill = new THREE.DirectionalLight(0x9fc8df, 0.22);
     this.fill.position.set(-28, 24, -20);
     this.scene.add(this.ambient, this.sun, this.fill);
 
@@ -222,6 +222,10 @@ export class Game {
     this.scene.add(this.hemi);
 
     this.clouds = new VoxelCloudLayer(this.scene);
+    // The fixed-height voxel layer can intersect the camera's upper frustum as
+    // a clipped pale strip. Keep the layered dome as the stable sky composition
+    // until clouds can be made camera-relative without breaking the horizon.
+    this.clouds.mesh.visible = false;
 
     this.world = null;
     this.player = null;
@@ -3294,9 +3298,9 @@ export class Game {
     const weatherMix = this.time.weather === 'rain' ? 0.2 : this.time.weather === 'snow' ? 0.28 : 0;
     const flash = this._stormFlashT > 0 ? Math.min(1, this._stormFlashT * 5) : 0;
 
-    palette.top.setHex(0x3e78be).lerp(palette.nightTop, nightMix);
-    palette.mid.setHex(0x74a9e2).lerp(palette.nightMid, nightMix);
-    palette.horizon.setHex(0xf4c58f).lerp(palette.nightHorizon, nightMix);
+    palette.top.setHex(0x4d91d2).lerp(palette.nightTop, nightMix);
+    palette.mid.setHex(0x8fc8ef).lerp(palette.nightMid, nightMix);
+    palette.horizon.setHex(0xffd2a0).lerp(palette.nightHorizon, nightMix);
     palette.ground.setHex(0x71808b).lerp(palette.nightGround, nightMix);
     palette.warm.setHex(0xffc27e);
     palette.horizon.lerp(palette.warm, lowSun * (night ? 0.12 : 0.42));
@@ -3315,8 +3319,8 @@ export class Game {
     this.ambient.color.setHex(night ? 0x26385c : 0x6688aa);
     this.hemi.color.setHex(night ? 0x5d76a8 : 0x9ec9ff);
     this.sun.intensity = (night ? 0.08 : 0.3 + sunI * 1.15) + flash * 1.1;
-    this.fill.intensity = (night ? 0.05 : 0.06 + sunI * 0.14) + flash * 0.22;
-    this.ambient.intensity = (night ? 0.2 : 0.24 + sunI * 0.54) + flash * 1.7;
+    this.fill.intensity = (night ? 0.05 : 0.08 + sunI * 0.18) + flash * 0.22;
+    this.ambient.intensity = (night ? 0.2 : 0.3 + sunI * 0.56) + flash * 1.7;
     this.hemi.intensity = (night ? 0.3 : 0.28 + sunI * 0.44) + flash * 0.9;
 
     this.scene.background.copy(palette.mid);
@@ -3355,9 +3359,9 @@ export class Game {
     if (mat?.uniforms) {
       mat.uniforms.sunIntensity.value = night ? 0.32 : 0.62 + sunI * 0.78;
       mat.uniforms.ambientColor.value.set(
-        night ? 0.22 : 0.48,
-        night ? 0.24 : 0.54,
-        night ? 0.32 : 0.64,
+        night ? 0.22 : 0.54,
+        night ? 0.24 : 0.6,
+        night ? 0.32 : 0.7,
       );
     }
   }
