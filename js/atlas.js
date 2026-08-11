@@ -254,11 +254,11 @@ function scatterFlecks(ctx, x0, y0, opts) {
 // Coherent natural palettes for the high-visibility terrain surfaces. Each is a
 // shadow / base / light triple picked to hold its hue under the ACES tonemap:
 // shadows stay saturated rather than going grey, highlights stop short of white.
-const PAL_GRASS = { shadow: [54, 100, 38], base: [85, 138, 52], light: [112, 156, 72] };
+const PAL_GRASS = { shadow: [62, 108, 46], base: [85, 138, 52], light: [104, 148, 64] };
 const PAL_DIRT = { shadow: [92, 63, 41], base: [131, 93, 61], light: [168, 126, 86] };
 const PAL_STONE = { shadow: [101, 102, 112], base: [138, 138, 146], light: [172, 173, 180] };
-const PAL_SAND = { shadow: [193, 160, 105], base: [226, 196, 138], light: [245, 222, 168] };
-const PAL_WATER = { shadow: [20, 74, 148], base: [34, 112, 198], light: [74, 156, 222] };
+const PAL_SAND = { shadow: [208, 180, 128], base: [226, 196, 138], light: [240, 216, 158] };
+const PAL_WATER = { shadow: [24, 82, 142], base: [42, 132, 196], light: [72, 176, 224] };
 const PAL_LEAVES = { shadow: [40, 80, 34], base: [62, 122, 45], light: [88, 140, 58] };
 const PAL_PALM = { shadow: [46, 98, 42], base: [68, 138, 54], light: [98, 158, 66] };
 const PAL_SPRUCE = { shadow: [24, 66, 47], base: [41, 94, 67], light: [70, 120, 90] };
@@ -274,19 +274,19 @@ function drawGrassTop(ctx, x0, y0) {
   // Turf read as broad tileable patches ramped shadow -> sunlit green, then
   // blade detail clumped onto those patches so clumps survive at distance.
   const field = fillMaterial(ctx, x0, y0, PAL_GRASS, {
-    seed: 11, cells: 4, octaves: 3, contrast: 1.0,
+    seed: 11, cells: 4, octaves: 3, contrast: 0.9,
   });
   // Shaded hollows between tufts
   scatterFlecks(ctx, x0, y0, {
-    seed: 99, count: 22, color: 'rgba(46, 84, 34, 0.34)',
+    seed: 99, count: 20, color: 'rgba(52, 92, 40, 0.30)',
     field, want: -1, threshold: 0.46, w: 2, h: 2,
   });
   // Sunlit blade tips, biased onto the raised patches (2x4 reads as a blade)
   scatterFlecks(ctx, x0, y0, {
-    seed: 100, count: 18, color: 'rgba(120, 162, 78, 0.30)',
+    seed: 100, count: 16, color: 'rgba(115, 155, 75, 0.25)',
     field, want: 1, threshold: 0.55, w: 2, h: 4,
   });
-  applyMicroTexture(ctx, x0, y0, 4);
+  applyMicroTexture(ctx, x0, y0, 3);
 }
 
 function drawDirtBase(ctx, x0, y0) {
@@ -364,26 +364,26 @@ function drawSand(ctx, x0, y0) {
   // Warm golden beach sand. Low contrast keeps it from banding, but the ramp
   // holds saturation at both ends so it never flattens to washed-out cream.
   const field = fillMaterial(ctx, x0, y0, PAL_SAND, {
-    seed: 55, cells: 4, octaves: 3, contrast: 0.95,
+    seed: 55, cells: 4, octaves: 3, contrast: 0.85,
   });
   // Ripple shadows follow a separate horizontally stretched field, replacing the
   // three fixed bars that used to line up into a visible grid across a beach.
   const ripple = makeFbm(57, 3, 2, 1, 3);
   scatterFlecks(ctx, x0, y0, {
-    seed: 56, count: 14, color: 'rgba(190, 152, 96, 0.34)',
+    seed: 56, count: 12, color: 'rgba(196, 160, 108, 0.30)',
     field: ripple, want: -1, threshold: 0.42, w: 6, h: 2,
   });
   // Sun-caught grains on the crests of the same ripples
   scatterFlecks(ctx, x0, y0, {
-    seed: 58, count: 16, color: 'rgba(250, 232, 180, 0.32)',
+    seed: 58, count: 14, color: 'rgba(245, 226, 172, 0.30)',
     field: ripple, want: 1, threshold: 0.6, w: 2, h: 2,
   });
   // Scattered darker shell grit for close-up interest
   scatterFlecks(ctx, x0, y0, {
-    seed: 59, count: 8, color: 'rgba(172, 134, 82, 0.30)',
+    seed: 59, count: 6, color: 'rgba(180, 142, 92, 0.28)',
     field, want: -1, threshold: 0.4, w: 2, h: 2,
   });
-  applyMicroTexture(ctx, x0, y0, 3, 2);
+  applyMicroTexture(ctx, x0, y0, 2, 2);
 }
 
 function drawWater(ctx, x0, y0) {
@@ -395,19 +395,23 @@ function drawWater(ctx, x0, y0) {
   });
   // Deep troughs between rolls
   scatterFlecks(ctx, x0, y0, {
-    seed: 67, count: 14, color: 'rgba(18, 66, 136, 0.40)',
+    seed: 67, count: 14, color: 'rgba(16, 72, 132, 0.42)',
     field, want: -1, threshold: 0.4, w: 6, h: 2,
   });
   // Lit wave shoulders
   scatterFlecks(ctx, x0, y0, {
-    seed: 68, count: 12, color: 'rgba(96, 178, 232, 0.34)',
+    seed: 68, count: 12, color: 'rgba(92, 190, 228, 0.38)',
     field, want: 1, threshold: 0.58, w: 4, h: 2,
   });
-  // Sparse, restrained foam only on the highest crests — kept low-alpha so it
-  // does not repeat into a bright grid across an ocean surface.
+  // Broad layer of sea foam on the crests
   scatterFlecks(ctx, x0, y0, {
-    seed: 69, count: 5, color: 'rgba(214, 238, 250, 0.34)',
-    field, want: 1, threshold: 0.74, w: 4, h: 2,
+    seed: 69, count: 6, color: 'rgba(205, 235, 248, 0.36)',
+    field, want: 1, threshold: 0.72, w: 6, h: 2,
+  });
+  // Bright layer of fine foam on the highest peaks
+  scatterFlecks(ctx, x0, y0, {
+    seed: 70, count: 4, color: 'rgba(235, 250, 255, 0.48)',
+    field, want: 1, threshold: 0.80, w: 2, h: 2,
   });
   applyMicroTexture(ctx, x0, y0, 3, 3);
 }
