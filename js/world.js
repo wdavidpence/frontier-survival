@@ -10,6 +10,7 @@ import {
   chunkDetailTier,
   buildTerrainProxyArrays,
 } from './terrain-visibility.js?v=285';
+import { makeVoxelInteraction } from './interaction-contract.js?v=1';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -1317,17 +1318,20 @@ export class World {
    * @returns {{x:number,y:number,z:number, nx:number,ny:number,nz:number, dist:number}|null}
    */
   raycast(origin, direction, maxDist = 8) {
-    // Normalize here instead of trusting every caller. In particular, camera
-    // pitch produces very small horizontal components at steep angles; using
-    // an un-normalized vector makes the DDA distance budget angle-dependent.
-    const len = Math.hypot(direction?.x || 0, direction?.y || 0, direction?.z || 0);
-    if (!Number.isFinite(len) || len < 1e-8 || !Number.isFinite(maxDist) || maxDist <= 0) return null;
-    const dx = direction.x / len;
-    const dy = direction.y / len;
-    const dz = direction.z / len;
-    let x = Math.floor(origin.x);
-    let y = Math.floor(origin.y);
-    let z = Math.floor(origin.z);
+    // Normalize and validate once at the interaction boundary. This keeps the
+    // DDA range in world units even when camera pitch makes X/Z tiny, and avoids
+    // NaN voxel coordinates if a browser reports a transient invalid camera.
+    const interaction = makeVoxelInteraction(origin, direction, maxDist);
+    if (!interaction) return null;
+    const rayOrigin = interaction.origin;
+    const rayDirection = interaction.direction;
+    const rayMaxDist = interaction.maxDist;
+    const dx = rayDirection.x;
+    const dy = rayDirection.y;
+    const dz = rayDirection.z;
+    let x = Math.floor(rayOrigin.x);
+    let y = Math.floor(rayOrigin.y);
+    let z = Math.floor(rayOrigin.z);
 
     const stepX = dx > 0 ? 1 : dx < 0 ? -1 : 0;
     const stepY = dy > 0 ? 1 : dy < 0 ? -1 : 0;
@@ -1340,9 +1344,9 @@ export class World {
       const distance = step > 0 ? cell + 1 - coord : coord - cell;
       return Math.max(0, distance * delta);
     };
-    let tMaxX = tMax(origin.x, x, stepX, tDeltaX);
-    let tMaxY = tMax(origin.y, y, stepY, tDeltaY);
-    let tMaxZ = tMax(origin.z, z, stepZ, tDeltaZ);
+    let tMaxX = tMax(rayOrigin.x, x, stepX, tDeltaX);
+    let tMaxY = tMax(rayOrigin.y, y, stepY, tDeltaY);
+    let tMaxZ = tMax(rayOrigin.z, z, stepZ, tDeltaZ);
     let faceX = 0, faceY = 0, faceZ = 0;
     let dist = 0;
     const EPS = 1e-9;
@@ -1353,7 +1357,7 @@ export class World {
         return { x, y, z, nx: -faceX, ny: -faceY, nz: -faceZ, dist, id };
       }
       const next = Math.min(tMaxX, tMaxY, tMaxZ);
-      if (!Number.isFinite(next) || next > maxDist) return null;
+      if (!Number.isFinite(next) || next > rayMaxDist) return null;
       // Deterministic X → Y → Z precedence on exact voxel-edge ties avoids
       // dropping the target when a steep ray crosses two planes together.
       if (tMaxX <= next + EPS) {

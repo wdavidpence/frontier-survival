@@ -1,3 +1,5 @@
+import { isPrimaryBreakButton } from './interaction-contract.js?v=1';
+
 /** Keyboard + mouse input (Minecraft-style). Bulletproof for browser quirks.
 
  * INPUT PRIORITY (when both KBM and gamepad0 are active on the same player):
@@ -664,7 +666,7 @@ export class Input {
     if (this.uiMode || !this.captureEnabled) return;
     this.softLook = true;
     if (!this.locked) this.requestLock();
-    if (e.button === 0) {
+    if (isPrimaryBreakButton(e)) {
       this.breakHeld = true;
       this._heldLmb = true;
     }
@@ -677,7 +679,7 @@ export class Input {
   };
 
   _onMouseUp = (e) => {
-    if (e.button === 0) {
+    if (isPrimaryBreakButton(e)) {
       this.breakHeld = false;
       this._heldLmb = false;
     }

@@ -2771,7 +2771,9 @@ test('mining path keeps pointer hold, raycast break, remesh, and drop feedback w
 
 test('angled voxel raycast normalizes direction and handles steep pitch safely', () => {
   const worldSrc = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
-  assert.ok(worldSrc.includes('Math.hypot(direction?.x || 0'), 'raycast must normalize arbitrary camera vectors');
+  const contractSrc = readFileSync(new URL('../js/interaction-contract.js', import.meta.url), 'utf8');
+  assert.ok(worldSrc.includes('makeVoxelInteraction'), 'raycast must validate arbitrary camera vectors at the interaction boundary');
+  assert.ok(contractSrc.includes('Math.hypot(x, y, z)'), 'interaction contract must normalize camera vectors');
   assert.ok(worldSrc.includes('step > 0 ? cell + 1 - coord : coord - cell'), 'negative-facing rays must enter the correct boundary');
   assert.ok(worldSrc.includes('const EPS = 1e-9'), 'raycast must have deterministic voxel-edge tie handling');
   assert.ok(worldSrc.includes('for (let i = 0; i < 256; i++)'), 'raycast must retain a bounded steep-angle traversal');
