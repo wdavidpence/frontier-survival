@@ -254,15 +254,15 @@ function scatterFlecks(ctx, x0, y0, opts) {
 // Coherent natural palettes for the high-visibility terrain surfaces. Each is a
 // shadow / base / light triple picked to hold its hue under the ACES tonemap:
 // shadows stay saturated rather than going grey, highlights stop short of white.
-const PAL_GRASS = { shadow: [54, 100, 38], base: [85, 138, 52], light: [128, 178, 76] };
+const PAL_GRASS = { shadow: [54, 100, 38], base: [85, 138, 52], light: [112, 156, 72] };
 const PAL_DIRT = { shadow: [92, 63, 41], base: [131, 93, 61], light: [168, 126, 86] };
 const PAL_STONE = { shadow: [101, 102, 112], base: [138, 138, 146], light: [172, 173, 180] };
 const PAL_SAND = { shadow: [193, 160, 105], base: [226, 196, 138], light: [245, 222, 168] };
 const PAL_WATER = { shadow: [20, 74, 148], base: [34, 112, 198], light: [74, 156, 222] };
-const PAL_LEAVES = { shadow: [36, 84, 30], base: [62, 122, 45], light: [98, 158, 60] };
-const PAL_PALM = { shadow: [42, 104, 38], base: [68, 145, 52], light: [110, 182, 72] };
-const PAL_SPRUCE = { shadow: [24, 66, 47], base: [41, 94, 67], light: [74, 132, 96] };
-const PAL_SEQUOIA = { shadow: [21, 76, 33], base: [36, 110, 47], light: [70, 148, 66] };
+const PAL_LEAVES = { shadow: [40, 80, 34], base: [62, 122, 45], light: [88, 140, 58] };
+const PAL_PALM = { shadow: [46, 98, 42], base: [68, 138, 54], light: [98, 158, 66] };
+const PAL_SPRUCE = { shadow: [24, 66, 47], base: [41, 94, 67], light: [70, 120, 90] };
+const PAL_SEQUOIA = { shadow: [26, 72, 36], base: [38, 100, 48], light: [64, 126, 60] };
 
 function tileOrigin(index) {
   const tx = index % ATLAS_N;
@@ -274,16 +274,16 @@ function drawGrassTop(ctx, x0, y0) {
   // Turf read as broad tileable patches ramped shadow -> sunlit green, then
   // blade detail clumped onto those patches so clumps survive at distance.
   const field = fillMaterial(ctx, x0, y0, PAL_GRASS, {
-    seed: 11, cells: 4, octaves: 3, contrast: 1.15,
+    seed: 11, cells: 4, octaves: 3, contrast: 1.0,
   });
   // Shaded hollows between tufts
   scatterFlecks(ctx, x0, y0, {
-    seed: 99, count: 22, color: 'rgba(43, 88, 30, 0.36)',
+    seed: 99, count: 22, color: 'rgba(46, 84, 34, 0.34)',
     field, want: -1, threshold: 0.46, w: 2, h: 2,
   });
   // Sunlit blade tips, biased onto the raised patches (2x4 reads as a blade)
   scatterFlecks(ctx, x0, y0, {
-    seed: 100, count: 18, color: 'rgba(146, 194, 88, 0.34)',
+    seed: 100, count: 18, color: 'rgba(120, 162, 78, 0.30)',
     field, want: 1, threshold: 0.55, w: 2, h: 4,
   });
   applyMicroTexture(ctx, x0, y0, 4);
@@ -447,7 +447,7 @@ function drawLogTop(ctx, x0, y0) {
  * leaves never punch holes in the opaque pass under `alphaTest 0.35`.
  */
 function drawFoliage(ctx, x0, y0, palette, seed, opts = {}) {
-  const { gapAlpha = 0.34, litAlpha = 0.32, contrast = 1.3, phase = 0 } = opts;
+  const { gapAlpha = 0.32, litAlpha = 0.28, contrast = 1.1, phase = 0 } = opts;
   const { shadow, light } = palette;
   const field = fillMaterial(ctx, x0, y0, palette, {
     seed, cells: 4, octaves: 3, contrast,
@@ -456,13 +456,13 @@ function drawFoliage(ctx, x0, y0, palette, seed, opts = {}) {
   // readable silhouette instead of turning into a muddy forest mass.
   scatterFlecks(ctx, x0, y0, {
     seed: seed + 1, count: 20,
-    color: `rgba(${clamp(shadow[0] - 12)}, ${clamp(shadow[1] - 18)}, ${clamp(shadow[2] - 8)}, ${gapAlpha})`,
+    color: `rgba(${clamp(shadow[0] - 6)}, ${clamp(shadow[1] - 9)}, ${clamp(shadow[2] - 4)}, ${gapAlpha})`,
     field, want: -1, threshold: 0.44, w: 4, h: 4,
   });
   // Lit leaf edges catching the sun on the clumps that face up
   scatterFlecks(ctx, x0, y0, {
     seed: seed + 2, count: 18,
-    color: `rgba(${clamp(light[0] + 10)}, ${clamp(light[1] + 12)}, ${clamp(light[2] + 6)}, ${litAlpha})`,
+    color: `rgba(${clamp(light[0] + 6)}, ${clamp(light[1] + 8)}, ${clamp(light[2] + 4)}, ${litAlpha})`,
     field, want: 1, threshold: 0.58, w: 2, h: 2,
   });
   // Fine sub-leaf ticks to break up the 4px clumps at close range
@@ -850,7 +850,7 @@ function drawSequoiaLogTop(ctx, x0, y0) {
 }
 
 function drawSequoiaLeaves(ctx, x0, y0) {
-  drawFoliage(ctx, x0, y0, PAL_SEQUOIA, 202, { contrast: 1.35, phase: 2 });
+  drawFoliage(ctx, x0, y0, PAL_SEQUOIA, 202, { contrast: 1.15, phase: 2 });
 }
 
 function drawSpruceLogSide(ctx, x0, y0) {
@@ -878,7 +878,7 @@ function drawSpruceLogTop(ctx, x0, y0) {
 function drawSpruceLeaves(ctx, x0, y0) {
   // Needled conifer: tighter, darker clumping than broadleaf, but the same
   // shadow floor so a mixed forest keeps one coherent green family.
-  drawFoliage(ctx, x0, y0, PAL_SPRUCE, 302, { contrast: 1.4, gapAlpha: 0.3, phase: 3 });
+  drawFoliage(ctx, x0, y0, PAL_SPRUCE, 302, { contrast: 1.2, gapAlpha: 0.3, phase: 3 });
 }
 
 function drawPalmLeaves(ctx, x0, y0) {
