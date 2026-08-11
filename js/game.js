@@ -52,7 +52,7 @@ import {
 import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=244';
-import { createBlockAtlas } from './atlas.js?v=292';
+import { createBlockAtlas } from './atlas.js?v=293';
 import { BreakFX, WeatherFX } from './fx.js?v=245';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
@@ -3296,12 +3296,22 @@ export class Game {
     const weatherMix = this.time.weather === 'rain' ? 0.2 : this.time.weather === 'snow' ? 0.28 : 0;
     const flash = this._stormFlashT > 0 ? Math.min(1, this._stormFlashT * 5) : 0;
 
-    palette.top.setHex(0x4d91d2).lerp(palette.nightTop, nightMix);
-    palette.mid.setHex(0x8fc8ef).lerp(palette.nightMid, nightMix);
-    palette.horizon.setHex(0xffd2a0).lerp(palette.nightHorizon, nightMix);
-    palette.ground.setHex(0x71808b).lerp(palette.nightGround, nightMix);
-    palette.warm.setHex(0xffc27e);
-    palette.horizon.lerp(palette.warm, lowSun * (night ? 0.12 : 0.42));
+    // Move the key light through a broad arc so terrain relief, tree crowns, and
+    // water highlights describe the time of day instead of staying stage-flat.
+    const sunArc = ((phase - 0.05) / 0.5) * Math.PI;
+    const sunY = Math.max(10, Math.sin(sunArc) * 78);
+    const sunX = Math.cos(sunArc) * 64;
+    const sunZ = Math.sin(sunArc) * 42;
+    this.sun.position.set(sunX, sunY, sunZ);
+    this.fill.position.set(-sunX * 0.55, Math.max(18, sunY * 0.42), -sunZ * 0.55);
+
+    palette.top.setHex(0x3f82c2).lerp(palette.nightTop, nightMix);
+    palette.mid.setHex(0x82bee8).lerp(palette.nightMid, nightMix);
+    palette.horizon.setHex(0xffc88f).lerp(palette.nightHorizon, nightMix);
+    palette.ground.setHex(0x657681).lerp(palette.nightGround, nightMix);
+    palette.warm.setHex(0xffb86f);
+    palette.horizon.lerp(palette.warm, lowSun * (night ? 0.12 : 0.46));
+    palette.mid.lerp(palette.horizon, lowSun * 0.08);
     palette.weather.setHex(0x91a7ba);
     palette.top.lerp(palette.weather, weatherMix);
     palette.mid.lerp(palette.weather, weatherMix * 0.7);

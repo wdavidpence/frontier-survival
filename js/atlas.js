@@ -75,13 +75,13 @@ const BAYER4 = [
   [15, 7, 13, 5],
 ];
 
-function applyMicroTexture(ctx, x0, y0, strength) {
+function applyMicroTexture(ctx, x0, y0, strength, phase = 0) {
   const img = ctx.getImageData(x0, y0, TILE_PX, TILE_PX);
   const d = img.data;
   for (let j = 0; j < TILE_PX; j++) {
-    const row = BAYER4[j % 4];
+    const row = BAYER4[(j + phase) % 4];
     for (let i = 0; i < TILE_PX; i++) {
-      const delta = (row[i % 4] / 15 - 0.5) * strength;
+      const delta = (row[(i + phase) % 4] / 15 - 0.5) * strength;
       const idx = (j * TILE_PX + i) * 4;
       d[idx]     = clamp(d[idx] + delta);
       d[idx + 1] = clamp(d[idx + 1] + delta);
@@ -91,6 +91,179 @@ function applyMicroTexture(ctx, x0, y0, strength) {
   ctx.putImageData(img, x0, y0);
 }
 
+function clamp01(v) {
+  return v < 0 ? 0 : v > 1 ? 1 : v;
+}
+
+function fade(t) {
+  return t * t * (3 - 2 * t);
+}
+
+/**
+ * Tileable 2-D value noise on a `cells` x `cells` lattice. Lattice lookups wrap,
+ * so the field is seamless across the tile border and neighbouring copies of the
+ * same tile meet without a visible edge.
+ */
+function tileValueNoise(seed, cells) {
+  const r = rnd(seed);
+  const lat = new Float32Array(cells * cells);
+  for (let i = 0; i < lat.length; i++) lat[i] = r();
+  return (u, v) => {
+    const x = u * cells;
+    const y = v * cells;
+    const xi = Math.floor(x);
+    const yi = Math.floor(y);
+    const fx = fade(x - xi);
+    const fy = fade(y - yi);
+    const xa = ((xi % cells) + cells) % cells;
+    const ya = ((yi % cells) + cells) % cells;
+    const xb = (xa + 1) % cells;
+    const yb = (ya + 1) % cells;
+    const top = lat[ya * cells + xa] + (lat[ya * cells + xb] - lat[ya * cells + xa]) * fx;
+    const bot = lat[yb * cells + xa] + (lat[yb * cells + xb] - lat[yb * cells + xa]) * fx;
+    return top + (bot - top) * fy;
+  };
+}
+
+/**
+ * Octave stack of tileable value noise. Low octaves give the broad patchiness
+ * that reads as one material at distance; high octaves give the close-up grain.
+ * `sx` / `sy` are integer frequency multipliers (integers keep the field
+ * tileable) used to stretch a material along one axis, e.g. water wave bands.
+ */
+function makeFbm(seed, cells, octaves = 3, sx = 1, sy = 1) {
+  const layers = [];
+  let amp = 1;
+  let norm = 0;
+  for (let o = 0; o < octaves; o++) {
+    layers.push({ n: tileValueNoise(seed + o * 131, cells * (1 << o)), amp });
+    norm += amp;
+    amp *= 0.5;
+  }
+  return (u, v) => {
+    let t = 0;
+    for (const l of layers) t += l.n(u * sx, v * sy) * l.amp;
+    return t / norm;
+  };
+}
+
+function mixChannel(a, b, t) {
+  return a + (b - a) * t;
+}
+
+/**
+ * Paint a tile by ramping a tileable fbm field through a three-stop palette
+ * (shadow -> base -> light). Ramping between real palette colours instead of
+ * pushing one base colour toward black/white keeps hue coherent: shadows stay
+ * saturated, highlights stay in-material rather than washing out.
+ * Values are quantised to `cluster` pixel blocks so the result still reads as
+ * hand-placed pixel art. Returns the field so detail passes can clump onto it.
+ */
+function fillMaterial(ctx, x0, y0, palette, opts = {}) {
+  const {
+    seed = 1,
+    cells = 4,
+    octaves = 3,
+    contrast = 1,
+    sx = 1,
+    sy = 1,
+    cluster = 2,
+    alpha = 255,
+  } = opts;
+  const field = makeFbm(seed, cells, octaves, sx, sy);
+  const { shadow, base, light } = palette;
+  const img = ctx.getImageData(x0, y0, TILE_PX, TILE_PX);
+  const d = img.data;
+  const grid = Math.ceil(TILE_PX / cluster);
+  for (let cj = 0; cj < grid; cj++) {
+    const v = (cj + 0.5) / grid;
+    for (let ci = 0; ci < grid; ci++) {
+      const u = (ci + 0.5) / grid;
+      const t = clamp01(0.5 + (field(u, v) - 0.5) * contrast);
+      let cr;
+      let cg;
+      let cb;
+      if (t < 0.5) {
+        const k = t * 2;
+        cr = mixChannel(shadow[0], base[0], k);
+        cg = mixChannel(shadow[1], base[1], k);
+        cb = mixChannel(shadow[2], base[2], k);
+      } else {
+        const k = (t - 0.5) * 2;
+        cr = mixChannel(base[0], light[0], k);
+        cg = mixChannel(base[1], light[1], k);
+        cb = mixChannel(base[2], light[2], k);
+      }
+      for (let j = cj * cluster; j < Math.min((cj + 1) * cluster, TILE_PX); j++) {
+        for (let i = ci * cluster; i < Math.min((ci + 1) * cluster, TILE_PX); i++) {
+          const idx = (j * TILE_PX + i) * 4;
+          d[idx]     = clamp(cr);
+          d[idx + 1] = clamp(cg);
+          d[idx + 2] = clamp(cb);
+          d[idx + 3] = alpha;
+        }
+      }
+    }
+  }
+  ctx.putImageData(img, x0, y0);
+  return field;
+}
+
+/**
+ * Draw a fleck that wraps at the tile border instead of being clamped inside it.
+ * Clamping piled every edge fleck onto the last row/column, which showed up as a
+ * faint detail band repeating on every block boundary; wrapping matches the
+ * base field, which is already seamless. Never writes outside the tile.
+ */
+function fillRectWrapped(ctx, x0, y0, px, py, w, h) {
+  const wx = ((px % TILE_PX) + TILE_PX) % TILE_PX;
+  const wy = ((py % TILE_PX) + TILE_PX) % TILE_PX;
+  const w1 = Math.min(w, TILE_PX - wx);
+  const h1 = Math.min(h, TILE_PX - wy);
+  ctx.fillRect(x0 + wx, y0 + wy, w1, h1);
+  if (w1 < w) ctx.fillRect(x0, y0 + wy, w - w1, h1);
+  if (h1 < h) ctx.fillRect(x0 + wx, y0, w1, h - h1);
+  if (w1 < w && h1 < h) ctx.fillRect(x0, y0, w - w1, h - h1);
+}
+
+/**
+ * Scatter pixel-art flecks biased toward one lobe of a material field, so detail
+ * clumps with the underlying variation (leaf gaps in the dark hollows, sun
+ * glints on the raised patches) instead of reading as random confetti.
+ * `want` = 1 keeps samples above `threshold`, -1 keeps samples below it.
+ */
+function scatterFlecks(ctx, x0, y0, opts) {
+  const {
+    seed, count, color, field, want = 1, threshold = 0.5,
+    w = 2, h = 2, cluster = 2,
+  } = opts;
+  const r = rnd(seed);
+  const grid = Math.ceil(TILE_PX / cluster);
+  ctx.fillStyle = color;
+  let placed = 0;
+  for (let tries = 0; tries < count * 14 && placed < count; tries++) {
+    const ci = (r() * grid) | 0;
+    const cj = (r() * grid) | 0;
+    const n = field((ci + 0.5) / grid, (cj + 0.5) / grid);
+    if (want > 0 ? n < threshold : n > threshold) continue;
+    fillRectWrapped(ctx, x0, y0, ci * cluster, cj * cluster, w, h);
+    placed++;
+  }
+}
+
+// Coherent natural palettes for the high-visibility terrain surfaces. Each is a
+// shadow / base / light triple picked to hold its hue under the ACES tonemap:
+// shadows stay saturated rather than going grey, highlights stop short of white.
+const PAL_GRASS = { shadow: [54, 100, 38], base: [85, 138, 52], light: [128, 178, 76] };
+const PAL_DIRT = { shadow: [92, 63, 41], base: [131, 93, 61], light: [168, 126, 86] };
+const PAL_STONE = { shadow: [101, 102, 112], base: [138, 138, 146], light: [172, 173, 180] };
+const PAL_SAND = { shadow: [193, 160, 105], base: [226, 196, 138], light: [245, 222, 168] };
+const PAL_WATER = { shadow: [20, 74, 148], base: [34, 112, 198], light: [74, 156, 222] };
+const PAL_LEAVES = { shadow: [36, 84, 30], base: [62, 122, 45], light: [98, 158, 60] };
+const PAL_PALM = { shadow: [42, 104, 38], base: [68, 145, 52], light: [110, 182, 72] };
+const PAL_SPRUCE = { shadow: [24, 66, 47], base: [41, 94, 67], light: [74, 132, 96] };
+const PAL_SEQUOIA = { shadow: [21, 76, 33], base: [36, 110, 47], light: [70, 148, 66] };
+
 function tileOrigin(index) {
   const tx = index % ATLAS_N;
   const ty = (index / ATLAS_N) | 0;
@@ -98,44 +271,41 @@ function tileOrigin(index) {
 }
 
 function drawGrassTop(ctx, x0, y0) {
-  // Natural Minecraft-style mid green base with 2x2 pixel cluster structure
-  fillNoise(ctx, x0, y0, [85, 138, 52], 0.20, 11, 255, 2);
-  const r = rnd(99);
-  // Rich natural green shadows (2x2 pixel blocks)
-  ctx.fillStyle = 'rgba(48, 98, 30, 0.4)';
-  for (let i = 0; i < 20; i++) {
-    const bx = (r() * 15) | 0;
-    const by = (r() * 15) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 2, 2);
-  }
-  // Soft natural grass blade highlights (2x2 pixel blocks)
-  ctx.fillStyle = 'rgba(122, 175, 70, 0.35)';
-  for (let i = 0; i < 16; i++) {
-    const bx = (r() * 15) | 0;
-    const by = (r() * 15) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 2, 2);
-  }
+  // Turf read as broad tileable patches ramped shadow -> sunlit green, then
+  // blade detail clumped onto those patches so clumps survive at distance.
+  const field = fillMaterial(ctx, x0, y0, PAL_GRASS, {
+    seed: 11, cells: 4, octaves: 3, contrast: 1.15,
+  });
+  // Shaded hollows between tufts
+  scatterFlecks(ctx, x0, y0, {
+    seed: 99, count: 22, color: 'rgba(43, 88, 30, 0.36)',
+    field, want: -1, threshold: 0.46, w: 2, h: 2,
+  });
+  // Sunlit blade tips, biased onto the raised patches (2x4 reads as a blade)
+  scatterFlecks(ctx, x0, y0, {
+    seed: 100, count: 18, color: 'rgba(146, 194, 88, 0.34)',
+    field, want: 1, threshold: 0.55, w: 2, h: 4,
+  });
   applyMicroTexture(ctx, x0, y0, 4);
 }
 
 function drawDirtBase(ctx, x0, y0) {
-  // Warm, rich natural loam dirt brown (clearly distinct from grass and leaves)
-  fillNoise(ctx, x0, y0, [131, 93, 61], 0.24, 22, 255, 2);
-  const r = rnd(3);
-  // Organic dark soil clusters
-  ctx.fillStyle = 'rgba(80, 52, 30, 0.35)';
-  for (let i = 0; i < 14; i++) {
-    const bx = (r() * 14) | 0;
-    const by = (r() * 14) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 4, 2);
-  }
-  // Warm clay / pebble highlights
-  ctx.fillStyle = 'rgba(175, 130, 90, 0.3)';
-  for (let i = 0; i < 10; i++) {
-    const bx = (r() * 15) | 0;
-    const by = (r() * 15) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 2, 2);
-  }
+  // Warm loam ramped through its own palette so shadows stay brown instead of
+  // greying out — keeps dirt clearly separated from stone and leaves.
+  const field = fillMaterial(ctx, x0, y0, PAL_DIRT, {
+    seed: 22, cells: 4, octaves: 3, contrast: 1.2,
+  });
+  // Damp soil clods in the hollows
+  scatterFlecks(ctx, x0, y0, {
+    seed: 3, count: 16, color: 'rgba(74, 48, 28, 0.34)',
+    field, want: -1, threshold: 0.44, w: 4, h: 2,
+  });
+  // Dry grit and small pebbles on the raised ground
+  scatterFlecks(ctx, x0, y0, {
+    seed: 4, count: 12, color: 'rgba(186, 143, 100, 0.30)',
+    field, want: 1, threshold: 0.58, w: 2, h: 2,
+  });
+  return field;
 }
 
 function drawDirt(ctx, x0, y0) {
@@ -145,90 +315,101 @@ function drawDirt(ctx, x0, y0) {
 
 function drawGrassSide(ctx, x0, y0) {
   drawDirtBase(ctx, x0, y0);
-  // Clean natural top grass cap with overhang pixel drapes
-  ctx.fillStyle = '#558a34';
-  ctx.fillRect(x0, y0, TILE_PX, 8);
-  const r = rnd(7);
-  for (let i = 0; i < 12; i++) {
-    ctx.fillStyle = r() > 0.5 ? '#44722a' : '#6aa042';
-    const x = x0 + Math.floor(r() * 16) * 2;
-    const h = 4 + Math.floor(r() * 3) * 2;
-    ctx.fillRect(x, y0 + 6, 2, h);
+  // Cap drawn per 2px column from a tileable field: the overhang depth and the
+  // colour both vary, so the side shares the top tile's palette instead of
+  // reading as one flat green bar, and the drape wraps seamlessly block to block.
+  const capField = makeFbm(311, 4, 2);
+  const { shadow, base, light } = PAL_GRASS;
+  for (let cx = 0; cx < TILE_PX; cx += 2) {
+    const n = capField((cx + 1) / TILE_PX, 0.5);
+    const depth = 8 + Math.round(n * 3) * 2;
+    const k = clamp01(0.35 + n * 0.8);
+    const cr = mixChannel(shadow[0], light[0], k);
+    const cg = mixChannel(shadow[1], light[1], k);
+    const cb = mixChannel(shadow[2], light[2], k);
+    ctx.fillStyle = `rgb(${clamp(cr)}, ${clamp(cg)}, ${clamp(cb)})`;
+    ctx.fillRect(x0 + cx, y0, 2, depth);
+    // Darker tip where each drape meets the soil, so the seam reads as blades
+    ctx.fillStyle = `rgba(${clamp(shadow[0] * 0.85)}, ${clamp(shadow[1] * 0.85)}, ${clamp(shadow[2] * 0.85)}, 0.5)`;
+    ctx.fillRect(x0 + cx, y0 + depth - 2, 2, 2);
   }
+  // Sunlit rim along the very top edge of the block
+  ctx.fillStyle = `rgba(${light[0]}, ${light[1]}, ${light[2]}, 0.35)`;
+  ctx.fillRect(x0, y0, TILE_PX, 2);
+  ctx.fillStyle = `rgba(${base[0]}, ${base[1]}, ${base[2]}, 0.25)`;
+  ctx.fillRect(x0, y0 + 2, TILE_PX, 2);
   applyMicroTexture(ctx, x0, y0, 4);
 }
 
 function drawStone(ctx, x0, y0) {
-  // Clean natural slate rock gray with 2x2 pixel cluster texture
-  fillNoise(ctx, x0, y0, [138, 138, 146], 0.2, 44, 255, 2);
-  const r = rnd(8);
-  // Structured rock strata accents
-  ctx.fillStyle = 'rgba(75, 75, 85, 0.4)';
-  for (let i = 0; i < 12; i++) {
-    const bx = (r() * 14) | 0;
-    const by = (r() * 14) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 4, 2);
-  }
-  // Subtle quartz mineral highlights
-  ctx.fillStyle = 'rgba(180, 185, 195, 0.35)';
-  for (let i = 0; i < 10; i++) {
-    const bx = (r() * 15) | 0;
-    const by = (r() * 15) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 2, 2);
-  }
-  applyMicroTexture(ctx, x0, y0, 4);
+  // Slate ramped through a slightly cool shadow / warm highlight pair, with the
+  // field stretched horizontally so the grain reads as bedding planes.
+  const field = fillMaterial(ctx, x0, y0, PAL_STONE, {
+    seed: 44, cells: 4, octaves: 3, contrast: 1.1, sy: 2,
+  });
+  // Strata fissures sunk into the dark bands
+  scatterFlecks(ctx, x0, y0, {
+    seed: 8, count: 14, color: 'rgba(70, 71, 82, 0.38)',
+    field, want: -1, threshold: 0.44, w: 6, h: 2,
+  });
+  // Quartz glints on the proud faces
+  scatterFlecks(ctx, x0, y0, {
+    seed: 9, count: 10, color: 'rgba(190, 194, 202, 0.32)',
+    field, want: 1, threshold: 0.6, w: 2, h: 2,
+  });
+  applyMicroTexture(ctx, x0, y0, 4, 1);
 }
 
 function drawSand(ctx, x0, y0) {
-  // Rich, warm golden beach sand with distinct shoreline contrast (never gray or washed-out)
-  fillNoise(ctx, x0, y0, [226, 196, 138], 0.14, 55, 255, 2);
-  const r = rnd(56);
-  // Sunny sand grain flecks
-  ctx.fillStyle = 'rgba(252, 236, 182, 0.45)';
-  for (let i = 0; i < 16; i++) {
-    const bx = (r() * 15) | 0;
-    const by = (r() * 15) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 2, 2);
-  }
-  // Warm dune shadow flecks
-  ctx.fillStyle = 'rgba(182, 142, 86, 0.38)';
-  for (let i = 0; i < 14; i++) {
-    const bx = (r() * 15) | 0;
-    const by = (r() * 15) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 2, 2);
-  }
-  // Smooth dune ripple accents in warm golden shadow
-  ctx.fillStyle = 'rgba(188, 148, 88, 0.45)';
-  ctx.fillRect(x0 + 4, y0 + 8, 14, 2);
-  ctx.fillRect(x0 + 16, y0 + 18, 12, 2);
-  ctx.fillRect(x0 + 6, y0 + 26, 16, 2);
-  applyMicroTexture(ctx, x0, y0, 3);
+  // Warm golden beach sand. Low contrast keeps it from banding, but the ramp
+  // holds saturation at both ends so it never flattens to washed-out cream.
+  const field = fillMaterial(ctx, x0, y0, PAL_SAND, {
+    seed: 55, cells: 4, octaves: 3, contrast: 0.95,
+  });
+  // Ripple shadows follow a separate horizontally stretched field, replacing the
+  // three fixed bars that used to line up into a visible grid across a beach.
+  const ripple = makeFbm(57, 3, 2, 1, 3);
+  scatterFlecks(ctx, x0, y0, {
+    seed: 56, count: 14, color: 'rgba(190, 152, 96, 0.34)',
+    field: ripple, want: -1, threshold: 0.42, w: 6, h: 2,
+  });
+  // Sun-caught grains on the crests of the same ripples
+  scatterFlecks(ctx, x0, y0, {
+    seed: 58, count: 16, color: 'rgba(250, 232, 180, 0.32)',
+    field: ripple, want: 1, threshold: 0.6, w: 2, h: 2,
+  });
+  // Scattered darker shell grit for close-up interest
+  scatterFlecks(ctx, x0, y0, {
+    seed: 59, count: 8, color: 'rgba(172, 134, 82, 0.30)',
+    field, want: -1, threshold: 0.4, w: 2, h: 2,
+  });
+  applyMicroTexture(ctx, x0, y0, 3, 2);
 }
 
 function drawWater(ctx, x0, y0) {
-  // Layered Minecraft-like blue depth (opaque alpha = 255, eliminating any opaque-pass holes)
-  fillNoise(ctx, x0, y0, [34, 112, 198], 0.14, 66, 255, 2);
-  // Layer 1: Deep ocean dark troughs (dark navy blue 2x2 grid bands)
-  ctx.fillStyle = 'rgba(16, 58, 132, 0.48)';
-  ctx.fillRect(x0 + 2, y0 + 10, 14, 2);
-  ctx.fillRect(x0 + 14, y0 + 20, 16, 2);
-  ctx.fillRect(x0 + 4, y0 + 28, 12, 2);
-  // Layer 2: Mid-depth vibrant blue wave body
-  ctx.fillStyle = 'rgba(48, 140, 222, 0.4)';
-  ctx.fillRect(x0 + 6, y0 + 4, 12, 2);
-  ctx.fillRect(x0 + 2, y0 + 14, 18, 2);
-  ctx.fillRect(x0 + 10, y0 + 22, 14, 2);
-  // Layer 3: Soft turquoise/cyan wave crests
-  ctx.fillStyle = 'rgba(128, 218, 252, 0.45)';
-  ctx.fillRect(x0 + 8, y0 + 2, 10, 2);
-  ctx.fillRect(x0 + 4, y0 + 12, 14, 2);
-  ctx.fillRect(x0 + 12, y0 + 20, 12, 2);
-  // Layer 4: Restrained foam flecks along wave crests (2x2 pixel blocks)
-  ctx.fillStyle = 'rgba(230, 250, 255, 0.6)';
-  ctx.fillRect(x0 + 14, y0 + 2, 4, 2);
-  ctx.fillRect(x0 + 8, y0 + 12, 4, 2);
-  ctx.fillRect(x0 + 18, y0 + 20, 4, 2);
-  applyMicroTexture(ctx, x0, y0, 3);
+  // Ocean blue ramped through deep / mid / lit stops, with the field stretched
+  // 3x vertically so it bands into wave rolls. Opaque alpha = 255 (no holes in
+  // the opaque pass). Crest colours stay inside the blue family — no neon cyan.
+  const field = fillMaterial(ctx, x0, y0, PAL_WATER, {
+    seed: 66, cells: 4, octaves: 3, contrast: 1.15, sy: 3,
+  });
+  // Deep troughs between rolls
+  scatterFlecks(ctx, x0, y0, {
+    seed: 67, count: 14, color: 'rgba(18, 66, 136, 0.40)',
+    field, want: -1, threshold: 0.4, w: 6, h: 2,
+  });
+  // Lit wave shoulders
+  scatterFlecks(ctx, x0, y0, {
+    seed: 68, count: 12, color: 'rgba(96, 178, 232, 0.34)',
+    field, want: 1, threshold: 0.58, w: 4, h: 2,
+  });
+  // Sparse, restrained foam only on the highest crests — kept low-alpha so it
+  // does not repeat into a bright grid across an ocean surface.
+  scatterFlecks(ctx, x0, y0, {
+    seed: 69, count: 5, color: 'rgba(214, 238, 250, 0.34)',
+    field, want: 1, threshold: 0.74, w: 4, h: 2,
+  });
+  applyMicroTexture(ctx, x0, y0, 3, 3);
 }
 
 function drawLogSide(ctx, x0, y0) {
@@ -260,25 +441,42 @@ function drawLogTop(ctx, x0, y0) {
   applyMicroTexture(ctx, x0, y0, 4);
 }
 
+/**
+ * Shared foliage build: clumped canopy field, shadowed gaps between leaf
+ * clusters and lit leaf edges on top of them. Alpha stays 255 throughout, so
+ * leaves never punch holes in the opaque pass under `alphaTest 0.35`.
+ */
+function drawFoliage(ctx, x0, y0, palette, seed, opts = {}) {
+  const { gapAlpha = 0.34, litAlpha = 0.32, contrast = 1.3, phase = 0 } = opts;
+  const { shadow, light } = palette;
+  const field = fillMaterial(ctx, x0, y0, palette, {
+    seed, cells: 4, octaves: 3, contrast,
+  });
+  // Depth between leaf clusters — dark, but never black, so the canopy keeps a
+  // readable silhouette instead of turning into a muddy forest mass.
+  scatterFlecks(ctx, x0, y0, {
+    seed: seed + 1, count: 20,
+    color: `rgba(${clamp(shadow[0] - 12)}, ${clamp(shadow[1] - 18)}, ${clamp(shadow[2] - 8)}, ${gapAlpha})`,
+    field, want: -1, threshold: 0.44, w: 4, h: 4,
+  });
+  // Lit leaf edges catching the sun on the clumps that face up
+  scatterFlecks(ctx, x0, y0, {
+    seed: seed + 2, count: 18,
+    color: `rgba(${clamp(light[0] + 10)}, ${clamp(light[1] + 12)}, ${clamp(light[2] + 6)}, ${litAlpha})`,
+    field, want: 1, threshold: 0.58, w: 2, h: 2,
+  });
+  // Fine sub-leaf ticks to break up the 4px clumps at close range
+  scatterFlecks(ctx, x0, y0, {
+    seed: seed + 3, count: 10,
+    color: `rgba(${shadow[0]}, ${shadow[1]}, ${shadow[2]}, 0.26)`,
+    field, want: 1, threshold: 0.52, w: 2, h: 2,
+  });
+  applyMicroTexture(ctx, x0, y0, 4, phase);
+  return field;
+}
+
 function drawLeaves(ctx, x0, y0) {
-  // Natural readable leaf green base with fully opaque canvas alpha
-  fillNoise(ctx, x0, y0, [62, 122, 45], 0.22, 101, 255, 2);
-  const r = rnd(12);
-  // Dark leaf shadow clusters
-  ctx.fillStyle = 'rgba(34, 76, 24, 0.5)';
-  for (let i = 0; i < 24; i++) {
-    const bx = (r() * 14) | 0;
-    const by = (r() * 14) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 4, 4);
-  }
-  // Sunlight leaf edge highlights
-  ctx.fillStyle = 'rgba(98, 162, 65, 0.4)';
-  for (let i = 0; i < 16; i++) {
-    const bx = (r() * 15) | 0;
-    const by = (r() * 15) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 2, 2);
-  }
-  applyMicroTexture(ctx, x0, y0, 4);
+  drawFoliage(ctx, x0, y0, PAL_LEAVES, 101, { phase: 1 });
 }
 
 function drawPlanks(ctx, x0, y0) {
@@ -399,19 +597,39 @@ function drawIronOre(ctx, x0, y0) {
 }
 
 function drawBush(ctx, x0, y0) {
+  // Built from 2px blocks rather than antialiased arcs: every painted pixel is
+  // fully opaque, so nothing sits under the 0.35 alphaTest and drops out as a
+  // ragged hole in the silhouette.
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
-  ctx.fillStyle = '#448832';
-  ctx.beginPath();
-  ctx.arc(x0 + 16, y0 + 18, 11, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#5c9e46';
-  ctx.beginPath();
-  ctx.arc(x0 + 12, y0 + 14, 7, 0, Math.PI * 2);
-  ctx.fill();
+  const field = makeFbm(120, 4, 2);
+  const cx = 16;
+  const cy = 19;
+  const { shadow, base, light } = PAL_LEAVES;
+  for (let py = 0; py < TILE_PX; py += 2) {
+    for (let px = 0; px < TILE_PX; px += 2) {
+      const dx = (px + 1 - cx) / 13;
+      const dy = (py + 1 - cy) / 12;
+      const d = dx * dx + dy * dy;
+      const n = field((px + 1) / TILE_PX, (py + 1) / TILE_PX);
+      // Noisy radial mask gives a leafy edge instead of a clean circle
+      if (d > 0.75 + (n - 0.5) * 0.55) continue;
+      const lit = clamp01(0.55 + (n - 0.5) * 1.4 - dy * 0.5);
+      const from = lit < 0.5 ? shadow : base;
+      const to = lit < 0.5 ? base : light;
+      const k = lit < 0.5 ? lit * 2 : (lit - 0.5) * 2;
+      ctx.fillStyle = `rgb(${clamp(mixChannel(from[0], to[0], k))}, ${clamp(mixChannel(from[1], to[1], k))}, ${clamp(mixChannel(from[2], to[2], k))})`;
+      ctx.fillRect(x0 + px, y0 + py, 2, 2);
+    }
+  }
+  // Ripe berries, kept few and clustered so they read as accents, not confetti
   const r = rnd(12);
-  for (let i = 0; i < 8; i++) {
-    ctx.fillStyle = '#e03535';
-    ctx.fillRect(x0 + Math.floor(4 + r() * 22), y0 + Math.floor(8 + r() * 16), 2, 2);
+  for (let i = 0; i < 6; i++) {
+    const bx = 8 + Math.floor(r() * 8) * 2;
+    const by = 12 + Math.floor(r() * 6) * 2;
+    ctx.fillStyle = '#c22f2f';
+    ctx.fillRect(x0 + bx, y0 + by, 2, 2);
+    ctx.fillStyle = 'rgba(240, 120, 110, 0.7)';
+    ctx.fillRect(x0 + bx, y0 + by, 1, 1);
   }
 }
 
@@ -632,21 +850,7 @@ function drawSequoiaLogTop(ctx, x0, y0) {
 }
 
 function drawSequoiaLeaves(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [36, 110, 47], 0.28, 202, 255, 2);
-  const r = rnd(203);
-  ctx.fillStyle = 'rgba(20, 75, 25, 0.5)';
-  for (let i = 0; i < 20; i++) {
-    const bx = (r() * 14) | 0;
-    const by = (r() * 14) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 4, 4);
-  }
-  ctx.fillStyle = 'rgba(70, 150, 60, 0.4)';
-  for (let i = 0; i < 14; i++) {
-    const bx = (r() * 15) | 0;
-    const by = (r() * 15) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 2, 2);
-  }
-  applyMicroTexture(ctx, x0, y0, 4);
+  drawFoliage(ctx, x0, y0, PAL_SEQUOIA, 202, { contrast: 1.35, phase: 2 });
 }
 
 function drawSpruceLogSide(ctx, x0, y0) {
@@ -672,39 +876,26 @@ function drawSpruceLogTop(ctx, x0, y0) {
 }
 
 function drawSpruceLeaves(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [41, 94, 67], 0.28, 302, 255, 2);
-  const r = rnd(303);
-  ctx.fillStyle = 'rgba(22, 65, 42, 0.5)';
-  for (let i = 0; i < 20; i++) {
-    const bx = (r() * 14) | 0;
-    const by = (r() * 14) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 4, 4);
-  }
-  ctx.fillStyle = 'rgba(75, 140, 105, 0.4)';
-  for (let i = 0; i < 14; i++) {
-    const bx = (r() * 15) | 0;
-    const by = (r() * 15) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 2, 2);
-  }
-  applyMicroTexture(ctx, x0, y0, 4);
+  // Needled conifer: tighter, darker clumping than broadleaf, but the same
+  // shadow floor so a mixed forest keeps one coherent green family.
+  drawFoliage(ctx, x0, y0, PAL_SPRUCE, 302, { contrast: 1.4, gapAlpha: 0.3, phase: 3 });
 }
 
 function drawPalmLeaves(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [68, 145, 52], 0.22, 501, 255, 2);
-  const r = rnd(502);
-  ctx.fillStyle = 'rgba(36, 95, 28, 0.45)';
-  for (let i = 0; i < 22; i++) {
-    const bx = (r() * 14) | 0;
-    const by = (r() * 14) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 4, 4);
-  }
-  ctx.fillStyle = 'rgba(110, 182, 72, 0.4)';
-  for (let i = 0; i < 16; i++) {
-    const bx = (r() * 15) | 0;
-    const by = (r() * 15) | 0;
-    ctx.fillRect(x0 + bx * 2, y0 + by * 2, 2, 2);
-  }
-  applyMicroTexture(ctx, x0, y0, 4);
+  // Tropical fronds: brighter, wider clumps with the field stretched along the
+  // frond direction so palm canopy reads distinct from inland leaves.
+  const field = fillMaterial(ctx, x0, y0, PAL_PALM, {
+    seed: 501, cells: 4, octaves: 3, contrast: 1.25, sx: 2,
+  });
+  scatterFlecks(ctx, x0, y0, {
+    seed: 502, count: 18, color: 'rgba(30, 90, 30, 0.32)',
+    field, want: -1, threshold: 0.44, w: 6, h: 2,
+  });
+  scatterFlecks(ctx, x0, y0, {
+    seed: 503, count: 16, color: 'rgba(126, 196, 84, 0.32)',
+    field, want: 1, threshold: 0.58, w: 4, h: 2,
+  });
+  applyMicroTexture(ctx, x0, y0, 4, 2);
 }
 
 function drawCoral(ctx, x0, y0) {
@@ -719,31 +910,52 @@ function drawCoral(ctx, x0, y0) {
   applyMicroTexture(ctx, x0, y0, 3);
 }
 
+/**
+ * Draw a swaying blade as stacked 2px blocks. Strokes were antialiased, which
+ * left the outer pixels of a thin blade below `alphaTest 0.35` — the blade then
+ * rendered thinner and gappier than drawn. Block stepping keeps every pixel at
+ * full alpha and full colour.
+ */
+function drawBlade(ctx, x0, y0, opts) {
+  const { baseX, top, bottom, sway, width, dark, mid, lit } = opts;
+  for (let py = bottom; py >= top; py -= 2) {
+    const t = (bottom - py) / Math.max(2, bottom - top);
+    const bx = baseX + Math.round((sway * t * t) / 2) * 2;
+    const shade = t > 0.66 ? lit : t > 0.3 ? mid : dark;
+    ctx.fillStyle = shade;
+    ctx.fillRect(x0 + Math.max(0, Math.min(TILE_PX - width, bx)), y0 + py, width, 2);
+  }
+}
+
 function drawKelp(ctx, x0, y0) {
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
   const r = rnd(412);
-  ctx.strokeStyle = '#1c7a45';
-  ctx.lineWidth = 4;
   for (let i = 0; i < 3; i++) {
-    const x = x0 + 6 + i * 10;
-    ctx.beginPath();
-    ctx.moveTo(x, y0 + 30);
-    ctx.quadraticCurveTo(x - 3 + r() * 6, y0 + 17, x + r() * 4 - 2, y0 + 3);
-    ctx.stroke();
+    const baseX = 4 + i * 10;
+    drawBlade(ctx, x0, y0, {
+      baseX, top: 2 + Math.floor(r() * 3) * 2, bottom: 30,
+      sway: (r() * 8) - 4, width: 4,
+      dark: '#14603a', mid: '#1f8049', lit: '#2f9c5c',
+    });
+    // Frond flaps hanging off the stipe
+    ctx.fillStyle = '#1a6b3d';
+    for (let k = 0; k < 3; k++) {
+      const fy = 8 + k * 7;
+      const fx = Math.max(0, Math.min(TILE_PX - 4, baseX + (k % 2 ? 4 : -4)));
+      ctx.fillRect(x0 + fx, y0 + fy, 4, 2);
+    }
   }
 }
 
 function drawSeagrass(ctx, x0, y0) {
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
   const r = rnd(413);
-  ctx.strokeStyle = '#3cb85c';
-  ctx.lineWidth = 2;
   for (let i = 0; i < 7; i++) {
-    const x = x0 + 3 + i * 4;
-    ctx.beginPath();
-    ctx.moveTo(x, y0 + 30);
-    ctx.quadraticCurveTo(x - 3 + r() * 6, y0 + 13, x + r() * 5 - 2, y0 + 4 + r() * 5);
-    ctx.stroke();
+    drawBlade(ctx, x0, y0, {
+      baseX: 2 + i * 4, top: 4 + Math.floor(r() * 4) * 2, bottom: 30,
+      sway: (r() * 10) - 5, width: 2,
+      dark: '#2b8a48', mid: '#37a355', lit: '#4cbc6a',
+    });
   }
 }
 
