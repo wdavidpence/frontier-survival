@@ -3365,11 +3365,11 @@ export class Game {
     // Drive greedy shader lighting
     const mat = this.atlas?.greedyMaterial;
     if (mat?.uniforms) {
-      mat.uniforms.sunIntensity.value = night ? 0.32 : 0.62 + sunI * 0.78;
+      mat.uniforms.sunIntensity.value = night ? 0.32 : 0.46 + sunI * 0.58;
       mat.uniforms.ambientColor.value.set(
-        night ? 0.22 : 0.54,
-        night ? 0.24 : 0.6,
-        night ? 0.32 : 0.7,
+        night ? 0.22 : 0.66,
+        night ? 0.24 : 0.7,
+        night ? 0.32 : 0.78,
       );
     }
   }
