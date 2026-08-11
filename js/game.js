@@ -52,11 +52,11 @@ import {
 import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=244';
-import { createBlockAtlas } from './atlas.js?v=291';
+import { createBlockAtlas } from './atlas.js?v=292';
 import { BreakFX, WeatherFX } from './fx.js?v=245';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
-import { VoxelCloudLayer } from './sky-clouds.js?v=1';
+import { VoxelCloudLayer } from './sky-clouds.js?v=2';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -222,10 +222,8 @@ export class Game {
     this.scene.add(this.hemi);
 
     this.clouds = new VoxelCloudLayer(this.scene);
-    // The fixed-height voxel layer can intersect the camera's upper frustum as
-    // a clipped pale strip. Keep the layered dome as the stable sky composition
-    // until clouds can be made camera-relative without breaking the horizon.
-    this.clouds.mesh.visible = false;
+    // Keep clouds overhead and camera-relative so they add depth without
+    // becoming pale side arcs when the player crosses the starter island.
 
     this.world = null;
     this.player = null;
@@ -1984,7 +1982,7 @@ export class Game {
 
     this.world.flushDirty();
     this.fx.tick(dt);
-    this.clouds?.update(dt);
+    this.clouds?.update(dt, this.camera);
     this._lightScanAcc += dt;
     if (this._lightScanAcc > 0.5) {
       this._lightScanAcc = 0;

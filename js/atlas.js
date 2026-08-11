@@ -180,25 +180,25 @@ function drawStone(ctx, x0, y0) {
 }
 
 function drawSand(ctx, x0, y0) {
-  // Warm, vibrant golden beach sand (never gray or washed-out)
-  fillNoise(ctx, x0, y0, [222, 200, 151], 0.16, 55, 255, 2);
+  // Rich, warm golden beach sand with distinct shoreline contrast (never gray or washed-out)
+  fillNoise(ctx, x0, y0, [226, 196, 138], 0.14, 55, 255, 2);
   const r = rnd(56);
   // Sunny sand grain flecks
-  ctx.fillStyle = 'rgba(248, 232, 188, 0.4)';
+  ctx.fillStyle = 'rgba(252, 236, 182, 0.45)';
   for (let i = 0; i < 16; i++) {
     const bx = (r() * 15) | 0;
     const by = (r() * 15) | 0;
     ctx.fillRect(x0 + bx * 2, y0 + by * 2, 2, 2);
   }
-  // Warm dune shadows
-  ctx.fillStyle = 'rgba(188, 158, 108, 0.35)';
+  // Warm dune shadow flecks
+  ctx.fillStyle = 'rgba(182, 142, 86, 0.38)';
   for (let i = 0; i < 14; i++) {
     const bx = (r() * 15) | 0;
     const by = (r() * 15) | 0;
     ctx.fillRect(x0 + bx * 2, y0 + by * 2, 2, 2);
   }
   // Smooth dune ripple accents in warm golden shadow
-  ctx.fillStyle = 'rgba(195, 162, 110, 0.4)';
+  ctx.fillStyle = 'rgba(188, 148, 88, 0.45)';
   ctx.fillRect(x0 + 4, y0 + 8, 14, 2);
   ctx.fillRect(x0 + 16, y0 + 18, 12, 2);
   ctx.fillRect(x0 + 6, y0 + 26, 16, 2);
@@ -206,23 +206,28 @@ function drawSand(ctx, x0, y0) {
 }
 
 function drawWater(ctx, x0, y0) {
-  // Rich, crystal-clear tropical azure water (opaque alpha = 255 so no alpha holes)
-  fillNoise(ctx, x0, y0, [43, 130, 201], 0.16, 66, 255, 2);
-  // Deep ocean wave troughs
-  ctx.fillStyle = 'rgba(25, 90, 155, 0.35)';
-  ctx.fillRect(x0 + 4, y0 + 8, 12, 2);
-  ctx.fillRect(x0 + 10, y0 + 18, 16, 2);
-  ctx.fillRect(x0 + 18, y0 + 28, 10, 2);
-  // Soft turquoise wave crests
-  ctx.fillStyle = 'rgba(130, 215, 255, 0.4)';
-  ctx.fillRect(x0 + 4, y0 + 6, 14, 2);
-  ctx.fillRect(x0 + 18, y0 + 14, 10, 2);
-  ctx.fillRect(x0 + 6, y0 + 24, 12, 2);
-  // Subtle foam flecks
-  ctx.fillStyle = 'rgba(225, 250, 255, 0.5)';
-  ctx.fillRect(x0 + 12, y0 + 6, 4, 2);
-  ctx.fillRect(x0 + 22, y0 + 14, 4, 2);
-  ctx.fillRect(x0 + 8, y0 + 24, 4, 2);
+  // Layered Minecraft-like blue depth (opaque alpha = 255, eliminating any opaque-pass holes)
+  fillNoise(ctx, x0, y0, [34, 112, 198], 0.14, 66, 255, 2);
+  // Layer 1: Deep ocean dark troughs (dark navy blue 2x2 grid bands)
+  ctx.fillStyle = 'rgba(16, 58, 132, 0.48)';
+  ctx.fillRect(x0 + 2, y0 + 10, 14, 2);
+  ctx.fillRect(x0 + 14, y0 + 20, 16, 2);
+  ctx.fillRect(x0 + 4, y0 + 28, 12, 2);
+  // Layer 2: Mid-depth vibrant blue wave body
+  ctx.fillStyle = 'rgba(48, 140, 222, 0.4)';
+  ctx.fillRect(x0 + 6, y0 + 4, 12, 2);
+  ctx.fillRect(x0 + 2, y0 + 14, 18, 2);
+  ctx.fillRect(x0 + 10, y0 + 22, 14, 2);
+  // Layer 3: Soft turquoise/cyan wave crests
+  ctx.fillStyle = 'rgba(128, 218, 252, 0.45)';
+  ctx.fillRect(x0 + 8, y0 + 2, 10, 2);
+  ctx.fillRect(x0 + 4, y0 + 12, 14, 2);
+  ctx.fillRect(x0 + 12, y0 + 20, 12, 2);
+  // Layer 4: Restrained foam flecks along wave crests (2x2 pixel blocks)
+  ctx.fillStyle = 'rgba(230, 250, 255, 0.6)';
+  ctx.fillRect(x0 + 14, y0 + 2, 4, 2);
+  ctx.fillRect(x0 + 8, y0 + 12, 4, 2);
+  ctx.fillRect(x0 + 18, y0 + 20, 4, 2);
   applyMicroTexture(ctx, x0, y0, 3);
 }
 
