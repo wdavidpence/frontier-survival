@@ -52,7 +52,7 @@ import {
 import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=244';
-import { createBlockAtlas } from './atlas.js?v=290';
+import { createBlockAtlas } from './atlas.js?v=291';
 import { BreakFX, WeatherFX } from './fx.js?v=245';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
