@@ -56,7 +56,7 @@ import { createBlockAtlas } from './atlas.js?v=295';
 import { BreakFX, WeatherFX } from './fx.js?v=245';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
-import { VoxelCloudLayer } from './sky-clouds.js?v=4';
+import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=6';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -157,15 +157,16 @@ export class Game {
         depthWrite: false,
         depthTest: false,
         uniforms: {
-          topColor: { value: new THREE.Color(0x4d91d2) },
-          midColor: { value: new THREE.Color(0x8fc8ef) },
-          horizonColor: { value: new THREE.Color(0xffd2a0) },
-          groundColor: { value: new THREE.Color(0x71808b) },
+          topColor: { value: new THREE.Color(0x2966b0) },
+          midColor: { value: new THREE.Color(0x72bce8) },
+          horizonColor: { value: new THREE.Color(0xffca92) },
+          groundColor: { value: new THREE.Color(0x657681) },
           sunGlowColor: { value: new THREE.Color(0xffd7a2) },
           sunGlowStrength: { value: 0.22 },
+          sunDir: { value: new THREE.Vector3(0.4, 0.8, 0.4).normalize() },
         },
         vertexShader: 'varying vec3 vLocal; void main(){ vLocal=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-        fragmentShader: 'uniform vec3 topColor; uniform vec3 midColor; uniform vec3 horizonColor; uniform vec3 groundColor; uniform vec3 sunGlowColor; uniform float sunGlowStrength; varying vec3 vLocal; void main(){ float h=clamp(normalize(vLocal).y,-1.0,1.0); float above= smoothstep(-0.08,0.2,h); vec3 sky=mix(horizonColor,midColor,above); sky=mix(sky,topColor,smoothstep(0.18,0.86,h)); float glow=pow(1.0-smoothstep(-0.06,0.3,h),2.0)*sunGlowStrength; sky=mix(sky,sunGlowColor,glow); sky=mix(groundColor,sky,smoothstep(-0.42,-0.02,h)); gl_FragColor=vec4(sky,1.0); }',
+        fragmentShader: 'uniform vec3 topColor; uniform vec3 midColor; uniform vec3 horizonColor; uniform vec3 groundColor; uniform vec3 sunGlowColor; uniform float sunGlowStrength; uniform vec3 sunDir; varying vec3 vLocal; void main(){ vec3 dir=normalize(vLocal); float h=dir.y; float above=smoothstep(-0.1,0.25,h); vec3 sky=mix(horizonColor,midColor,above); sky=mix(sky,topColor,smoothstep(0.22,0.88,h)); float horizHaze=pow(1.0-abs(h),4.0)*0.15; sky=mix(sky,horizonColor,clamp(horizHaze,0.0,1.0)); float sd=dot(dir,sunDir); float halo=pow(max(0.0,sd),5.0)*sunGlowStrength*2.8; float corona=pow(max(0.0,sd),32.0)*sunGlowStrength*3.5; sky=mix(sky,sunGlowColor,clamp(halo,0.0,0.72)); sky+=sunGlowColor*corona; sky=mix(groundColor,sky,smoothstep(-0.44,-0.03,h)); gl_FragColor=vec4(sky,1.0); }',
       }),
     );
     this.skyDome.renderOrder = -100;
@@ -222,8 +223,8 @@ export class Game {
     this.scene.add(this.hemi);
 
     this.clouds = new VoxelCloudLayer(this.scene);
-    // Keep clouds overhead and camera-relative so they add depth without
-    // becoming pale side arcs when the player crosses the starter island.
+    this.sunDisc = new SunDisc(this.scene);
+    this.starField = new StarField(this.scene);
 
     this.world = null;
     this.player = null;
@@ -3305,9 +3306,9 @@ export class Game {
     this.sun.position.set(sunX, sunY, sunZ);
     this.fill.position.set(-sunX * 0.55, Math.max(18, sunY * 0.42), -sunZ * 0.55);
 
-    palette.top.setHex(0x3f82c2).lerp(palette.nightTop, nightMix);
-    palette.mid.setHex(0x82bee8).lerp(palette.nightMid, nightMix);
-    palette.horizon.setHex(0xffc88f).lerp(palette.nightHorizon, nightMix);
+    palette.top.setHex(0x2966b0).lerp(palette.nightTop, nightMix);
+    palette.mid.setHex(0x72bce8).lerp(palette.nightMid, nightMix);
+    palette.horizon.setHex(0xffca92).lerp(palette.nightHorizon, nightMix);
     palette.ground.setHex(0x657681).lerp(palette.nightGround, nightMix);
     palette.warm.setHex(0xffb86f);
     palette.horizon.lerp(palette.warm, lowSun * (night ? 0.12 : 0.46));
@@ -3332,6 +3333,19 @@ export class Game {
     this.hemi.intensity = (night ? 0.3 : 0.28 + sunI * 0.44) + flash * 0.9;
 
     this.scene.background.copy(palette.mid);
+    // Normalized sun direction for sky shader and disc placement.
+    const _sunLen = Math.hypot(sunX, sunY, sunZ) || 1;
+    const _sdx = sunX / _sunLen, _sdy = sunY / _sunLen, _sdz = sunZ / _sunLen;
+
+    // Moon arc: 12-hour offset from sun so it rises as the sun sets.
+    const moonPhase = (phase + 0.5) % 1.0;
+    const moonArc = ((moonPhase - 0.05) / 0.5) * Math.PI;
+    const moonRawX = Math.cos(moonArc) * 64;
+    const moonRawY = Math.sin(moonArc) * 78;
+    const moonRawZ = Math.sin(moonArc) * 42;
+    const _moonLen = Math.hypot(moonRawX, moonRawY, moonRawZ) || 1;
+    const _mdx = moonRawX / _moonLen, _mdy = moonRawY / _moonLen, _mdz = moonRawZ / _moonLen;
+
     if (this.skyDome) {
       this.skyDome.position.copy(this.camera.position);
       const uniforms = this.skyDome.material.uniforms;
@@ -3340,8 +3354,11 @@ export class Game {
       uniforms.horizonColor.value.copy(palette.horizon);
       uniforms.groundColor.value.copy(palette.ground);
       uniforms.sunGlowColor.value.copy(palette.glow);
-      uniforms.sunGlowStrength.value = Math.min(0.28, 0.1 + lowSun * 0.2 + sunI * 0.04);
+      uniforms.sunGlowStrength.value = Math.min(0.30, 0.08 + lowSun * 0.24 + sunI * 0.04);
+      uniforms.sunDir.value.set(_sdx, _sdy, _sdz);
     }
+    this.sunDisc?.update(_sdx, _sdy, _sdz, _mdx, _mdy, _mdz, this.camera.position, nightMix);
+    this.starField?.update(nightMix, this.camera.position);
     // Fog follows the horizon layer, preserving silhouettes and contact edges.
     palette.fog.copy(palette.horizon).lerp(palette.mid, 0.28);
     this.scene.fog.color.copy(palette.fog);

@@ -1,29 +1,30 @@
 /**
- * Simple voxel cloud layer: sparse, camera-relative clusters of small
- * overlapping box "voxels" that read as Minecraft-like cloud puffs
- * drifting slowly overhead without becoming a horizon occluder.
+ * Visual sky layer: drifting Minecraft-like cloud banks, sun/moon discs,
+ * and a night star field — all camera-relative so they fill the horizon
+ * without becoming static backdrop props.
  */
 import * as THREE from 'three';
 
-const CLOUD_Y = 42;
+const CLOUD_Y = 48;
 const CLUSTER_CELL = 20;
-const CLUSTER_GRID = 9;
-const VOXEL_SPACING = 3.2;
-const VOXEL_W = 3.6;
-const VOXEL_H = 2.4;
-const VOXEL_D = 3.6;
+const CLUSTER_GRID = 11;
+const VOXEL_SPACING = 3.8;
+const VOXEL_W = 4.8;
+const VOXEL_H = 3.2;
+const VOXEL_D = 4.8;
 const DRIFT_SPEED = 0.35;
 
-// Small relative voxel offsets (in voxel units) per cluster template so each
-// cloud bank reads as a blocky, irregular puff rather than a uniform slab.
+// Seven cloud-puff templates (in voxel-unit offsets) — longest has 7 blocks.
 const TEMPLATES = [
   [[0, 0, 0], [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, 0, 1]],
   [[0, 0, 0], [1, 0, 0], [0, 0, 1], [1, 0, 1], [0, 1, 0], [1, 1, 0]],
   [[0, 0, 0], [-1, 0, 0], [1, 0, 0], [2, 0, 0], [0, 1, 0]],
   [[0, 0, 0], [0, 0, 1], [0, 0, -1], [1, 0, 0], [0, 1, 1]],
   [[0, 0, 0], [1, 0, 0], [0, 0, 1], [-1, 0, 0], [0, 1, 0], [1, 0, 1]],
+  [[0, 0, 0], [1, 0, 0], [2, 0, 0], [0, 0, 1], [1, 0, 1], [0, 1, 0]],
+  [[0, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [1, 0, 0], [0, 1, 0], [1, 0, -1]],
 ];
-const MAX_VOXELS = 6;
+const MAX_VOXELS = 7;
 
 export class VoxelCloudLayer {
   /**
@@ -35,18 +36,19 @@ export class VoxelCloudLayer {
 
     const count = CLUSTER_GRID * CLUSTER_GRID * MAX_VOXELS;
     const geo = new THREE.BoxGeometry(VOXEL_W, VOXEL_H, VOXEL_D);
-    const mat = new THREE.MeshBasicMaterial({
+    // Lambert picks up directional/hemisphere light: bright tops, shadowed undersides.
+    const mat = new THREE.MeshLambertMaterial({
       color: 0xffffff,
+      emissive: new THREE.Color(0x1c1c1c),
       transparent: true,
-      opacity: 0.25,
+      opacity: 0.88,
       depthWrite: false,
     });
     this.mesh = new THREE.InstancedMesh(geo, mat, count);
     this.mesh.renderOrder = -50;
     this.mesh.frustumCulled = false;
 
-    // deterministic pseudo-random layout so the layer reads as clusters of
-    // puffs with gaps of sky between banks, not a solid sheet
+    // Deterministic pseudo-random layout: clustered puffs with gaps of sky.
     let seed = 1337;
     const rand = () => {
       seed = (seed * 1103515245 + 12345) & 0x7fffffff;
@@ -58,10 +60,9 @@ export class VoxelCloudLayer {
     this._y = [];
     this._z = [];
     this._scale = [];
-    let i = 0;
     for (let gx = 0; gx < CLUSTER_GRID; gx++) {
       for (let gz = 0; gz < CLUSTER_GRID; gz++) {
-        const show = rand() < 0.4;
+        const show = rand() < 0.52;
         const template = TEMPLATES[Math.floor(rand() * TEMPLATES.length)];
         const clusterJitterX = (rand() - 0.5) * VOXEL_SPACING * 0.6;
         const clusterJitterZ = (rand() - 0.5) * VOXEL_SPACING * 0.6;
@@ -69,10 +70,7 @@ export class VoxelCloudLayer {
 
         for (let slot = 0; slot < MAX_VOXELS; slot++) {
           const active = show && slot < template.length;
-          let lx = 0;
-          let ly = 0;
-          let lz = 0;
-          let scale = 1;
+          let lx = 0, ly = 0, lz = 0, scale = 1;
           if (active) {
             const [dx, dy, dz] = template[slot];
             lx = dx * VOXEL_SPACING + clusterJitterX + (rand() - 0.5) * 0.6;
@@ -85,7 +83,6 @@ export class VoxelCloudLayer {
           this._y.push(ly);
           this._z.push(lz);
           this._scale.push(scale);
-          i++;
         }
       }
     }
@@ -134,5 +131,127 @@ export class VoxelCloudLayer {
     this.scene.remove(this.mesh);
     this.mesh.geometry.dispose();
     this.mesh.material.dispose();
+  }
+}
+
+/**
+ * Visible sun and moon orbs that track the light arc on the sky dome.
+ * Positioned at a fixed radius from the camera so they sit inside the dome.
+ */
+export class SunDisc {
+  constructor(scene) {
+    this.scene = scene;
+    const sunGeo = new THREE.SphereGeometry(4.2, 12, 8);
+    this._sunMat = new THREE.MeshBasicMaterial({
+      color: 0xfff5c8,
+      depthTest: false,
+      depthWrite: false,
+    });
+    this._sun = new THREE.Mesh(sunGeo, this._sunMat);
+    this._sun.renderOrder = -95;
+    scene.add(this._sun);
+
+    const moonGeo = new THREE.SphereGeometry(3.0, 12, 8);
+    this._moonMat = new THREE.MeshBasicMaterial({
+      color: 0xd8e8ff,
+      depthTest: false,
+      depthWrite: false,
+    });
+    this._moon = new THREE.Mesh(moonGeo, this._moonMat);
+    this._moon.renderOrder = -95;
+    this._moon.visible = false;
+    scene.add(this._moon);
+  }
+
+  /**
+   * @param {number} sx  normalized sun direction x
+   * @param {number} sy  normalized sun direction y
+   * @param {number} sz  normalized sun direction z
+   * @param {number} mx  normalized moon direction x
+   * @param {number} my  normalized moon direction y
+   * @param {number} mz  normalized moon direction z
+   * @param {THREE.Vector3} cameraPos
+   * @param {number} nightMix 0=full day, 1=full night
+   */
+  update(sx, sy, sz, mx, my, mz, cameraPos, nightMix) {
+    const DIST = 162;
+    this._sun.position.set(
+      cameraPos.x + sx * DIST,
+      cameraPos.y + sy * DIST,
+      cameraPos.z + sz * DIST
+    );
+    this._sun.visible = sy > -0.06;
+
+    this._moon.position.set(
+      cameraPos.x + mx * DIST,
+      cameraPos.y + my * DIST,
+      cameraPos.z + mz * DIST
+    );
+    this._moon.visible = my > -0.06 && nightMix > 0.08;
+  }
+
+  dispose() {
+    this.scene.remove(this._sun);
+    this.scene.remove(this._moon);
+    this._sunMat.dispose();
+    this._moonMat.dispose();
+  }
+}
+
+const STAR_COUNT = 340;
+
+/**
+ * Sparse star field on the upper sky dome — fades in at night, camera-relative.
+ */
+export class StarField {
+  constructor(scene) {
+    this.scene = scene;
+    const positions = new Float32Array(STAR_COUNT * 3);
+    // Separate deterministic seed from cloud layer.
+    let seed = 9973;
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) & 0xffffffff;
+      return (seed >>> 0) / 0xffffffff;
+    };
+    for (let i = 0; i < STAR_COUNT; i++) {
+      // Uniform random direction, biased toward zenith.
+      const theta = rand() * Math.PI * 2;
+      const cosP = rand() * 0.9 + 0.1; // avoid very-low horizon stars
+      const sinP = Math.sqrt(1 - cosP * cosP);
+      const r = 170;
+      positions[i * 3]     = sinP * Math.cos(theta) * r;
+      positions[i * 3 + 1] = cosP * r;
+      positions[i * 3 + 2] = sinP * Math.sin(theta) * r;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    this._mat = new THREE.PointsMaterial({
+      color: 0xddeeff,
+      size: 1.5,
+      sizeAttenuation: false,
+      transparent: true,
+      opacity: 0,
+      depthTest: false,
+      depthWrite: false,
+    });
+    this._points = new THREE.Points(geo, this._mat);
+    this._points.renderOrder = -96;
+    this._points.frustumCulled = false;
+    scene.add(this._points);
+  }
+
+  /**
+   * @param {number} opacity 0=invisible (day), 1=full night
+   * @param {THREE.Vector3} cameraPos
+   */
+  update(opacity, cameraPos) {
+    this._mat.opacity = Math.max(0, Math.min(1, opacity));
+    this._points.position.copy(cameraPos);
+  }
+
+  dispose() {
+    this.scene.remove(this._points);
+    this._mat.dispose();
+    this._points.geometry.dispose();
   }
 }

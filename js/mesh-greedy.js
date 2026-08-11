@@ -80,6 +80,11 @@ export function greedyMeshChunk(opts) {
           if (!faceVisible(id, nid, waterId, isTransparent, isSolid)) continue;
 
           const tile = tileFor(id, name);
+
+          // Skip standard orthogonal faces for cross-model plants
+          const isPlant = (tile === 20 || tile === 22 || tile === 53 || tile === 54 || tile === 56 || tile === 57 || tile === 59);
+          if (isPlant) continue;
+
           const col = colorFor(id, name);
 
           const isWater = id === waterId || id === 5;
@@ -185,6 +190,35 @@ export function greedyMeshChunk(opts) {
     q.bz = baseZ + pos[2];
   }
 
+  // Pass 2: Add cross models for plants
+  for (let z = 0; z < sizeZ; z++) {
+    for (let y = 0; y < sizeY; y++) {
+      for (let x = 0; x < sizeX; x++) {
+        const wx = baseX + x;
+        const wy = baseY + y;
+        const wz = baseZ + z;
+        const id = getBlock(wx, wy, wz);
+        if (skipBlock?.(id)) continue;
+        if (id === 0 || id == null) continue;
+
+        const tile = tileFor(id, 'cross');
+        const isPlant = (tile === 20 || tile === 22 || tile === 53 || tile === 54 || tile === 56 || tile === 57 || tile === 59);
+        if (!isPlant) continue;
+
+        const col = colorFor(id, 'cross');
+        quads.push({
+          isCross: true,
+          bx: wx, by: wy, bz: wz,
+          tile,
+          r: Math.min(1, col[0] * 1.05),
+          g: Math.min(1, col[1] * 1.05),
+          b: Math.min(1, col[2] * 1.05),
+          a: 1.0,
+        });
+      }
+    }
+  }
+
   return quads;
 }
 
@@ -212,6 +246,61 @@ export function quadsToArrays(quads) {
   const orderedQuads = opaque.concat(translucent);
 
   for (const q of orderedQuads) {
+    if (q.isCross) {
+      // Deterministic offset to break up grid alignment
+      let h = ((q.bx * 374761393 + q.bz * 3266489917) ^ (q.by * 668265263)) >>> 0;
+      h = (h ^ (h >>> 13)) * 3266489917;
+      const hashX = (((h ^ (h >>> 16)) >>> 0) / 4294967296) * 0.45 - 0.225;
+
+      let h2 = ((q.bx * 93989 + q.bz * 67345) ^ (q.by * 23421)) >>> 0;
+      h2 = (h2 ^ (h2 >>> 13)) * 3266489917;
+      const hashZ = (((h2 ^ (h2 >>> 16)) >>> 0) / 4294967296) * 0.45 - 0.225;
+
+      const ox = q.bx + hashX;
+      const oy = q.by;
+      const oz = q.bz + hashZ;
+
+      // Plane A
+      positions.push(
+        ox, oy, oz,
+        ox, oy+1, oz,
+        ox+1, oy+1, oz+1,
+        ox+1, oy, oz+1
+      );
+      normals.push(0,1,0, 0,1,0, 0,1,0, 0,1,0);
+      colors.push(
+        q.r, q.g, q.b, q.a,
+        q.r, q.g, q.b, q.a,
+        q.r, q.g, q.b, q.a,
+        q.r, q.g, q.b, q.a
+      );
+      uvs.push(0,0, 0,1, 1,1, 1,0);
+      tiles.push(q.tile, q.tile, q.tile, q.tile);
+      indices.push(base, base+1, base+2, base, base+2, base+3);
+      base += 4;
+
+      // Plane B
+      positions.push(
+        ox+1, oy, oz,
+        ox+1, oy+1, oz,
+        ox, oy+1, oz+1,
+        ox, oy, oz+1
+      );
+      normals.push(0,1,0, 0,1,0, 0,1,0, 0,1,0);
+      colors.push(
+        q.r, q.g, q.b, q.a,
+        q.r, q.g, q.b, q.a,
+        q.r, q.g, q.b, q.a,
+        q.r, q.g, q.b, q.a
+      );
+      uvs.push(0,0, 0,1, 1,1, 1,0);
+      tiles.push(q.tile, q.tile, q.tile, q.tile);
+      indices.push(base, base+1, base+2, base, base+2, base+3);
+      base += 4;
+
+      continue;
+    }
+
     const n = [0, 0, 0];
     n[q.axis] = q.sign;
 
