@@ -35,7 +35,7 @@ Real Chromium proof captured against the exact local candidate, served on an eph
 Incremental improvement over the prior checkpoint: lighter clouds, a more open sky, and no occlusion of the scene. The world remains a stylized dark forest and does not yet reach AAA parity.
 
 ## Publication state
-Local release commit created; GitHub push pending.
+Product commit `013ac449e0ce75beedbb66a2b7b829cfcaa9d9a7` and documentation commit `7a8ef8400c82bda9849a022cc15808a271ccb2ee` were pushed to `origin/main`; tag `v1.12.39` points to `013ac449e0ce75beedbb66a2b7b829cfcaa9d9a7`. GitHub source is verified; live GitHub Pages propagation/browser proof is not independently verified.
 
 ## Next action
 Commit and push this checkpoint, then continue toward AAA visual parity beyond the current stylized dark-forest look.
