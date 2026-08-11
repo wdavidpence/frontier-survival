@@ -314,6 +314,12 @@ export class Input {
     this.el.addEventListener('click', this._onClick);
     this.el.addEventListener('mousedown', this._onMouseDown);
     this.el.addEventListener('mouseup', this._onMouseUp);
+    // Pointer events are the canonical path in Chromium/WebKit. Keep the
+    // mouse listeners for older browsers, but mirror the primary button so a
+    // pointer-lock transition cannot swallow the first mining press.
+    this.el.addEventListener('pointerdown', this._onPointerDown);
+    this.el.addEventListener('pointerup', this._onPointerUp);
+    this.el.addEventListener('pointercancel', this._onPointerUp);
     this.el.addEventListener('mouseleave', this._onMouseLeave);
     this.el.addEventListener('wheel', this._onWheel, { passive: false });
     document.addEventListener('mousemove', this._onMouseMove, true);
@@ -337,6 +343,9 @@ export class Input {
     this.el.removeEventListener('click', this._onClick);
     this.el.removeEventListener('mousedown', this._onMouseDown);
     this.el.removeEventListener('mouseup', this._onMouseUp);
+    this.el.removeEventListener('pointerdown', this._onPointerDown);
+    this.el.removeEventListener('pointerup', this._onPointerUp);
+    this.el.removeEventListener('pointercancel', this._onPointerUp);
     this.el.removeEventListener('mouseleave', this._onMouseLeave);
     this.el.removeEventListener('wheel', this._onWheel);
     document.removeEventListener('mousemove', this._onMouseMove, true);
@@ -672,6 +681,17 @@ export class Input {
       this.breakHeld = false;
       this._heldLmb = false;
     }
+  };
+
+  _onPointerDown = (e) => {
+    // PointerEvent is used by modern browsers even when the device is a
+    // mouse. Route it through the same state machine as mousedown; assignment
+    // is idempotent when both compatibility events fire.
+    this._onMouseDown(e);
+  };
+
+  _onPointerUp = (e) => {
+    this._onMouseUp(e);
   };
 
   _onMouseLeave = () => {

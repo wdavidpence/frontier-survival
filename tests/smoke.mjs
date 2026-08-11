@@ -214,7 +214,14 @@ import {
   hasIngredients,
   craftWith,
 } from '../js/inventory.js';
-import { craftRecipe, visibleRecipes, RECIPES } from '../js/crafting.js';
+import {
+  craftRecipe,
+  visibleRecipes,
+  RECIPES,
+  RECIPE_CATEGORIES,
+  RECIPE_TIERS,
+  recipesByCategory,
+} from '../js/crafting.js';
 import { FaunaSystem,  meatDropCount, SPECIES, canFeed, tryFeed } from '../js/animals.js';
 import { animalPartLayout, animalLimbPose, accentColor } from '../js/animal-visuals.js';
 import { tickLogic, isPowered, COMPONENT } from '../js/logic.js';
@@ -2624,6 +2631,22 @@ test('crafting lists shape building recipes', () => {
   assert.ok(visibleRecipes().some((r) => r.id === 'stairs_wood'));
 });
 
+test('crafting progression metadata is complete and reachable', () => {
+  const categories = new Set(RECIPE_CATEGORIES.map((c) => c.id));
+  const tiers = new Set(RECIPE_TIERS.map((t) => t.tier));
+  assert.equal(RECIPES.length, 55);
+  for (const recipe of RECIPES) {
+    assert.ok(categories.has(recipe.category), `${recipe.id} category`);
+    assert.ok(tiers.has(recipe.tier), `${recipe.id} tier`);
+  }
+  const visible = visibleRecipes();
+  assert.equal(visible[0].tier, 1);
+  assert.deepEqual(
+    recipesByCategory().flatMap((group) => group.recipes).map((recipe) => recipe.id).sort(),
+    visible.map((recipe) => recipe.id).sort(),
+  );
+});
+
 test('ore-drops pure catalog', () => {
   assert.ok(isOreBlock(BLOCK.IRON_ORE));
   assert.ok(listOreBlockIds().includes(BLOCK.COAL_ORE));
@@ -2737,11 +2760,21 @@ test('mining path keeps pointer hold, raycast break, remesh, and drop feedback w
   const gameSrc = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
   const inputSrc = readFileSync(new URL('../js/input.js', import.meta.url), 'utf8');
   assert.ok(inputSrc.includes('this.breakHeld = true'), 'LMB must enter the held mining state');
+  assert.ok(inputSrc.includes("addEventListener('pointerdown'"), 'pointerdown must preserve LMB mining in modern browsers');
+  assert.ok(inputSrc.includes('_onPointerUp'), 'pointer release/cancel must clear the mining state');
   assert.ok(gameSrc.includes('this.world.raycast(origin, dir, 6)'), 'mining must select the targeted voxel');
   assert.ok(gameSrc.includes('this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR)'), 'mining must clear the voxel');
   assert.ok(gameSrc.includes('resolveBlockDrop(hit.id, dropForBlock)'), 'mining must resolve a block drop');
   assert.ok(gameSrc.includes('this.player.notify(`+${dropCount} ${displayName(drop)}`'), 'mining must report the awarded drop');
   assert.ok(gameSrc.includes('this.world.flushDirty()'), 'the frame must flush dirty chunks after a break');
+});
+
+test('angled voxel raycast normalizes direction and handles steep pitch safely', () => {
+  const worldSrc = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
+  assert.ok(worldSrc.includes('Math.hypot(direction?.x || 0'), 'raycast must normalize arbitrary camera vectors');
+  assert.ok(worldSrc.includes('step > 0 ? cell + 1 - coord : coord - cell'), 'negative-facing rays must enter the correct boundary');
+  assert.ok(worldSrc.includes('const EPS = 1e-9'), 'raycast must have deterministic voxel-edge tie handling');
+  assert.ok(worldSrc.includes('for (let i = 0; i < 256; i++)'), 'raycast must retain a bounded steep-angle traversal');
 });
 
 
@@ -4049,7 +4082,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.42'), 'HTML must expose v1.12.42');
+  assert.ok(html.includes('v1.12.43'), 'HTML must expose v1.12.43');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=289';
+import { World } from './world.js?v=408';
 import { Player } from './player.js?v=238';
-import { Input } from './input.js?v=283';
+import { Input } from './input.js?v=408';
 import { GameTime } from './time.js?v=221';
 import { AudioBus } from './audio.js?v=220';
 import {
@@ -49,7 +49,7 @@ import {
   emptySlots,
   splitStack,
 } from './inventory.js?v=220';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=220';
+import { visibleRecipes, craftRecipe } from './crafting.js?v=408';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=244';
 import { createBlockAtlas } from './atlas.js?v=295';

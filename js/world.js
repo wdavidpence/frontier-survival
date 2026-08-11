@@ -1317,67 +1317,59 @@ export class World {
    * @returns {{x:number,y:number,z:number, nx:number,ny:number,nz:number, dist:number}|null}
    */
   raycast(origin, direction, maxDist = 8) {
+    // Normalize here instead of trusting every caller. In particular, camera
+    // pitch produces very small horizontal components at steep angles; using
+    // an un-normalized vector makes the DDA distance budget angle-dependent.
+    const len = Math.hypot(direction?.x || 0, direction?.y || 0, direction?.z || 0);
+    if (!Number.isFinite(len) || len < 1e-8 || !Number.isFinite(maxDist) || maxDist <= 0) return null;
+    const dx = direction.x / len;
+    const dy = direction.y / len;
+    const dz = direction.z / len;
     let x = Math.floor(origin.x);
     let y = Math.floor(origin.y);
     let z = Math.floor(origin.z);
 
-    const dx = direction.x;
-    const dy = direction.y;
-    const dz = direction.z;
-
     const stepX = dx > 0 ? 1 : dx < 0 ? -1 : 0;
     const stepY = dy > 0 ? 1 : dy < 0 ? -1 : 0;
     const stepZ = dz > 0 ? 1 : dz < 0 ? -1 : 0;
-
-    const tDeltaX = dx === 0 ? Infinity : Math.abs(1 / dx);
-    const tDeltaY = dy === 0 ? Infinity : Math.abs(1 / dy);
-    const tDeltaZ = dz === 0 ? Infinity : Math.abs(1 / dz);
-
-    let tMaxX = dx === 0 ? Infinity : ((stepX > 0 ? (x + 1 - origin.x) : (origin.x - x)) * tDeltaX);
-    let tMaxY = dy === 0 ? Infinity : ((stepY > 0 ? (y + 1 - origin.y) : (origin.y - y)) * tDeltaY);
-    let tMaxZ = dz === 0 ? Infinity : ((stepZ > 0 ? (z + 1 - origin.z) : (origin.z - z)) * tDeltaZ);
-
+    const tDeltaX = stepX ? Math.abs(1 / dx) : Infinity;
+    const tDeltaY = stepY ? Math.abs(1 / dy) : Infinity;
+    const tDeltaZ = stepZ ? Math.abs(1 / dz) : Infinity;
+    const tMax = (coord, cell, step, delta) => {
+      if (!step) return Infinity;
+      const distance = step > 0 ? cell + 1 - coord : coord - cell;
+      return Math.max(0, distance * delta);
+    };
+    let tMaxX = tMax(origin.x, x, stepX, tDeltaX);
+    let tMaxY = tMax(origin.y, y, stepY, tDeltaY);
+    let tMaxZ = tMax(origin.z, z, stepZ, tDeltaZ);
     let faceX = 0, faceY = 0, faceZ = 0;
     let dist = 0;
+    const EPS = 1e-9;
 
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 256; i++) {
       const id = this.getBlock(x, y, z);
       if (id !== BLOCK.AIR && id !== BLOCK.WATER && BLOCK_PROPS[id]) {
-        // skip non-breakable target? still hit
-        if (id !== BLOCK.AIR) {
-          return { x, y, z, nx: -faceX, ny: -faceY, nz: -faceZ, dist, id };
-        }
+        return { x, y, z, nx: -faceX, ny: -faceY, nz: -faceZ, dist, id };
       }
-
-      if (tMaxX < tMaxY) {
-        if (tMaxX < tMaxZ) {
-          dist = tMaxX;
-          if (dist > maxDist) return null;
-          x += stepX;
-          tMaxX += tDeltaX;
-          faceX = stepX; faceY = 0; faceZ = 0;
-        } else {
-          dist = tMaxZ;
-          if (dist > maxDist) return null;
-          z += stepZ;
-          tMaxZ += tDeltaZ;
-          faceX = 0; faceY = 0; faceZ = stepZ;
-        }
+      const next = Math.min(tMaxX, tMaxY, tMaxZ);
+      if (!Number.isFinite(next) || next > maxDist) return null;
+      // Deterministic X → Y → Z precedence on exact voxel-edge ties avoids
+      // dropping the target when a steep ray crosses two planes together.
+      if (tMaxX <= next + EPS) {
+        x += stepX;
+        tMaxX += tDeltaX;
+        faceX = stepX; faceY = 0; faceZ = 0;
+      } else if (tMaxY <= next + EPS) {
+        y += stepY;
+        tMaxY += tDeltaY;
+        faceX = 0; faceY = stepY; faceZ = 0;
       } else {
-        if (tMaxY < tMaxZ) {
-          dist = tMaxY;
-          if (dist > maxDist) return null;
-          y += stepY;
-          tMaxY += tDeltaY;
-          faceX = 0; faceY = stepY; faceZ = 0;
-        } else {
-          dist = tMaxZ;
-          if (dist > maxDist) return null;
-          z += stepZ;
-          tMaxZ += tDeltaZ;
-          faceX = 0; faceY = 0; faceZ = stepZ;
-        }
+        z += stepZ;
+        tMaxZ += tDeltaZ;
+        faceX = 0; faceY = 0; faceZ = stepZ;
       }
+      dist = next;
     }
     return null;
   }
