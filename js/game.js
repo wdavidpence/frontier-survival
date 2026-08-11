@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=288';
+import { World } from './world.js?v=289';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=283';
 import { GameTime } from './time.js?v=221';

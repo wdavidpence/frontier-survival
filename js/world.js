@@ -15,6 +15,205 @@ export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
 export const SEA_LEVEL = 16;
 
+// ── Procedural plantlife ────────────────────────────────────────────────────
+// Generation already scatters plant blocks over the surface (berry bushes on
+// grass and sand, tree roots and stick litter on the forest floor). Meshed as
+// voxel cubes they read as coloured boxes sitting on the ground. The mushroom
+// pass proved out the alternative — skip the cube in the greedy mesher and
+// stamp a small procedural silhouette in its place — so these forms extend that
+// standard across the understory: blade tufts, shoreline reeds, root arches and
+// fallen twigs.
+//
+// Rules the forms keep so the upgrade stays safe:
+//  • every vertex is clamped inside the host voxel, so a plant never leans into
+//    a neighbouring column, pokes through the block above, or sinks into the
+//    terrain it stands on — nothing new can occlude the world;
+//  • variation comes from hash2 over world coordinates plus the world seed, so a
+//    chunk rebuild (or a neighbour edit) produces identical geometry;
+//  • block data is never touched, so collision, spawn scans and drops are
+//    exactly what they were.
+
+/** Plant block id → silhouette form used by {@link buildPlantGeometry}. */
+const PLANT_FORM = new Map([
+  [BLOCK.BUSH, 'tuft'],
+  [BLOCK.ROOTS, 'arch'],
+  [BLOCK.STICK_PILE, 'twig'],
+]);
+
+/** Worst-case guard: stop stamping plants once a chunk has this many. */
+const PLANT_BUDGET = 768;
+
+/**
+ * Silhouette parameters per form, in voxel fractions. `height`, `reach`, `curve`
+ * and `width` are [min, max] ranges resolved per blade. `curve` droops a blade
+ * back toward the ground, so `arch`/`twig` read as ribs and sticks lying over
+ * the floor while `tuft`/`reed` stand up.
+ */
+const PLANT_SHAPE = {
+  tuft: { blades: 6, segments: 3, height: [0.56, 0.92], reach: [0.10, 0.22], curve: [0.14, 0.32], width: [0.13, 0.19], lift: 0.02 },
+  reed: { blades: 4, segments: 3, height: [0.78, 0.96], reach: [0.03, 0.10], curve: [0.04, 0.14], width: [0.08, 0.12], lift: 0.02 },
+  arch: { blades: 3, segments: 3, height: [0.70, 1.00], reach: [0.26, 0.40], curve: [0.80, 0.96], width: [0.10, 0.15], lift: 0.03 },
+  twig: { blades: 3, segments: 2, height: [0.18, 0.30], reach: [0.28, 0.40], curve: [0.55, 0.80], width: [0.07, 0.11], lift: 0.04 },
+};
+
+/**
+ * Atlas texels each form may sample. The greedy material discards texels under
+ * 0.35 alpha and the atlas is NearestFilter, so a plant that samples a cleared
+ * texel disappears: `arch`/`twig` pin to the centre of a painted stroke, while
+ * `tuft`/`reed` ramp down the painted leaf blob — which also lets some blades
+ * pick up one of the bush tile's berry pixels as a natural accent.
+ */
+const PLANT_TEXEL = {
+  tuft: { uMin: 0.36, uMax: 0.64, vBase: 0.27, vTip: 0.55 },
+  reed: { uMin: 0.38, uMax: 0.62, vBase: 0.30, vTip: 0.52 },
+  arch: { uMin: 0.36, uMax: 0.36, vBase: 0.42, vTip: 0.42 },
+  twig: { uMin: 0.48, uMax: 0.48, vBase: 0.45, vTip: 0.45 },
+};
+
+const PLANT_TAU = Math.PI * 2;
+const plantClamp01 = v => Math.max(0, Math.min(1, v));
+const plantLerp = (a, b, t) => a + (b - a) * t;
+/** Keep a plant vertex inside its own voxel footprint. */
+const plantSpan = (value, centre) => Math.max(centre - 0.47, Math.min(centre + 0.47, value));
+/** hash2 truncates its arguments, so fold coordinates into integers first. */
+const plantHash = (x, y, z, salt) => hash2(x * 131 + y * 3 + salt * 17, z * 197 + y * 7 + salt * 41);
+
+/**
+ * Build blade-fan geometry for a chunk's plant blocks. Pure function of the
+ * instance list and seed — no Three.js, no world state.
+ * @param {Array<{x:number,y:number,z:number,id:number}>} instances plant cells in world space
+ * @param {number} [seed] world seed so two worlds grow differently
+ * @returns {{positions:number[],normals:number[],colors:number[],uvs:number[],tiles:number[],indices:number[],quadCount:number}}
+ */
+export function buildPlantGeometry(instances, seed = 0) {
+  const positions = [];
+  const normals = [];
+  const colors = [];
+  const uvs = [];
+  const tiles = [];
+  const indices = [];
+
+  /** One tapered, drooping strip anchored in a single voxel cell. */
+  const strip = (b) => {
+    const ca = Math.cos(b.angle);
+    const sa = Math.sin(b.angle);
+    const start = positions.length / 3;
+    for (let i = 0; i <= b.segments; i++) {
+      const s = i / b.segments;
+      const rise = Math.max(0, b.height * (s - b.curve * s * s));
+      const sweep = b.offset + b.reach * (0.45 * s + 0.55 * s * s);
+      const y = Math.min(b.cellY + 0.98, b.cellY + b.lift + rise);
+      // Geometric normal of the strip: upright blades face outward, flattened
+      // twigs face up. The atlas shader lights with abs(dot(n, sun)) and the
+      // material is DoubleSide, so the sign never darkens a back face.
+      // sqrt over hypot: this runs per ring for every blade in a chunk.
+      const dy = b.height * (1 - 2 * b.curve * s);
+      const dr = b.reach * (0.45 + 1.1 * s);
+      const tangent = Math.sqrt(dy * dy + dr * dr) || 1;
+      let nx = (dy / tangent) * ca;
+      let ny = Math.abs(dr / tangent) + 0.45;
+      let nz = (dy / tangent) * sa;
+      const nLen = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+      nx /= nLen;
+      ny /= nLen;
+      nz /= nLen;
+      // Darker at the root, brighter at the tip: the ramp is what makes a thin
+      // blade legible against the ground texture it stands on.
+      const k = plantLerp(b.kBase, b.kTip, s);
+      const r = plantClamp01(b.color[0] * k + b.warm);
+      const g = plantClamp01(b.color[1] * k);
+      const bl = plantClamp01(b.color[2] * k - b.warm * 0.6);
+      const v = plantLerp(b.vBase, b.vTip, s);
+      const half = b.width * 0.5 * (1 - 0.72 * s);
+      const midX = b.cellX + ca * sweep;
+      const midZ = b.cellZ + sa * sweep;
+      const offX = sa * half;
+      const offZ = ca * half;
+      for (let side = -1; side <= 1; side += 2) {
+        positions.push(
+          plantSpan(midX - offX * side, b.cellX),
+          y,
+          plantSpan(midZ + offZ * side, b.cellZ),
+        );
+        normals.push(nx, ny, nz);
+        colors.push(r, g, bl, 1);
+        uvs.push(b.u, v);
+        tiles.push(b.tile);
+      }
+    }
+    for (let i = 0; i < b.segments; i++) {
+      const a = start + i * 2;
+      indices.push(a, a + 1, a + 3, a, a + 3, a + 2);
+    }
+  };
+
+  for (const instance of instances) {
+    const base = PLANT_FORM.get(instance.id);
+    if (!base) continue;
+    // A bush standing on the wet shoreline shelf reads as reeds rather than a
+    // round berry tuft: same block, taller and thinner silhouette.
+    const form = base === 'tuft' && instance.y <= SEA_LEVEL + 4 ? 'reed' : base;
+    const shape = PLANT_SHAPE[form];
+    const texel = PLANT_TEXEL[form];
+    const tile = tileForBlock(instance.id);
+    const color = getColor(instance.id);
+    const cellX = instance.x + 0.5;
+    const cellZ = instance.z + 0.5;
+    const spin = plantHash(instance.x, instance.y, instance.z, seed + 3) * PLANT_TAU;
+    // One whole-plant vigour term keeps a clump reading as a single plant even
+    // though each blade resolves its own height and width.
+    const grow = plantLerp(0.86, 1, plantHash(instance.x, instance.y, instance.z, seed + 5));
+    for (let i = 0; i < shape.blades; i++) {
+      const r1 = plantHash(instance.x + i * 7, instance.y, instance.z - i * 5, seed + 11 + i);
+      const r2 = plantHash(instance.x - i * 3, instance.y, instance.z + i * 9, seed + 23 + i);
+      const r3 = plantHash(instance.x + i * 13, instance.y, instance.z + i * 3, seed + 37 + i);
+      // Tufts keep one straight centre blade so the clump has a readable spine.
+      const spine = form === 'tuft' && i === 0;
+      strip({
+        cellX,
+        cellY: instance.y,
+        cellZ,
+        tile,
+        color,
+        angle: (i / shape.blades) * PLANT_TAU + spin + (r1 - 0.5) * 0.8,
+        offset: spine ? 0 : plantLerp(0.02, 0.12, r2),
+        height: plantLerp(shape.height[0], shape.height[1], r1) * grow,
+        reach: spine ? shape.reach[0] * 0.3 : plantLerp(shape.reach[0], shape.reach[1], r2),
+        curve: spine ? shape.curve[0] * 0.5 : plantLerp(shape.curve[0], shape.curve[1], r3),
+        width: plantLerp(shape.width[0], shape.width[1], r3) * grow,
+        lift: shape.lift,
+        segments: shape.segments,
+        u: plantLerp(texel.uMin, texel.uMax, r2),
+        vBase: texel.vBase,
+        vTip: texel.vTip,
+        kBase: 0.74,
+        kTip: plantLerp(1.06, 1.3, r3),
+        warm: (r1 - 0.5) * 0.07,
+      });
+    }
+  }
+
+  return { positions, normals, colors, uvs, tiles, indices, quadCount: indices.length / 6 };
+}
+
+/**
+ * Append a procedural geometry part onto greedy-mesh arrays in place.
+ * @param {{positions:number[],normals:number[],colors:number[],uvs:number[],tiles:number[],indices:number[]}} arrays
+ * @param {{positions:number[],normals:number[],colors:number[],uvs:number[],tiles:number[],indices:number[]}} part
+ */
+function appendGeometryPart(arrays, part) {
+  if (!part || !part.indices.length) return;
+  const vertexOffset = arrays.positions.length / 3;
+  // Copied element-wise: spreading a whole chunk's plant vertices through
+  // Function.prototype.apply can overflow the engine's argument limit.
+  for (const value of part.positions) arrays.positions.push(value);
+  for (const value of part.normals) arrays.normals.push(value);
+  for (const value of part.colors) arrays.colors.push(value);
+  for (const value of part.uvs) arrays.uvs.push(value);
+  for (const value of part.tiles) arrays.tiles.push(value);
+  for (const index of part.indices) arrays.indices.push(index + vertexOffset);
+}
+
 export class World {
   /**
    * @param {object} opts
@@ -1049,29 +1248,30 @@ export class World {
       sizeY: WORLD_HEIGHT,
       sizeZ: CHUNK_SIZE,
       waterId: BLOCK.WATER,
-      skipBlock: id => id === BLOCK.MUSHROOM,
+      skipBlock: id => id === BLOCK.MUSHROOM || PLANT_FORM.has(id),
     });
     const arrays = quadsToArrays(quads);
     const mushrooms = [];
+    const plants = [];
     for (let lz = 0; lz < CHUNK_SIZE; lz++) {
       for (let ly = 0; ly < WORLD_HEIGHT; ly++) {
         for (let lx = 0; lx < CHUNK_SIZE; lx++) {
-          if (data[this._idx(lx, ly, lz)] === BLOCK.MUSHROOM) {
-            mushrooms.push({ x: baseX + lx, y: ly, z: baseZ + lz });
+          const id = data[this._idx(lx, ly, lz)];
+          if (id === BLOCK.MUSHROOM) {
+            if (mushrooms.length < PLANT_BUDGET) mushrooms.push({ x: baseX + lx, y: ly, z: baseZ + lz });
+          } else if (PLANT_FORM.has(id) && plants.length < PLANT_BUDGET) {
+            plants.push({ x: baseX + lx, y: ly, z: baseZ + lz, id });
           }
         }
       }
     }
     if (mushrooms.length) {
-      const mushroom = buildMushroomGeometry(mushrooms, tileForBlock(BLOCK.MUSHROOM), getColor(BLOCK.MUSHROOM));
-      const vertexOffset = arrays.positions.length / 3;
-      arrays.positions.push(...mushroom.positions);
-      arrays.normals.push(...mushroom.normals);
-      arrays.colors.push(...mushroom.colors);
-      arrays.uvs.push(...mushroom.uvs);
-      arrays.tiles.push(...mushroom.tiles);
-      arrays.indices.push(...mushroom.indices.map(index => index + vertexOffset));
+      appendGeometryPart(
+        arrays,
+        buildMushroomGeometry(mushrooms, tileForBlock(BLOCK.MUSHROOM), getColor(BLOCK.MUSHROOM)),
+      );
     }
+    if (plants.length) appendGeometryPart(arrays, buildPlantGeometry(plants, this.seed));
     this._stats.quads = (this._stats.quads || 0) + arrays.quadCount;
 
     const geo = new THREE.BufferGeometry();
