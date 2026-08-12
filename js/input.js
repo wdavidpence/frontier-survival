@@ -1,4 +1,4 @@
-import { isPrimaryBreakButton, combineBreakHeld } from './interaction-contract.js?v=2';
+import { isPrimaryBreakButton, combineBreakHeld, transitionBreakPointer } from './interaction-contract.js?v=3';
 
 /** Keyboard + mouse input (Minecraft-style). Bulletproof for browser quirks.
 
@@ -677,7 +677,7 @@ export class Input {
     this.softLook = true;
     if (!this.locked) this.requestLock();
     if (isPrimaryBreakButton(e)) {
-      this._heldLmb = true;
+      this._heldLmb = transitionBreakPointer(this._heldLmb, e, 'down');
       this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
     }
     if (e.button === 2) {
@@ -690,7 +690,7 @@ export class Input {
 
   _onMouseUp = (e) => {
     if (!e || e.type === 'pointercancel' || isPrimaryBreakButton(e)) {
-      this._heldLmb = false;
+      this._heldLmb = transitionBreakPointer(this._heldLmb, e, e?.type === 'pointercancel' ? 'cancel' : 'up');
       this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
     }
   };

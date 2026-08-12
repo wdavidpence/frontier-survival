@@ -89,7 +89,14 @@ import {
 import { CoopInputRouter, P1, P2 } from '../js/input-coop.js';
 import { canAnvilRepair, anvilRepair } from '../js/anvil-repair.js';
 import { slabHalfFromPitch, slabYOffset, slabHalfMeta, slabHalfFromMeta } from '../js/slab-place.js';
-import { isPrimaryBreakButton, normalizeInteractionDirection, makeVoxelInteraction, combineBreakHeld, raycastVoxel } from '../js/interaction-contract.js';
+import {
+  isPrimaryBreakButton,
+  normalizeInteractionDirection,
+  makeVoxelInteraction,
+  combineBreakHeld,
+  transitionBreakPointer,
+  raycastVoxel,
+} from '../js/interaction-contract.js';
 import { stairFacingFromYaw, stairFacingMeta, stairFacingFromMeta } from '../js/stair-place.js';
 import { bowDrawCharge, bowPowerFromCharge, isBowFullyDrawn } from '../js/bow-draw.js';
 import { advanceCropGrowth, cropStageAt, isCropRipe, CROP_MATURE_SECONDS } from '../js/crop-growth.js';
@@ -222,6 +229,11 @@ import {
   RECIPE_CATEGORIES,
   RECIPE_TIERS,
   recipesByCategory,
+  ingredientSummary,
+  recipeProgress,
+  canCraftRecipe,
+  firstCraftableRecipe,
+  nextProgressionRecipe,
 } from '../js/crafting.js';
 import { FaunaSystem,  meatDropCount, SPECIES, canFeed, tryFeed } from '../js/animals.js';
 import { animalPartLayout, animalLimbPose, accentColor } from '../js/animal-visuals.js';
@@ -2648,6 +2660,70 @@ test('crafting progression metadata is complete and reachable', () => {
   );
 });
 
+test('crafting: ingredientSummary reports have/missing per ingredient', () => {
+  const slots = createStarterInventory(); // 1 LOG, 12 STICK, 8 TORCH, 8 BERRIES, 6 RATION
+  const planks = ingredientSummary('planks', slots);
+  assert.deepEqual(planks, [{ id: BLOCK.LOG, need: 1, have: 1, missing: 0, ok: true }]);
+
+  const bow = ingredientSummary('bow', slots); // 3 Sticks + 2 Hide
+  assert.deepEqual(bow, [
+    { id: ITEM.STICK, need: 3, have: 12, missing: 0, ok: true },
+    { id: ITEM.HIDE, need: 2, have: 0, missing: 2, ok: false },
+  ]);
+
+  // unknown id and recipe-object pass-through both resolve consistently
+  assert.deepEqual(ingredientSummary('does-not-exist', slots), []);
+  const planksRecipe = RECIPES.find((r) => r.id === 'planks');
+  assert.deepEqual(ingredientSummary(planksRecipe, slots), planks);
+});
+
+test('crafting: recipeProgress bundles heat gate with ingredient readiness', () => {
+  const slots = createStarterInventory();
+  slots.push({ id: BLOCK.IRON_ORE, count: 1 });
+  const cold = recipeProgress('smelt_iron', slots, { heat: 0 });
+  assert.equal(cold.can, false);
+  assert.equal(cold.heatOk, false);
+  assert.ok(cold.ingredients.every((i) => i.ok), 'has the ore, just no heat');
+
+  const hot = recipeProgress('smelt_iron', slots, { heat: 10 });
+  assert.equal(hot.can, true);
+  assert.equal(hot.heatOk, true);
+
+  assert.equal(recipeProgress('does-not-exist', slots, {}), null);
+});
+
+test('crafting: canCraftRecipe agrees with recipeProgress.can and craftRecipe outcome', () => {
+  const slots = createStarterInventory();
+  for (const recipe of RECIPES) {
+    const expected = recipeProgress(recipe.id, slots, { heat: 12 }).can;
+    assert.equal(canCraftRecipe(recipe.id, slots, { heat: 12 }), expected, `${recipe.id} canCraftRecipe mismatch`);
+    const attempt = craftRecipe(slots, recipe.id, { heat: 12 });
+    assert.equal(attempt.ok, expected, `${recipe.id} craftRecipe(ok) should match canCraftRecipe`);
+  }
+});
+
+test('crafting: firstCraftableRecipe and nextProgressionRecipe give stable, reachable recommendations', () => {
+  assert.equal(firstCraftableRecipe([], {}), null, 'empty bag has nothing craftable');
+  assert.equal(nextProgressionRecipe([], {}).id, 'planks', 'planks (1 Log) is the cheapest first goal');
+
+  const slots = createStarterInventory();
+  const first = firstCraftableRecipe(slots, {});
+  assert.ok(first, 'starter inventory can craft something immediately');
+  assert.ok(canCraftRecipe(first.id, slots, {}), `${first.id} must actually be craftable`);
+  assert.equal(
+    first.id,
+    visibleRecipes().find((r) => canCraftRecipe(r.id, slots, {})).id,
+    'firstCraftableRecipe must match the first craftable entry in display order',
+  );
+
+  const next = nextProgressionRecipe(slots, {});
+  assert.ok(next, 'there is always a next locked recipe to work toward');
+  assert.equal(canCraftRecipe(next.id, slots, {}), false, 'the recommended next recipe is not yet craftable');
+
+  // Determinism: same inputs -> same recommendation every call.
+  assert.equal(nextProgressionRecipe(slots, {}).id, next.id);
+});
+
 test('ore-drops pure catalog', () => {
   assert.ok(isOreBlock(BLOCK.IRON_ORE));
   assert.ok(listOreBlockIds().includes(BLOCK.COAL_ORE));
@@ -2760,7 +2836,7 @@ test('game source wires resolveBlockDrop and furnace-tick', () => {
 test('mining path keeps pointer hold, raycast break, remesh, and drop feedback wired', () => {
   const gameSrc = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
   const inputSrc = readFileSync(new URL('../js/input.js', import.meta.url), 'utf8');
-  assert.ok(inputSrc.includes('this._heldLmb = true'), 'LMB must enter the held mining state');
+  assert.ok(inputSrc.includes('transitionBreakPointer'), 'LMB must use the shared pointer ownership state machine');
   assert.ok(inputSrc.includes('combineBreakHeld'), 'mouse and gamepad mining ownership must be combined');
   assert.ok(inputSrc.includes("addEventListener('pointerdown'"), 'pointerdown must preserve LMB mining in modern browsers');
   assert.ok(inputSrc.includes('_onPointerUp'), 'pointer release/cancel must clear the mining state');
@@ -2774,11 +2850,11 @@ test('mining path keeps pointer hold, raycast break, remesh, and drop feedback w
 test('angled voxel raycast normalizes direction and handles steep pitch safely', () => {
   const worldSrc = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
   const contractSrc = readFileSync(new URL('../js/interaction-contract.js', import.meta.url), 'utf8');
-  assert.ok(worldSrc.includes('makeVoxelInteraction'), 'raycast must validate arbitrary camera vectors at the interaction boundary');
+  assert.ok(worldSrc.includes('raycastVoxel'), 'World must delegate traversal to the shared voxel contract');
   assert.ok(contractSrc.includes('Math.hypot(x, y, z)'), 'interaction contract must normalize camera vectors');
-  assert.ok(worldSrc.includes('step > 0 ? cell + 1 - coord : coord - cell'), 'negative-facing rays must enter the correct boundary');
-  assert.ok(worldSrc.includes('const EPS = 1e-9'), 'raycast must have deterministic voxel-edge tie handling');
-  assert.ok(worldSrc.includes('for (let i = 0; i < 256; i++)'), 'raycast must retain a bounded steep-angle traversal');
+  assert.ok(contractSrc.includes('step > 0 ? cell + 1 - coord : coord - cell'), 'negative-facing rays must enter the correct boundary');
+  assert.ok(contractSrc.includes('const EPS = 1e-9'), 'raycast must have deterministic voxel-edge tie handling');
+  assert.ok(contractSrc.includes('maxSteps'), 'raycast must retain a bounded steep-angle traversal');
 });
 
 test('voxel interaction ray hits above/below targets and rejects off-ray blocks', () => {
@@ -2816,6 +2892,38 @@ test('voxel interaction ray hits above/below targets and rejects off-ray blocks'
   assert.equal(combineBreakHeld(false, false), false);
 });
 
+test('voxel ray rejects cells touched only at an edge/corner', () => {
+  const cornerOnly = new Map([
+    ['1,0,0', 7],
+    ['1,1,0', 8],
+  ]);
+  const hit = raycastVoxel(
+    { x: 0.5, y: 0.5, z: 0.5 },
+    { x: 1, y: 1, z: 1 },
+    4,
+    (x, y, z) => cornerOnly.get(`${x},${y},${z}`) ?? 0,
+    (id) => id !== 0,
+  );
+  assert.equal(hit, null, 'cells touched only at the corner must not count as ray hits');
+});
+
+test('pointer break ownership transitions are deterministic', () => {
+  assert.equal(transitionBreakPointer(false, { button: 0 }, 'down'), true);
+  assert.equal(transitionBreakPointer(true, { button: 0 }, 'up'), false);
+  assert.equal(transitionBreakPointer(true, { button: 0 }, 'cancel'), false);
+  assert.equal(transitionBreakPointer(true, { button: 2 }, 'up'), true);
+  assert.equal(transitionBreakPointer(false, { button: 2 }, 'down'), false);
+});
+
+test('production mining uses the World raycast contract without a duplicate DDA', () => {
+  const gameSrc = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  const worldSrc = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
+  assert.match(gameSrc, /_raycastInteraction\(origin, dir, 6\)/);
+  assert.match(gameSrc, /return this\.world\.raycast\(origin, direction, maxDist\)/);
+  assert.match(worldSrc, /import \{ raycastVoxel \} from '\.\/interaction-contract\.js\?v=\d+'/);
+  assert.match(worldSrc, /return raycastVoxel\(/);
+  assert.doesNotMatch(gameSrc, /raycastVoxel\(/, 'Game must not own a second voxel traversal');
+});
 
 test('stair-place facing from yaw', () => {
   assert.ok(['north','south','east','west'].includes(stairFacingFromYaw(0)));
@@ -4121,7 +4229,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.53'), 'HTML must expose v1.12.53');
+  assert.ok(html.includes('v1.12.54'), 'HTML must expose v1.12.54');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -4185,6 +4293,9 @@ test('recipe search box is wired up for the crafting renderer', () => {
   assert.match(html, /\.recipe-btn\[data-tier="1"\]/, 'tier accent styling missing');
   assert.match(html, /\.recipe-btn \.recipe-meta/, 'recipe-meta styling missing');
   assert.match(html, /\.recipe-btn \.recipe-ingredients/, 'recipe-ingredients styling missing');
+  assert.match(html, /id="crafting-goal"/, 'crafting goal readout missing');
+  assert.match(fsText('js/game.js'), /nextProgressionRecipe/, 'crafting goal is not connected to the live renderer');
+  assert.match(fsText('js/game.js'), /ingredientSummary/, 'ingredient progress is not connected to the live renderer');
 });
 
 test('controls guide is dismissed on entry while remaining reopenable', () => {

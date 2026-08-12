@@ -29,6 +29,22 @@ export function combineBreakHeld(mouseHeld, gamepadHeld) {
 }
 
 /**
+ * Update mouse break ownership for pointer/mouse lifecycle events.
+ * `pointercancel` always releases; non-primary mouse buttons never steal the
+ * primary held state. Keeping this transition pure makes browser event ordering
+ * deterministic and directly testable.
+ * @param {boolean} mouseHeld
+ * @param {number|{button?:number}|null|undefined} eventOrButton
+ * @param {'down'|'up'|'cancel'} phase
+ */
+export function transitionBreakPointer(mouseHeld, eventOrButton, phase) {
+  if (phase === 'cancel') return false;
+  if (phase === 'down') return !!mouseHeld || isPrimaryBreakButton(eventOrButton);
+  if (phase === 'up') return isPrimaryBreakButton(eventOrButton) ? false : !!mouseHeld;
+  return !!mouseHeld;
+}
+
+/**
  * Normalize an arbitrary look vector, rejecting invalid camera state.
  * @param {{x?:number,y?:number,z?:number}|null|undefined} direction
  * @returns {{x:number,y:number,z:number}|null}
@@ -108,20 +124,28 @@ export function raycastVoxel(origin, direction, maxDist, getVoxel, isHit) {
     if (isHit(id)) return { x, y, z, nx: -faceX, ny: -faceY, nz: -faceZ, dist, id };
     const next = Math.min(nextX, nextY, nextZ);
     if (!Number.isFinite(next) || next > range) return null;
-    // Stable X → Y → Z precedence for exact edge/corner crossings.
-    if (nextX <= next + EPS) {
+    // Advance every axis crossed at the same parametric distance. A ray that
+    // passes exactly through an edge/corner has zero length inside the side
+    // cells; probing them would mine blocks the ray never intersects.
+    const crossedX = nextX <= next + EPS;
+    const crossedY = nextY <= next + EPS;
+    const crossedZ = nextZ <= next + EPS;
+    if (crossedX) {
       x += stepX;
       nextX += deltaX;
-      faceX = stepX; faceY = 0; faceZ = 0;
-    } else if (nextY <= next + EPS) {
+    }
+    if (crossedY) {
       y += stepY;
       nextY += deltaY;
-      faceX = 0; faceY = stepY; faceZ = 0;
-    } else {
+    }
+    if (crossedZ) {
       z += stepZ;
       nextZ += deltaZ;
-      faceX = 0; faceY = 0; faceZ = stepZ;
     }
+    // Deterministic face precedence remains X → Y → Z for edge/corner hits.
+    faceX = crossedX ? stepX : 0;
+    faceY = !crossedX && crossedY ? stepY : 0;
+    faceZ = !crossedX && !crossedY && crossedZ ? stepZ : 0;
     dist = next;
   }
   return null;

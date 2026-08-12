@@ -37,20 +37,25 @@ import { toggleDoor } from './door-hinge.js?v=220';
 import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=220';
 import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=220';
 import { maceSmashDamage } from './mace-smash.js?v=220';
-import { raycastVoxel } from './interaction-contract.js?v=2';
 import {
   addItems,
   removeItems,
   countItems,
   consumeFromHotbar,
-  HOTBAR_SIZE,
-  hasIngredients,
   cloneSlots,
   createStarterInventory,
   emptySlots,
   splitStack,
 } from './inventory.js?v=220';
-import { visibleRecipes, craftRecipe, RECIPE_CATEGORIES, RECIPE_TIERS } from './crafting.js?v=409';
+import {
+  visibleRecipes,
+  craftRecipe,
+  RECIPE_CATEGORIES,
+  RECIPE_TIERS,
+  ingredientSummary,
+  recipeProgress,
+  nextProgressionRecipe,
+} from './crafting.js?v=410';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=244';
 import { createBlockAtlas } from './atlas.js?v=296';
@@ -2270,13 +2275,7 @@ export class Game {
   }
 
   _raycastInteraction(origin, direction, maxDist = 6) {
-    return raycastVoxel(
-      origin,
-      direction,
-      maxDist,
-      (x, y, z) => this.world.getBlock(x, y, z),
-      (id) => id !== BLOCK.AIR && id !== BLOCK.WATER && !!BLOCK_PROPS[id],
-    );
+    return this.world.raycast(origin, direction, maxDist);
   }
 
   _handleMining(dt) {
@@ -3079,15 +3078,14 @@ export class Game {
       const rows = [];
       for (const r of visibleRecipes()) {
         if (filter && !(`${r.name} ${r.desc || ''} ${r.id}`.toLowerCase().includes(filter))) continue;
-        const hasIngr = hasIngredients(pl.slots, r.ingredients);
-        const heatOk = !r.requiresHeat || (this._lastHeat || 0) >= r.requiresHeat;
-        rows.push({ r, heatOk, can: hasIngr && heatOk });
+        const progress = recipeProgress(r, pl.slots, { heat: this._lastHeat || 0 });
+        rows.push({ r, progress, can: progress.can });
       }
       rows.forEach((row, i) => { row._i = i; });
       rows.sort((a, b) => (b.can - a.can) || (a._i - b._i));
       const catLabel = (id) => RECIPE_CATEGORIES.find((c) => c.id === id)?.label || id;
       const tierLabel = (t) => RECIPE_TIERS.find((x) => x.tier === t)?.label || `Tier ${t}`;
-      for (const { r, heatOk, can } of rows) {
+      for (const { r, progress, can } of rows) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'recipe-btn' + (can ? ' can' : '');
@@ -3096,12 +3094,22 @@ export class Game {
         btn.dataset.tier = String(r.tier);
         btn.disabled = !can;
         let desc = r.desc || '';
-        if (r.requiresHeat && !heatOk) desc += ' — stand by fire';
-        const ingr = r.ingredients.map((ing) => `${displayName(ing.id)} ×${ing.count}`).join(', ');
+        if (r.requiresHeat && !progress.heatOk) desc += ' — stand by fire';
+        const ingr = ingredientSummary(r, pl.slots)
+          .map((item) => `${item.ok ? '✓' : `need ${item.missing}`} ${displayName(item.id)} ${item.have}/${item.need}`)
+          .join(' · ');
         btn.innerHTML = `<strong>${r.name}</strong><span class="recipe-meta">${catLabel(r.category)} · ${tierLabel(r.tier)}</span>` +
           `<span>${desc}</span><span class="recipe-ingredients">${ingr}</span>`;
         recipesEl.appendChild(btn);
       }
+    }
+
+    const goalEl = document.getElementById('crafting-goal');
+    if (goalEl) {
+      const goal = nextProgressionRecipe(pl.slots, { heat: this._lastHeat || 0 });
+      goalEl.textContent = goal
+        ? `Next goal: ${goal.name} · ${goal.desc || 'gather the listed ingredients'}`
+        : 'All visible recipes are ready — choose a craft to continue.';
     }
 
     const eqEl = document.getElementById('equip-slots');

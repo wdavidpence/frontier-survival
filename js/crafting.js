@@ -1,7 +1,7 @@
 /** Crafting recipes — pure data + craft helper */
 import { BLOCK } from './blocks.js?v=287';
 import { ITEM } from './items.js?v=220';
-import { craftWith } from './inventory.js?v=220';
+import { craftWith, countItems } from './inventory.js?v=220';
 
 /**
  * Recipe tiers gate progression by the material they need: 1 = wood tier
@@ -515,11 +515,79 @@ export function recipesByCategory() {
     .filter((g) => g.recipes.length > 0);
 }
 
+/** Resolve a recipe id (or pass a recipe object through) to its Recipe record. */
+function findRecipe(recipeId) {
+  if (recipeId && typeof recipeId === 'object') return recipeId;
+  return RECIPES.find((r) => r.id === recipeId) || null;
+}
+
 export function craftRecipe(slots, recipeId, ctx = {}) {
-  const recipe = RECIPES.find((r) => r.id === recipeId);
+  const recipe = findRecipe(recipeId);
   if (!recipe) return { ok: false, slots, error: 'unknown recipe' };
   if (recipe.requiresHeat && (ctx.heat || 0) < recipe.requiresHeat) {
     return { ok: false, slots, error: 'need campfire heat' };
   }
   return craftWith(slots, recipe.ingredients, recipe.results);
+}
+
+/**
+ * Per-ingredient need/have/missing breakdown for a recipe against the given
+ * inventory slots. Accepts a recipe id or a Recipe object.
+ * @returns {{id:number,need:number,have:number,missing:number,ok:boolean}[]}
+ */
+export function ingredientSummary(recipeId, slots) {
+  const recipe = findRecipe(recipeId);
+  if (!recipe) return [];
+  return recipe.ingredients.map((ing) => {
+    const have = countItems(slots, ing.id);
+    const missing = Math.max(0, ing.count - have);
+    return { id: ing.id, need: ing.count, have, missing, ok: missing === 0 };
+  });
+}
+
+/**
+ * Full craftability status for one recipe: ingredient breakdown plus the
+ * heat gate, so a workbench UI can render both "what's missing" and
+ * "why is this still locked" from one call.
+ * @returns {{id:string,can:boolean,heatOk:boolean,ingredients:ReturnType<typeof ingredientSummary>}|null}
+ */
+export function recipeProgress(recipeId, slots, ctx = {}) {
+  const recipe = findRecipe(recipeId);
+  if (!recipe) return null;
+  const ingredients = ingredientSummary(recipe, slots);
+  const heatOk = !recipe.requiresHeat || (ctx.heat || 0) >= recipe.requiresHeat;
+  return { id: recipe.id, can: heatOk && ingredients.every((i) => i.ok), heatOk, ingredients };
+}
+
+/** Whether a recipe can be crafted right now with the given slots/heat context. */
+export function canCraftRecipe(recipeId, slots, ctx = {}) {
+  return recipeProgress(recipeId, slots, ctx)?.can ?? false;
+}
+
+/** First visible recipe (tier → category → catalog order) craftable right now, or null. */
+export function firstCraftableRecipe(slots, ctx = {}) {
+  return visibleRecipes().find((r) => canCraftRecipe(r, slots, ctx)) || null;
+}
+
+/**
+ * Best "next" recipe to work toward: the not-yet-craftable visible recipe
+ * needing the fewest additional ingredient units, ties broken by the
+ * existing stable display order. A recipe blocked only by heat (0 missing
+ * ingredients, campfire just not lit) ranks ahead of anything still short
+ * on materials.
+ * @returns {Recipe|null}
+ */
+export function nextProgressionRecipe(slots, ctx = {}) {
+  let best = null;
+  let bestScore = Infinity;
+  for (const recipe of visibleRecipes()) {
+    const progress = recipeProgress(recipe, slots, ctx);
+    if (progress.can) continue;
+    const score = progress.ingredients.reduce((sum, i) => sum + i.missing, 0);
+    if (score < bestScore) {
+      bestScore = score;
+      best = recipe;
+    }
+  }
+  return best;
 }

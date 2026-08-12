@@ -10,7 +10,7 @@ import {
   chunkDetailTier,
   buildTerrainProxyArrays,
 } from './terrain-visibility.js?v=285';
-import { makeVoxelInteraction } from './interaction-contract.js?v=2';
+import { raycastVoxel } from './interaction-contract.js?v=3';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -1318,64 +1318,13 @@ export class World {
    * @returns {{x:number,y:number,z:number, nx:number,ny:number,nz:number, dist:number}|null}
    */
   raycast(origin, direction, maxDist = 8) {
-    // Normalize and validate once at the interaction boundary. This keeps the
-    // DDA range in world units even when camera pitch makes X/Z tiny, and avoids
-    // NaN voxel coordinates if a browser reports a transient invalid camera.
-    const interaction = makeVoxelInteraction(origin, direction, maxDist);
-    if (!interaction) return null;
-    const rayOrigin = interaction.origin;
-    const rayDirection = interaction.direction;
-    const rayMaxDist = interaction.maxDist;
-    const dx = rayDirection.x;
-    const dy = rayDirection.y;
-    const dz = rayDirection.z;
-    let x = Math.floor(rayOrigin.x);
-    let y = Math.floor(rayOrigin.y);
-    let z = Math.floor(rayOrigin.z);
-
-    const stepX = dx > 0 ? 1 : dx < 0 ? -1 : 0;
-    const stepY = dy > 0 ? 1 : dy < 0 ? -1 : 0;
-    const stepZ = dz > 0 ? 1 : dz < 0 ? -1 : 0;
-    const tDeltaX = stepX ? Math.abs(1 / dx) : Infinity;
-    const tDeltaY = stepY ? Math.abs(1 / dy) : Infinity;
-    const tDeltaZ = stepZ ? Math.abs(1 / dz) : Infinity;
-    const tMax = (coord, cell, step, delta) => {
-      if (!step) return Infinity;
-      const distance = step > 0 ? cell + 1 - coord : coord - cell;
-      return Math.max(0, distance * delta);
-    };
-    let tMaxX = tMax(rayOrigin.x, x, stepX, tDeltaX);
-    let tMaxY = tMax(rayOrigin.y, y, stepY, tDeltaY);
-    let tMaxZ = tMax(rayOrigin.z, z, stepZ, tDeltaZ);
-    let faceX = 0, faceY = 0, faceZ = 0;
-    let dist = 0;
-    const EPS = 1e-9;
-
-    for (let i = 0; i < 256; i++) {
-      const id = this.getBlock(x, y, z);
-      if (id !== BLOCK.AIR && id !== BLOCK.WATER && BLOCK_PROPS[id]) {
-        return { x, y, z, nx: -faceX, ny: -faceY, nz: -faceZ, dist, id };
-      }
-      const next = Math.min(tMaxX, tMaxY, tMaxZ);
-      if (!Number.isFinite(next) || next > rayMaxDist) return null;
-      // Deterministic X → Y → Z precedence on exact voxel-edge ties avoids
-      // dropping the target when a steep ray crosses two planes together.
-      if (tMaxX <= next + EPS) {
-        x += stepX;
-        tMaxX += tDeltaX;
-        faceX = stepX; faceY = 0; faceZ = 0;
-      } else if (tMaxY <= next + EPS) {
-        y += stepY;
-        tMaxY += tDeltaY;
-        faceX = 0; faceY = stepY; faceZ = 0;
-      } else {
-        z += stepZ;
-        tMaxZ += tDeltaZ;
-        faceX = 0; faceY = 0; faceZ = stepZ;
-      }
-      dist = next;
-    }
-    return null;
+    return raycastVoxel(
+      origin,
+      direction,
+      maxDist,
+      (x, y, z) => this.getBlock(x, y, z),
+      (id) => id !== BLOCK.AIR && id !== BLOCK.WATER && !!BLOCK_PROPS[id],
+    );
   }
 
   /** Heat contribution near a world position (campfires/torches). */

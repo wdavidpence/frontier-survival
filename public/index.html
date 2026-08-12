@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.12.53</title>
+  <title>Frontier Survival v1.12.54</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -530,6 +530,17 @@
       border-radius: 6px; border: 1px solid rgba(255,255,255,0.12);
       background: rgba(0,0,0,0.35); color: #e8e4dc; font-size: 12px;
       pointer-events: auto;
+    }
+
+    #crafting-goal {
+      margin: 0 0 8px;
+      padding: 8px 10px;
+      border-left: 3px solid var(--accent);
+      border-radius: 5px;
+      background: rgba(212,165,116,0.08);
+      color: #d8c4a8;
+      font-size: 11px;
+      line-height: 1.35;
     }
 
     #bar-wet { background: linear-gradient(90deg, #1a4a6a, #4aa0d4); }
@@ -1074,7 +1085,7 @@
       #title-screen .panel > button { margin-top: 7px; }
     }
 
-    /* v1.12.53 in-world presentation layer: keep the authored readout compact,
+    /* v1.12.54 in-world presentation layer: keep the authored readout compact,
        while leaving every gameplay prompt and control visible beneath it. */
     #status-line {
       display: grid;
@@ -1314,7 +1325,7 @@
     <div id="message"></div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.12.53</div>
+    <div id="version-badge">v1.12.54</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1385,6 +1396,7 @@
         </div>
         <div>
           <p class="inv-sub" style="margin-bottom:8px">Recipes</p>
+          <div id="crafting-goal" role="status" aria-live="polite"></div>
           <input id="recipe-filter" type="text" placeholder="Search recipes…" autocomplete="off" />
           <div id="recipe-list"></div>
         </div>
@@ -1401,7 +1413,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.12.53</div>
+      <div class="tag">Browser survival sandbox · v1.12.54</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1514,6 +1526,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=418"></script>
+  <script type="module" src="./js/main.js?v=419"></script>
 </body>
 </html>
