@@ -56,7 +56,7 @@ import { createBlockAtlas } from './atlas.js?v=295';
 import { BreakFX, WeatherFX } from './fx.js?v=245';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
-import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=6';
+import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=7';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -166,7 +166,7 @@ export class Game {
           sunDir: { value: new THREE.Vector3(0.4, 0.8, 0.4).normalize() },
         },
         vertexShader: 'varying vec3 vLocal; void main(){ vLocal=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-        fragmentShader: 'uniform vec3 topColor; uniform vec3 midColor; uniform vec3 horizonColor; uniform vec3 groundColor; uniform vec3 sunGlowColor; uniform float sunGlowStrength; uniform vec3 sunDir; varying vec3 vLocal; void main(){ vec3 dir=normalize(vLocal); float h=dir.y; float above=smoothstep(-0.1,0.25,h); vec3 sky=mix(horizonColor,midColor,above); sky=mix(sky,topColor,smoothstep(0.22,0.88,h)); float horizHaze=pow(1.0-abs(h),4.0)*0.15; sky=mix(sky,horizonColor,clamp(horizHaze,0.0,1.0)); float sd=dot(dir,sunDir); float halo=pow(max(0.0,sd),5.0)*sunGlowStrength*2.8; float corona=pow(max(0.0,sd),32.0)*sunGlowStrength*3.5; sky=mix(sky,sunGlowColor,clamp(halo,0.0,0.72)); sky+=sunGlowColor*corona; sky=mix(groundColor,sky,smoothstep(-0.44,-0.03,h)); gl_FragColor=vec4(sky,1.0); }',
+        fragmentShader: 'uniform vec3 topColor; uniform vec3 midColor; uniform vec3 horizonColor; uniform vec3 groundColor; uniform vec3 sunGlowColor; uniform float sunGlowStrength; uniform vec3 sunDir; varying vec3 vLocal; void main(){ vec3 dir=normalize(vLocal); float h=dir.y; float above=smoothstep(-0.08,0.38,h); vec3 sky=mix(horizonColor,midColor,above); sky=mix(sky,topColor,smoothstep(0.30,0.92,h)); float horizHaze=pow(max(0.0,1.0-abs(h)*3.2),2.0)*0.30; sky=mix(sky,horizonColor,clamp(horizHaze,0.0,1.0)); float sd=dot(dir,sunDir); float halo=pow(max(0.0,sd),4.0)*sunGlowStrength*3.8; float corona=pow(max(0.0,sd),28.0)*sunGlowStrength*4.8; sky=mix(sky,sunGlowColor,clamp(halo,0.0,0.84)); sky+=sunGlowColor*corona; sky=mix(groundColor,sky,smoothstep(-0.38,0.02,h)); gl_FragColor=vec4(sky,1.0); }',
       }),
     );
     this.skyDome.renderOrder = -100;
@@ -485,11 +485,11 @@ export class Game {
     }
     // Camera far plane must clear the proxy ring + a little sky.
     if (this.camera) {
-      this.camera.far = Math.max(plan.cameraFar, 50);
+      this.camera.far = Math.max(plan.cameraFar, 200);
       this.camera.updateProjectionMatrix();
     }
     if (this.camera2) {
-      this.camera2.far = Math.max(plan.cameraFar, 50);
+      this.camera2.far = Math.max(plan.cameraFar, 200);
       this.camera2.updateProjectionMatrix();
     }
     // worldRadius is the outer (proxy) streaming ring in chunks.
@@ -3290,10 +3290,15 @@ export class Game {
     const phase = this.time.dayPhase;
     const night = this.time.isNight();
     const palette = this._skyPalette;
-    // Keep a warm band around the two low-sun transitions, but leave the
-    // daytime zenith blue and the night sky readable instead of black.
-    const lowSun = Math.max(0, 1 - Math.min(Math.abs(phase - 0.02), Math.abs(phase - 0.52)) / 0.16);
-    const nightMix = night ? Math.min(1, (phase - 0.55) / 0.12) : 0;
+    // Wrap-aware distance to each low-sun event so pre-dawn glow builds correctly.
+    const distToDawn = Math.min(Math.abs(phase - 0.02), 1 - Math.abs(phase - 0.02));
+    const lowSun = Math.max(0, 1 - Math.min(distToDawn, Math.abs(phase - 0.52)) / 0.16);
+    // Continuous nightMix avoids a hard pop at the midnight/dawn boundary.
+    let nightMix;
+    if (phase < 0.04) nightMix = 1 - phase / 0.04;
+    else if (phase < 0.50) nightMix = 0;
+    else if (phase < 0.62) nightMix = (phase - 0.50) / 0.12;
+    else nightMix = 1;
     const weatherMix = this.time.weather === 'rain' ? 0.2 : this.time.weather === 'snow' ? 0.28 : 0;
     const flash = this._stormFlashT > 0 ? Math.min(1, this._stormFlashT * 5) : 0;
 
@@ -3310,9 +3315,9 @@ export class Game {
     palette.mid.setHex(0x72bce8).lerp(palette.nightMid, nightMix);
     palette.horizon.setHex(0xffca92).lerp(palette.nightHorizon, nightMix);
     palette.ground.setHex(0x657681).lerp(palette.nightGround, nightMix);
-    palette.warm.setHex(0xffb86f);
-    palette.horizon.lerp(palette.warm, lowSun * (night ? 0.12 : 0.46));
-    palette.mid.lerp(palette.horizon, lowSun * 0.08);
+    palette.warm.setHex(0xff9a50);
+    palette.horizon.lerp(palette.warm, lowSun * (0.12 + 0.34 * (1 - nightMix)));
+    palette.mid.lerp(palette.horizon, lowSun * 0.10);
     palette.weather.setHex(0x91a7ba);
     palette.top.lerp(palette.weather, weatherMix);
     palette.mid.lerp(palette.weather, weatherMix * 0.7);
@@ -3323,14 +3328,16 @@ export class Game {
     if (this._stormFlashT > 0) {
       this._stormFlashT = Math.max(0, this._stormFlashT - 1 / 60);
     }
-    this.sun.color.setHex(night ? 0x9bb9e6 : lowSun > 0.1 ? 0xffc486 : 0xffe4bd);
-    this.fill.color.setHex(night ? 0x5578ad : 0x9fc8df);
-    this.ambient.color.setHex(night ? 0x26385c : 0x6688aa);
-    this.hemi.color.setHex(night ? 0x5d76a8 : 0x9ec9ff);
-    this.sun.intensity = (night ? 0.08 : 0.3 + sunI * 1.15) + flash * 1.1;
-    this.fill.intensity = (night ? 0.05 : 0.08 + sunI * 0.18) + flash * 0.22;
-    this.ambient.intensity = (night ? 0.2 : 0.3 + sunI * 0.56) + flash * 1.7;
-    this.hemi.intensity = (night ? 0.3 : 0.28 + sunI * 0.44) + flash * 0.9;
+    const nightColors = nightMix > 0.5;
+    const dayFactor = 1 - nightMix;
+    this.sun.color.setHex(nightColors ? 0x9bb9e6 : lowSun > 0.1 ? 0xffc486 : 0xffe4bd);
+    this.fill.color.setHex(nightColors ? 0x5578ad : 0x9fc8df);
+    this.ambient.color.setHex(nightColors ? 0x26385c : 0x6688aa);
+    this.hemi.color.setHex(nightColors ? 0x5d76a8 : 0x9ec9ff);
+    this.sun.intensity = (0.08 * nightMix + (0.30 + sunI * 1.15) * dayFactor) + flash * 1.1;
+    this.fill.intensity = (0.05 * nightMix + (0.10 + sunI * 0.20) * dayFactor) + flash * 0.22;
+    this.ambient.intensity = (0.20 * nightMix + (0.30 + sunI * 0.56) * dayFactor) + flash * 1.7;
+    this.hemi.intensity = (0.30 * nightMix + (0.28 + sunI * 0.44) * dayFactor) + flash * 0.9;
 
     this.scene.background.copy(palette.mid);
     // Normalized sun direction for sky shader and disc placement.
@@ -3354,13 +3361,13 @@ export class Game {
       uniforms.horizonColor.value.copy(palette.horizon);
       uniforms.groundColor.value.copy(palette.ground);
       uniforms.sunGlowColor.value.copy(palette.glow);
-      uniforms.sunGlowStrength.value = Math.min(0.30, 0.08 + lowSun * 0.24 + sunI * 0.04);
+      uniforms.sunGlowStrength.value = Math.min(0.38, (0.08 + lowSun * 0.28 + sunI * 0.05) * dayFactor);
       uniforms.sunDir.value.set(_sdx, _sdy, _sdz);
     }
     this.sunDisc?.update(_sdx, _sdy, _sdz, _mdx, _mdy, _mdz, this.camera.position, nightMix);
     this.starField?.update(nightMix, this.camera.position);
-    // Fog follows the horizon layer, preserving silhouettes and contact edges.
-    palette.fog.copy(palette.horizon).lerp(palette.mid, 0.28);
+    // Fog: horizon-tinted for depth; lean slightly toward mid-blue for readability.
+    palette.fog.copy(palette.horizon).lerp(palette.mid, 0.38);
     this.scene.fog.color.copy(palette.fog);
     const plan = this._terrainVisibilityPlan();
     const fog = fogForSun(plan, sunI);
@@ -3382,11 +3389,11 @@ export class Game {
     // Drive greedy shader lighting
     const mat = this.atlas?.greedyMaterial;
     if (mat?.uniforms) {
-      mat.uniforms.sunIntensity.value = night ? 0.32 : 0.46 + sunI * 0.58;
+      mat.uniforms.sunIntensity.value = 0.32 * nightMix + (0.46 + sunI * 0.58) * dayFactor;
       mat.uniforms.ambientColor.value.set(
-        night ? 0.22 : 0.66,
-        night ? 0.24 : 0.7,
-        night ? 0.32 : 0.78,
+        0.22 * nightMix + 0.74 * dayFactor,
+        0.24 * nightMix + 0.77 * dayFactor,
+        0.32 * nightMix + 0.86 * dayFactor,
       );
     }
   }

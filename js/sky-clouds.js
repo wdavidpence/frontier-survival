@@ -141,7 +141,7 @@ export class VoxelCloudLayer {
 export class SunDisc {
   constructor(scene) {
     this.scene = scene;
-    const sunGeo = new THREE.SphereGeometry(4.2, 12, 8);
+    const sunGeo = new THREE.SphereGeometry(4.8, 12, 8);
     this._sunMat = new THREE.MeshBasicMaterial({
       color: 0xfff5c8,
       depthTest: false,
@@ -151,7 +151,7 @@ export class SunDisc {
     this._sun.renderOrder = -95;
     scene.add(this._sun);
 
-    const moonGeo = new THREE.SphereGeometry(3.0, 12, 8);
+    const moonGeo = new THREE.SphereGeometry(3.2, 12, 8);
     this._moonMat = new THREE.MeshBasicMaterial({
       color: 0xd8e8ff,
       depthTest: false,
@@ -161,6 +161,9 @@ export class SunDisc {
     this._moon.renderOrder = -95;
     this._moon.visible = false;
     scene.add(this._moon);
+
+    this._sunDayColor = new THREE.Color(0xfff5c8);
+    this._sunLowColor = new THREE.Color(0xff8030);
   }
 
   /**
@@ -175,6 +178,8 @@ export class SunDisc {
    */
   update(sx, sy, sz, mx, my, mz, cameraPos, nightMix) {
     const DIST = 162;
+    const elevT = Math.min(1, Math.max(0, sy) * 5.0);
+    this._sunMat.color.copy(this._sunLowColor).lerp(this._sunDayColor, elevT);
     this._sun.position.set(
       cameraPos.x + sx * DIST,
       cameraPos.y + sy * DIST,

@@ -254,15 +254,15 @@ function scatterFlecks(ctx, x0, y0, opts) {
 // Coherent natural palettes for the high-visibility terrain surfaces. Each is a
 // shadow / base / light triple picked to hold its hue under the ACES tonemap:
 // shadows stay saturated rather than going grey, highlights stop short of white.
-const PAL_GRASS = { shadow: [62, 108, 46], base: [85, 138, 52], light: [104, 148, 64] };
-const PAL_DIRT = { shadow: [92, 63, 41], base: [131, 93, 61], light: [168, 126, 86] };
-const PAL_STONE = { shadow: [101, 102, 112], base: [138, 138, 146], light: [172, 173, 180] };
-const PAL_SAND = { shadow: [208, 180, 128], base: [226, 196, 138], light: [240, 216, 158] };
+const PAL_GRASS = { shadow: [70, 96, 52], base: [94, 128, 64], light: [116, 150, 78] };
+const PAL_DIRT = { shadow: [74, 52, 34], base: [106, 78, 54], light: [138, 104, 76] };
+const PAL_STONE = { shadow: [88, 90, 96], base: [120, 122, 128], light: [156, 158, 164] };
+const PAL_SAND = { shadow: [186, 160, 110], base: [214, 186, 128], light: [238, 212, 152] };
 const PAL_WATER = { shadow: [24, 82, 142], base: [42, 132, 196], light: [72, 176, 224] };
-const PAL_LEAVES = { shadow: [40, 80, 34], base: [62, 122, 45], light: [88, 140, 58] };
-const PAL_PALM = { shadow: [46, 98, 42], base: [68, 138, 54], light: [98, 158, 66] };
-const PAL_SPRUCE = { shadow: [24, 66, 47], base: [41, 94, 67], light: [70, 120, 90] };
-const PAL_SEQUOIA = { shadow: [26, 72, 36], base: [38, 100, 48], light: [64, 126, 60] };
+const PAL_LEAVES = { shadow: [42, 70, 38], base: [60, 104, 46], light: [82, 132, 58] };
+const PAL_PALM = { shadow: [48, 86, 44], base: [70, 122, 56], light: [96, 146, 70] };
+const PAL_SPRUCE = { shadow: [30, 60, 46], base: [46, 88, 66], light: [70, 116, 88] };
+const PAL_SEQUOIA = { shadow: [32, 64, 38], base: [46, 92, 52], light: [68, 122, 66] };
 
 function tileOrigin(index) {
   const tx = index % ATLAS_N;
@@ -417,22 +417,30 @@ function drawWater(ctx, x0, y0) {
 }
 
 function drawLogSide(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [120, 84, 52], 0.2, 77, 255, 2);
-  ctx.fillStyle = 'rgba(68, 44, 24, 0.6)';
-  for (let x = 4; x < TILE_PX; x += 8) {
-    ctx.fillRect(x0 + x, y0, 2, TILE_PX);
-  }
-  ctx.fillStyle = 'rgba(150, 110, 72, 0.3)';
-  for (let x = 6; x < TILE_PX; x += 8) {
-    ctx.fillRect(x0 + x, y0, 2, TILE_PX);
-  }
-  applyMicroTexture(ctx, x0, y0, 4);
+  const field = fillMaterial(ctx, x0, y0, {
+    shadow: [76, 50, 32], base: [110, 74, 46], light: [138, 96, 62]
+  }, {
+    seed: 77, cells: 4, octaves: 3, contrast: 1.2, sy: 6,
+  });
+  scatterFlecks(ctx, x0, y0, {
+    seed: 78, count: 18, color: 'rgba(52, 34, 20, 0.4)',
+    field, want: -1, threshold: 0.42, w: 2, h: 6,
+  });
+  scatterFlecks(ctx, x0, y0, {
+    seed: 79, count: 12, color: 'rgba(154, 108, 70, 0.35)',
+    field, want: 1, threshold: 0.6, w: 2, h: 4,
+  });
+  applyMicroTexture(ctx, x0, y0, 4, 2);
 }
 
 function drawLogTop(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [186, 141, 93], 0.16, 88, 255, 2);
+  const field = fillMaterial(ctx, x0, y0, {
+    shadow: [142, 108, 70], base: [176, 136, 88], light: [204, 160, 106]
+  }, {
+    seed: 88, cells: 2, octaves: 2, contrast: 0.8,
+  });
   ctx.strokeStyle = '#5a3c23';
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 2;
   ctx.strokeRect(x0 + 1, y0 + 1, TILE_PX - 2, TILE_PX - 2);
   ctx.strokeStyle = 'rgba(120, 85, 50, 0.5)';
   ctx.lineWidth = 1.5;

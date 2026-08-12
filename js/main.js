@@ -1,4 +1,4 @@
-import { Game } from './game.js?v=410';
+import { Game } from './game.js?v=411';
 import { hasSave, clearSaveStorage } from './save.js?v=220';
 import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=220';
 import {
@@ -109,6 +109,82 @@ const hud = {
 };
 
 const game = new Game(canvas, hud);
+
+function installHudPresentation() {
+  const status = document.getElementById('status-line');
+  if (!status || typeof MutationObserver === 'undefined') return;
+
+  const headings = new Set(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']);
+  const biomes = new Set(['ocean', 'tropical', 'shore', 'forest', 'desert', 'tundra']);
+  const weatherNames = { clear: 'Clear skies', rain: 'Rain', snow: 'Snow' };
+  const titleCase = (value) => String(value || '').replace(/\b\w/g, (letter) => letter.toUpperCase());
+  let source = '';
+
+  const render = () => {
+    const raw = status.textContent.trim();
+    if (!raw || raw === source) return;
+    source = raw;
+    const parts = raw.split(' · ').filter(Boolean);
+    const mode = parts[0] || 'Frontier Survival';
+    const seed = parts.find((part) => part.startsWith('Seed '));
+    const heading = parts.find((part) => headings.has(part)) || 'N';
+    const biome = parts.find((part) => biomes.has(part));
+    const day = parts.find((part) => /^Day \d+$/.test(part));
+    const phase = parts.find((part) => part === 'Day' || part === 'Night');
+    const weather = parts.find((part) => Object.prototype.hasOwnProperty.call(weatherNames, part));
+    const known = new Set([mode, seed, heading, biome, day, phase, weather]);
+    const extras = parts.filter((part) => !known.has(part)).slice(0, 3).join(' · ');
+
+    status.innerHTML = '';
+    status.dataset.source = raw;
+    status.setAttribute('aria-label', raw);
+
+    const main = document.createElement('div');
+    main.className = 'status-main';
+    const kicker = document.createElement('div');
+    kicker.className = 'status-kicker';
+    kicker.textContent = [mode, seed].filter(Boolean).join(' · ');
+    const location = document.createElement('div');
+    location.className = 'status-location';
+    const biomeEl = document.createElement('strong');
+    biomeEl.textContent = biome ? titleCase(biome) : 'Frontier';
+    const contextEl = document.createElement('span');
+    contextEl.textContent = [day, phase, weather && weatherNames[weather]].filter(Boolean).join(' · ');
+    location.append(biomeEl, contextEl);
+    const detail = document.createElement('div');
+    detail.className = 'status-detail';
+    detail.textContent = extras || 'Explore the frontier';
+    main.append(kicker, location, detail);
+
+    const compass = document.createElement('div');
+    compass.className = 'status-compass';
+    compass.setAttribute('aria-label', `Heading ${heading}`);
+    const mark = document.createElement('span');
+    mark.className = 'compass-mark';
+    mark.textContent = '✦';
+    mark.setAttribute('aria-hidden', 'true');
+    const copy = document.createElement('span');
+    copy.className = 'compass-copy';
+    const compassLabel = document.createElement('small');
+    compassLabel.textContent = 'HEADING';
+    const headingEl = document.createElement('strong');
+    headingEl.textContent = heading;
+    copy.append(compassLabel, headingEl);
+    compass.append(mark, copy);
+    status.append(main, compass);
+  };
+
+  const observer = new MutationObserver(() => {
+    // Game updates status-line.textContent every frame. The presentation tree
+    // has a stable marker so the observer ignores mutations caused by its own
+    // render, but immediately re-renders the next game-authored value.
+    if (!status.querySelector('.status-main')) render();
+  });
+  observer.observe(status, { childList: true, characterData: true, subtree: true });
+  render();
+}
+
+installHudPresentation();
 
 function paintModeRow() {
   const row = document.getElementById('mode-row');

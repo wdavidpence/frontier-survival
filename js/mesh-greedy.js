@@ -42,12 +42,12 @@ export function greedyMeshChunk(opts) {
   const sizes = [sizeX, sizeY, sizeZ];
 
   const dirs = [
-    { axis: 0, sign: 1, name: 'east', shade: 0.7, du: 2, dv: 1 },
+    { axis: 0, sign: 1, name: 'east', shade: 0.75, du: 2, dv: 1 },
     { axis: 0, sign: -1, name: 'west', shade: 0.85, du: 2, dv: 1 },
     { axis: 1, sign: 1, name: 'top', shade: 1.0, du: 0, dv: 2 },
-    { axis: 1, sign: -1, name: 'bottom', shade: 0.55, du: 0, dv: 2 },
+    { axis: 1, sign: -1, name: 'bottom', shade: 0.6, du: 0, dv: 2 },
     { axis: 2, sign: 1, name: 'south', shade: 0.8, du: 0, dv: 1 },
-    { axis: 2, sign: -1, name: 'north', shade: 0.75, du: 0, dv: 1 },
+    { axis: 2, sign: -1, name: 'north', shade: 0.78, du: 0, dv: 1 },
   ];
 
   for (const dir of dirs) {
@@ -247,55 +247,65 @@ export function quadsToArrays(quads) {
 
   for (const q of orderedQuads) {
     if (q.isCross) {
-      // Deterministic offset to break up grid alignment
+      // Deterministic offset and yaw to break up grid alignment and opaque wall look
       let h = ((q.bx * 374761393 + q.bz * 3266489917) ^ (q.by * 668265263)) >>> 0;
       h = (h ^ (h >>> 13)) * 3266489917;
-      const hashX = (((h ^ (h >>> 16)) >>> 0) / 4294967296) * 0.45 - 0.225;
+      const hashX = (((h ^ (h >>> 16)) >>> 0) / 4294967296) * 0.5 - 0.25;
 
       let h2 = ((q.bx * 93989 + q.bz * 67345) ^ (q.by * 23421)) >>> 0;
       h2 = (h2 ^ (h2 >>> 13)) * 3266489917;
-      const hashZ = (((h2 ^ (h2 >>> 16)) >>> 0) / 4294967296) * 0.45 - 0.225;
+      const hashZ = (((h2 ^ (h2 >>> 16)) >>> 0) / 4294967296) * 0.5 - 0.25;
 
-      const ox = q.bx + hashX;
-      const oy = q.by;
-      const oz = q.bz + hashZ;
+      let h3 = ((q.bx * 1337 + q.bz * 9991) ^ (q.by * 31337)) >>> 0;
+      h3 = (h3 ^ (h3 >>> 13)) * 3266489917;
+      const yaw = (((h3 ^ (h3 >>> 16)) >>> 0) / 4294967296) * Math.PI;
+
+      const cx = q.bx + 0.5 + hashX;
+      const cy = q.by;
+      const cz = q.bz + 0.5 + hashZ;
+
+      const hw = 0.70710678; // half diagonal length to match 1x1 block width
+      const dx1 = Math.cos(yaw) * hw;
+      const dz1 = Math.sin(yaw) * hw;
+      const dx2 = Math.cos(yaw + Math.PI / 2) * hw;
+      const dz2 = Math.sin(yaw + Math.PI / 2) * hw;
 
       // Plane A
       positions.push(
-        ox, oy, oz,
-        ox, oy+1, oz,
-        ox+1, oy+1, oz+1,
-        ox+1, oy, oz+1
+        cx - dx1, cy, cz - dz1,
+        cx - dx1, cy + 1, cz - dz1,
+        cx + dx1, cy + 1, cz + dz1,
+        cx + dx1, cy, cz + dz1
       );
-      normals.push(0,1,0, 0,1,0, 0,1,0, 0,1,0);
+      normals.push(0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
       colors.push(
         q.r, q.g, q.b, q.a,
         q.r, q.g, q.b, q.a,
         q.r, q.g, q.b, q.a,
         q.r, q.g, q.b, q.a
       );
-      uvs.push(0,0, 0,1, 1,1, 1,0);
+      uvs.push(0, 0, 0, 1, 1, 1, 1, 0);
       tiles.push(q.tile, q.tile, q.tile, q.tile);
-      indices.push(base, base+1, base+2, base, base+2, base+3);
+      indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
       base += 4;
 
       // Plane B
       positions.push(
-        ox+1, oy, oz,
-        ox+1, oy+1, oz,
-        ox, oy+1, oz+1,
-        ox, oy, oz+1
+        cx - dx2, cy, cz - dz2,
+        cx - dx2, cy + 1, cz - dz2,
+        cx + dx2, cy + 1, cz + dz2,
+        cx + dx2, cy, cz + dz2
       );
-      normals.push(0,1,0, 0,1,0, 0,1,0, 0,1,0);
+      normals.push(0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0);
       colors.push(
         q.r, q.g, q.b, q.a,
         q.r, q.g, q.b, q.a,
         q.r, q.g, q.b, q.a,
         q.r, q.g, q.b, q.a
       );
-      uvs.push(0,0, 0,1, 1,1, 1,0);
+      uvs.push(0, 0, 0, 1, 1, 1, 1, 0);
       tiles.push(q.tile, q.tile, q.tile, q.tile);
-      indices.push(base, base+1, base+2, base, base+2, base+3);
+      indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
       base += 4;
 
       continue;

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.12.45</title>
+  <title>Frontier Survival v1.12.46</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -1060,6 +1060,219 @@
       #title-screen #seed-row { margin: 10px 0 6px; }
       #title-screen .panel > button { margin-top: 7px; }
     }
+
+    /* v1.12.46 in-world presentation layer: keep the authored readout compact,
+       while leaving every gameplay prompt and control visible beneath it. */
+    #status-line {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "main compass";
+      align-items: center;
+      gap: 12px;
+      width: min(620px, calc(100vw - 180px));
+      min-height: 42px;
+      padding: 7px 12px 7px 15px;
+      text-align: left;
+      white-space: normal;
+      overflow: hidden;
+    }
+    #status-line .status-main {
+      grid-area: main;
+      min-width: 0;
+      display: grid;
+      gap: 3px;
+    }
+    #status-line .status-kicker {
+      overflow: hidden;
+      color: rgba(245,221,180,0.72);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      line-height: 1;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    #status-line .status-location {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-width: 0;
+      color: #f4eadc;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      line-height: 1.15;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    #status-line .status-location strong {
+      overflow: hidden;
+      color: #f8dca9;
+      text-overflow: ellipsis;
+    }
+    #status-line .status-location span {
+      overflow: hidden;
+      color: #c4cdd2;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-overflow: ellipsis;
+    }
+    #status-line .status-detail {
+      overflow: hidden;
+      color: #8e9ca5;
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      line-height: 1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #status-line .status-compass {
+      grid-area: compass;
+      display: grid;
+      grid-template-columns: 18px auto;
+      align-items: center;
+      gap: 6px;
+      min-width: 58px;
+      padding-left: 11px;
+      border-left: 1px solid rgba(255,255,255,0.14);
+      text-align: center;
+    }
+    #status-line .compass-mark {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 17px;
+      height: 17px;
+      color: #f0c982;
+      border: 1px solid rgba(240,201,130,0.58);
+      border-radius: 50%;
+      font-size: 9px;
+      line-height: 1;
+    }
+    #status-line .compass-mark::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 7px;
+      width: 2px;
+      height: 6px;
+      background: #f8dca9;
+      border-radius: 2px;
+    }
+    #status-line .compass-copy {
+      display: grid;
+      gap: 2px;
+    }
+    #status-line .compass-copy small {
+      color: #84929b;
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      line-height: 1;
+    }
+    #status-line .compass-copy strong {
+      color: #f4eadc;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      line-height: 1;
+    }
+    #message {
+      top: 20%;
+      width: min(620px, calc(100vw - 36px));
+      padding: 10px 16px 11px;
+      border: 1px solid rgba(240,201,130,0.34);
+      border-radius: 12px;
+      background: linear-gradient(180deg, rgba(18,27,38,0.86), rgba(7,12,18,0.72));
+      box-shadow: 0 14px 35px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.07);
+      color: #fff1d8;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.72);
+    }
+    #message:not(:empty)::before {
+      content: "FIELD NOTE";
+      display: block;
+      margin-bottom: 4px;
+      color: rgba(240,201,130,0.78);
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+    }
+    #prompt {
+      top: 55%;
+      max-width: min(660px, calc(100vw - 36px));
+      padding: 8px 16px;
+      border-color: rgba(240,201,130,0.5);
+      background: linear-gradient(180deg, rgba(18,27,38,0.88), rgba(7,12,18,0.76));
+      border-radius: 999px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.08);
+      color: #f7ead5;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+    }
+    #ach-toast {
+      top: 18%;
+      right: 20px;
+      width: min(300px, calc(100vw - 40px));
+      padding: 14px 16px 15px;
+      border-color: rgba(240,201,130,0.62);
+      border-radius: 13px;
+      background: linear-gradient(145deg, rgba(35,45,57,0.96), rgba(9,15,23,0.96));
+      box-shadow: 0 18px 50px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+    #ach-toast:not(.hidden) { animation: frontier-toast-in .28s ease-out both; }
+    #ach-toast::before {
+      content: "MILESTONE";
+      display: block;
+      margin-bottom: 6px;
+      color: rgba(240,201,130,0.76);
+      font-size: 8px;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+    }
+    #ach-toast strong { margin-bottom: 5px; color: #f6d79e; font-size: 14px; letter-spacing: 0.03em; }
+    #ach-toast span { color: #c4cdd2; font-size: 12px; line-height: 1.4; }
+    @keyframes frontier-toast-in {
+      from { opacity: 0; transform: translateY(-8px) translateX(8px); }
+      to { opacity: 1; transform: translateY(0) translateX(0); }
+    }
+    canvas:focus-visible { outline: 2px solid rgba(240,201,130,0.9); outline-offset: -4px; }
+    button:focus-visible, input:focus-visible, .hotbar-slot:focus-visible {
+      outline: 2px solid #f0c982;
+      outline-offset: 3px;
+    }
+    @media (max-width: 820px) {
+      #status-line { width: min(520px, calc(100vw - 150px)); }
+      #message { top: 19%; }
+      #ach-toast { right: 14px; }
+    }
+    @media (max-width: 620px) {
+      #status-line {
+        top: 10px;
+        width: min(330px, calc(100vw - 86px));
+        min-height: 36px;
+        gap: 7px;
+        padding: 6px 8px 6px 10px;
+        border-radius: 12px;
+      }
+      #status-line .status-kicker { font-size: 7px; }
+      #status-line .status-location { gap: 5px; font-size: 9px; }
+      #status-line .status-location span, #status-line .status-detail { font-size: 7px; }
+      #status-line .status-compass { min-width: 45px; padding-left: 7px; }
+      #status-line .compass-mark { width: 15px; height: 15px; }
+      #status-line .compass-mark::after { left: 6px; }
+      #status-line .compass-copy small { font-size: 6px; }
+      #status-line .compass-copy strong { font-size: 10px; }
+      #message { top: 17%; padding: 8px 12px 9px; font-size: 12px; }
+      #prompt { top: 56%; max-width: calc(100vw - 24px); padding: 7px 10px; font-size: 9px; }
+      #ach-toast { top: 14%; right: 10px; width: min(270px, calc(100vw - 20px)); }
+      body.coop-mode #status-line { left: 50%; right: auto; max-width: none; }
+    }
   </style>
   <script type="importmap">
   {
@@ -1086,8 +1299,9 @@
     <div id="spawn-marker" class="hidden"><div class="marker-icon"></div><span class="marker-label">SPAWN</span></div>
     <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
+    <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.12.45</div>
+    <div id="version-badge">v1.12.46</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1173,7 +1387,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.12.45</div>
+      <div class="tag">Browser survival sandbox · v1.12.46</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1286,6 +1500,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=410"></script>
+  <script type="module" src="./js/main.js?v=411"></script>
 </body>
 </html>
