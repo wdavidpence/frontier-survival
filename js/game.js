@@ -11,7 +11,7 @@ import {
   drinkWater,
   applyDamage,
 } from './survival.js?v=243';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=286';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=287';
 import {
   ITEM,
   propsOf,
@@ -52,7 +52,7 @@ import {
 import { visibleRecipes, craftRecipe } from './crafting.js?v=408';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=244';
-import { createBlockAtlas } from './atlas.js?v=295';
+import { createBlockAtlas } from './atlas.js?v=296';
 import { BreakFX, WeatherFX } from './fx.js?v=245';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';

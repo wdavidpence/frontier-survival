@@ -7,7 +7,7 @@
  *
  * Uses existing BLOCK/ITEM IDs from blocks.js and items.js.
  */
-import { BLOCK } from './blocks.js?v=220';
+import { BLOCK } from './blocks.js?v=287';
 import { ITEM } from './items.js?v=220';
 
 /**

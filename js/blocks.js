@@ -128,7 +128,7 @@ export const BLOCK_PROPS = {
   // shader does not multiply their dark-brown textures into black silhouettes.
   [BLOCK.ROOTS]: { name: 'Tree Roots', solid: false, transparent: true, hardness: 0.12, color: [0.52, 0.32, 0.15], drops: BLOCK.ROOTS, replaceable: true },
   [BLOCK.STICK_PILE]: { name: 'Stick Pile', solid: false, transparent: true, hardness: 0.1, color: [0.7, 0.46, 0.2], drops: BLOCK.STICK_PILE, replaceable: true },
-  [BLOCK.DAMP_SOIL]: { name: 'Damp Soil', solid: true, transparent: false, hardness: 0.42, color: [0.44, 0.3, 0.18], topColor: [0.38, 0.25, 0.15], drops: BLOCK.DAMP_SOIL },
+  [BLOCK.DAMP_SOIL]: { name: 'Damp Soil', solid: true, transparent: false, hardness: 0.42, color: [0.56, 0.44, 0.24], topColor: [0.5, 0.39, 0.21], drops: BLOCK.DAMP_SOIL },
   [BLOCK.MUSHROOM]: { name: 'Mushroom', solid: false, transparent: true, hardness: 0.08, color: [0.65, 0.2, 0.16], drops: BLOCK.MUSHROOM, replaceable: true },
 };
 

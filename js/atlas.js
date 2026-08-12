@@ -990,9 +990,9 @@ function drawStickPile(ctx, x0, y0) {
 }
 
 function drawDampSoil(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [88, 58, 36], 0.24, 414, 255, 2);
+  fillNoise(ctx, x0, y0, [118, 92, 54], 0.24, 414, 255, 2);
   const r = rnd(415);
-  ctx.fillStyle = 'rgba(35, 22, 14, 0.4)';
+  ctx.fillStyle = 'rgba(70, 58, 30, 0.4)';
   for (let i = 0; i < 12; i++) {
     const bx = (r() * 15) | 0;
     const by = (r() * 15) | 0;

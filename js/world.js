@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=286';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=287';
 import { heightAt, hash2, fbm, forestFloorDetail } from './gen.js?v=285';
 import { biomeAt, BIOME } from './biomes.js?v=245';
 import { tileForBlock } from './atlas-core.js?v=285';

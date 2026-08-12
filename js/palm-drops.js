@@ -1,5 +1,5 @@
 /** Pure palm-leaf harvest rules; deterministic for smoke tests and runtime injection. */
-import { BLOCK } from './blocks.js?v=221';
+import { BLOCK } from './blocks.js?v=287';
 import { ITEM } from './items.js?v=244';
 
 /**
