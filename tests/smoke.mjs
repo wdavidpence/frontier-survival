@@ -4296,6 +4296,7 @@ test('recipe search box is wired up for the crafting renderer', () => {
   assert.match(html, /id="crafting-goal"/, 'crafting goal readout missing');
   assert.match(fsText('js/game.js'), /nextProgressionRecipe/, 'crafting goal is not connected to the live renderer');
   assert.match(fsText('js/game.js'), /ingredientSummary/, 'ingredient progress is not connected to the live renderer');
+  assert.match(fsText('js/game.js'), /HOTBAR_SIZE/, 'inventory hotbar constant must remain wired');
 });
 
 test('controls guide is dismissed on entry while remaining reopenable', () => {

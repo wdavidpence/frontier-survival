@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=410';
+import { World } from './world.js?v=411';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=411';
 import { GameTime } from './time.js?v=221';
@@ -42,6 +42,7 @@ import {
   removeItems,
   countItems,
   consumeFromHotbar,
+  HOTBAR_SIZE,
   cloneSlots,
   createStarterInventory,
   emptySlots,
