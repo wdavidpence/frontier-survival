@@ -3089,7 +3089,10 @@ export class Game {
       for (const { r, progress, can } of rows) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'recipe-btn' + (can ? ' can' : '');
+        const status = can ? 'READY · CLICK TO CRAFT' : (progress.heatOk ? 'GATHER MATERIALS' : 'NEEDS HEAT');
+        btn.className = 'recipe-btn ' + (can ? 'can' : 'locked');
+        btn.dataset.ready = can ? 'true' : 'false';
+        btn.setAttribute('aria-label', `${r.name}: ${status}`);
         btn.dataset.recipe = r.id;
         btn.dataset.category = r.category;
         btn.dataset.tier = String(r.tier);
@@ -3099,7 +3102,7 @@ export class Game {
         const ingr = ingredientSummary(r, pl.slots)
           .map((item) => `${item.ok ? '✓' : `need ${item.missing}`} ${displayName(item.id)} ${item.have}/${item.need}`)
           .join(' · ');
-        btn.innerHTML = `<strong>${r.name}</strong><span class="recipe-meta">${catLabel(r.category)} · ${tierLabel(r.tier)}</span>` +
+        btn.innerHTML = `<span class="recipe-status">${status}</span><strong>${r.name}</strong><span class="recipe-meta">${catLabel(r.category)} · ${tierLabel(r.tier)}</span>` +
           `<span>${desc}</span><span class="recipe-ingredients">${ingr}</span>`;
         recipesEl.appendChild(btn);
       }
