@@ -1,4 +1,4 @@
-import { isPrimaryBreakButton } from './interaction-contract.js?v=1';
+import { isPrimaryBreakButton, combineBreakHeld } from './interaction-contract.js?v=2';
 
 /** Keyboard + mouse input (Minecraft-style). Bulletproof for browser quirks.
 
@@ -456,11 +456,9 @@ export class Input {
       this._vMoveZ = 0;
       this._gpJumpHeld = false;
       this._gpUseHeld = false;
-      // Don't clobber breakHeld here — it may be owned by mouse input (pointerdown/up).
-      if (this._breakFromGamepad) {
-        this.breakHeld = false;
-        this._breakFromGamepad = false;
-      }
+      // Mouse and gamepad are independent owners of the public held state.
+      this._breakFromGamepad = false;
+      this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
       return;
     }
     const gamepads = navigator.getGamepads();
@@ -473,11 +471,9 @@ export class Input {
       this.placePressed = false;
       this._gpJumpHeld = false;
       this._gpUseHeld = false;
-      // Don't clobber breakHeld here — it may be owned by mouse input (pointerdown/up).
-      if (this._breakFromGamepad) {
-        this.breakHeld = false;
-        this._breakFromGamepad = false;
-      }
+      // Mouse and gamepad are independent owners of the public held state.
+      this._breakFromGamepad = false;
+      this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
       return;
     }
 
@@ -560,13 +556,8 @@ export class Input {
     if (l2Value > 0.1 && !this._gpUseHeld) this.placePressed = true;
     this._gpUseHeld = l2Value > 0.1;
     const r2Held = r2Value > 0.1;
-    if (r2Held) {
-      this.breakHeld = true;
-      this._breakFromGamepad = true;
-    } else if (this._breakFromGamepad) {
-      this.breakHeld = false;
-      this._breakFromGamepad = false;
-    }
+    this._breakFromGamepad = r2Held;
+    this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
     this._gpJumpHeld = !!btn(0);
 
     // Haptic feedback: if game just started or took damage, rumble briefly
@@ -686,8 +677,8 @@ export class Input {
     this.softLook = true;
     if (!this.locked) this.requestLock();
     if (isPrimaryBreakButton(e)) {
-      this.breakHeld = true;
       this._heldLmb = true;
+      this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
     }
     if (e.button === 2) {
       e.preventDefault();
@@ -699,8 +690,8 @@ export class Input {
 
   _onMouseUp = (e) => {
     if (!e || e.type === 'pointercancel' || isPrimaryBreakButton(e)) {
-      this.breakHeld = false;
       this._heldLmb = false;
+      this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
     }
   };
 

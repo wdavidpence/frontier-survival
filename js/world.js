@@ -10,7 +10,7 @@ import {
   chunkDetailTier,
   buildTerrainProxyArrays,
 } from './terrain-visibility.js?v=285';
-import { makeVoxelInteraction } from './interaction-contract.js?v=1';
+import { makeVoxelInteraction } from './interaction-contract.js?v=2';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;

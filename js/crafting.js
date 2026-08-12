@@ -267,7 +267,7 @@ export const RECIPES = [
   {
     id: 'arrows',
     name: 'Arrows',
-    desc: '4 Arrows. 2 Sticks + 1 Stone cobble',
+    desc: '4 Arrows. 2 Sticks + 1 Cobble',
     category: 'ranged',
     tier: 2,
     ingredients: [

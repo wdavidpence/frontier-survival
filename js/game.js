@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=409';
+import { World } from './world.js?v=410';
 import { Player } from './player.js?v=238';
-import { Input } from './input.js?v=410';
+import { Input } from './input.js?v=411';
 import { GameTime } from './time.js?v=221';
 import { AudioBus } from './audio.js?v=220';
 import {
@@ -37,6 +37,7 @@ import { toggleDoor } from './door-hinge.js?v=220';
 import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=220';
 import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=220';
 import { maceSmashDamage } from './mace-smash.js?v=220';
+import { raycastVoxel } from './interaction-contract.js?v=2';
 import {
   addItems,
   removeItems,
@@ -49,7 +50,7 @@ import {
   emptySlots,
   splitStack,
 } from './inventory.js?v=220';
-import { visibleRecipes, craftRecipe, RECIPE_CATEGORIES, RECIPE_TIERS } from './crafting.js?v=408';
+import { visibleRecipes, craftRecipe, RECIPE_CATEGORIES, RECIPE_TIERS } from './crafting.js?v=409';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=244';
 import { createBlockAtlas } from './atlas.js?v=296';
@@ -1512,7 +1513,7 @@ export class Game {
         if (this.input2.consumeUse?.()) {
           const origin = this.player2.eyePosition();
           const dir = this.player2.lookDir();
-          const hit = this.world.raycast(origin, dir, 6);
+          const hit = this._raycastInteraction(origin, dir, 6);
           if (hit && hit.id === BLOCK.BED) this._trySleep();
         }
       }
@@ -2100,7 +2101,7 @@ export class Game {
   _updateOutlineAndPrompt() {
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
-    const hit = this.world.raycast(origin, dir, 6);
+    const hit = this._raycastInteraction(origin, dir, 6);
     const prompt = document.getElementById('prompt');
     let text = '';
 
@@ -2268,6 +2269,16 @@ export class Game {
     }
   }
 
+  _raycastInteraction(origin, direction, maxDist = 6) {
+    return raycastVoxel(
+      origin,
+      direction,
+      maxDist,
+      (x, y, z) => this.world.getBlock(x, y, z),
+      (id) => id !== BLOCK.AIR && id !== BLOCK.WATER && !!BLOCK_PROPS[id],
+    );
+  }
+
   _handleMining(dt) {
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
@@ -2337,7 +2348,7 @@ export class Game {
       }
     }
 
-    const hit = this.world.raycast(origin, dir, 6);
+    const hit = this._raycastInteraction(origin, dir, 6);
 
     if (this.input.breakHeld && hit && hit.id !== BLOCK.BEDROCK) {
       const key = `${hit.x},${hit.y},${hit.z}`;
@@ -2432,7 +2443,7 @@ export class Game {
     }
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
-    const hit = this.world.raycast(origin, dir, 6);
+    const hit = this._raycastInteraction(origin, dir, 6);
     if (!hit) return;
     const px = hit.x + hit.nx;
     const py = hit.y + hit.ny;
@@ -3443,7 +3454,7 @@ export class Game {
     const dir = p.lookDir();
 
     if (input.breakHeld) {
-      const hit = this.world.raycast(origin, dir, 6);
+      const hit = this._raycastInteraction(origin, dir, 6);
       if (hit && hit.id !== BLOCK.BEDROCK) {
         const key = `${hit.x},${hit.y},${hit.z}`;
         if (!p.breaking || p.breaking.key !== key) {
@@ -3472,7 +3483,7 @@ export class Game {
     }
 
     if (input.consumePlace?.()) {
-      const hit = this.world.raycast(origin, dir, 6);
+      const hit = this._raycastInteraction(origin, dir, 6);
       if (hit && hit.normal) {
         const px = hit.x + hit.normal.x;
         const py = hit.y + hit.normal.y;

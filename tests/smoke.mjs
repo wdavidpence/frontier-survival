@@ -89,6 +89,7 @@ import {
 import { CoopInputRouter, P1, P2 } from '../js/input-coop.js';
 import { canAnvilRepair, anvilRepair } from '../js/anvil-repair.js';
 import { slabHalfFromPitch, slabYOffset, slabHalfMeta, slabHalfFromMeta } from '../js/slab-place.js';
+import { isPrimaryBreakButton, normalizeInteractionDirection, makeVoxelInteraction, combineBreakHeld, raycastVoxel } from '../js/interaction-contract.js';
 import { stairFacingFromYaw, stairFacingMeta, stairFacingFromMeta } from '../js/stair-place.js';
 import { bowDrawCharge, bowPowerFromCharge, isBowFullyDrawn } from '../js/bow-draw.js';
 import { advanceCropGrowth, cropStageAt, isCropRipe, CROP_MATURE_SECONDS } from '../js/crop-growth.js';
@@ -2759,10 +2760,11 @@ test('game source wires resolveBlockDrop and furnace-tick', () => {
 test('mining path keeps pointer hold, raycast break, remesh, and drop feedback wired', () => {
   const gameSrc = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
   const inputSrc = readFileSync(new URL('../js/input.js', import.meta.url), 'utf8');
-  assert.ok(inputSrc.includes('this.breakHeld = true'), 'LMB must enter the held mining state');
+  assert.ok(inputSrc.includes('this._heldLmb = true'), 'LMB must enter the held mining state');
+  assert.ok(inputSrc.includes('combineBreakHeld'), 'mouse and gamepad mining ownership must be combined');
   assert.ok(inputSrc.includes("addEventListener('pointerdown'"), 'pointerdown must preserve LMB mining in modern browsers');
   assert.ok(inputSrc.includes('_onPointerUp'), 'pointer release/cancel must clear the mining state');
-  assert.ok(gameSrc.includes('this.world.raycast(origin, dir, 6)'), 'mining must select the targeted voxel');
+  assert.ok(gameSrc.includes('this._raycastInteraction(origin, dir, 6)'), 'mining must select the targeted voxel');
   assert.ok(gameSrc.includes('this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR)'), 'mining must clear the voxel');
   assert.ok(gameSrc.includes('resolveBlockDrop(hit.id, dropForBlock)'), 'mining must resolve a block drop');
   assert.ok(gameSrc.includes('this.player.notify(`+${dropCount} ${displayName(drop)}`'), 'mining must report the awarded drop');
@@ -2777,6 +2779,41 @@ test('angled voxel raycast normalizes direction and handles steep pitch safely',
   assert.ok(worldSrc.includes('step > 0 ? cell + 1 - coord : coord - cell'), 'negative-facing rays must enter the correct boundary');
   assert.ok(worldSrc.includes('const EPS = 1e-9'), 'raycast must have deterministic voxel-edge tie handling');
   assert.ok(worldSrc.includes('for (let i = 0; i < 256; i++)'), 'raycast must retain a bounded steep-angle traversal');
+});
+
+test('voxel interaction ray hits above/below targets and rejects off-ray blocks', () => {
+  const solid = (id) => id !== 0;
+  const downBlocks = new Map([['0,1,0', 2]]);
+  const down = raycastVoxel(
+    { x: 0.5, y: 2.5, z: 0.5 },
+    { x: 0, y: -1, z: 0 },
+    6,
+    (x, y, z) => downBlocks.get(`${x},${y},${z}`) ?? 0,
+    solid,
+  );
+  assert.deepStrictEqual({ x: down.x, y: down.y, z: down.z }, { x: 0, y: 1, z: 0 });
+  assert.ok(down.ny === 1 && down.dist > 0, 'downward ray should report the lower face and distance');
+  const upBlocks = new Map([['0,3,0', 4]]);
+  const up = raycastVoxel(
+    { x: 0.5, y: 1.5, z: 0.5 },
+    { x: 0, y: 1, z: 0 },
+    6,
+    (x, y, z) => upBlocks.get(`${x},${y},${z}`) ?? 0,
+    solid,
+  );
+  assert.deepStrictEqual({ x: up.x, y: up.y, z: up.z }, { x: 0, y: 3, z: 0 });
+  const offRayBlocks = new Map([['1,2,0', 6]]);
+  const miss = raycastVoxel(
+    { x: 0.5, y: 3.5, z: 0.5 },
+    { x: 0, y: -1, z: -1 },
+    6,
+    (x, y, z) => offRayBlocks.get(`${x},${y},${z}`) ?? 0,
+    solid,
+  );
+  assert.equal(miss, null, 'a block beside the ray must not be mined');
+  assert.equal(combineBreakHeld(true, false), true);
+  assert.equal(combineBreakHeld(false, true), true);
+  assert.equal(combineBreakHeld(false, false), false);
 });
 
 
@@ -4084,7 +4121,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.52'), 'HTML must expose v1.12.52');
+  assert.ok(html.includes('v1.12.53'), 'HTML must expose v1.12.53');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -4136,6 +4173,18 @@ test('v1.12.21: setup popup and touch overlay are configured for two-controller 
   assert.doesNotMatch(html, /id="touch-pad"/);
   assert.doesNotMatch(html, /id="touch-look"/);
   assert.match(fsText('js/game.js'), /controllerOnly = this\.coopMode/);
+});
+
+test('recipe search box is wired up for the crafting renderer', () => {
+  const html = fsText('index.html');
+  const pub = fsText('public/index.html');
+  assert.equal(html, pub, 'root/public HTML must stay identical');
+  assert.match(html, /<input id="recipe-filter"/, 'recipe search input missing from HTML');
+  assert.match(html, /<div id="recipe-list">/);
+  assert.match(fsText('js/game.js'), /getElementById\('recipe-filter'\)/, 'game.js no longer listens for recipe-filter');
+  assert.match(html, /\.recipe-btn\[data-tier="1"\]/, 'tier accent styling missing');
+  assert.match(html, /\.recipe-btn \.recipe-meta/, 'recipe-meta styling missing');
+  assert.match(html, /\.recipe-btn \.recipe-ingredients/, 'recipe-ingredients styling missing');
 });
 
 test('controls guide is dismissed on entry while remaining reopenable', () => {
