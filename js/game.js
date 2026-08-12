@@ -56,7 +56,7 @@ import { createBlockAtlas } from './atlas.js?v=295';
 import { BreakFX, WeatherFX } from './fx.js?v=245';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
-import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=7';
+import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=10';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -3612,7 +3612,12 @@ export class Game {
       if (this.player.breaking) bits.push(`Mining ${Math.floor(this.player.breaking.progress * 100)}%`);
       if (this.fauna) bits.push(`Wildlife ${this.fauna.living().length}`);
       if (this._lastSaveStatus) bits.push(this._lastSaveStatus);
-      status.textContent = bits.join(' · ');
+      const statusText = bits.join(' · ');
+      if (typeof window !== 'undefined' && typeof window.__FSStatusRender === 'function') {
+        window.__FSStatusRender(statusText);
+      } else {
+        status.textContent = statusText;
+      }
     }
 
     const msg = document.getElementById('message');

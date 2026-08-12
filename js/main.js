@@ -1,4 +1,4 @@
-import { Game } from './game.js?v=411';
+import { Game } from './game.js?v=414';
 import { hasSave, clearSaveStorage } from './save.js?v=220';
 import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=220';
 import {
@@ -119,11 +119,13 @@ function installHudPresentation() {
   const weatherNames = { clear: 'Clear skies', rain: 'Rain', snow: 'Snow' };
   const titleCase = (value) => String(value || '').replace(/\b\w/g, (letter) => letter.toUpperCase());
   let source = '';
+  let rendering = false;
 
-  const render = () => {
-    const raw = status.textContent.trim();
-    if (!raw || raw === source) return;
+  const render = (value = '') => {
+    const raw = String(value || status.textContent).trim();
+    if (!raw || (raw === source && status.querySelector('.status-main'))) return;
     source = raw;
+    rendering = true;
     const parts = raw.split(' · ').filter(Boolean);
     const mode = parts[0] || 'Frontier Survival';
     const seed = parts.find((part) => part.startsWith('Seed '));
@@ -172,15 +174,10 @@ function installHudPresentation() {
     copy.append(compassLabel, headingEl);
     compass.append(mark, copy);
     status.append(main, compass);
+    rendering = false;
   };
 
-  const observer = new MutationObserver(() => {
-    // Game updates status-line.textContent every frame. The presentation tree
-    // has a stable marker so the observer ignores mutations caused by its own
-    // render, but immediately re-renders the next game-authored value.
-    if (!status.querySelector('.status-main')) render();
-  });
-  observer.observe(status, { childList: true, characterData: true, subtree: true });
+  window.__FSStatusRender = render;
   render();
 }
 
