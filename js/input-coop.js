@@ -264,6 +264,13 @@ export class CoopInputRouter {
     return { ...this._gpSlot, kbmPlayer: this.kbmPlayer };
   }
 
+  /** Get a readable status string for P1/P2 gamepad assignments. */
+  getPadStatus() {
+    const p1 = this._gpSlot[P1] >= 0 ? `pad${this._gpSlot[P1]}` : 'none';
+    const p2 = this._gpSlot[P2] >= 0 ? `pad${this._gpSlot[P2]}` : 'none';
+    return `P1: ${p1} | P2: ${p2}`;
+  }
+
   /** Unbind all event listeners and reset state. */
   unbind() {
     if (this._kbmInput) {

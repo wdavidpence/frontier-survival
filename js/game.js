@@ -108,7 +108,7 @@ import {
 } from './chests.js?v=220';
 import { checkTooltip, show as showTooltip } from './tooltips.js?v=220';
 import { splitViewport } from './viewport-split.js?v=220';
-import { readGamepad } from './input-coop.js?v=260';
+import { readGamepad } from './input-coop.js?v=261';
 import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=220';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=220';
 import { palmLeafDrop } from './palm-drops.js?v=1';
@@ -1310,6 +1310,13 @@ export class Game {
     try {
       p2Pad = getConnectedPad(this.input?._gpConnected ? 1 : 0);
     } catch (_) {}
+    // Update prompt text with assignment status when assignments change or P2 is missing
+    if (this._coopRouter) {
+      const status = this._coopRouter.getPadStatus();
+      el.textContent = status;
+    } else if (p2Pad) {
+      el.textContent = 'P2 pad connected';
+    }
     el.classList.toggle('show', !p2Pad);
   }
 
@@ -3520,7 +3527,7 @@ export class Game {
     if (this.coopMode && !this._coopRouter) {
       try {
         // Lazy import path already static at top for readGamepad; router from same module via dynamic if needed
-        import(`./input-coop.js?v=260`).then((mod) => {
+        import(`./input-coop.js?v=261`).then((mod) => {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);
