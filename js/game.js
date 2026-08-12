@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { World } from './world.js?v=409';
 import { Player } from './player.js?v=238';
-import { Input } from './input.js?v=409';
+import { Input } from './input.js?v=410';
 import { GameTime } from './time.js?v=221';
 import { AudioBus } from './audio.js?v=220';
 import {
@@ -49,7 +49,7 @@ import {
   emptySlots,
   splitStack,
 } from './inventory.js?v=220';
-import { visibleRecipes, craftRecipe } from './crafting.js?v=408';
+import { visibleRecipes, craftRecipe, RECIPE_CATEGORIES, RECIPE_TIERS } from './crafting.js?v=408';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=244';
 import { createBlockAtlas } from './atlas.js?v=296';
@@ -3065,19 +3065,30 @@ export class Game {
     if (recipesEl) {
       recipesEl.innerHTML = '';
       const filter = (this._recipeFilter || '').toLowerCase().trim();
+      const rows = [];
       for (const r of visibleRecipes()) {
         if (filter && !(`${r.name} ${r.desc || ''} ${r.id}`.toLowerCase().includes(filter))) continue;
-        const has = hasIngredients(pl.slots, r.ingredients);
+        const hasIngr = hasIngredients(pl.slots, r.ingredients);
         const heatOk = !r.requiresHeat || (this._lastHeat || 0) >= r.requiresHeat;
-        const can = has && heatOk;
+        rows.push({ r, heatOk, can: hasIngr && heatOk });
+      }
+      rows.forEach((row, i) => { row._i = i; });
+      rows.sort((a, b) => (b.can - a.can) || (a._i - b._i));
+      const catLabel = (id) => RECIPE_CATEGORIES.find((c) => c.id === id)?.label || id;
+      const tierLabel = (t) => RECIPE_TIERS.find((x) => x.tier === t)?.label || `Tier ${t}`;
+      for (const { r, heatOk, can } of rows) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'recipe-btn' + (can ? ' can' : '');
         btn.dataset.recipe = r.id;
+        btn.dataset.category = r.category;
+        btn.dataset.tier = String(r.tier);
         btn.disabled = !can;
         let desc = r.desc || '';
         if (r.requiresHeat && !heatOk) desc += ' — stand by fire';
-        btn.innerHTML = `<strong>${r.name}</strong><span>${desc}</span>`;
+        const ingr = r.ingredients.map((ing) => `${displayName(ing.id)} ×${ing.count}`).join(', ');
+        btn.innerHTML = `<strong>${r.name}</strong><span class="recipe-meta">${catLabel(r.category)} · ${tierLabel(r.tier)}</span>` +
+          `<span>${desc}</span><span class="recipe-ingredients">${ingr}</span>`;
         recipesEl.appendChild(btn);
       }
     }

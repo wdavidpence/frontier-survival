@@ -190,6 +190,8 @@ export class Input {
     /** Soft look active after Click-to-play even without pointer lock */
     this.softLook = false;
     this.breakHeld = false;
+    /** Tracks whether the gamepad (vs. mouse) currently owns breakHeld=true */
+    this._breakFromGamepad = false;
     this.placePressed = false;
     this.usePressed = false;
     this.eatPressed = false;
@@ -314,14 +316,13 @@ export class Input {
     document.addEventListener('pointerlockerror', this._onLockError);
     document.addEventListener('click', this._onDocClick, true);
     this.el.addEventListener('click', this._onClick);
-    this.el.addEventListener('mousedown', this._onMouseDown);
-    this.el.addEventListener('mouseup', this._onMouseUp);
-    // Pointer events are the canonical path in Chromium/WebKit. Keep the
-    // mouse listeners for older browsers, but mirror the primary button so a
-    // pointer-lock transition cannot swallow the first mining press.
+    // Pointer events are the canonical path in Chromium/WebKit. Capture primary
+    // button on pointerdown for in-world play and release on pointerup,
+    // pointercancel, or window mouseup without duplicate listeners.
     this.el.addEventListener('pointerdown', this._onPointerDown);
     this.el.addEventListener('pointerup', this._onPointerUp);
     this.el.addEventListener('pointercancel', this._onPointerUp);
+    window.addEventListener('mouseup', this._onMouseUp);
     this.el.addEventListener('mouseleave', this._onMouseLeave);
     this.el.addEventListener('wheel', this._onWheel, { passive: false });
     document.addEventListener('mousemove', this._onMouseMove, true);
@@ -343,11 +344,10 @@ export class Input {
     document.removeEventListener('pointerlockerror', this._onLockError);
     document.removeEventListener('click', this._onDocClick, true);
     this.el.removeEventListener('click', this._onClick);
-    this.el.removeEventListener('mousedown', this._onMouseDown);
-    this.el.removeEventListener('mouseup', this._onMouseUp);
     this.el.removeEventListener('pointerdown', this._onPointerDown);
     this.el.removeEventListener('pointerup', this._onPointerUp);
     this.el.removeEventListener('pointercancel', this._onPointerUp);
+    window.removeEventListener('mouseup', this._onMouseUp);
     this.el.removeEventListener('mouseleave', this._onMouseLeave);
     this.el.removeEventListener('wheel', this._onWheel);
     document.removeEventListener('mousemove', this._onMouseMove, true);
@@ -456,7 +456,11 @@ export class Input {
       this._vMoveZ = 0;
       this._gpJumpHeld = false;
       this._gpUseHeld = false;
-      this.breakHeld = false;
+      // Don't clobber breakHeld here — it may be owned by mouse input (pointerdown/up).
+      if (this._breakFromGamepad) {
+        this.breakHeld = false;
+        this._breakFromGamepad = false;
+      }
       return;
     }
     const gamepads = navigator.getGamepads();
@@ -469,7 +473,11 @@ export class Input {
       this.placePressed = false;
       this._gpJumpHeld = false;
       this._gpUseHeld = false;
-      this.breakHeld = false;
+      // Don't clobber breakHeld here — it may be owned by mouse input (pointerdown/up).
+      if (this._breakFromGamepad) {
+        this.breakHeld = false;
+        this._breakFromGamepad = false;
+      }
       return;
     }
 
@@ -551,7 +559,14 @@ export class Input {
     const r2Value = absBtn(7) || 0;
     if (l2Value > 0.1 && !this._gpUseHeld) this.placePressed = true;
     this._gpUseHeld = l2Value > 0.1;
-    this.breakHeld = r2Value > 0.1;
+    const r2Held = r2Value > 0.1;
+    if (r2Held) {
+      this.breakHeld = true;
+      this._breakFromGamepad = true;
+    } else if (this._breakFromGamepad) {
+      this.breakHeld = false;
+      this._breakFromGamepad = false;
+    }
     this._gpJumpHeld = !!btn(0);
 
     // Haptic feedback: if game just started or took damage, rumble briefly
@@ -664,6 +679,10 @@ export class Input {
 
   _onMouseDown = (e) => {
     if (this.uiMode || !this.captureEnabled) return;
+    const t = e?.target;
+    if (t && t.closest && t.closest('.overlay:not(.hidden), #touch-pad, #click-to-play, button, input, select, textarea, a, .inv-panel')) {
+      return;
+    }
     this.softLook = true;
     if (!this.locked) this.requestLock();
     if (isPrimaryBreakButton(e)) {
@@ -679,7 +698,7 @@ export class Input {
   };
 
   _onMouseUp = (e) => {
-    if (isPrimaryBreakButton(e)) {
+    if (!e || e.type === 'pointercancel' || isPrimaryBreakButton(e)) {
       this.breakHeld = false;
       this._heldLmb = false;
     }
