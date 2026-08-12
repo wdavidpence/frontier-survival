@@ -1,4 +1,4 @@
-import { isPrimaryBreakButton, combineBreakHeld, transitionBreakPointer } from './interaction-contract.js?v=3';
+import { isPrimaryBreakButton, combineBreakHeld, transitionBreakPointer } from './interaction-contract.js?v=4';
 
 /** Keyboard + mouse input (Minecraft-style). Bulletproof for browser quirks.
 
@@ -239,6 +239,8 @@ export class Input {
       this._vCrouch = false;
     }
     this.breakHeld = false;
+    this._heldLmb = false;
+    this._breakFromGamepad = false;
     this.placePressed = false;
     this.usePressed = false;
     this.eatPressed = false;
@@ -250,6 +252,11 @@ export class Input {
     this.debugPressed = false;
     this.hotbarScroll = 0;
     this.slot = -1;
+  }
+
+  releaseBreak() {
+    this._heldLmb = false;
+    this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
   }
 
   setCaptureEnabled(on) {
@@ -321,7 +328,7 @@ export class Input {
     // pointercancel, or window mouseup without duplicate listeners.
     this.el.addEventListener('pointerdown', this._onPointerDown);
     this.el.addEventListener('pointerup', this._onPointerUp);
-    this.el.addEventListener('pointercancel', this._onPointerUp);
+    this.el.addEventListener('pointercancel', this._onPointerCancel);
     window.addEventListener('mouseup', this._onMouseUp);
     this.el.addEventListener('mouseleave', this._onMouseLeave);
     this.el.addEventListener('wheel', this._onWheel, { passive: false });
@@ -346,7 +353,7 @@ export class Input {
     this.el.removeEventListener('click', this._onClick);
     this.el.removeEventListener('pointerdown', this._onPointerDown);
     this.el.removeEventListener('pointerup', this._onPointerUp);
-    this.el.removeEventListener('pointercancel', this._onPointerUp);
+    this.el.removeEventListener('pointercancel', this._onPointerCancel);
     window.removeEventListener('mouseup', this._onMouseUp);
     this.el.removeEventListener('mouseleave', this._onMouseLeave);
     this.el.removeEventListener('wheel', this._onWheel);
@@ -359,6 +366,9 @@ export class Input {
     }
     this._gpIndex = -1;
     this._gpConnected = false;
+    this._heldLmb = false;
+    this._breakFromGamepad = false;
+    this.breakHeld = false;
     this._bound = false;
     this.captureEnabled = false;
     this.softLook = false;
@@ -370,15 +380,15 @@ export class Input {
 
   _onBlur = () => {
     this.keys.clear();
-    this.breakHeld = false;
     this._heldLmb = false;
+    this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
   };
 
   _onVisibility = () => {
     if (document.hidden) {
       this.keys.clear();
-      this.breakHeld = false;
       this._heldLmb = false;
+      this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
     }
   };
 
@@ -406,6 +416,8 @@ export class Input {
       // Fallback: unknown disconnect — clear our state.
       this._gpIndex = -1;
       this._gpConnected = false;
+      this._breakFromGamepad = false;
+      this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
       return;
     }
     const gpIndex = e.gamepad.index;
@@ -415,12 +427,16 @@ export class Input {
       if (gpIndex === this._gpIndex) {
         this._gpIndex = -1;
         this._gpConnected = false;
+        this._breakFromGamepad = false;
+        this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
       }
     } else {
       // Legacy: if our pad disconnected, clear.
       if (gpIndex === this._gpIndex) {
         this._gpIndex = -1;
         this._gpConnected = false;
+        this._breakFromGamepad = false;
+        this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
       }
     }
   };
@@ -704,6 +720,11 @@ export class Input {
 
   _onPointerUp = (e) => {
     this._onMouseUp(e);
+  };
+
+  _onPointerCancel = () => {
+    this._heldLmb = transitionBreakPointer(this._heldLmb, null, 'cancel');
+    this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
   };
 
   _onMouseLeave = () => {

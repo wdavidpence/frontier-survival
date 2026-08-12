@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=411';
+import { World } from './world.js?v=412';
 import { Player } from './player.js?v=238';
-import { Input } from './input.js?v=411';
+import { Input } from './input.js?v=412';
 import { GameTime } from './time.js?v=221';
 import { AudioBus } from './audio.js?v=220';
 import {
@@ -547,7 +547,7 @@ export class Game {
       if (document.pointerLockElement) document.exitPointerLock();
       this.input.uiMode = true;
       this.input.setCaptureEnabled?.(false);
-      this.input.breakHeld = false;
+      this.input.releaseBreak?.();
       panel?.classList.remove('hidden');
       const sens = document.getElementById('sens-slider');
       if (sens) {
@@ -1362,7 +1362,7 @@ export class Game {
       this.input.uiMode = true;
       this.input.setCaptureEnabled?.(false);
       if (document.pointerLockElement) document.exitPointerLock();
-      this.input.breakHeld = false;
+      this.input.releaseBreak?.();
     } else if (!this.paused) {
       this.input.uiMode = false;
       this.input.setCaptureEnabled?.(!!this.started);
@@ -2641,7 +2641,7 @@ export class Game {
     if (!this.input.consumeUse()) return;
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
-    const hit = this.world.raycast(origin, dir, 5);
+    const hit = this._raycastInteraction(origin, dir, 5);
 
     // Open chest
     if (hit && hit.id === BLOCK.CHEST) {

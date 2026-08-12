@@ -10,6 +10,7 @@
 export const PRIMARY_BREAK_BUTTON = 0;
 export const DEFAULT_INTERACTION_DISTANCE = 6;
 const MIN_DIRECTION_LENGTH = 1e-8;
+const MAX_RAY_STEPS = 4096;
 
 /**
  * Return whether an event/button represents the primary (left) mouse button.
@@ -117,11 +118,21 @@ export function raycastVoxel(origin, direction, maxDist, getVoxel, isHit) {
   let faceZ = 0;
   let dist = 0;
   const EPS = 1e-9;
-  const maxSteps = Math.min(4096, Math.ceil(range * (Math.abs(d.x) + Math.abs(d.y) + Math.abs(d.z))) + 3);
+  // The L1 norm bounds how many voxel planes a unit ray can cross per world
+  // unit. Keep the loop finite even when a caller supplies an unusually large
+  // range; normal gameplay ranges remain exact and do not allocate state.
+  const maxSteps = Math.min(MAX_RAY_STEPS, Math.ceil(range * (Math.abs(d.x) + Math.abs(d.y) + Math.abs(d.z))) + 3);
 
   for (let i = 0; i < maxSteps; i++) {
     const id = getVoxel(x, y, z);
-    if (isHit(id)) return { x, y, z, nx: -faceX, ny: -faceY, nz: -faceZ, dist, id };
+    if (isHit(id)) return {
+      x, y, z,
+      nx: faceX ? -faceX : 0,
+      ny: faceY ? -faceY : 0,
+      nz: faceZ ? -faceZ : 0,
+      dist,
+      id,
+    };
     const next = Math.min(nextX, nextY, nextZ);
     if (!Number.isFinite(next) || next > range) return null;
     // Advance every axis crossed at the same parametric distance. A ray that

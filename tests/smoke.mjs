@@ -2907,12 +2907,50 @@ test('voxel ray rejects cells touched only at an edge/corner', () => {
   assert.equal(hit, null, 'cells touched only at the corner must not count as ray hits');
 });
 
+test('voxel ray enforces finite range and reports negative-entry face normals', () => {
+  const blocks = new Map([['-2,0,0', 9], ['3,0,0', 10]]);
+  const get = (x, y, z) => blocks.get(`${x},${y},${z}`) ?? 0;
+  const hit = raycastVoxel(
+    { x: 0.5, y: 0.5, z: 0.5 },
+    { x: -1, y: 0, z: 0 },
+    2.5,
+    get,
+    (id) => id !== 0,
+  );
+  assert.deepStrictEqual({ x: hit.x, y: hit.y, z: hit.z }, { x: -2, y: 0, z: 0 });
+  assert.deepStrictEqual({ nx: hit.nx, ny: hit.ny, nz: hit.nz }, { nx: 1, ny: 0, nz: 0 });
+  assert.equal(raycastVoxel(
+    { x: 0.5, y: 0.5, z: 0.5 },
+    { x: 1, y: 0, z: 0 },
+    2.49,
+    get,
+    (id) => id !== 0,
+  ), null, 'a block entered beyond maxDist must not be hit');
+  assert.equal(raycastVoxel(
+    { x: 0, y: 0, z: 0 },
+    { x: 1, y: 0, z: 0 },
+    Infinity,
+    get,
+    (id) => id !== 0,
+  ), null, 'non-finite ranges must be rejected');
+});
+
 test('pointer break ownership transitions are deterministic', () => {
   assert.equal(transitionBreakPointer(false, { button: 0 }, 'down'), true);
   assert.equal(transitionBreakPointer(true, { button: 0 }, 'up'), false);
   assert.equal(transitionBreakPointer(true, { button: 0 }, 'cancel'), false);
   assert.equal(transitionBreakPointer(true, { button: 2 }, 'up'), true);
   assert.equal(transitionBreakPointer(false, { button: 2 }, 'down'), false);
+});
+
+test('input owns pointerdown/up/cancel and window mouseup lifecycle', () => {
+  const inputSrc = readFileSync(new URL('../js/input.js', import.meta.url), 'utf8');
+  assert.match(inputSrc, /addEventListener\('pointerdown', this\._onPointerDown\)/);
+  assert.match(inputSrc, /addEventListener\('pointerup', this\._onPointerUp\)/);
+  assert.match(inputSrc, /addEventListener\('pointercancel', this\._onPointerCancel\)/);
+  assert.match(inputSrc, /addEventListener\('mouseup', this\._onMouseUp\)/);
+  assert.match(inputSrc, /_onPointerCancel =/);
+  assert.match(inputSrc, /combineBreakHeld\(this\._heldLmb, this\._breakFromGamepad\)/);
 });
 
 test('production mining uses the World raycast contract without a duplicate DDA', () => {
@@ -2923,6 +2961,7 @@ test('production mining uses the World raycast contract without a duplicate DDA'
   assert.match(worldSrc, /import \{ raycastVoxel \} from '\.\/interaction-contract\.js\?v=\d+'/);
   assert.match(worldSrc, /return raycastVoxel\(/);
   assert.doesNotMatch(gameSrc, /raycastVoxel\(/, 'Game must not own a second voxel traversal');
+  assert.equal((gameSrc.match(/this\.world\.raycast\(/g) || []).length, 1, 'World.raycast must be reached only through _raycastInteraction');
 });
 
 test('stair-place facing from yaw', () => {
@@ -4229,7 +4268,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.55'), 'HTML must expose v1.12.55');
+  assert.ok(html.includes('v1.12.56'), 'HTML must expose v1.12.56');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
