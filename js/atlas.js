@@ -386,6 +386,32 @@ function drawSand(ctx, x0, y0) {
   applyMicroTexture(ctx, x0, y0, 2, 2);
 }
 
+function drawWaterWavelets(ctx, x0, y0) {
+  // Short stepped wavelets give the water a shared direction without turning
+  // the tile into a set of evenly spaced stripes. Every segment wraps so the
+  // atlas remains seamless when neighbouring water blocks meet.
+  const r = rnd(716);
+  const bands = [
+    { color: 'rgba(13, 72, 132, 0.22)', count: 3, w: 4, h: 1, step: 2 },
+    { color: 'rgba(102, 195, 228, 0.22)', count: 3, w: 3, h: 1, step: 2 },
+    { color: 'rgba(219, 243, 250, 0.28)', count: 1, w: 2, h: 1, step: 1 },
+  ];
+  bands.forEach((band, layer) => {
+    ctx.fillStyle = band.color;
+    for (let i = 0; i < band.count; i++) {
+      const startX = (r() * TILE_PX) | 0;
+      const startY = (r() * TILE_PX) | 0;
+      const segments = 3 + ((r() * 3) | 0);
+      const slope = layer === 0 ? 1 : (r() > 0.35 ? 1 : -1);
+      for (let segment = 0; segment < segments; segment++) {
+        const x = startX + segment * (band.w - 1);
+        const y = startY + slope * Math.floor(segment / band.step);
+        fillRectWrapped(ctx, x0, y0, x, y, band.w, band.h);
+      }
+    }
+  });
+}
+
 function drawWater(ctx, x0, y0) {
   // Ocean blue ramped through deep / mid / lit stops, with the field stretched
   // 3x vertically so it bands into wave rolls. Opaque alpha = 255 (no holes in
@@ -413,6 +439,9 @@ function drawWater(ctx, x0, y0) {
     seed: 70, count: 4, color: 'rgba(235, 250, 255, 0.48)',
     field, want: 1, threshold: 0.80, w: 2, h: 2,
   });
+  // A sparse directional pass sits above the broad field: stepped shoulders,
+  // troughs and a few foam tips make wave flow legible at the ocean view.
+  drawWaterWavelets(ctx, x0, y0);
   applyMicroTexture(ctx, x0, y0, 3, 3);
 }
 

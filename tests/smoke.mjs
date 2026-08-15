@@ -4268,7 +4268,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.56'), 'HTML must expose v1.12.56');
+  assert.ok(html.includes('v1.12.57'), 'HTML must expose v1.12.57');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
