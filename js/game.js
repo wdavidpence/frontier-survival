@@ -255,6 +255,8 @@ export class Game {
     this._helpVisible = this.settings.helpVisible !== false;
     this._helpFadeAcc = 0;
     this._crossHitT = 0;
+    this._actionCueT = 0;
+    this._actionCueText = '';
     this._deathHandled = false;
     this._lightPool = [];
     this._lightScanAcc = 0;
@@ -1436,6 +1438,7 @@ export class Game {
     // survival keeps ticking even in inventory (you're still cold/hungry)
     this.time.tick(dt);
     this._crossHitT = Math.max(0, this._crossHitT - dt);
+    this._actionCueT = Math.max(0, this._actionCueT - dt);
     this._bowCd = Math.max(0, this._bowCd - dt);
     this._bowCd2 = Math.max(0, (this._bowCd2 || 0) - dt);
     this._fishCd = Math.max(0, this._fishCd - dt);
@@ -2289,6 +2292,11 @@ export class Game {
     return this.world.raycast(origin, direction, maxDist);
   }
 
+  _showActionCue(text) {
+    this._actionCueText = text;
+    this._actionCueT = 1.1;
+  }
+
   _handleMining(dt) {
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
@@ -2418,6 +2426,7 @@ export class Game {
         this.fx.hideCrack();
         this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR);
         this.audio.breakBlock();
+        this._showActionCue(`Mined ${displayName(hit.id)}`);
         this.player.breaking = null;
         {
           const w = wearTool(this.player.slots, this.player.hotbarIndex, 1);
@@ -2433,6 +2442,7 @@ export class Game {
             this.player.notify(`+${dropCount} ${displayName(drop)}`, 1.4);
           }
         }
+        if (this._actionCueText) this.player.notify(`✦ ${this._actionCueText}`, 1.1);
       }
     } else if (!this.input.breakHeld) {
       this.player.breaking = null;
@@ -2487,6 +2497,7 @@ export class Game {
       this.world.setBlock(hit.x, hit.y + 1, hit.z, BLOCK.CROP);
       this._crops.set(this._cropKey(hit.x, hit.y + 1, hit.z), 0);
       this.audio.placeBlock();
+      this._showActionCue('Seeds planted');
       this.player.notify('Seeds planted. Wait for wheat to ripen.', 2.5);
       this._unlock('first_farm');
       return;
@@ -2505,6 +2516,7 @@ export class Game {
 
     if (this.world.setBlock(px, py, pz, blockId)) {
       this.audio.placeBlock();
+      this._showActionCue(`Placed ${displayName(blockId)}`);
       if (blockId === BLOCK.SLAB_WOOD) {
         const half = slabHalfFromPitch(this.player.pitch);
         const meta = slabHalfMeta(half);
@@ -3494,6 +3506,7 @@ export class Game {
             p.slots = add.slots;
           }
           this.audio.breakBlock?.();
+          this._showActionCue(`P2 mined ${displayName(hit.id)}`);
           p.breaking = null;
           this.fx?.setCrack?.(null, 0);
         }
@@ -3526,6 +3539,7 @@ export class Game {
               p.slots = cons.slots;
               this.world.setBlock(px, py, pz, placeId);
               this.audio.place?.() || this.audio.ui?.();
+              this._showActionCue(`P2 placed ${displayName(placeId)}`);
             }
           }
         }
@@ -3661,6 +3675,7 @@ export class Game {
       const held = this.player.heldStack();
       if (held.id != null) bits.push(displayName(held.id));
       if (this.player.breaking) bits.push(`Mining ${Math.floor(this.player.breaking.progress * 100)}%`);
+      if (this._actionCueT > 0 && this._actionCueText) bits.push(`✦ ${this._actionCueText}`);
       if (this.fauna) bits.push(`Wildlife ${this.fauna.living().length}`);
       if (this._lastSaveStatus) bits.push(this._lastSaveStatus);
       const statusText = bits.join(' · ');
