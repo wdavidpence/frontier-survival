@@ -63,7 +63,7 @@ import { createBlockAtlas } from './atlas.js?v=297';
 import { BreakFX, WeatherFX } from './fx.js?v=245';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
-import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=10';
+import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=11';
 import {
   equipmentWarmth,
   equipmentArmor,
