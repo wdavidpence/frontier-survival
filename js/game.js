@@ -2081,6 +2081,9 @@ export class Game {
       el?.classList.add('hidden');
       return;
     }
+    // Keep the desktop cue outside the left survival card; compact/mobile layouts
+    // retain the original edge placement where the card is narrower.
+    el.style.left = window.innerWidth >= 640 ? '252px' : '16px';
     const px = this.player.position.x;
     const pz = this.player.position.z;
     const dx = this._spawnPos.x - px;
@@ -2100,7 +2103,14 @@ export class Game {
     if (icon) icon.style.transform = `rotate(${(rel * 180) / Math.PI}deg)`;
     const label = el.querySelector('.marker-label');
     if (label) {
-      label.textContent = dist < 4 ? 'SPAWN' : `${Math.round(dist)}m`;
+      // Keep the cue useful even when the marker is at the screen edge: the
+      // absolute compass sector says where the starting camp is, while the
+      // rotated icon still gives a finer-grained left/right correction.
+      const headingDeg = ((bearing * 180) / Math.PI + 360) % 360;
+      const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+      const heading = dirs[Math.round(headingDeg / 45) % 8];
+      label.textContent = dist < 4 ? 'CAMP · HERE' : `CAMP · ${Math.round(dist)}m · ${heading}`;
+      label.setAttribute('aria-label', `Starting camp ${Math.round(dist)} metres ${heading}`);
     }
   }
 
