@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.12.65</title>
+  <title>Frontier Survival v1.12.66</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -814,39 +814,43 @@
       width: min(252px, 28vw);
       padding: 14px 14px 12px;
       gap: 8px;
-      background: linear-gradient(155deg, rgba(18,27,38,0.86), rgba(5,10,16,0.72));
-      border: 1px solid rgba(255,255,255,0.14);
+      background: linear-gradient(160deg, rgba(14,21,30,0.88), rgba(6,11,17,0.78));
+      border: 1px solid rgba(255,255,255,0.13);
       border-radius: 16px;
-      box-shadow: 0 18px 45px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
+      box-shadow: 0 16px 42px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
       backdrop-filter: blur(12px) saturate(1.2);
     }
     #meters { left: 20px; bottom: 94px; }
     #meters::before, body.coop-mode #meters-p2::before {
       content: "SURVIVAL STATUS";
       display: block;
-      padding-bottom: 3px;
-      color: rgba(245,221,180,0.76);
+      margin-bottom: 3px;
+      padding-bottom: 4px;
+      color: rgba(245,221,180,0.85);
       border-bottom: 1px solid rgba(255,255,255,0.1);
       font-size: 9px;
       font-weight: 800;
       letter-spacing: 0.16em;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6);
     }
     .meter {
-      grid-template-columns: 56px 1fr;
+      grid-template-columns: 58px 1fr;
       gap: 8px;
-      color: #b9c0c7;
+      color: #d2d9e0;
       font-size: 10px;
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.07em;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
     }
     .track {
       height: 7px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(0,0,0,0.18);
+      background: rgba(4,8,14,0.6);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 999px;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+      box-shadow: inset 0 1.5px 3px rgba(0,0,0,0.6);
+      overflow: hidden;
     }
-    .fill { border-radius: 999px; box-shadow: 0 0 8px rgba(255,255,255,0.12); }
+    .fill { border-radius: 999px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 0 6px rgba(0,0,0,0.3); }
     #hotbar, body.coop-mode #hotbar-p2 {
       bottom: 24px;
       gap: 7px;
@@ -1381,7 +1385,7 @@
     <div id="message"></div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.12.65</div>
+    <div id="version-badge">v1.12.66</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1469,7 +1473,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.12.65</div>
+      <div class="tag">Browser survival sandbox · v1.12.66</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1591,6 +1595,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=430"></script>
+  <script type="module" src="./js/main.js?v=431"></script>
 </body>
 </html>
