@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.12.67</title>
+  <title>Frontier Survival v1.12.68</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -812,32 +812,33 @@
     }
     #meters, body.coop-mode #meters-p2 {
       width: min(252px, 28vw);
-      padding: 14px 14px 12px;
-      gap: 8px;
-      background: linear-gradient(160deg, rgba(14,21,30,0.88), rgba(6,11,17,0.78));
+      padding: 7px 9px 6px;
+      gap: 2px;
+      background: rgba(14,21,30,0.46);
       border: 1px solid rgba(255,255,255,0.13);
-      border-radius: 16px;
-      box-shadow: 0 16px 42px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.1);
-      backdrop-filter: blur(12px) saturate(1.2);
+      border-radius: 10px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.08);
+      backdrop-filter: blur(7px) saturate(1.1);
     }
     #meters { left: 20px; bottom: 94px; }
     #meters::before, body.coop-mode #meters-p2::before {
       content: "SURVIVAL STATUS";
       display: block;
-      margin-bottom: 3px;
-      padding-bottom: 4px;
+      margin-bottom: 1px;
+      padding-bottom: 2px;
       color: rgba(245,221,180,0.85);
       border-bottom: 1px solid rgba(255,255,255,0.1);
-      font-size: 9px;
+      font-size: 8px;
       font-weight: 800;
       letter-spacing: 0.16em;
       text-shadow: 0 1px 2px rgba(0,0,0,0.6);
     }
     .meter {
       grid-template-columns: 58px 1fr;
-      gap: 8px;
+      gap: 5px;
       color: #d2d9e0;
-      font-size: 10px;
+      font-size: 9px;
+      line-height: 1;
       font-weight: 700;
       letter-spacing: 0.07em;
       text-shadow: 0 1px 2px rgba(0,0,0,0.8);
@@ -1385,7 +1386,7 @@
     <div id="message"></div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.12.67</div>
+    <div id="version-badge">v1.12.68</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1473,7 +1474,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.12.67</div>
+      <div class="tag">Browser survival sandbox · v1.12.68</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
