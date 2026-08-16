@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.12.62</title>
+  <title>Frontier Survival v1.12.63</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -1018,9 +1018,38 @@
       color: #8798a3;
       font-size: 11px;
     }
+    #title-screen .setup-deck {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+      text-align: left;
+    }
+    #title-screen .setup-group {
+      padding: 12px 14px 10px;
+      border: 1px solid rgba(130,174,211,0.28);
+      border-radius: 14px;
+      background: linear-gradient(160deg, rgba(64,94,128,0.16), rgba(20,28,40,0.3));
+    }
+    #title-screen .setup-group .play-mode-label { margin-top: 0; text-align: center; }
+    #title-screen .setup-group .mode-row { margin: 9px 0 4px; }
+    #title-screen .setup-group p { text-align: center; }
+    #title-screen .setup-rail {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 6px 18px;
+      margin: 14px 0 4px;
+      padding: 10px 16px;
+      border: 1px solid rgba(240,201,130,0.22);
+      border-radius: 14px;
+      background: rgba(20,26,36,0.34);
+    }
+    #title-screen .setup-rail #seed-row { margin: 4px 0; }
+    #title-screen .setup-rail .sens-row { width: auto; flex: 1 1 200px; margin: 4px 0; }
     #title-screen #seed-row {
       display: flex; align-items: center; justify-content: center; gap: 9px;
-      margin: 18px 0 12px;
       color: #9eabb2; font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
       text-transform: uppercase;
     }
@@ -1070,8 +1099,11 @@
       #title-screen .panel h1 { font-size: clamp(30px, 10vw, 42px); }
       #title-screen .mode-row, #title-screen #play-mode-row { gap: 7px; }
       #title-screen .mode-btn { min-height: 42px; padding: 8px 5px; font-size: 11px; }
-      #title-screen .sens-row { width: 100%; margin: 4px 0; }
+      #title-screen .setup-deck { grid-template-columns: 1fr; gap: 8px; margin-top: 16px; }
+      #title-screen .setup-rail { flex-direction: column; margin: 10px 0 4px; padding: 8px 12px; }
+      #title-screen .sens-row, #title-screen .setup-rail .sens-row { width: 100%; margin: 4px 0; }
       #title-screen #seed-row { flex-wrap: wrap; margin-top: 14px; }
+      #title-screen .setup-rail #seed-row { margin: 4px 0; }
       #title-screen #seed-row input { width: min(230px, 70vw); }
       #title-screen::after { bottom: 7px; font-size: 8px; letter-spacing: 0.2em; }
       #meters, body.coop-mode #meters-p2 { width: min(178px, 43vw); padding: 9px 9px 8px; gap: 5px; border-radius: 12px; }
@@ -1095,10 +1127,17 @@
     }
     @media (max-height: 720px) and (min-width: 621px) {
       #title-screen .panel { padding-top: 22px; padding-bottom: 22px; }
-      #title-screen .panel h1 { font-size: 38px; }
+      #title-screen .panel h1 { font-size: 38px; margin-bottom: 6px; }
+      #title-screen .tag { margin-bottom: 10px; }
       #title-screen .play-mode-label { margin-top: 14px; }
       #title-screen .panel > p { margin: 6px auto; line-height: 1.4; }
-      #title-screen #seed-row { margin: 10px 0 6px; }
+      #title-screen .setup-deck { margin-top: 12px; gap: 8px; }
+      #title-screen .setup-group { padding: 9px 12px 7px; }
+      #title-screen .setup-group .mode-row { margin: 6px 0 2px; }
+      #title-screen .mode-btn { min-height: 36px; padding: 7px 10px; }
+      #title-screen #play-mode-blurb, #title-screen #mode-blurb { min-height: 1.4em; margin: 4px auto 2px; }
+      #title-screen .setup-rail { margin: 8px 0 2px; padding: 7px 14px; }
+      #title-screen #seed-row { margin: 4px 0; }
       #title-screen .panel > button { margin-top: 7px; }
     }
 
@@ -1342,7 +1381,7 @@
     <div id="message"></div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.12.62</div>
+    <div id="version-badge">v1.12.63</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1430,7 +1469,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.12.62</div>
+      <div class="tag">Browser survival sandbox · v1.12.63</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1438,17 +1477,26 @@
         original game, art, and code.
       </p>
       <p>Solo laptop: keyboard + mouse. Local Co-op TV mode: two PS5 DualSense controllers only (P1 + P2).</p>
-      <div class="play-mode-label">Play mode</div>
-      <div class="mode-row" id="play-mode-row"></div>
-      <p id="play-mode-blurb"></p>
-      <div class="mode-row" id="mode-row"></div>
-      <p id="mode-blurb"></p>
-      <div id="seed-row">World seed <input id="seed-input" type="text" placeholder="random" maxlength="12" /></div>
-      <div class="sens-row">Mouse sensitivity <span id="title-sens-label">5</span>
-        <br/><input id="title-sens-slider" type="range" min="1" max="10" step="1" value="5" />
+      <div class="setup-deck">
+        <div class="setup-group">
+          <div class="play-mode-label">Play mode</div>
+          <div class="mode-row" id="play-mode-row"></div>
+          <p id="play-mode-blurb"></p>
+        </div>
+        <div class="setup-group">
+          <div class="play-mode-label">Difficulty</div>
+          <div class="mode-row" id="mode-row"></div>
+          <p id="mode-blurb"></p>
+        </div>
       </div>
-      <div class="sens-row">Render distance <span id="title-rd-label">8</span>
-        <br/><input id="title-rd-slider" type="range" min="2" max="16" step="1" value="8" />
+      <div class="setup-rail">
+        <div id="seed-row">World seed <input id="seed-input" type="text" placeholder="random" maxlength="12" /></div>
+        <div class="sens-row">Mouse sensitivity <span id="title-sens-label">5</span>
+          <br/><input id="title-sens-slider" type="range" min="1" max="10" step="1" value="5" />
+        </div>
+        <div class="sens-row">Render distance <span id="title-rd-label">8</span>
+          <br/><input id="title-rd-slider" type="range" min="2" max="16" step="1" value="8" />
+        </div>
       </div>
       <p style="font-size:12px;color:#8a8378">Progress auto-saves. Continue resumes seed, builds, inventory, and body state.</p>
       <button id="btn-continue" type="button" style="display:none">Continue save</button>
@@ -1543,6 +1591,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=427"></script>
+  <script type="module" src="./js/main.js?v=428"></script>
 </body>
 </html>
