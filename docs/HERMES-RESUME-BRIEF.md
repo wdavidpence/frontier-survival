@@ -1,37 +1,62 @@
-# Frontier Survival — sprint 2026-08-12 checkpoint
+# Frontier Survival — v1.12.70 release checkpoint
+
+Updated: 2026-08-16
 
 ## Result
 
-Published v1.12.51: forest-floor readability checkpoint.
+Published v1.12.70: tropical understory readability plus harvest-camera correction.
 
-- Commit: `1ca641a112babbd386b5df58bb7ec9420f10fe1c`
-- Tag: `v1.12.51`
-- Remote: `origin/main` verified at the same commit
+- Commit: `ab059a92ea588f2aebf4f64a7548d21f1fd071d1`
+- Tag: `v1.12.70`
+- Remote: `origin/main` verified at the same commit after push
 - Live: https://wdavidpence.github.io/frontier-survival/
+- Clean synthesis worktree: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-aaa-release-synthesis-20260816`
+- Canonical checkout remains broad dirty WIP and quarantined; do not use it as a release base.
 
-## Verified evidence
+## Accepted slice
 
-- Baseline was live v1.12.50 (`fd56aaf`), smoke 365, Start/runtime clean.
-- Baseline visual defect: repeated near-black rectangular DAMP_SOIL patches across the forest floor.
-- v1.12.51 changed only the DAMP_SOIL atlas palette/vertex tint, then surgically updated transitive `blocks.js`/`atlas.js` importer cache-busts.
-- Candidate local Start: `started=true`, title hidden, world/player present, zero page-owned errors.
-- Candidate visual: floor patches read brown/olive instead of black; sky, horizon, water, mushrooms, forest silhouettes, and HUD remained intact.
-- Final live Pages Start: `started=true`, title hidden, world/player present, zero page-owned errors.
-- Final live HTML: v1.12.51 and `main.js?v=416`.
-- Final live changed asset: `DAMP_SOIL` tint `[0.56, 0.44, 0.24]`, top `[0.5, 0.39, 0.21]`.
-- Final gates: smoke PASS (365), JS syntax PASS, diff-check PASS, root/public parity PASS, executable import cache-bust audit PASS.
+- `js/world.js`: tropical bush instances now use a deterministic broad fan silhouette in tropical biomes while preserving shoreline reeds and ordinary tufts. Geometry remains clamped inside its host voxel, collision/drop behavior is unchanged, and the existing plant budget remains intact.
+- `js/game.js`: player-driven Three.js camera pitch now negates the Minecraft-style player pitch so the rendered view and harvest ray agree. P1 startup/update/death/end-frame syncs and the P2 body camera were corrected; free-camera pitch remains unchanged.
+- `tests/interaction-contract.mjs`: regression contract locks camera/interaction pitch alignment.
+- Version/cache surfaces: v1.12.70, `main.js?v=432`, `game.js` imports `world.js?v=415`.
+
+## Evidence
+
+### Static/automated
+
+- `node --check js/game.js`, `js/world.js`, `js/main.js`: passed.
+- `node --test tests/interaction-contract.mjs`: 5 passed.
+- `node tests/smoke.mjs`: exit 0, 390 PASS lines.
+- `git diff --check`: passed.
+- `cmp index.html public/index.html`: passed.
+
+### Local runtime/visual
+
+- Exact candidate served from the synthesis worktree.
+- Fixed seed: `1884808540`.
+- Start reached `window.__FS.started === true`, title hidden, 1280x720 canvas, and zero page-owned errors.
+- Before/after screenshots showed a modest but attributable increase in tropical understory silhouette variety without added darkness, occlusion, horizon loss, or HUD overlap.
+- Harvest camera probe matched rendered-camera and interaction-ray Y at pitches `+0.45` and `-0.45`, maximum delta `0`.
+
+### Live runtime/visual
+
+- Pages propagated v1.12.70 with `main.js?v=432`.
+- Live Start reached `started=true`, title hidden, 1280x720 canvas, and zero page-owned errors at the same seed.
+- Live screenshot matched the accepted local candidate with no visual regression.
+- Live harvest camera probe also matched at both pitch directions with maximum delta `0`.
+
+### Mobile
+
+- Mobile/portrait evidence remains pending; no mobile claim is made.
 
 ## Worker outcomes
 
-- Atmosphere worker: produced a broader candidate, but the ordinary screenshot darkened/muddied the forest and was rejected.
-- Plant worker: produced `js/plant-parts/procedural-plant.js` (135-line deterministic foundation), but it is foundation-only and intentionally excluded from the release because it is not production-wired.
-- Corrective worker: produced the accepted 6-line DAMP_SOIL correction in `js/atlas.js` and `js/blocks.js`.
+- Antigrav: produced the accepted `js/world.js` understory candidate. The worker PID crashed after leaving the complete artifact; the candidate passed independent static, smoke, local browser, and live browser gates.
+- Grok45: produced a taller palm candidate in `js/world.js`, but it was rejected because `js/chunk-worker.js` still uses the old palm generator. The candidate remains preserved for a future parity-corrected slice.
+- MOA_OQ remains paused per user direction.
 
-## Next major sprint priority
+## Next bounded slice
 
-1. Wire the procedural plant foundation into one production plant path and capture a screen-visible improvement.
-2. Improve water/shore composition so ordinary fresh starts expose it reliably without reducing land readability.
-3. Deliver the separate TV/co-op HUD/controller usability slice.
-4. Expand survival body-system depth beyond hunger/temperature.
+Target one deterministic navigational landmark/horizon composition improvement with synchronous and chunk-worker parity. Do not stack more palette, sky, or water micro-tweaks until a fixed-seed ordinary traversal frame clearly exposes the landmark. Require near/mid/far screenshots, local/live Start proof, smoke, import cache audit, and mobile status before accepting the next checkpoint.
 
-This remains an incremental checkpoint, not a claim of Minecraft-class parity.
+This is an incremental verified checkpoint, not a claim of Minecraft/AAA parity.
