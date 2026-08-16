@@ -4,11 +4,11 @@ Updated: 2026-08-16
 
 ## Result
 
-Prepared v1.12.73: forest readability, usable inventory hotbar assignment, slower pacing, and corrected early-game material semantics on top of v1.12.71.
+Published v1.12.73: forest readability, usable inventory hotbar assignment, slower pacing, and corrected early-game material semantics on top of v1.12.71.
 
 - Product commit: `1cc1882b221b320cd7a5f71c8c83f676e9a8dcab`
-- Tag: `v1.12.73` (prepared; publication pending)
-- Product commit is locally verified on `release/v1273-experience-20260816`; push/live verification remains pending.
+- Tag: `v1.12.73`
+- Product commit pushed to `origin/main`; Pages propagation and live verification passed.
 - Live: https://wdavidpence.github.io/frontier-survival/
 - Clean release worktree: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-sprint-v1272-forest`
 - Canonical checkout remains broad dirty WIP and quarantined.
@@ -43,7 +43,10 @@ Prepared v1.12.73: forest readability, usable inventory hotbar assignment, slowe
 
 ### Live runtime/visual
 
-- Live publication and Pages verification are pending the authorized push of commit `1cc1882b221b320cd7a5f71c8c83f676e9a8dcab`.
+- Pages propagated v1.12.73 with `main.js?v=435`.
+- Live Start reached `started=true`, fixed seed `1884808540`, `dayLength=900`, and zero page errors.
+- Live Field Note expired to `display:none` with zero height; live recipe text reports `3 Wheat (plant fiber) → 2 Cloth`.
+- Live desktop frame at 1280x720 retained the warm forest marker, clearer sightline, sky, HUD, and terrain without black/gray or occlusion regression.
 
 ### Mobile
 
