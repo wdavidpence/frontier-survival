@@ -8,7 +8,7 @@ Published v1.12.70: tropical understory readability plus harvest-camera correcti
 
 - Commit: `ab059a92ea588f2aebf4f64a7548d21f1fd071d1`
 - Tag: `v1.12.70`
-- Remote: `origin/main` verified at the same commit after push
+- Product commit was pushed to `origin/main`; a follow-up handoff-only commit records this checkpoint.
 - Live: https://wdavidpence.github.io/frontier-survival/
 - Clean synthesis worktree: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-aaa-release-synthesis-20260816`
 - Canonical checkout remains broad dirty WIP and quarantined; do not use it as a release base.
