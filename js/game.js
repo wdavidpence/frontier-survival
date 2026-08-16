@@ -60,7 +60,7 @@ import {
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=244';
 import { createBlockAtlas } from './atlas.js?v=297';
-import { BreakFX, WeatherFX } from './fx.js?v=245';
+import { BreakFX, WeatherFX } from './fx.js?v=246';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=11';
@@ -2102,8 +2102,23 @@ export class Game {
     let rel = bearing - this.player.yaw;
     while (rel > Math.PI) rel -= Math.PI * 2;
     while (rel < -Math.PI) rel += Math.PI * 2;
+    const arrived = dist < 4;
+    // Slow idle breathing so the beacon still reads as "alive" when the
+    // player is holding still, plus a proximity glow that brightens as the
+    // camp gets closer so the cue doubles as a rough distance readout.
+    const t = performance.now() / 1000;
+    const breathe = 1 + 0.06 * Math.sin(t * 2.2);
+    const near = Math.max(0, Math.min(1, 1 - dist / 120));
     const icon = el.querySelector('.marker-icon');
-    if (icon) icon.style.transform = `rotate(${(rel * 180) / Math.PI}deg)`;
+    if (icon) {
+      const scale = arrived ? 1 + 0.1 * Math.sin(t * 5) : breathe;
+      icon.style.transform = `rotate(${(rel * 180) / Math.PI}deg) scale(${scale.toFixed(3)})`;
+      const glowSize = (10 + 10 * near).toFixed(1);
+      const glowAlpha = (0.45 + 0.35 * near).toFixed(2);
+      icon.style.boxShadow = `0 0 ${glowSize}px rgba(240,192,64,${glowAlpha}), 0 2px 8px rgba(0,0,0,0.5)`;
+      icon.style.outline = graceOn ? '2px solid rgba(130,225,255,0.55)' : 'none';
+      icon.style.outlineOffset = '3px';
+    }
     const label = el.querySelector('.marker-label');
     if (label) {
       // Keep the cue useful even when the marker is at the screen edge: the
@@ -2112,8 +2127,9 @@ export class Game {
       const headingDeg = ((bearing * 180) / Math.PI + 360) % 360;
       const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
       const heading = dirs[Math.round(headingDeg / 45) % 8];
-      label.textContent = dist < 4 ? 'CAMP · HERE' : `CAMP · ${Math.round(dist)}m · ${heading}`;
+      label.textContent = arrived ? 'CAMP · HERE' : `CAMP · ${Math.round(dist)}m · ${heading}`;
       label.setAttribute('aria-label', `Starting camp ${Math.round(dist)} metres ${heading}`);
+      label.style.opacity = arrived ? String(0.85 + 0.15 * Math.sin(t * 5)) : '1';
     }
   }
 

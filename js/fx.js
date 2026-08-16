@@ -15,6 +15,20 @@ export class BreakFX {
     this.crackMesh = null;
     this.particles = [];
     this._crackGeo = new THREE.BoxGeometry(1.02, 1.02, 1.02);
+    /** @type {THREE.Mesh|null} */
+    this._flashMesh = null;
+    /** @type {THREE.BufferGeometry} */
+    this._flashGeo = new THREE.SphereGeometry(0.35, 6, 4);
+    /** @type {THREE.Material} */
+    this._flashMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+    });
+    this._flashMesh = new THREE.Mesh(this._flashGeo, this._flashMat);
+    this._flashMesh.visible = false;
+    this.scene.add(this._flashMesh);
   }
 
   /**
@@ -84,24 +98,73 @@ export class BreakFX {
     const cx = x + 0.5;
     const cy = y + 0.5;
     const cz = z + 0.5;
-    for (let i = 0; i < count; i++) {
-      const size = 0.06 + Math.random() * 0.1;
+
+    // Hard cap to prevent runaway particle counts
+    const capped = Math.min(count, 24);
+
+    // Brief impact flash for camera readability
+    this._flashMesh.position.set(cx, cy, cz);
+    this._flashMesh.visible = true;
+    this._flashMat.opacity = 0.9;
+    // Tint flash toward block color but keep it bright
+    this._flashMat.color.setRGB(
+      Math.min(1, color[0] + 0.5),
+      Math.min(1, color[1] + 0.5),
+      Math.min(1, color[2] + 0.5)
+    );
+    this._flashLife = 0.12;
+
+    for (let i = 0; i < capped; i++) {
+      // Two size tiers: ~60% small, ~40% medium for silhouette variety
+      const isMedium = Math.random() < 0.4;
+      const size = isMedium ? 0.1 + Math.random() * 0.08 : 0.05 + Math.random() * 0.06;
       const geo = new THREE.BoxGeometry(size, size, size);
+
+      // Color jitter: ±15% per channel for varied debris look
+      const r = Math.max(0, Math.min(1, color[0] + (Math.random() - 0.5) * 0.3));
+      const g = Math.max(0, Math.min(1, color[1] + (Math.random() - 0.5) * 0.3));
+      const b = Math.max(0, Math.min(1, color[2] + (Math.random() - 0.5) * 0.3));
+
       const mat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(color[0], color[1], color[2]),
+        color: new THREE.Color(r, g, b),
+        transparent: true,
+        opacity: 1,
       });
       const m = new THREE.Mesh(geo, mat);
       m.position.set(cx, cy, cz);
-      const speed = 2 + Math.random() * 3;
+
+      // Stronger outward spread; upward bias for readability
+      const speed = 2.5 + Math.random() * 3.5;
       const vx = (Math.random() - 0.5) * speed;
-      const vy = 2 + Math.random() * 3;
+      const vy = 2.5 + Math.random() * 3.5;
       const vz = (Math.random() - 0.5) * speed;
+
       this.scene.add(m);
-      this.particles.push({ mesh: m, vx, vy, vz, life: 0.45 + Math.random() * 0.35 });
+      const maxLife = 0.45 + Math.random() * 0.35;
+      this.particles.push({ mesh: m, vx, vy, vz, life: maxLife, maxLife });
     }
   }
 
+  /** @type {number} */
+  _flashLife = 0;
+
   tick(dt) {
+    // Decay impact flash
+    if (this._flashLife > 0 && this._flashMesh) {
+      this._flashLife -= dt;
+      if (this._flashLife <= 0) {
+        this._flashMesh.visible = false;
+        this._flashMat.opacity = 0;
+        this._flashLife = 0;
+      } else {
+        // Rapid fade: linear from 0.9 → 0 over flash lifetime
+        this._flashMat.opacity = (this._flashLife / 0.12) * 0.9;
+        // Slight scale pulse
+        const s = 1 + (this._flashLife / 0.12) * 0.5;
+        this._flashMesh.scale.setScalar(s);
+      }
+    }
+
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.life -= dt;
@@ -111,6 +174,24 @@ export class BreakFX {
       p.mesh.position.z += p.vz * dt;
       p.mesh.rotation.x += dt * 8;
       p.mesh.rotation.y += dt * 6;
+
+      // Opacity fade-out in last 40% of life for smooth pop-off
+      const ratio = p.maxLife > 0 ? p.life / p.maxLife : 0;
+      const mat = p.mesh.material;
+      if (ratio < 0.4) {
+        mat.opacity = ratio / 0.4; // linear fade to 0
+      } else {
+        mat.opacity = 1;
+      }
+
+      // Scale shrink in last 30% of life for readability
+      if (ratio < 0.3) {
+        const s = ratio / 0.3; // 1 → 0
+        p.mesh.scale.setScalar(0.2 + s * 0.8);
+      } else {
+        p.mesh.scale.setScalar(1);
+      }
+
       if (p.life <= 0 || p.mesh.position.y < -5) {
         this.scene.remove(p.mesh);
         p.mesh.geometry.dispose();
@@ -128,6 +209,13 @@ export class BreakFX {
       this.crackMesh.material.dispose();
       this.crackMesh = null;
     }
+    if (this._flashMesh) {
+      this.scene.remove(this._flashMesh);
+      // _flashGeo and _flashMat are shared — dispose only once at end
+    }
+    this._flashGeo.dispose();
+    this._flashMat.dispose();
+    this._flashMesh = null;
     for (const p of this.particles) {
       this.scene.remove(p.mesh);
       p.mesh.geometry.dispose();
