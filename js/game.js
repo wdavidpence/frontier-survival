@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=413';
+import { World } from './world.js?v=414';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=412';
 import { GameTime } from './time.js?v=221';
@@ -57,7 +57,7 @@ import {
   recipeProgress,
   nextProgressionRecipe,
 } from './crafting.js?v=410';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=245';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=246';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=245';
 import { createBlockAtlas } from './atlas.js?v=297';
 import { BreakFX, WeatherFX } from './fx.js?v=246';

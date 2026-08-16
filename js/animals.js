@@ -603,15 +603,18 @@ export class FaunaSystem {
     this._respawnAcc += dt;
     if (this._respawnAcc < 25) return;
     this._respawnAcc = 0;
-    const r = 100000;
+    // practical band derived from typical fog/view range so passive prey
+    // respawn just past sight rather than at map-spanning distances
+    const RESPAWN_MIN_RADIUS = 18;
+    const RESPAWN_MAX_RADIUS = 42;
     for (const spec of Object.values(SPECIES)) {
       if (spec.hostile) continue;
       const living = this.countLiving(spec.id);
       if (living >= spec.count) continue;
-      // spawn far from player
+      // spawn out of immediate view, but within the practical band
       for (let attempt = 0; attempt < 8; attempt++) {
         const ang = Math.random() * Math.PI * 2;
-        const rad = 18 + Math.random() * Math.max(6, r - 18);
+        const rad = RESPAWN_MIN_RADIUS + Math.random() * (RESPAWN_MAX_RADIUS - RESPAWN_MIN_RADIUS);
         const x = player.x + Math.cos(ang) * rad;
         const z = player.z + Math.sin(ang) * rad;
         if (dist2(x, z, player.x, player.z) < 14 * 14) continue;

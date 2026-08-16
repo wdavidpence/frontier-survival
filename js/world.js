@@ -153,7 +153,7 @@ export function buildPlantGeometry(instances, seed = 0) {
     if (!base) continue;
     // A bush standing on the wet shoreline shelf reads as reeds rather than a
     // round berry tuft: same block, taller and thinner silhouette.
-    const form = base === 'tuft' && instance.y <= SEA_LEVEL + 4 ? 'reed' : base;
+    const form = base === 'tuft' && instance.y <= SEA_LEVEL + 2 ? 'reed' : base;
     const shape = PLANT_SHAPE[form];
     const texel = PLANT_TEXEL[form];
     const tile = tileForBlock(instance.id);
@@ -366,7 +366,7 @@ export class World {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
           let treeChance = 0;
           if (biome === BIOME.FOREST) treeChance = 0.018; // half prior density for navigability
-          else if (biome === BIOME.SHORE) treeChance = 0.028; // coastal palms/scrub
+          else if (biome === BIOME.SHORE) treeChance = 0.020; // coastal palms/scrub
           else if (biome === BIOME.TUNDRA) treeChance = 0.012;
           else if (biome === BIOME.TROPICAL) treeChance = 0.014; // trimmed further so the starter island sightline reads clearly
           else if (biome === BIOME.OCEAN) treeChance = 0;
@@ -399,6 +399,21 @@ export class World {
         ) {
           data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
         }
+
+        const floorDetail = forestFloorDetail(
+          x,
+          z,
+          this.seed,
+          biome,
+          h,
+          data[this._idx(lx, h, lz)],
+          data[this._idx(lx, h + 1, lz)],
+        );
+        if (floorDetail === 'damp-soil') data[this._idx(lx, h, lz)] = BLOCK.DAMP_SOIL;
+        else if (floorDetail === 'roots') data[this._idx(lx, h + 1, lz)] = BLOCK.ROOTS;
+        else if (floorDetail === 'sticks') data[this._idx(lx, h + 1, lz)] = BLOCK.STICK_PILE;
+        else if (floorDetail === 'mushroom') data[this._idx(lx, h + 1, lz)] = BLOCK.MUSHROOM;
+
         if (biome === BIOME.SHORE || (h >= SEA_LEVEL && h <= SEA_LEVEL + 3 && biome !== BIOME.TUNDRA)) {
           if (hash2(x + 33, z + this.seed) > 0.93) {
             const surface = data[this._idx(lx, h, lz)];
@@ -832,7 +847,7 @@ export class World {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
           let treeChance = 0;
           if (biome === BIOME.FOREST) treeChance = 0.018; // ~4% surface — half prior density
-          else if (biome === BIOME.SHORE) treeChance = 0.028; // coastal palms/scrub
+          else if (biome === BIOME.SHORE) treeChance = 0.020; // coastal palms/scrub
           else if (biome === BIOME.TUNDRA) treeChance = 0.012;
           else if (biome === BIOME.TROPICAL) treeChance = 0.014; // trimmed further so the starter island sightline reads clearly
           else if (biome === BIOME.OCEAN) treeChance = 0;
