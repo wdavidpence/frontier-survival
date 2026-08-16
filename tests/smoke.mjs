@@ -4268,10 +4268,20 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.70'), 'HTML must expose v1.12.70');
+  assert.ok(html.includes('v1.12.71'), 'HTML must expose v1.12.71');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
+test('v1.12.71: ruin landmark stays mirrored in sync and worker generation', () => {
+  const world = fsText('js/world.js');
+  const worker = fsText('js/chunk-worker.js');
+  assert.match(world, /_placeRuin\(data, lx, h \+ 1, lz\)/);
+  assert.match(worker, /_placeRuin\(data, idx, lx, h \+ 1, lz\)/);
+  assert.match(world, /\(\(x % 32\) \+ 32\) % 32 === 22/);
+  assert.match(worker, /\(\(x % 32\) \+ 32\) % 32 === 22/);
+  assert.match(world, /BLOCK\.BRICKS/);
+  assert.match(worker, /BLOCK\.BRICKS/);
+});
 test('bug sprint: worker requests are correlated', () => {
   assert.match(fsText('js/world.js'), /requestId/);
   assert.match(fsText('js/chunk-worker.js'), /requestId: msg\.requestId/);

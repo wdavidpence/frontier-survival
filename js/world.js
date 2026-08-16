@@ -284,7 +284,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=280';
+    const workerUrl = './js/chunk-worker.js?v=281';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -378,7 +378,12 @@ export class World {
           else if (biome === BIOME.TUNDRA) treeChance = 0.012;
           else if (biome === BIOME.TROPICAL) treeChance = 0.014; // trimmed further so the starter island sightline reads clearly
           else if (biome === BIOME.OCEAN) treeChance = 0;
-          if (th > 1 - treeChance) {
+          const ruinLandmark = biome === BIOME.TROPICAL && h <= WORLD_HEIGHT - 8
+          && ((x % 32) + 32) % 32 === 22
+          && ((z % 32) + 32) % 32 === 26;
+        if (ruinLandmark) {
+          this._placeRuin(data, lx, h + 1, lz);
+        } else if (th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
             const spruceRoll = hash2(x * 5 + 17, z * 3 + (this.seed | 0));
@@ -859,7 +864,12 @@ export class World {
           else if (biome === BIOME.TUNDRA) treeChance = 0.012;
           else if (biome === BIOME.TROPICAL) treeChance = 0.014; // trimmed further so the starter island sightline reads clearly
           else if (biome === BIOME.OCEAN) treeChance = 0;
-          if (th > 1 - treeChance) {
+          const ruinLandmark = biome === BIOME.TROPICAL && h <= WORLD_HEIGHT - 8
+          && ((x % 32) + 32) % 32 === 22
+          && ((z % 32) + 32) % 32 === 26;
+        if (ruinLandmark) {
+          this._placeRuin(data, lx, h + 1, lz);
+        } else if (th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
             const spruceRoll = hash2(x * 5 + 17, z * 3 + (this.seed | 0));
@@ -1056,6 +1066,23 @@ export class World {
     }
   }
 
+
+  _placeRuin(data, lx, y, lz) {
+    const set = (x, yy, z, id) => {
+      if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
+      const i = this._idx(x, yy, z);
+      if (data[i] === BLOCK.AIR) data[i] = id;
+    };
+    for (const dx of [-1, 1]) {
+      for (let dz = -1; dz <= 1; dz++) {
+        for (let dy = 0; dy < 4; dy++) set(lx + dx, y + dy, lz + dz, dy === 2 ? BLOCK.BRICKS : BLOCK.COBBLE);
+      }
+    }
+    for (let dx = -1; dx <= 1; dx++) {
+      set(lx + dx, y + 4, lz + 1, BLOCK.BRICKS);
+      set(lx + dx, y + 5, lz + 1, BLOCK.COBBLE);
+    }
+  }
 
   /** Sparse palm-like tree for tropical islands (tall trunk, small canopy). */
   _placePalm(data, lx, y, lz) {

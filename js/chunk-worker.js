@@ -209,7 +209,12 @@ function generateChunkData(cx, cz, seed) {
         else if (biome === 'shore') treeChance = 0.028;
         else if (biome === 'tundra') treeChance = 0.012;
         else if (biome === 'tropical') treeChance = 0.018;
-        if (th > 1 - treeChance) {
+        const ruinLandmark = biome === 'tropical' && h <= WORLD_HEIGHT - 8
+        && ((x % 32) + 32) % 32 === 22
+        && ((z % 32) + 32) % 32 === 26;
+      if (ruinLandmark) {
+        _placeRuin(data, idx, lx, h + 1, lz);
+      } else if (th > 1 - treeChance) {
           if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);
           else _placeTree(data, idx, lx, h + 1, lz);
         }
@@ -256,6 +261,23 @@ function generateChunkData(cx, cz, seed) {
   _carveLavaTubes(data, idx, baseX, baseZ, seed);
 
   return data;
+}
+
+function _placeRuin(data, idx, lx, y, lz) {
+  const set = (x, yy, z, id) => {
+    if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
+    const i = idx(x, yy, z);
+    if (data[i] === BLOCK.AIR) data[i] = id;
+  };
+  for (const dx of [-1, 1]) {
+    for (let dz = -1; dz <= 1; dz++) {
+      for (let dy = 0; dy < 4; dy++) set(lx + dx, y + dy, lz + dz, dy === 2 ? BLOCK.BRICKS : BLOCK.COBBLE);
+    }
+  }
+  for (let dx = -1; dx <= 1; dx++) {
+    set(lx + dx, y + 4, lz + 1, BLOCK.BRICKS);
+    set(lx + dx, y + 5, lz + 1, BLOCK.COBBLE);
+  }
 }
 
 function _placePalm(data, idx, lx, y, lz) {

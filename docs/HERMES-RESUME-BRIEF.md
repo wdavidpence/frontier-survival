@@ -1,49 +1,40 @@
-# Frontier Survival — v1.12.70 release checkpoint
+# Frontier Survival — v1.12.71 release checkpoint
 
 Updated: 2026-08-16
 
 ## Result
 
-Published v1.12.70: tropical understory readability plus harvest-camera correction.
+Prepared v1.12.71: high-contrast tropical ruin landmark on top of v1.12.70.
 
-- Commit: `ab059a92ea588f2aebf4f64a7548d21f1fd071d1`
-- Tag: `v1.12.70`
-- Product commit was pushed to `origin/main`; a follow-up handoff-only commit records this checkpoint.
-- Live: https://wdavidpence.github.io/frontier-survival/
-- Clean synthesis worktree: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-aaa-release-synthesis-20260816`
-- Canonical checkout remains broad dirty WIP and quarantined; do not use it as a release base.
+- Product base: v1.12.70 tag / `ab059a9`
+- Candidate worktree: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-aaa-release-v1271-ruin-20260816`
+- Canonical checkout remains broad dirty WIP and quarantined.
+- Live remains v1.12.70 until this candidate passes push and propagation gates.
 
-## Accepted slice
+## Candidate slice
 
-- `js/world.js`: tropical bush instances now use a deterministic broad fan silhouette in tropical biomes while preserving shoreline reeds and ordinary tufts. Geometry remains clamped inside its host voxel, collision/drop behavior is unchanged, and the existing plant budget remains intact.
-- `js/game.js`: player-driven Three.js camera pitch now negates the Minecraft-style player pitch so the rendered view and harvest ray agree. P1 startup/update/death/end-frame syncs and the P2 body camera were corrected; free-camera pitch remains unchanged.
-- `tests/interaction-contract.mjs`: regression contract locks camera/interaction pitch alignment.
-- Version/cache surfaces: v1.12.70, `main.js?v=432`, `game.js` imports `world.js?v=415`.
+- `js/world.js` and `js/chunk-worker.js` mirror a sparse tropical ruin predicate at normalized world coordinates `x % 32 === 22`, `z % 32 === 26`.
+- The ruin is a bounded 3x3 footprint with two COBBLE side pillars, BRICKS bands, a raised lintel, and an open center doorway.
+- Normal tree rolls, existing v1.12.70 fan understory, collision, and drops remain otherwise unchanged.
+- Version/cache surfaces are v1.12.71, `main.js?v=433`, `game.js` → `world.js?v=416`, and `world.js` → `chunk-worker.js?v=281`.
 
 ## Evidence
 
 ### Static/automated
 
-- `node --check js/game.js`, `js/world.js`, `js/main.js`: passed.
-- `node --test tests/interaction-contract.mjs`: 5 passed.
-- `node tests/smoke.mjs`: exit 0, 390 PASS lines.
+- `node --check js/game.js`, `js/world.js`, `js/main.js`, `js/chunk-worker.js`: passed.
+- `node tests/smoke.mjs`: exit 0, 391 PASS lines.
+- Smoke contract verifies the ruin predicate/material/helper in both generators.
 - `git diff --check`: passed.
 - `cmp index.html public/index.html`: passed.
 
 ### Local runtime/visual
 
-- Exact candidate served from the synthesis worktree.
+- Exact candidate served from the named release worktree.
 - Fixed seed: `1884808540`.
-- Start reached `window.__FS.started === true`, title hidden, 1280x720 canvas, and zero page-owned errors.
-- Before/after screenshots showed a modest but attributable increase in tropical understory silhouette variety without added darkness, occlusion, horizon loss, or HUD overlap.
-- Harvest camera probe matched rendered-camera and interaction-ray Y at pitches `+0.45` and `-0.45`, maximum delta `0`.
-
-### Live runtime/visual
-
-- Pages propagated v1.12.70 with `main.js?v=432`.
-- Live Start reached `started=true`, title hidden, 1280x720 canvas, and zero page-owned errors at the same seed.
-- Live screenshot matched the accepted local candidate with no visual regression.
-- Live harvest camera probe also matched at both pitch directions with maximum delta `0`.
+- Start reached `started=true`, title hidden, 1280x720 canvas, zero page-owned errors.
+- Opening frame shows distinct gray/red ruin silhouettes in the midground without new darkness, terrain occlusion, sky loss, or HUD overlap.
+- Controlled face-to-target probe at the deterministic starter-route coordinate confirmed actual COBBLE/BRICKS blocks and zero runtime errors.
 
 ### Mobile
 
@@ -51,12 +42,12 @@ Published v1.12.70: tropical understory readability plus harvest-camera correcti
 
 ## Worker outcomes
 
-- Antigrav: produced the accepted `js/world.js` understory candidate. The worker PID crashed after leaving the complete artifact; the candidate passed independent static, smoke, local browser, and live browser gates.
-- Grok45: produced a taller palm candidate in `js/world.js`, but it was rejected because `js/chunk-worker.js` still uses the old palm generator. The candidate remains preserved for a future parity-corrected slice.
-- MOA_OQ remains paused per user direction.
+- Antigrav palm candidate: no artifact; rejected as no progress.
+- Grok45 palm candidate: real parity diff, but visually indistinguishable from ordinary forest; rejected and preserved.
+- Antigrav ruin worker: no artifact; frontier judge implemented the same bounded hypothesis after worker escalation.
 
-## Next bounded slice
+## Release decision
 
-Target one deterministic navigational landmark/horizon composition improvement with synchronous and chunk-worker parity. Do not stack more palette, sky, or water micro-tweaks until a fixed-seed ordinary traversal frame clearly exposes the landmark. Require near/mid/far screenshots, local/live Start proof, smoke, import cache audit, and mobile status before accepting the next checkpoint.
+If final local diff/version review remains green, commit and push v1.12.71, tag it, verify live Pages HTML/version, run live Start/runtime, and inspect the live fixed-seed frame. If the live frame loses the ruin or introduces occlusion, do not publish and return to the v1.12.70 checkpoint.
 
 This is an incremental verified checkpoint, not a claim of Minecraft/AAA parity.
