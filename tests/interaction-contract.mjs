@@ -43,10 +43,11 @@ test('left-mouse mining and tree cutting retain the complete reachable path', ()
   const input = read('../js/input.js');
   const game = read('../js/game.js');
   assert.match(input, /isPrimaryBreakButton\(e\)/);
-  assert.match(input, /this\.breakHeld = true/);
+  assert.match(input, /this\.breakHeld = combineBreakHeld/);
   assert.match(input, /addEventListener\('pointerdown'/);
   assert.match(input, /addEventListener\('pointerup'/);
-  assert.match(game, /this\.world\.raycast\(origin, dir, 6\)/);
+  assert.match(game, /this\._raycastInteraction\(origin, dir, 6\)/);
+  assert.match(game, /_raycastInteraction\(origin, direction, maxDist = 6\)[\s\S]*?this\.world\.raycast\(origin, direction, maxDist\)/);
   assert.match(game, /hit\.id === BLOCK\.LOG/);
   assert.match(game, /this\.world\.setBlock\(hit\.x, hit\.y, hit\.z, BLOCK\.AIR\)/);
   assert.match(game, /resolveBlockDrop\(hit\.id, dropForBlock\)/);

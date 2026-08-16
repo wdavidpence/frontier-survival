@@ -1481,6 +1481,12 @@ export class Game {
         }
       }
       move = this.player.update(this.world, this.input, this.survival, dt);
+      // Keep the rendered camera in lockstep with the interaction ray before mining.
+      const interactionEye = this.player.eyePosition();
+      this.camera.position.copy(interactionEye);
+      this.camera.rotation.order = 'YXZ';
+      this.camera.rotation.y = this.player.yaw;
+      this.camera.rotation.x = this.player.pitch;
       if (this.coopMode && this.player2 && this.input2) {
         // P2 uses pad1 when P1 holds pad0; else pad0 if P1 is KBM-only
         const p2PadIndex = this.input?._gpConnected ? 1 : 0;
