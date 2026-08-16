@@ -16,6 +16,17 @@ export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
 export const SEA_LEVEL = 16;
 
+const forestPhase = value => ((value % 64) + 64) % 64;
+function forestSightlinePocket(x, z, biome) {
+  const px = forestPhase(x);
+  const pz = forestPhase(z);
+  return biome === BIOME.FOREST && px >= 26 && px <= 37 && pz >= 26 && pz <= 37;
+}
+function forestMarkerAt(x, z, biome, height) {
+  return biome === BIOME.FOREST && height <= WORLD_HEIGHT - 5
+    && forestPhase(x) === 31 && forestPhase(z) === 31;
+}
+
 // ── Procedural plantlife ────────────────────────────────────────────────────
 // Generation already scatters plant blocks over the surface (berry bushes on
 // grass and sand, tree roots and stick litter on the forest floor). Meshed as
@@ -284,7 +295,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=281';
+    const workerUrl = './js/chunk-worker.js?v=282';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -381,9 +392,13 @@ export class World {
           const ruinLandmark = biome === BIOME.TROPICAL && h <= WORLD_HEIGHT - 8
           && ((x % 32) + 32) % 32 === 22
           && ((z % 32) + 32) % 32 === 26;
+          const forestPocket = forestSightlinePocket(x, z, biome);
+          const forestLandmark = forestMarkerAt(x, z, biome, h);
         if (ruinLandmark) {
           this._placeRuin(data, lx, h + 1, lz);
-        } else if (th > 1 - treeChance) {
+        } else if (forestLandmark) {
+          this._placeForestMarker(data, lx, h + 1, lz);
+        } else if (!forestPocket && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
             const spruceRoll = hash2(x * 5 + 17, z * 3 + (this.seed | 0));
@@ -867,9 +882,13 @@ export class World {
           const ruinLandmark = biome === BIOME.TROPICAL && h <= WORLD_HEIGHT - 8
           && ((x % 32) + 32) % 32 === 22
           && ((z % 32) + 32) % 32 === 26;
+          const forestPocket = forestSightlinePocket(x, z, biome);
+          const forestLandmark = forestMarkerAt(x, z, biome, h);
         if (ruinLandmark) {
           this._placeRuin(data, lx, h + 1, lz);
-        } else if (th > 1 - treeChance) {
+        } else if (forestLandmark) {
+          this._placeForestMarker(data, lx, h + 1, lz);
+        } else if (!forestPocket && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
             const spruceRoll = hash2(x * 5 + 17, z * 3 + (this.seed | 0));
@@ -1082,6 +1101,17 @@ export class World {
       set(lx + dx, y + 4, lz + 1, BLOCK.BRICKS);
       set(lx + dx, y + 5, lz + 1, BLOCK.COBBLE);
     }
+  }
+
+  _placeForestMarker(data, lx, y, lz) {
+    const set = (x, yy, z, id) => {
+      if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
+      const i = this._idx(x, yy, z);
+      if (data[i] === BLOCK.AIR) data[i] = id;
+    };
+    for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) set(lx + dx, y, lz + dz, BLOCK.SANDSTONE);
+    set(lx, y, lz, BLOCK.BRICKS);
+    set(lx, y + 1, lz, BLOCK.BRICKS);
   }
 
   /** Sparse palm-like tree for tropical islands (tall trunk, small canopy). */

@@ -1,12 +1,21 @@
 /** Day/night clock. dayPhase in [0,1): 0 dawn, 0.25 noon, 0.5 dusk, 0.75 midnight */
+export const DEFAULT_DAY_LENGTH_SEC = 900;
+export const LEGACY_DEFAULT_DAY_LENGTH_SEC = 420;
+
+export function migrateDayLengthSec(value) {
+  const dayLengthSec = Number(value);
+  if (!Number.isFinite(dayLengthSec) || dayLengthSec <= 0) return DEFAULT_DAY_LENGTH_SEC;
+  return dayLengthSec === LEGACY_DEFAULT_DAY_LENGTH_SEC ? DEFAULT_DAY_LENGTH_SEC : dayLengthSec;
+}
+
 export class GameTime {
   /**
    * @param {object} opts
    * @param {number} opts.dayLengthSec real seconds per full day
    */
-  constructor({ dayLengthSec = 480 } = {}) {
-    this.dayLengthSec = dayLengthSec;
-    this.elapsed = dayLengthSec * 0.2; // start morning
+  constructor({ dayLengthSec = DEFAULT_DAY_LENGTH_SEC } = {}) {
+    this.dayLengthSec = migrateDayLengthSec(dayLengthSec);
+    this.elapsed = this.dayLengthSec * 0.2; // start morning
     this.weather = 'clear';
     // Let a new world reveal its palette before the first weather roll.
     this.weatherTimer = 90;

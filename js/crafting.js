@@ -1,6 +1,6 @@
 /** Crafting recipes — pure data + craft helper */
 import { BLOCK } from './blocks.js?v=287';
-import { ITEM } from './items.js?v=220';
+import { ITEM } from './items.js?v=221';
 import { craftWith, countItems } from './inventory.js?v=220';
 
 /**
@@ -164,10 +164,10 @@ export const RECIPES = [
   {
     id: 'cloth',
     name: 'Cloth',
-    desc: '2 Hide → 2 Cloth',
+    desc: '3 Wheat (plant fiber) → 2 Cloth',
     category: 'clothing',
     tier: 1,
-    ingredients: [{ id: ITEM.HIDE, count: 2 }],
+    ingredients: [{ id: ITEM.WHEAT, count: 3 }],
     results: [{ id: ITEM.CLOTH, count: 2 }],
   },
   {

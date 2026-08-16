@@ -294,6 +294,10 @@ export function preferredTool(blockId) {
 export function mineMultiplier(heldId, blockId) {
   const p = propsOf(heldId);
   const need = preferredTool(blockId);
+  // Wood blocks are deliberately slow by hand (or with the wrong tool), so
+  // the matching axe has a clear gameplay payoff without changing other
+  // block/tool relationships.
+  if (need === 'axe' && p?.tool !== 'axe') return 0.15;
   if (!p?.tool) return 1;
   if (p.tool === need) return p.mineMult || 2;
   if (p.tool === 'pick' && need === 'hand') return 1.2;

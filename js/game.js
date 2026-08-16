@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=416';
+import { World } from './world.js?v=417';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=412';
-import { GameTime } from './time.js?v=221';
+import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=223';
 import { AudioBus } from './audio.js?v=220';
 import {
   DEFAULT_SURVIVAL,
@@ -20,7 +20,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=244';
+} from './items.js?v=245';
 import { resolveBlockDrop } from './mine-tier.js?v=220';
 import {
   createFurnaceState,
@@ -56,7 +56,7 @@ import {
   ingredientSummary,
   recipeProgress,
   nextProgressionRecipe,
-} from './crafting.js?v=410';
+} from './crafting.js?v=411';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=246';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=245';
 import { createBlockAtlas } from './atlas.js?v=297';
@@ -129,7 +129,7 @@ export class Game {
     this.canvas = canvas;
     this.hud = hud;
     this.audio = new AudioBus();
-    this.time = new GameTime({ dayLengthSec: 420 });
+    this.time = new GameTime({ dayLengthSec: DEFAULT_DAY_LENGTH_SEC });
     this.survival = { ...DEFAULT_SURVIVAL };
     this.prevHealth = this.survival.health;
     this.paused = false;
@@ -141,6 +141,7 @@ export class Game {
     this.coopMode = this.settings.playMode === 'coop';
     /** Which player owns open inventory UI: p1 | p2 */
     this._invOwner = 'p1';
+    this._inventoryAssign = null;
     this.seed = (Math.random() * 1e6) | 0;
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -442,8 +443,25 @@ export class Game {
           this.audio.ui();
           return;
         }
+        if (idx >= HOTBAR_SIZE && idx < pl.slots.length && pl.slots[idx]?.id != null && pl.slots[idx].count > 0) {
+          this._inventoryAssign = { owner: this._invOwner, slot: idx };
+          pl.notify(`Selected ${displayName(pl.slots[idx].id)}. Click hotbar 1–9 to equip.`);
+          this._invNeedsPaint = true;
+          this._paintInventory();
+          this.audio.ui();
+          return;
+        }
         if (idx >= 0 && idx < HOTBAR_SIZE) {
-          pl.hotbarIndex = idx;
+          const assignment = this._inventoryAssign;
+          if (assignment?.owner === this._invOwner && assignment.slot >= HOTBAR_SIZE && assignment.slot < pl.slots.length && pl.slots[assignment.slot]?.id != null && pl.slots[assignment.slot].count > 0) {
+            const source = assignment.slot;
+            [pl.slots[source], pl.slots[idx]] = [pl.slots[idx], pl.slots[source]];
+            pl.hotbarIndex = idx;
+            pl.notify(`${displayName(pl.slots[idx].id)} equipped in hotbar ${idx + 1}.`);
+            this._inventoryAssign = null;
+          } else {
+            pl.hotbarIndex = idx;
+          }
           this._invNeedsPaint = true;
           this._paintInventory();
         }
@@ -633,7 +651,7 @@ export class Game {
       this.player.yaw = Math.PI;
       this.input.lookX = this.player.yaw;
       this.survival = { ...DEFAULT_SURVIVAL };
-      this.time = new GameTime({ dayLengthSec: 420 });
+      this.time = new GameTime({ dayLengthSec: DEFAULT_DAY_LENGTH_SEC });
       this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0 };
       this._achievements = emptyAchievements();
       this._crops = new Map();
@@ -682,10 +700,10 @@ export class Game {
         };
       }
 
-      this.time = new GameTime({ dayLengthSec: saveData.time.dayLengthSec || 420 });
-      this.time.elapsed = saveData.time.elapsed || 0;
-      this.time.weather = saveData.time.weather || 'clear';
-      this.time.weatherTimer = saveData.time.weatherTimer ?? 60;
+      this.time = new GameTime({ dayLengthSec: migrateDayLengthSec(saveData.time?.dayLengthSec) });
+      this.time.elapsed = saveData.time?.elapsed || 0;
+      this.time.weather = saveData.time?.weather || 'clear';
+      this.time.weatherTimer = saveData.time?.weatherTimer ?? 60;
       this.mode = saveData.mode || this.mode || 'survival';
       this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0, ...(saveData.stats || {}) };
       this._achievements = emptyAchievements();
@@ -1343,6 +1361,7 @@ export class Game {
     who = who === 'p2' ? 'p2' : 'p1';
     if (who === 'p1' && !this.player) return;
     if (who === 'p2' && !this.player2) return;
+    this._inventoryAssign = null;
 
     if (open) {
       this.setPaused(false);
@@ -2999,7 +3018,7 @@ export class Game {
     }
 
     // Skip ~8 hours of game time
-    const dayLen = this.time.dayLengthSec || 420;
+    const dayLen = this.time.dayLengthSec || DEFAULT_DAY_LENGTH_SEC;
     const skip = dayLen * (this.time.isNight() ? 0.42 : 0.28);
 
     // sleep fade overlay
@@ -3122,7 +3141,8 @@ export class Game {
       bag.innerHTML = '';
       pl.slots.forEach((s, i) => {
         const el = document.createElement('div');
-        el.className = 'inv-slot' + (i === pl.hotbarIndex && i < HOTBAR_SIZE ? ' active' : '');
+        el.className = 'inv-slot' + (i === pl.hotbarIndex && i < HOTBAR_SIZE ? ' active' : '') +
+          (this._inventoryAssign?.owner === this._invOwner && this._inventoryAssign.slot === i ? ' assign-armed' : '');
         el.dataset.slot = String(i);
         if (i < HOTBAR_SIZE) el.dataset.hot = String(i + 1);
         if (s.id != null && s.count > 0) {

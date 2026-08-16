@@ -9,6 +9,7 @@ import { alligatorScuteRidge, alligatorJaw, alligatorLayout } from '../js/fauna-
 import { layoutWolf, layoutChicken } from '../js/animal-visuals.js';
 import { getPlayMode, DEFAULT_SETTINGS, parseSettings, serializeSettings, SETTINGS_KEY, sensitivityFromSlider, sliderFromSensitivity, writeSettings, readSettings } from '../js/settings.js';
 import { MODES, getMode, scalePredatorDamage, isValidMode, MODE_ORDER } from '../js/modes.js';
+import { GameTime, DEFAULT_DAY_LENGTH_SEC, LEGACY_DEFAULT_DAY_LENGTH_SEC } from '../js/time.js';
 import { clonePlayer, cloneSurvivalState, serializeCoopGameState } from '../js/coop-state.js';
 import {
   stairShape,
@@ -567,7 +568,9 @@ test('visible recipes non-empty', () => {
 });
 
 test('tools speed matching blocks', () => {
-  assert.ok(mineMultiplier(ITEM.WOOD_AXE, BLOCK.LOG) > mineMultiplier(null, BLOCK.LOG));
+  assert.ok(mineMultiplier(null, BLOCK.LOG) <= 0.2, 'bare-hand wood harvest should be slow');
+  assert.ok(mineMultiplier(ITEM.WOOD_AXE, BLOCK.LOG) > 2, 'matching axe should stay fast');
+  assert.ok(mineMultiplier(ITEM.STONE_PICK, BLOCK.LOG) < mineMultiplier(ITEM.WOOD_AXE, BLOCK.LOG));
   assert.ok(mineMultiplier(ITEM.STONE_PICK, BLOCK.STONE) > mineMultiplier(ITEM.WOOD_PICK, BLOCK.STONE));
 });
 
@@ -647,14 +650,27 @@ test('sleep gates and rest', () => {
 });
 
 test('cloth and bed recipes', () => {
-  let slots = createStarterInventory();
-  slots = addItems(slots, ITEM.HIDE, 4).slots;
-  slots = craftRecipe(slots, 'cloth').slots;
+  const hideOnly = addItems(createStarterInventory(), ITEM.HIDE, 4).slots;
+  const clothFromHide = craftRecipe(hideOnly, 'cloth');
+  assert.ok(!clothFromHide.ok, 'hide alone must not craft cloth');
+
+  let slots = addItems(createStarterInventory(), ITEM.WHEAT, 3).slots;
+  const clothFromWheat = craftRecipe(slots, 'cloth');
+  assert.ok(clothFromWheat.ok, clothFromWheat.error);
+  slots = clothFromWheat.slots;
   assert.strictEqual(countItems(slots, ITEM.CLOTH), 2);
   slots = addItems(slots, ITEM.HIDE, 2).slots;
   slots = addItems(slots, ITEM.CLOTH, 4).slots;
   slots = craftRecipe(slots, 'wool_coat').slots;
   assert.strictEqual(countItems(slots, ITEM.WOOL_COAT), 1);
+
+  let leatherSlots = createStarterInventory();
+  leatherSlots = addItems(leatherSlots, ITEM.HIDE, 5).slots;
+  leatherSlots = addItems(leatherSlots, ITEM.CLOTH, 2).slots;
+  const vest = craftRecipe(leatherSlots, 'leather_vest');
+  assert.ok(vest.ok, vest.error);
+  assert.strictEqual(countItems(vest.slots, ITEM.LEATHER_VEST), 1);
+
   slots = addItems(slots, BLOCK.PLANKS, 3).slots;
   slots = addItems(slots, ITEM.CLOTH, 3).slots;
   const bed = craftRecipe(slots, 'bed');
@@ -1761,6 +1777,31 @@ test('spawn marker HUD hooks present in index', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   assert.ok(html.includes('id="spawn-marker"'));
   assert.ok(html.includes('#spawn-marker'));
+});
+
+test('title menu labels and mode buttons stay usable', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.ok(html.includes('<button class="controls-button" type="button" data-open-controls>How to play</button>'));
+  assert.ok(!html.includes('<button class="controls-button" type="button" data-open-controls>Controls</button>'));
+  const modeButtonRule = html.match(/#title-screen \.mode-btn \{([\s\S]*?)\n    \}/)?.[1] || '';
+  assert.match(modeButtonRule, /min-width:\s*0;/);
+  assert.match(modeButtonRule, /width:\s*100%;/);
+  assert.match(modeButtonRule, /white-space:\s*normal;/);
+  assert.match(modeButtonRule, /overflow-wrap:\s*anywhere;/);
+  assert.match(html, /#title-screen \.setup-group \.mode-row\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/);
+  assert.ok(html.includes('#title-screen .setup-deck {\n      display: grid;\n      grid-template-columns: repeat(2, minmax(0, 1fr));'));
+});
+
+test('day length defaults to 900 seconds and migrates only the legacy default', () => {
+  assert.strictEqual(DEFAULT_DAY_LENGTH_SEC, 900);
+  assert.strictEqual(LEGACY_DEFAULT_DAY_LENGTH_SEC, 420);
+  assert.strictEqual(new GameTime().dayLengthSec, DEFAULT_DAY_LENGTH_SEC);
+  assert.strictEqual(new GameTime({ dayLengthSec: LEGACY_DEFAULT_DAY_LENGTH_SEC }).dayLengthSec, DEFAULT_DAY_LENGTH_SEC);
+  assert.strictEqual(new GameTime({ dayLengthSec: 1200 }).dayLengthSec, 1200);
+  assert.strictEqual(new GameTime({ dayLengthSec: 600 }).dayLengthSec, 600);
+  const gameSrc = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.match(gameSrc, /this\.time = new GameTime\(\{ dayLengthSec: DEFAULT_DAY_LENGTH_SEC \}\);/);
+  assert.match(gameSrc, /new GameTime\(\{ dayLengthSec: migrateDayLengthSec\(saveData\.time\?\.dayLengthSec\) \}\)/);
 });
 
 // ── earlyGameGrace regression coverage ──────────────────────
@@ -4268,11 +4309,13 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.71'), 'HTML must expose v1.12.71');
+  assert.ok(html.includes('v1.12.73'), 'HTML must expose v1.12.73');
+  assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
+  assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
-test('v1.12.71: ruin landmark stays mirrored in sync and worker generation', () => {
+test('v1.12.73: ruin landmark stays mirrored in sync and worker generation', () => {
   const world = fsText('js/world.js');
   const worker = fsText('js/chunk-worker.js');
   assert.match(world, /_placeRuin\(data, lx, h \+ 1, lz\)/);
@@ -4355,4 +4398,16 @@ test('controls guide is dismissed on entry while remaining reopenable', () => {
   assert.match(main, /function engageControls\(\)[\s\S]*?controlsScreen\?\.classList\.add\('hidden'\)/);
   assert.match(main, /controlsButtons\.forEach[\s\S]*?controlsScreen\?\.classList\.remove\('hidden'\)/);
   assert.match(main, /btnCloseControls\?\.addEventListener[\s\S]*?controlsScreen\?\.classList\.add\('hidden'\)/);
+});
+
+test('inventory supports arm-and-assign hotbar flow', () => {
+  const game = fsText('js/game.js');
+  const html = fsText('index.html');
+  assert.equal(html, fsText('public/index.html'), 'root/public HTML must stay identical');
+  assert.ok(html.includes('Click an item, then click hotbar 1–9 to equip it'));
+  assert.ok(game.includes('this._inventoryAssign = { owner: this._invOwner, slot: idx }'));
+  assert.ok(game.includes('assignment?.owner === this._invOwner'));
+  assert.ok(game.includes('[pl.slots[source], pl.slots[idx]] = [pl.slots[idx], pl.slots[source]]'));
+  assert.ok(game.includes('else {\n            pl.hotbarIndex = idx;'), 'ordinary hotbar selection must remain');
+  assert.ok(game.includes('e.shiftKey'), 'shift-click splitting must remain');
 });

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.12.71</title>
+  <title>Frontier Survival v1.12.73</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -260,6 +260,7 @@
       padding: 4px;
     }
     .inv-slot.active { outline: 2px solid var(--accent); }
+    .inv-slot.assign-armed { outline: 2px dashed var(--accent); box-shadow: 0 0 0 2px rgba(212,165,116,0.22); }
     .inv-slot .inv-count {
       position: absolute; top: 3px; right: 5px;
       font-size: 11px; font-weight: 700; color: #fff;
@@ -1001,6 +1002,8 @@
     }
     #title-screen #play-mode-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     #title-screen .mode-btn {
+      min-width: 0;
+      width: 100%;
       min-height: 44px;
       padding: 9px 12px;
       border: 1px solid rgba(255,255,255,0.13);
@@ -1008,6 +1011,10 @@
       background: rgba(255,255,255,0.045);
       color: #bfc8ce;
       font-size: 12px; font-weight: 700;
+      line-height: 1.15;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
       transition: border-color .18s ease, background .18s ease, transform .18s ease, color .18s ease;
     }
     #title-screen .mode-btn:hover { transform: translateY(-1px); border-color: rgba(240,201,130,0.48); color: #fff2d8; }
@@ -1038,6 +1045,7 @@
     }
     #title-screen .setup-group .play-mode-label { margin-top: 0; text-align: center; }
     #title-screen .setup-group .mode-row { margin: 9px 0 4px; }
+    #title-screen .setup-group .mode-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     #title-screen .setup-group p { text-align: center; }
     #title-screen .setup-rail {
       display: flex;
@@ -1278,6 +1286,7 @@
       letter-spacing: 0.02em;
       text-shadow: 0 2px 8px rgba(0,0,0,0.72);
     }
+    #message:empty { display: none; }
     #message:not(:empty)::before {
       content: "FIELD NOTE";
       display: block;
@@ -1386,7 +1395,7 @@
     <div id="message"></div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.12.71</div>
+    <div id="version-badge">v1.12.73</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1441,13 +1450,13 @@
       <b>E</b> craft · <b>K</b> save · <b>Esc</b> pause · <b>F3</b> debug<br/>
       Door F · Bandage R · Drink F · Co-op: two DualSense controllers
     </div>
-    <button class="controls-button" type="button" data-open-controls>Controls</button>
+    <button class="controls-button" type="button" data-open-controls>How to play</button>
   </div>
 
   <div id="inventory-screen" class="overlay hidden">
     <div class="inv-panel">
       <h2>Pack & Craft</h2>
-      <p class="inv-sub">Start with the supplied log: craft Planks, then craft a Wood Pickaxe. Click a highlighted recipe when you have the ingredients; the tool appears in your hotbar. Hotbar slots 1–9 are the first row — click to select.</p>
+      <p class="inv-sub">Start with the supplied log: craft Planks, then craft a Wood Pickaxe. Click a highlighted recipe when you have the ingredients; the tool appears in your hotbar. Hotbar slots 1–9 are the first row — click to select. Click an item, then click hotbar 1–9 to equip it.</p>
       <div class="inv-grid-wrap">
         <div>
           <p class="inv-sub" style="margin-bottom:8px">Inventory</p>
@@ -1474,7 +1483,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.12.71</div>
+      <div class="tag">Browser survival sandbox · v1.12.73</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1596,6 +1605,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=433"></script>
+  <script type="module" src="./js/main.js?v=435"></script>
 </body>
 </html>

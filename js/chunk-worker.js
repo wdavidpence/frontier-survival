@@ -158,6 +158,17 @@ const CHUNK_SIZE = 16;
 const WORLD_HEIGHT = 48;
 const SEA_LEVEL = 16;
 
+const forestPhase = value => ((value % 64) + 64) % 64;
+function forestSightlinePocket(x, z, biome) {
+  const px = forestPhase(x);
+  const pz = forestPhase(z);
+  return biome === 'forest' && px >= 26 && px <= 37 && pz >= 26 && pz <= 37;
+}
+function forestMarkerAt(x, z, biome, height) {
+  return biome === 'forest' && height <= WORLD_HEIGHT - 5
+    && forestPhase(x) === 31 && forestPhase(z) === 31;
+}
+
 // ── Chunk generation (mirrors World._generateChunk) ─────────────────────────
 
 function generateChunkData(cx, cz, seed) {
@@ -212,9 +223,13 @@ function generateChunkData(cx, cz, seed) {
         const ruinLandmark = biome === 'tropical' && h <= WORLD_HEIGHT - 8
         && ((x % 32) + 32) % 32 === 22
         && ((z % 32) + 32) % 32 === 26;
+      const forestPocket = forestSightlinePocket(x, z, biome);
+      const forestLandmark = forestMarkerAt(x, z, biome, h);
       if (ruinLandmark) {
         _placeRuin(data, idx, lx, h + 1, lz);
-      } else if (th > 1 - treeChance) {
+      } else if (forestLandmark) {
+        _placeForestMarker(data, idx, lx, h + 1, lz);
+      } else if (!forestPocket && th > 1 - treeChance) {
           if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);
           else _placeTree(data, idx, lx, h + 1, lz);
         }
@@ -278,6 +293,17 @@ function _placeRuin(data, idx, lx, y, lz) {
     set(lx + dx, y + 4, lz + 1, BLOCK.BRICKS);
     set(lx + dx, y + 5, lz + 1, BLOCK.COBBLE);
   }
+}
+
+function _placeForestMarker(data, idx, lx, y, lz) {
+  const set = (x, yy, z, id) => {
+    if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
+    const i = idx(x, yy, z);
+    if (data[i] === BLOCK.AIR) data[i] = id;
+  };
+  for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) set(lx + dx, y, lz + dz, BLOCK.SANDSTONE);
+  set(lx, y, lz, BLOCK.BRICKS);
+  set(lx, y + 1, lz, BLOCK.BRICKS);
 }
 
 function _placePalm(data, idx, lx, y, lz) {
