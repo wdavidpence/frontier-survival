@@ -53,6 +53,7 @@ const PLANT_BUDGET = 768;
 const PLANT_SHAPE = {
   tuft: { blades: 6, segments: 3, height: [0.56, 0.92], reach: [0.10, 0.22], curve: [0.14, 0.32], width: [0.13, 0.19], lift: 0.02 },
   reed: { blades: 4, segments: 3, height: [0.78, 0.96], reach: [0.03, 0.10], curve: [0.04, 0.14], width: [0.08, 0.12], lift: 0.02 },
+  fan:  { blades: 5, segments: 3, height: [0.65, 0.98], reach: [0.15, 0.28], curve: [0.20, 0.38], width: [0.15, 0.22], lift: 0.02 },
   arch: { blades: 3, segments: 3, height: [0.70, 1.00], reach: [0.26, 0.40], curve: [0.80, 0.96], width: [0.10, 0.15], lift: 0.03 },
   twig: { blades: 3, segments: 2, height: [0.18, 0.30], reach: [0.28, 0.40], curve: [0.55, 0.80], width: [0.07, 0.11], lift: 0.04 },
 };
@@ -67,6 +68,7 @@ const PLANT_SHAPE = {
 const PLANT_TEXEL = {
   tuft: { uMin: 0.36, uMax: 0.64, vBase: 0.27, vTip: 0.55 },
   reed: { uMin: 0.38, uMax: 0.62, vBase: 0.30, vTip: 0.52 },
+  fan:  { uMin: 0.36, uMax: 0.64, vBase: 0.27, vTip: 0.55 },
   arch: { uMin: 0.36, uMax: 0.36, vBase: 0.42, vTip: 0.42 },
   twig: { uMin: 0.48, uMax: 0.48, vBase: 0.45, vTip: 0.45 },
 };
@@ -151,9 +153,15 @@ export function buildPlantGeometry(instances, seed = 0) {
   for (const instance of instances) {
     const base = PLANT_FORM.get(instance.id);
     if (!base) continue;
-    // A bush standing on the wet shoreline shelf reads as reeds rather than a
-    // round berry tuft: same block, taller and thinner silhouette.
-    const form = base === 'tuft' && instance.y <= SEA_LEVEL + 2 ? 'reed' : base;
+    const biome = biomeAt(instance.x, instance.z, seed);
+    // Shoreline gets reeds; tropical forest gets broad fan understory.
+    let form = base;
+    if (base === 'tuft') {
+      if (biome === BIOME.SHORE || instance.y <= SEA_LEVEL + 2) form = 'reed';
+      else if (biome === BIOME.TROPICAL) form = 'fan';
+    }
+    const isTropicalOrShore = biome === BIOME.TROPICAL || biome === BIOME.SHORE;
+    const kTipBoost = isTropicalOrShore ? 0.12 : 0;
     const shape = PLANT_SHAPE[form];
     const texel = PLANT_TEXEL[form];
     const tile = tileForBlock(instance.id);
@@ -168,8 +176,8 @@ export function buildPlantGeometry(instances, seed = 0) {
       const r1 = plantHash(instance.x + i * 7, instance.y, instance.z - i * 5, seed + 11 + i);
       const r2 = plantHash(instance.x - i * 3, instance.y, instance.z + i * 9, seed + 23 + i);
       const r3 = plantHash(instance.x + i * 13, instance.y, instance.z + i * 3, seed + 37 + i);
-      // Tufts keep one straight centre blade so the clump has a readable spine.
-      const spine = form === 'tuft' && i === 0;
+      // Tufts and fans keep one straight centre blade so the clump has a readable spine.
+      const spine = (form === 'tuft' || form === 'fan') && i === 0;
       strip({
         cellX,
         cellY: instance.y,
@@ -188,8 +196,8 @@ export function buildPlantGeometry(instances, seed = 0) {
         vBase: texel.vBase,
         vTip: texel.vTip,
         kBase: 0.74,
-        kTip: plantLerp(1.06, 1.3, r3),
-        warm: (r1 - 0.5) * 0.07,
+        kTip: plantLerp(1.06 + kTipBoost, 1.3 + kTipBoost, r3),
+        warm: (r1 - 0.5) * 0.07 + (isTropicalOrShore ? 0.03 : 0),
       });
     }
   }

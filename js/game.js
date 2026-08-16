@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=414';
+import { World } from './world.js?v=415';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=412';
 import { GameTime } from './time.js?v=221';
@@ -754,7 +754,7 @@ export class Game {
       this.camera.position.copy(eye);
       this.camera.rotation.order = "YXZ";
       this.camera.rotation.y = this.player.yaw;
-      this.camera.rotation.x = this.player.pitch;
+      this.camera.rotation.x = -this.player.pitch;
     }
     this._updateLighting();
     this._updateWaterVisuals();
@@ -1486,7 +1486,7 @@ export class Game {
       this.camera.position.copy(interactionEye);
       this.camera.rotation.order = 'YXZ';
       this.camera.rotation.y = this.player.yaw;
-      this.camera.rotation.x = this.player.pitch;
+      this.camera.rotation.x = -this.player.pitch;
       if (this.coopMode && this.player2 && this.input2) {
         // P2 uses pad1 when P1 holds pad0; else pad0 if P1 is KBM-only
         const p2PadIndex = this.input?._gpConnected ? 1 : 0;
@@ -1900,7 +1900,7 @@ export class Game {
         this.camera.position.copy(eye);
         this.camera.rotation.order = 'YXZ';
         this.camera.rotation.y = this.player.yaw;
-        this.camera.rotation.x = this.player.pitch;
+        this.camera.rotation.x = -this.player.pitch;
       }
       this._updateHud();
       return;
@@ -2027,7 +2027,7 @@ export class Game {
     this.camera.position.copy(eye);
     this.camera.rotation.order = 'YXZ';
     this.camera.rotation.y = this.player.yaw;
-    this.camera.rotation.x = this.player.pitch;
+    this.camera.rotation.x = -this.player.pitch;
 
     this.world.flushDirty();
     this.fx.tick(dt);
@@ -3867,7 +3867,7 @@ const hbName = document.getElementById('hotbar-name');
       this.camera2.position.copy(this.player2.eyePosition());
       this.camera2.rotation.order = 'YXZ';
       this.camera2.rotation.y = this.player2.yaw;
-      this.camera2.rotation.x = this.player2.pitch;
+      this.camera2.rotation.x = -this.player2.pitch;
       return;
     }
     // Freecam fallback (no body yet)

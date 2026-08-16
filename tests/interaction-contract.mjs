@@ -52,3 +52,19 @@ test('left-mouse mining and tree cutting retain the complete reachable path', ()
   assert.match(game, /this\.world\.setBlock\(hit\.x, hit\.y, hit\.z, BLOCK\.AIR\)/);
   assert.match(game, /resolveBlockDrop\(hit\.id, dropForBlock\)/);
 });
+
+test('player pitch and Three camera pitch stay aligned for harvest aiming', () => {
+  const game = read('../js/game.js');
+  const player = read('../js/player.js');
+  const pitch = 0.45;
+  const lookDirectionY = -Math.sin(pitch);
+  const cameraForwardY = Math.sin(-pitch);
+  assert.ok(lookDirectionY < 0, 'positive player pitch must aim the interaction ray downward');
+  assert.ok(cameraForwardY < 0, 'negated Three camera pitch must aim the view downward');
+  assert.ok(Math.abs(lookDirectionY - cameraForwardY) < 1e-12);
+  assert.match(player, /-Math\.sin\(this\.pitch\)/);
+  assert.match(game, /this\.camera\.rotation\.x = -this\.player\.pitch/);
+  assert.match(game, /this\.camera2\.rotation\.x = -this\.player2\.pitch/);
+  assert.doesNotMatch(game, /this\.camera\.rotation\.x = this\.player\.pitch/);
+  assert.doesNotMatch(game, /this\.camera2\.rotation\.x = this\.player2\.pitch/);
+});

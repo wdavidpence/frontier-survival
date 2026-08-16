@@ -1,4 +1,4 @@
-import { Game } from './game.js?v=425';
+import { Game } from './game.js?v=426';
 import { hasSave, clearSaveStorage } from './save.js?v=220';
 import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=220';
 import {
