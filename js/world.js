@@ -368,7 +368,7 @@ export class World {
           if (biome === BIOME.FOREST) treeChance = 0.018; // half prior density for navigability
           else if (biome === BIOME.SHORE) treeChance = 0.028; // coastal palms/scrub
           else if (biome === BIOME.TUNDRA) treeChance = 0.012;
-          else if (biome === BIOME.TROPICAL) treeChance = 0.018; // keep the starter island open enough to read landmarks
+          else if (biome === BIOME.TROPICAL) treeChance = 0.014; // trimmed further so the starter island sightline reads clearly
           else if (biome === BIOME.OCEAN) treeChance = 0;
           if (th > 1 - treeChance) {
             // Tree species selection by biome
@@ -834,7 +834,7 @@ export class World {
           if (biome === BIOME.FOREST) treeChance = 0.018; // ~4% surface — half prior density
           else if (biome === BIOME.SHORE) treeChance = 0.028; // coastal palms/scrub
           else if (biome === BIOME.TUNDRA) treeChance = 0.012;
-          else if (biome === BIOME.TROPICAL) treeChance = 0.018; // keep the starter island open enough to read landmarks
+          else if (biome === BIOME.TROPICAL) treeChance = 0.014; // trimmed further so the starter island sightline reads clearly
           else if (biome === BIOME.OCEAN) treeChance = 0;
           if (th > 1 - treeChance) {
             // Tree species selection by biome
