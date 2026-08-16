@@ -1826,6 +1826,31 @@ export class Game {
       });
       this.fauna.applySnares(dt);
       this._syncAnimalMeshes();
+
+      // passive wildlife encounter cue (P1 only, throttled)
+      this._wildlifeCueCd = Math.max(0, (this._wildlifeCueCd || 0) - dt);
+      this._wildlifeQuietT = (this._wildlifeQuietT || 0) + dt;
+      let nearestAnimal = null;
+      let nearestDist = Infinity;
+      for (const a of this.fauna.living()) {
+        if (a.tamed) continue;
+        const d = Math.hypot(a.x - this.player.position.x, a.z - this.player.position.z);
+        if (d < nearestDist) {
+          nearestDist = d;
+          nearestAnimal = a;
+        }
+      }
+      const nearBand = !!nearestAnimal && nearestDist <= 20;
+      const enteringBand = nearBand && !this._wildlifeWasNear;
+      const longQuiet = nearBand && this._wildlifeQuietT >= 25;
+      if (nearBand && this._wildlifeCueCd <= 0 && (enteringBand || longQuiet)) {
+        const spec = SPECIES[nearestAnimal.type];
+        const distText = nearestDist >= 8 ? ` (${Math.round(nearestDist)}m)` : '';
+        this.player.notify(`Wildlife nearby · ${spec?.name || 'Animal'}${distText}`, 2.5);
+        this._wildlifeCueCd = 6;
+        this._wildlifeQuietT = 0;
+      }
+      this._wildlifeWasNear = nearBand;
     }
 
     if (this.survival.health < this.prevHealth - 0.5) this.audio.hurt();
