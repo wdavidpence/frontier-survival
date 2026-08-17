@@ -429,7 +429,7 @@ const ALL_RECIPES = [
   {
     id: 'boat',
     name: 'Boat',
-    desc: 'Hold in water to swim fast. 5 Planks',
+    desc: '5 Planks → launch a boardable skiff from shore',
     category: 'utility',
     tier: 1,
     ingredients: [{ id: BLOCK.PLANKS, count: 5 }],

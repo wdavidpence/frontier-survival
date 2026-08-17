@@ -2,6 +2,8 @@ import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
 
 import { palmLeafDrop } from '../js/palm-drops.js';
 import { createFishingState, startCast, tickFishing, rollFishingCatch, FISHING_CAST_TRAVEL_SECONDS } from '../js/fishing-cast.js';
+import { createBoat, canPlaceBoat, mountBoat, dismountBoat, stepBoat, buoyancyY, riderPosition } from '../js/boat-entity.js';
+import { schoolFishPose, schoolVisibility } from '../js/fish-school.js';
 import { heightAt, fbm, hash2, forestFloorDetail } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
 import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
@@ -2916,6 +2918,26 @@ test('fishing cast exposes visible bite window and species outcomes', () => {
   assert.match(game, /Caught \$\{outcome\.label\}/);
 });
 
+test('offshore fishing has boardable skiff and lure-attracted school contracts', () => {
+  assert.equal(canPlaceBoat({ water: true, clear: true, depth: 2 }), true);
+  const boat = createBoat(2, 5, 3, 0);
+  assert.equal(mountBoat(boat, 'p1').ok, true);
+  stepBoat(boat, { forward: 1, turn: 0 }, 0.5);
+  assert.ok(boat.z < 3, 'mounted boat should advance forward');
+  assert.ok(riderPosition(boat).y > boat.y);
+  assert.ok(buoyancyY(5, 4, 0.5) > 4);
+  assert.equal(dismountBoat(boat).ok, true);
+  const pose = schoolFishPose({ x: 0, y: 5, z: 0 }, 1, 2, 'bite');
+  assert.ok(Number.isFinite(pose.x) && Number.isFinite(pose.z));
+  assert.equal(schoolVisibility('waiting'), true);
+  assert.equal(schoolVisibility('casting'), false);
+  const game = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.match(game, /_useBoat\(\)/);
+  assert.match(game, /_tickBoat\(dt\)/);
+  assert.match(game, /_updateFishSchoolVisual\(\)/);
+  assert.match(game, /heldUse\.id === ITEM\.BOAT/);
+});
+
 test('furnace-tick smelts with fuel', () => {
   const f = createFurnaceState();
   assert.strictEqual(insertFuel(f, ITEM.COAL, 1), 0);
@@ -4414,7 +4436,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.93'), 'HTML must expose v1.12.93');
+  assert.ok(html.includes('v1.12.94'), 'HTML must expose v1.12.94');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
