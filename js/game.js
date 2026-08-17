@@ -64,7 +64,7 @@ import {
   recipeProgress,
   nextProgressionRecipe,
 } from './crafting.js?v=413';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=248';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=249';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=245';
 import { createBlockAtlas } from './atlas.js?v=297';
 import { BreakFX, WeatherFX } from './fx.js?v=246';
