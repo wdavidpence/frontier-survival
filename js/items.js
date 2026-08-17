@@ -56,6 +56,10 @@ export const ITEM = {
   COCONUT: 148,
   PALM_FROND: 158,
   FISH_BAIT: 159,
+  TROPICAL_FISH: 160,
+  COOKED_TROPICAL_FISH: 161,
+  RAW_CRAB: 162,
+  COOKED_CRAB: 163,
   WOOD_HOE: 149,
   STONE_HOE: 150,
   IRON_HOE: 151,
@@ -251,6 +255,16 @@ export const ITEM_PROPS = {
   [ITEM.COCONUT]: { name: 'Coconut', color: [0.38, 0.24, 0.12], edible: 24, maxStack: 16 },
   [ITEM.PALM_FROND]: { name: 'Palm Frond', color: [0.2, 0.58, 0.24], maxStack: 32 },
   [ITEM.FISH_BAIT]: { name: 'Fish Bait', color: [0.62, 0.42, 0.2], maxStack: 32 },
+  [ITEM.TROPICAL_FISH]: {
+    name: 'Tropical Fish', color: [0.95, 0.35, 0.12], edible: 10, eatDamage: 1,
+    cookable: ITEM.COOKED_TROPICAL_FISH, maxStack: 16,
+  },
+  [ITEM.COOKED_TROPICAL_FISH]: { name: 'Cooked Tropical Fish', color: [0.95, 0.58, 0.22], edible: 28, maxStack: 16 },
+  [ITEM.RAW_CRAB]: {
+    name: 'Raw Crab', color: [0.82, 0.22, 0.12], edible: 8, eatDamage: 1,
+    cookable: ITEM.COOKED_CRAB, maxStack: 16,
+  },
+  [ITEM.COOKED_CRAB]: { name: 'Cooked Crab', color: [0.92, 0.42, 0.18], edible: 26, maxStack: 16 },
 };
 
 export function propsOf(id) {

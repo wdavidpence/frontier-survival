@@ -2,7 +2,7 @@
  * Inventory stack spoilage helpers — pure.
  * Optional slot.age seconds for spoilable items.
  */
-import { ITEM } from './items.js?v=216';
+import { ITEM } from './items.js?v=248';
 import { cloneSlots } from './inventory.js?v=216';
 
 export const SPOIL_SECONDS = 420; // ~one game day default real-time window
@@ -11,6 +11,8 @@ export const SPOIL_SECONDS = 420; // ~one game day default real-time window
 export const SPOIL_MAP = {
   [ITEM.RAW_MEAT]: ITEM.ROTTEN_MEAT,
   [ITEM.RAW_FISH]: ITEM.ROTTEN_MEAT, // SC: rotten fish/meat both foul
+  [ITEM.TROPICAL_FISH]: ITEM.ROTTEN_MEAT,
+  [ITEM.RAW_CRAB]: ITEM.ROTTEN_MEAT,
 };
 
 export function isSpoilable(id) {

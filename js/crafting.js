@@ -1,6 +1,6 @@
 /** Crafting recipes — pure data + craft helper */
 import { BLOCK } from './blocks.js?v=287';
-import { ITEM } from './items.js?v=247';
+import { ITEM } from './items.js?v=248';
 import { craftWith, countItems } from './inventory.js?v=220';
 
 /**
@@ -464,6 +464,26 @@ const ALL_RECIPES = [
     tier: 1,
     ingredients: [{ id: ITEM.RAW_FISH, count: 1 }],
     results: [{ id: ITEM.COOKED_FISH, count: 1 }],
+    requiresHeat: 8,
+  },
+  {
+    id: 'cook_tropical_fish',
+    name: 'Cook Tropical Fish',
+    desc: 'Tropical Fish → Cooked (campfire heat)',
+    category: 'food',
+    tier: 1,
+    ingredients: [{ id: ITEM.TROPICAL_FISH, count: 1 }],
+    results: [{ id: ITEM.COOKED_TROPICAL_FISH, count: 1 }],
+    requiresHeat: 8,
+  },
+  {
+    id: 'cook_crab',
+    name: 'Cook Crab',
+    desc: 'Raw Crab → Cooked (campfire heat)',
+    category: 'food',
+    tier: 1,
+    ingredients: [{ id: ITEM.RAW_CRAB, count: 1 }],
+    results: [{ id: ITEM.COOKED_CRAB, count: 1 }],
     requiresHeat: 8,
   },
   {

@@ -1,6 +1,7 @@
 import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
 
 import { palmLeafDrop } from '../js/palm-drops.js';
+import { createFishingState, startCast, tickFishing, rollFishingCatch } from '../js/fishing-cast.js';
 import { heightAt, fbm, hash2, forestFloorDetail } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
 import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
@@ -2742,7 +2743,7 @@ test('crafting lists shape building recipes', () => {
 test('crafting progression metadata is complete and reachable', () => {
   const categories = new Set(RECIPE_CATEGORIES.map((c) => c.id));
   const tiers = new Set(RECIPE_TIERS.map((t) => t.tier));
-  assert.equal(RECIPES.length, 56);
+  assert.equal(RECIPES.length, 58);
   for (const recipe of RECIPES) {
     assert.ok(categories.has(recipe.category), `${recipe.id} category`);
     assert.ok(tiers.has(recipe.tier), `${recipe.id} tier`);
@@ -2890,6 +2891,23 @@ test('tropical collection and bait fishing progression is reachable', () => {
   const game = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
   assert.match(game, /ITEM\.FISH_BAIT/);
   assert.match(game, /Need Fish Bait/);
+});
+
+test('fishing cast exposes visible bite window and species outcomes', () => {
+  const cast = startCast(createFishingState());
+  const bite = tickFishing(cast, 2.2);
+  assert.equal(bite.state.phase, 'bite');
+  assert.equal(bite.bite, true);
+  const expired = tickFishing(bite.state, 3.0);
+  assert.equal(expired.state.phase, 'ready');
+  assert.equal(expired.missed, true);
+  assert.equal(rollFishingCatch(0, { biome: 'tropical' }).id, ITEM.RAW_FISH);
+  assert.equal(rollFishingCatch(0.42, { biome: 'tropical' }).id, ITEM.TROPICAL_FISH);
+  assert.equal(rollFishingCatch(0.75, { biome: 'tropical' }).id, ITEM.RAW_CRAB);
+  const game = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.match(game, /_fishBobber/);
+  assert.match(game, /Bite! Press F to reel in/);
+  assert.match(game, /Caught \$\{outcome\.label\}/);
 });
 
 test('furnace-tick smelts with fuel', () => {
@@ -4390,7 +4408,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.91'), 'HTML must expose v1.12.91');
+  assert.ok(html.includes('v1.12.92'), 'HTML must expose v1.12.92');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -4538,7 +4556,7 @@ test('durability adapter cache and mining wear remain reachable', () => {
   const game = fsText('js/game.js');
   const durability = fsText('js/durability.js');
   assert.match(game, /from ['"]\.\/durability\.js\?v=222['"]/);
-  assert.match(durability, /from ['"]\.\/items\.js\?v=247['"]/);
+  assert.match(durability, /from ['"]\.\/items\.js\?v=248['"]/);
   assert.match(durability, /from ['"]\.\/tool-tiers\.js\?v=222['"]/);
   assert.match(game.slice(game.indexOf('  _handleMining(dt) {'), game.indexOf('  _handlePlace() {')), /wearTool\(this\.player\.slots, this\.player\.hotbarIndex, 1\)/);
   assert.match(game.slice(game.indexOf('  _handleCoopP2World(dt) {'), game.indexOf('  _spawnCoopP2(spawn) {')), /wearTool\(p\.slots, p\.hotbarIndex, 1\)/);
