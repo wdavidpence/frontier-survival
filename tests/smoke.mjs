@@ -613,24 +613,24 @@ test('starter encounter route is deterministic, bounded, and terrain-safe', () =
       return y === 4 ? BLOCK.GRASS : BLOCK.AIR;
     },
   };
-  const expected = { x: -18, y: 5, z: -12, distance: Math.hypot(18, 12) };
+  const expected = { x: 8, y: 5, z: 10, distance: Math.hypot(8, 10) };
   const first = findStarterEncounterSpawn(world, 7);
   const repeat = findStarterEncounterSpawn(world, 7);
   assert.deepStrictEqual(first, expected);
   assert.deepStrictEqual(repeat, first);
-  assert.ok(first.distance > 18 && first.distance <= 28);
+  assert.ok(first.distance >= 10 && first.distance <= 16);
   assert.strictEqual(world.getBlock(first.x, first.y - 1, first.z), BLOCK.GRASS);
   assert.strictEqual(world.getBlock(first.x, first.y, first.z), BLOCK.AIR);
   assert.strictEqual(world.getBlock(first.x, first.y + 1, first.z), BLOCK.AIR);
 
   const next = findStarterEncounterSpawn(world, 7, [first]);
-  assert.deepStrictEqual(next, { x: 20, y: 5, z: 0, distance: 20 });
+  assert.deepStrictEqual(next, { x: 8, y: 5, z: 12, distance: Math.hypot(8, 12) });
   const offset = findStarterEncounterSpawn(world, 7, [], { x: 50, z: 30 });
-  assert.deepStrictEqual(offset, { x: 32, y: 5, z: 18, distance: Math.hypot(18, 12) });
+  assert.deepStrictEqual(offset, { x: 58, y: 5, z: 40, distance: Math.hypot(8, 10) });
   const waterBlocked = {
     ...world,
     getBlock(x, y, z) {
-      if (x === -18 && z === -12 && y === 4) return BLOCK.WATER;
+      if (x === 8 && z === 10 && y === 4) return BLOCK.WATER;
       return world.getBlock(x, y, z);
     },
   };
@@ -4351,7 +4351,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.84'), 'HTML must expose v1.12.84');
+  assert.ok(html.includes('v1.12.85'), 'HTML must expose v1.12.85');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

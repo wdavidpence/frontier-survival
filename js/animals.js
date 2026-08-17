@@ -268,11 +268,11 @@ function dist2(ax, az, bx, bz) {
 }
 
 const STARTER_ENCOUNTER_OFFSETS = Object.freeze([
-  [20, 0], [0, 22], [-22, 0], [0, -24],
-  [18, 12], [-18, 12], [18, -12], [-18, -12],
+  [8, 14], [8, 12], [10, 14], [6, 14],
+  [8, 16], [10, 12], [6, 12], [8, 10],
 ]);
-const STARTER_ENCOUNTER_MIN_RADIUS = 18;
-const STARTER_ENCOUNTER_MAX_RADIUS = 28;
+const STARTER_ENCOUNTER_MIN_RADIUS = 10;
+const STARTER_ENCOUNTER_MAX_RADIUS = 16;
 
 /**
  * Find a deterministic, walkable passive encounter just outside the spawn ring.
