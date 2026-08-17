@@ -1,6 +1,6 @@
 # Frontier Survival v1.12.94 — offshore fishing checkpoint
 
-Decision: SHIPPED CANDIDATE PENDING LIVE VERIFICATION
+Decision: SHIPPED CHECKPOINT
 
 ## Product slice
 
@@ -56,4 +56,13 @@ Exact candidate served at `http://127.0.0.1:49214/`.
 - Fish schools are lure-attracted visual entities, not independently simulated fish fauna.
 - Boat chest storage, boarding for P2, and boat-specific collision/navigation polish remain future work.
 
-Live Pages verification is appended after push.
+## Live Pages evidence
+
+- `https://wdavidpence.github.io/frontier-survival/?nocache=v1294-live` exposes v1.12.94 and `main.js?v=456`.
+- Live assets `game.js?v=445`, `boat-entity.js?v=1`, and `fish-school.js?v=1` each returned HTTP 200.
+- Live Start reached `window.__FS.started === true` with zero page-owned runtime errors.
+- Live F/use handler launched a visible skiff from a controlled water route; Boat was consumed, `mounted=true`, and the rider position synchronized.
+- Live W steering moved both skiff and player from z=-51.5 to z=-36.38 while mounted.
+- Live mounted cast entered `casting`, then `waiting` with five visible school fish around the lure and the boat mesh visible.
+- Live bite/reel returned `Caught Reef Fish ×2. Cook it at a fire.`, hid the school, preserved `mounted=true`, and kept `runtimeErrors=[]`.
+- Live mounted-school screenshot captured from the exact public URL.
