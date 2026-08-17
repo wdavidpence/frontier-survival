@@ -1,7 +1,7 @@
 import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
 
 import { palmLeafDrop } from '../js/palm-drops.js';
-import { createFishingState, startCast, tickFishing, rollFishingCatch } from '../js/fishing-cast.js';
+import { createFishingState, startCast, tickFishing, rollFishingCatch, FISHING_CAST_TRAVEL_SECONDS } from '../js/fishing-cast.js';
 import { heightAt, fbm, hash2, forestFloorDetail } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
 import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
@@ -2895,7 +2895,10 @@ test('tropical collection and bait fishing progression is reachable', () => {
 
 test('fishing cast exposes visible bite window and species outcomes', () => {
   const cast = startCast(createFishingState());
-  const bite = tickFishing(cast, 2.2);
+  assert.equal(cast.phase, 'casting');
+  const travel = tickFishing(cast, FISHING_CAST_TRAVEL_SECONDS);
+  assert.equal(travel.state.phase, 'waiting');
+  const bite = tickFishing(travel.state, 2.2);
   assert.equal(bite.state.phase, 'bite');
   assert.equal(bite.bite, true);
   const expired = tickFishing(bite.state, 3.0);
@@ -2906,6 +2909,9 @@ test('fishing cast exposes visible bite window and species outcomes', () => {
   assert.equal(rollFishingCatch(0.75, { biome: 'tropical' }).id, ITEM.RAW_CRAB);
   const game = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
   assert.match(game, /_fishBobber/);
+  assert.match(game, /_fishRodView/);
+  assert.match(game, /_fishCastOrigin/);
+  assert.match(game, /FISHING_CAST_TRAVEL_SECONDS/);
   assert.match(game, /Bite! Press F to reel in/);
   assert.match(game, /Caught \$\{outcome\.label\}/);
 });
@@ -4408,7 +4414,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.92'), 'HTML must expose v1.12.92');
+  assert.ok(html.includes('v1.12.93'), 'HTML must expose v1.12.93');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

@@ -2,6 +2,7 @@
 import { ITEM } from './items.js?v=248';
 
 export const FISHING_CAST_SECONDS = 2.2;
+export const FISHING_CAST_TRAVEL_SECONDS = 0.45;
 export const FISHING_BITE_SECONDS = 3.0;
 
 const TROPICAL_CATCHES = Object.freeze([
@@ -38,8 +39,9 @@ export function canCast(state) {
 export function startCast(state, duration = FISHING_CAST_SECONDS) {
   if (!canCast(state)) return state;
   return {
-    phase: 'waiting',
-    timer: Math.max(0, Number(duration) || FISHING_CAST_SECONDS),
+    phase: 'casting',
+    timer: FISHING_CAST_TRAVEL_SECONDS,
+    castDuration: Math.max(0, Number(duration) || FISHING_CAST_SECONDS),
     casts: (state.casts || 0) + 1,
     outcome: null,
   };
@@ -49,8 +51,15 @@ export function startCast(state, duration = FISHING_CAST_SECONDS) {
 export function tickFishing(state, dt) {
   if (!state || state.phase === 'ready') return { state, bite: false, missed: false };
   const timer = Math.max(0, state.timer - Math.max(0, Number(dt) || 0));
-  if (state.phase === 'waiting' && timer > 0) {
+  if ((state.phase === 'casting' || state.phase === 'waiting') && timer > 0) {
     return { state: { ...state, timer }, bite: false, missed: false };
+  }
+  if (state.phase === 'casting') {
+    return {
+      state: { ...state, phase: 'waiting', timer: state.castDuration || FISHING_CAST_SECONDS },
+      bite: false,
+      missed: false,
+    };
   }
   if (state.phase === 'waiting') {
     return { state: { ...state, phase: 'bite', timer: FISHING_BITE_SECONDS }, bite: true, missed: false };
