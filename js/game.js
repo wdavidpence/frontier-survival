@@ -64,8 +64,8 @@ import {
   recipeProgress,
   nextProgressionRecipe,
 } from './crafting.js?v=413';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=249';
-import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=245';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=250';
+import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=246';
 import { createBlockAtlas } from './atlas.js?v=297';
 import { BreakFX, WeatherFX } from './fx.js?v=246';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
@@ -3483,7 +3483,7 @@ export class Game {
       mesh.userData.phase = (mesh.userData.phase || 0) + 0.016 * (6 + speed01 * 10);
       const legs = mesh.userData.legNames || [];
       const wings = mesh.userData.wingNames || [];
-      const pose = animalLimbPose({}, legs, wings, mesh.userData.phase, speed01, a.type);
+      const pose = animalLimbPose({}, legs, wings, mesh.userData.phase, speed01, a.type, a.attention);
       for (const child of mesh.children) {
         const pr = pose[child.name];
         if (pr) {

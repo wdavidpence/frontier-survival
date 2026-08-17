@@ -397,8 +397,10 @@ export class FaunaSystem {
   }
 
   _make(spec, x, y, z) {
+    const id = this._nextId++;
+    const attentionSeed = hash2(this.seed + id * 13, 71 + spec.id.length);
     return {
-      id: this._nextId++,
+      id,
       type: spec.id,
       x,
       y,
@@ -409,6 +411,9 @@ export class FaunaSystem {
       maxHp: spec.hp,
       yaw: Math.random() * Math.PI * 2,
       state: 'wander',
+      attention: attentionSeed < 0.5 ? 'idle' : 'browse',
+      _attentionT: 1.8 + attentionSeed * 2.4,
+      _attentionPhase: attentionSeed < 0.5 ? 0 : 1,
       attackTimer: 0,
       wanderT: Math.random() * 3,
       targetX: x,
@@ -502,6 +507,27 @@ export class FaunaSystem {
         else if (a.state === 'flee' && (!nearest || dist > spec.fleeRange + 5)) a.state = 'wander';
       }
 
+      // Passive attention is a deterministic movement band consumed by the
+      // renderer's speed01 signal; flee/chase retain their existing speeds.
+      if (a.state === 'flee') {
+        a.attention = 'flee';
+      } else if (a.state === 'chase') {
+        a.attention = 'alert';
+      } else if (!spec.hostile) {
+        if (a.attention === 'flee' || a.attention === 'alert') {
+          a.attention = a._attentionPhase ? 'browse' : 'idle';
+        }
+        a._attentionT -= dt;
+        if (a._attentionT <= 0) {
+          a._attentionPhase = a._attentionPhase ? 0 : 1;
+          a.attention = a._attentionPhase ? 'browse' : 'idle';
+          a._attentionT = 1.8 + hash2(
+            this.seed + a.id * 13 + a._attentionPhase,
+            271 + spec.id.length,
+          ) * 2.4;
+        }
+      }
+
       let wishX = 0;
       let wishZ = 0;
       let speed = spec.speed;
@@ -542,6 +568,9 @@ export class FaunaSystem {
           wishX = dx / len;
           wishZ = dz / len;
           speed *= 0.45;
+          if (!spec.hostile) {
+            speed *= a.attention === 'idle' ? 0.14 : a.attention === 'browse' ? 0.52 : 1;
+          }
         }
       }
 

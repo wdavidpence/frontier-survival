@@ -551,12 +551,47 @@ export function animalPartLayout(type, spec) {
  * @param {number} phase
  * @param {number} speed01
  * @param {string} type
+ * @param {string} attention
  */
-export function animalLimbPose(pose, legNames, wingNames, phase, speed01, type) {
+export function animalLimbPose(pose, legNames, wingNames, phase, speed01, type, attention = '') {
   const p = pose && typeof pose === 'object' ? pose : {};
   const spd = clamp01(Number(speed01) || 0);
   const ph = Number(phase) || 0;
   const amp = 0.04 + 0.55 * spd;
+  const idle = attention ? attention === 'idle' : spd < 0.12;
+  const browse = attention ? attention === 'browse' : spd >= 0.12 && spd < 0.34;
+  const alert = attention ? attention === 'alert' || attention === 'flee' : spd >= 0.75;
+  // The production mesh sync supplies speed01 from fauna velocity. These
+  // bands turn deterministic idle/browse/alert movement into a readable pose.
+  const headRx = idle
+    ? Math.sin(ph * 0.7) * 0.10
+    : browse
+      ? -0.38 + Math.sin(ph * 0.5) * 0.06
+      : alert
+        ? 0.30
+        : Math.sin(ph * 0.35) * 0.02;
+  const headRz = idle ? Math.sin(ph * 0.45) * 0.12 : alert ? 0.18 : 0;
+  const bodyRx = idle
+    ? Math.sin(ph * 0.5) * 0.05
+    : browse
+      ? 0.28
+      : alert
+        ? -0.30
+        : 0;
+  const bodyRz = idle ? Math.sin(ph * 0.35) * 0.08 : browse ? 0.18 : alert ? 0.20 : 0;
+  if (!p.body) p.body = { rx: 0, rz: 0 };
+  p.body.rx = bodyRx;
+  p.body.rz = bodyRz;
+  for (const name of ['head', 'neck', 'snout']) {
+    if (!p[name]) p[name] = { rx: 0, rz: 0 };
+    p[name].rx = headRx;
+    p[name].rz = headRz;
+  }
+  for (const name of ['earL', 'earR']) {
+    if (!p[name]) p[name] = { rx: 0, rz: 0 };
+    const side = name === 'earL' ? 1 : -1;
+    p[name].rz = alert ? 0.26 * side : browse ? 0.12 * side : 0;
+  }
   const legs = Array.isArray(legNames) ? legNames : [];
   const wings = Array.isArray(wingNames) ? wingNames : [];
 
