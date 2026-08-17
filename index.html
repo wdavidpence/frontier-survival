@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.12.81</title>
+  <title>Frontier Survival v1.12.82</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -392,6 +392,7 @@
     }
     #destination-hud.hidden { display: none; }
     #destination-hud strong { display: block; color: #9de0ef; letter-spacing: .08em; text-transform: uppercase; }
+    #destination-hud [data-destination-next] { display: block; margin-top: 3px; color: #f1d29c; font-size: 10px; letter-spacing: .03em; }
     body.coop-mode #destination-hud { right: 12px; max-width: 30vw; }
     #message {
       position: absolute;
@@ -1418,14 +1419,14 @@
     <div id="crosshair"></div>
     <div id="tooltip-box" class="hidden"></div>
     <div id="status-line">Frontier Survival</div>
-    <div id="destination-hud" class="hidden" role="status" aria-live="polite"><strong>Iron Ravine</strong><span data-destination-status>Find an Iron Pick</span></div>
+    <div id="destination-hud" class="hidden" role="status" aria-live="polite"><strong>Iron Ravine</strong><span data-destination-status>Find an Iron Pick</span><small data-destination-next>NEXT · Craft an Iron Pick, then return to campfire</small></div>
     <div id="workshop-hud" class="hidden" role="status" aria-live="polite"><strong>Workshop</strong><span data-workshop-status>Furnace nearby</span></div>
     <div id="spawn-marker" class="hidden"><div class="marker-icon"></div><span class="marker-label">SPAWN</span></div>
     <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.12.81</div>
+    <div id="version-badge">v1.12.82</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1513,7 +1514,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.12.81</div>
+      <div class="tag">Browser survival sandbox · v1.12.82</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1635,6 +1636,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=443"></script>
+  <script type="module" src="./js/main.js?v=444"></script>
 </body>
 </html>

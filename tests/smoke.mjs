@@ -236,7 +236,7 @@ import {
   firstCraftableRecipe,
   nextProgressionRecipe,
 } from '../js/crafting.js';
-import { FaunaSystem,  meatDropCount, SPECIES, canFeed, tryFeed } from '../js/animals.js';
+import { FaunaSystem, findStarterEncounterSpawn, meatDropCount, SPECIES, canFeed, tryFeed } from '../js/animals.js';
 import { animalPartLayout, animalLimbPose, accentColor } from '../js/animal-visuals.js';
 import { tickLogic, isPowered, COMPONENT } from '../js/logic.js';
 import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
@@ -604,6 +604,48 @@ test('fauna species and meat drops', () => {
   assert.ok(SPECIES.wolf.hostile);
   assert.ok(SPECIES.hare.hp < SPECIES.deer.hp);
   assert.ok(!SPECIES.deer.hostile);
+});
+
+test('starter encounter route is deterministic, bounded, and terrain-safe', () => {
+  const world = {
+    radiusChunks: 4,
+    getBlock(x, y) {
+      return y === 4 ? BLOCK.GRASS : BLOCK.AIR;
+    },
+  };
+  const expected = { x: -18, y: 5, z: -12, distance: Math.hypot(18, 12) };
+  const first = findStarterEncounterSpawn(world, 7);
+  const repeat = findStarterEncounterSpawn(world, 7);
+  assert.deepStrictEqual(first, expected);
+  assert.deepStrictEqual(repeat, first);
+  assert.ok(first.distance > 18 && first.distance <= 28);
+  assert.strictEqual(world.getBlock(first.x, first.y - 1, first.z), BLOCK.GRASS);
+  assert.strictEqual(world.getBlock(first.x, first.y, first.z), BLOCK.AIR);
+  assert.strictEqual(world.getBlock(first.x, first.y + 1, first.z), BLOCK.AIR);
+
+  const next = findStarterEncounterSpawn(world, 7, [first]);
+  assert.deepStrictEqual(next, { x: 20, y: 5, z: 0, distance: 20 });
+  const offset = findStarterEncounterSpawn(world, 7, [], { x: 50, z: 30 });
+  assert.deepStrictEqual(offset, { x: 32, y: 5, z: 18, distance: Math.hypot(18, 12) });
+  const waterBlocked = {
+    ...world,
+    getBlock(x, y, z) {
+      if (x === -18 && z === -12 && y === 4) return BLOCK.WATER;
+      return world.getBlock(x, y, z);
+    },
+  };
+  assert.deepStrictEqual(findStarterEncounterSpawn(waterBlocked, 7), next);
+});
+
+test('starter encounter keeps species budgets and save imports replace fresh fauna', () => {
+  const world = { radiusChunks: 4, getBlock: (x, y, z) => y === 4 ? BLOCK.GRASS : BLOCK.AIR };
+  const fauna = new FaunaSystem(world, 7);
+  assert.ok(fauna.countLiving('hare') <= SPECIES.hare.count);
+  assert.ok(fauna.countLiving('wolf') <= SPECIES.wolf.count);
+  const saved = fauna.exportState().slice(0, 1);
+  fauna.importState(saved);
+  assert.strictEqual(fauna.animals.length, 1);
+  assert.strictEqual(fauna.animals[0].id, saved[0].id);
 });
 
 test('atlas tiles map blocks and cracks', () => {
@@ -4309,10 +4351,22 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.81'), 'HTML must expose v1.12.81');
+  assert.ok(html.includes('v1.12.82'), 'HTML must expose v1.12.82');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
+});
+
+test('first-night expedition HUD exposes an actionable staged next step', () => {
+  const game = fsText('js/game.js');
+  const html = fsText('index.html');
+  assert.equal(html, fsText('public/index.html'), 'root/public HTML must stay identical');
+  assert.match(html, /data-destination-next/);
+  assert.match(html, /NEXT · Craft an Iron Pick, then return to campfire/);
+  assert.match(game, /_destinationNextStep\(state, distance\)/);
+  assert.match(game, /NEXT · Return to campfire and press F with the Iron Pick/);
+  assert.match(game, /NEXT · Bring 1 Torch \+ 1 Ration/);
+  assert.match(game, /COMPLETE · Iron Ravine reward secured/);
 });
 
 test('v1.12.73: ruin landmark stays mirrored in sync and worker generation', () => {

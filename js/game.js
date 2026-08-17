@@ -64,7 +64,7 @@ import {
   recipeProgress,
   nextProgressionRecipe,
 } from './crafting.js?v=413';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=246';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=248';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=245';
 import { createBlockAtlas } from './atlas.js?v=297';
 import { BreakFX, WeatherFX } from './fx.js?v=246';
@@ -936,6 +936,7 @@ export class Game {
     // keep spawn safe from wolves/hares packed on face
     if (this.fauna && this.player) {
       this.fauna.clearNear(this.player.position.x, this.player.position.z, 16);
+      this.fauna.ensureStarterEncounterNear?.(this.player.position.x, this.player.position.z);
     }
     this.started = true;
     this.paused = false;
@@ -4044,6 +4045,30 @@ export class Game {
     }
   }
 
+  _destinationNextStep(state, distance) {
+    const slots = this.player?.slots || [];
+    const torches = countItems(slots, BLOCK.TORCH);
+    const rations = countItems(slots, ITEM.RATION);
+    switch (state?.phase) {
+      case 'unprepared':
+        return countItems(slots, ITEM.IRON_PICK) > 0
+          ? 'NEXT · Return to campfire and press F with the Iron Pick'
+          : 'NEXT · Craft an Iron Pick, then return to campfire';
+      case 'prepared':
+      case 'en_route':
+        return `NEXT · Reach Iron Ravine · ${Math.max(0, Math.round(distance))}m`;
+      case 'active':
+        return `NEXT · Bring 1 Torch + 1 Ration · ${torches}/1 torch · ${rations}/1 ration`;
+      case 'returning':
+      case 'completed':
+        return 'NEXT · Return to campfire and claim the expedition reward';
+      case 'claimed':
+        return 'COMPLETE · Iron Ravine reward secured';
+      default:
+        return 'NEXT · Prepare for the Iron Ravine expedition';
+    }
+  }
+
   _updateDestinationHud() {
     const hud = document.getElementById('destination-hud');
     const state = this._destinationState;
@@ -4054,11 +4079,13 @@ export class Game {
     hud.classList.toggle('hidden', !relevant);
     if (!relevant) return;
     const status = hud.querySelector('[data-destination-status]');
-    if (!status) return;
+    const next = hud.querySelector('[data-destination-next]');
+    if (!status || !next) return;
     const availability = state.phase === 'unprepared'
       ? (countItems(this.player.slots, ITEM.IRON_PICK) > 0 ? 'Ready at campfire' : 'Find an Iron Pick')
       : `${Math.round(distance)}m away`;
     status.textContent = `${getDestinationHudSummary(state)} · ${getPressureHudSummary(this._pressureState)} · ${availability}`;
+    next.textContent = this._destinationNextStep(state, distance);
   }
 
   _updateHud() {

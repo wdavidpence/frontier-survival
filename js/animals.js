@@ -267,6 +267,52 @@ function dist2(ax, az, bx, bz) {
   return dx * dx + dz * dz;
 }
 
+const STARTER_ENCOUNTER_OFFSETS = Object.freeze([
+  [20, 0], [0, 22], [-22, 0], [0, -24],
+  [18, 12], [-18, 12], [18, -12], [-18, -12],
+]);
+const STARTER_ENCOUNTER_MIN_RADIUS = 18;
+const STARTER_ENCOUNTER_MAX_RADIUS = 28;
+
+/**
+ * Find a deterministic, walkable passive encounter just outside the spawn ring.
+ * The returned cell is guaranteed to have solid non-water ground and two clear
+ * air blocks for the animal; occupied cells are skipped by integer cell.
+ * @param {{getBlock:function(number,number,number):number,radiusChunks?:number}} world
+ * @param {number} seed
+ * @param {Array<{x:number,z:number,dead?:boolean}>} occupied
+ * @param {{x?:number,z?:number}} origin
+ * @returns {{x:number,y:number,z:number,distance:number}|null}
+ */
+export function findStarterEncounterSpawn(world, seed = 1, occupied = [], origin = { x: 0, z: 0 }) {
+  if (!world || typeof world.getBlock !== 'function') return null;
+  const ox = Number.isFinite(origin?.x) ? origin.x : 0;
+  const oz = Number.isFinite(origin?.z) ? origin.z : 0;
+  const seedIndex = Number.isFinite(seed)
+    ? Math.floor(Math.abs(seed)) % STARTER_ENCOUNTER_OFFSETS.length
+    : 0;
+  const worldRadius = Number.isFinite(world.radiusChunks)
+    ? world.radiusChunks * 16 - 4
+    : Infinity;
+  for (let i = 0; i < STARTER_ENCOUNTER_OFFSETS.length; i++) {
+    const [dx, dz] = STARTER_ENCOUNTER_OFFSETS[(seedIndex + i) % STARTER_ENCOUNTER_OFFSETS.length];
+    const x = ox + dx;
+    const z = oz + dz;
+    const distance = Math.hypot(dx, dz);
+    if (distance < STARTER_ENCOUNTER_MIN_RADIUS || distance > STARTER_ENCOUNTER_MAX_RADIUS
+      || Math.max(Math.abs(x), Math.abs(z)) > worldRadius) continue;
+    const xi = Math.floor(x);
+    const zi = Math.floor(z);
+    if (occupied.some((a) => a && !a.dead && Math.floor(a.x) === xi && Math.floor(a.z) === zi)) continue;
+    const y = groundY(world, x, z);
+    const ground = world.getBlock(xi, y - 1, zi);
+    if (!isSolid(ground) || ground === BLOCK.WATER) continue;
+    if (world.getBlock(xi, y, zi) !== BLOCK.AIR || world.getBlock(xi, y + 1, zi) !== BLOCK.AIR) continue;
+    return { x, y, z, distance };
+  }
+  return null;
+}
+
 export function meatDropCount(spec, rng = Math.random) {
   const a = spec.meatMin | 0;
   const b = spec.meatMax | 0;
@@ -319,6 +365,26 @@ export class FaunaSystem {
         n++;
       }
     }
+
+    this.ensureStarterEncounterNear(0, 0);
+  }
+
+  /** Ensure one passive route encounter is available around an actual player start. */
+  ensureStarterEncounterNear(x = 0, z = 0) {
+    const hasPassive = this.animals.some((a) => {
+      const spec = this.getSpec(a.type);
+      return !a.dead && !spec.hostile && Math.hypot(a.x - x, a.z - z) >= STARTER_ENCOUNTER_MIN_RADIUS
+        && Math.hypot(a.x - x, a.z - z) <= STARTER_ENCOUNTER_MAX_RADIUS;
+    });
+    if (hasPassive) return false;
+    const authored = findStarterEncounterSpawn(this.world, this.seed, this.animals, { x, z });
+    if (!authored) return false;
+    const spec = SPECIES.hare;
+    const replacement = this.animals.find((a) => a.type === spec.id && !a.dead);
+    if (replacement) this.animals.splice(this.animals.indexOf(replacement), 1);
+    if (this.countLiving(spec.id) >= spec.count) return false;
+    this.animals.push(this._make(spec, authored.x, authored.y, authored.z));
+    return true;
   }
 
   /** Push wildlife away from a point (spawn safety). */
