@@ -4130,7 +4130,11 @@ export class Game {
       meters.classList.toggle('crit-bleed', (s.bleed || 0) > 20);
     }
     const bleedTag = document.getElementById('bleed-tag');
-    if (bleedTag) bleedTag.classList.toggle('on', (s.bleed || 0) > 1);
+    if (bleedTag) {
+      const bleeding = (s.bleed || 0) > 1;
+      bleedTag.classList.toggle('on', bleeding);
+      bleedTag.classList.toggle('crit-bleed', (s.bleed || 0) > 20);
+    }
 
     this._updateSpawnMarker();
     this._updateDestinationHud();
@@ -4252,8 +4256,13 @@ export class Game {
       let a = 0;
       if (s.health < 40) a = Math.max(a, (40 - s.health) / 40 * 0.55);
       if (s.bodyTemp < 34) a = Math.max(a, (34 - s.bodyTemp) / 4 * 0.5);
+      if ((s.thirst ?? 100) < 20) a = Math.max(a, 0.2);
       if (s.hunger < 20) a = Math.max(a, 0.2);
-      hurt.style.opacity = String(a);
+      if ((s.bleed || 0) > 1) a = Math.max(a, Math.min(0.5, (s.bleed / 100) * 0.7));
+      if (this._crossHitT > 0) a = Math.max(a, Math.min(0.48, (this._crossHitT / 0.25) * 0.48));
+      if (s.health < 18 || s.bodyTemp < 32.5) a = Math.min(0.78, a + 0.1);
+      hurt.style.opacity = String(Math.min(0.78, a));
+      hurt.dataset.alert = a > 0.08 ? 'danger' : '';
     }
 
     const cross = document.getElementById('crosshair');

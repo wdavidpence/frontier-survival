@@ -3851,7 +3851,7 @@ test('drinkWater restores thirst', () => {
   assert.ok(s.stamina >= 25);
 });
 
-if (process.exitCode) process.exit(1);
+
 
 
 
@@ -4351,7 +4351,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.82'), 'HTML must expose v1.12.82');
+  assert.ok(html.includes('v1.12.83'), 'HTML must expose v1.12.83');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -4367,6 +4367,17 @@ test('first-night expedition HUD exposes an actionable staged next step', () => 
   assert.match(game, /NEXT · Return to campfire and press F with the Iron Pick/);
   assert.match(game, /NEXT · Bring 1 Torch \+ 1 Ration/);
   assert.match(game, /COMPLETE · Iron Ravine reward secured/);
+});
+
+test('survival danger feedback combines active damage and critical body state', () => {
+  const game = fsText('js/game.js');
+  const html = fsText('index.html');
+  assert.match(html, /#hurt-vignette[\s\S]*will-change: opacity/);
+  assert.match(game, /if \(this\._crossHitT > 0\) a = Math\.max/);
+  assert.match(game, /\(s\.thirst \?\? 100\) < 20/);
+  assert.match(game, /\(s\.bleed \|\| 0\) > 1/);
+  assert.match(game, /hurt\.dataset\.alert = a > 0\.08 \? ['"]danger['"] : ['"]['"]/);
+  assert.match(game, /bleedTag\.classList\.toggle\(['"]crit-bleed['"]/);
 });
 
 test('v1.12.73: ruin landmark stays mirrored in sync and worker generation', () => {
@@ -4493,3 +4504,5 @@ test('durability adapter cache and mining wear remain reachable', () => {
   assert.match(game.slice(game.indexOf('  _handleMining(dt) {'), game.indexOf('  _handlePlace() {')), /wearTool\(this\.player\.slots, this\.player\.hotbarIndex, 1\)/);
   assert.match(game.slice(game.indexOf('  _handleCoopP2World(dt) {'), game.indexOf('  _spawnCoopP2(spawn) {')), /wearTool\(p\.slots, p\.hotbarIndex, 1\)/);
 });
+
+if (process.exitCode) process.exit(1);
