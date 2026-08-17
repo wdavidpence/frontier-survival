@@ -86,6 +86,42 @@ export function collectForestUnderstory({ baseX = 0, baseZ = 0, size = CHUNK_SIZ
   return instances;
 }
 
+// The starter island's south-east shore is the first authored destination
+// sightline. Keep the anchor in world space so chunk rebuilds and streaming
+// produce one identical silhouette without adding a voxel/edit/save record.
+const SHORE_DESTINATION_X_PHASE = 26;
+const SHORE_DESTINATION_Z_PHASE = 22;
+const SHORE_DESTINATION_STARTER_LIMIT = 48;
+const positivePhase = (value, period) => ((value % period) + period) % period;
+
+export function isShoreDestinationAnchor(x, z, seed = 0) {
+  const h = heightAt(x, z, seed);
+  return x >= 0 && z >= 0
+    && x < SHORE_DESTINATION_STARTER_LIMIT && z < SHORE_DESTINATION_STARTER_LIMIT
+    && positivePhase(x, 64) === SHORE_DESTINATION_X_PHASE
+    && positivePhase(z, 64) === SHORE_DESTINATION_Z_PHASE
+    && biomeAt(x, z, seed) === BIOME.SHORE
+    && h >= SEA_LEVEL && h <= SEA_LEVEL + 2;
+}
+
+/** Find the single starter-coast silhouette cell for a chunk. */
+export function collectShoreDestination({ baseX = 0, baseZ = 0, size = CHUNK_SIZE, seed = 0, getBlock } = {}) {
+  if (typeof getBlock !== 'function') return [];
+  for (let lz = 0; lz < size; lz++) {
+    for (let lx = 0; lx < size; lx++) {
+      const x = baseX + lx;
+      const z = baseZ + lz;
+      if (!isShoreDestinationAnchor(x, z, seed)) continue;
+      const h = heightAt(x, z, seed);
+      const surface = getBlock(x, h, z);
+      const above = getBlock(x, h + 1, z);
+      if ((surface !== BLOCK.SAND && surface !== BLOCK.GRASS) || isSolid(above)) continue;
+      return [{ x, y: h + 1, z }];
+    }
+  }
+  return [];
+}
+
 /**
  * Silhouette parameters per form, in voxel fractions. `height`, `reach`, `curve`
  * and `width` are [min, max] ranges resolved per blade. `curve` droops a blade
@@ -244,6 +280,54 @@ export function buildPlantGeometry(instances, seed = 0) {
     }
   }
 
+  return { positions, normals, colors, uvs, tiles, indices, quadCount: indices.length / 6 };
+}
+
+/** Build a warm stone-and-brick arch that reads as a shore destination marker. */
+export function buildShoreDestinationGeometry(instances) {
+  const positions = [];
+  const normals = [];
+  const colors = [];
+  const uvs = [];
+  const tiles = [];
+  const indices = [];
+  const uv = [[0.18, 0.18], [0.82, 0.18], [0.82, 0.82], [0.18, 0.82]];
+
+  const box = (minX, minY, minZ, maxX, maxY, maxZ, id) => {
+    const color = getColor(id);
+    const tile = tileForBlock(id);
+    const faces = [
+      { normal: [1, 0, 0], points: [[maxX, minY, minZ], [maxX, maxY, minZ], [maxX, maxY, maxZ], [maxX, minY, maxZ]] },
+      { normal: [-1, 0, 0], points: [[minX, minY, maxZ], [minX, maxY, maxZ], [minX, maxY, minZ], [minX, minY, minZ]] },
+      { normal: [0, 1, 0], points: [[minX, maxY, minZ], [minX, maxY, maxZ], [maxX, maxY, maxZ], [maxX, maxY, minZ]] },
+      { normal: [0, -1, 0], points: [[minX, minY, maxZ], [minX, minY, minZ], [maxX, minY, minZ], [maxX, minY, maxZ]] },
+      { normal: [0, 0, 1], points: [[maxX, minY, maxZ], [maxX, maxY, maxZ], [minX, maxY, maxZ], [minX, minY, maxZ]] },
+      { normal: [0, 0, -1], points: [[minX, minY, minZ], [minX, maxY, minZ], [maxX, maxY, minZ], [maxX, minY, minZ]] },
+    ];
+    for (const face of faces) {
+      const start = positions.length / 3;
+      for (let i = 0; i < 4; i++) {
+        const p = face.points[i];
+        positions.push(p[0], p[1], p[2]);
+        normals.push(face.normal[0], face.normal[1], face.normal[2]);
+        colors.push(color[0], color[1], color[2], 1);
+        uvs.push(uv[i][0], uv[i][1]);
+        tiles.push(tile);
+      }
+      indices.push(start, start + 1, start + 2, start, start + 2, start + 3);
+    }
+  };
+
+  for (const instance of instances) {
+    const x = instance.x + 0.5;
+    const y = instance.y;
+    const z = instance.z + 0.5;
+    box(x - 0.78, y, z - 0.32, x - 0.36, y + 3.0, z + 0.32, BLOCK.SANDSTONE);
+    box(x + 0.36, y, z - 0.32, x + 0.78, y + 3.0, z + 0.32, BLOCK.SANDSTONE);
+    box(x - 0.88, y, z - 0.38, x + 0.88, y + 0.18, z + 0.38, BLOCK.COBBLE);
+    box(x - 0.88, y + 2.78, z - 0.38, x + 0.88, y + 3.2, z + 0.38, BLOCK.BRICKS);
+    box(x - 0.2, y + 2.34, z - 0.34, x + 0.2, y + 2.8, z + 0.34, BLOCK.SANDSTONE);
+  }
   return { positions, normals, colors, uvs, tiles, indices, quadCount: indices.length / 6 };
 }
 
@@ -1378,6 +1462,7 @@ export class World {
       }
     }
     const understory = collectForestUnderstory({ baseX, baseZ, seed: this.seed, getBlock });
+    const shoreDestination = collectShoreDestination({ baseX, baseZ, seed: this.seed, getBlock });
     if (mushrooms.length) {
       appendGeometryPart(
         arrays,
@@ -1391,6 +1476,7 @@ export class World {
       );
     }
     if (plants.length) appendGeometryPart(arrays, buildPlantGeometry(plants, this.seed));
+    if (shoreDestination.length) appendGeometryPart(arrays, buildShoreDestinationGeometry(shoreDestination));
     this._stats.quads = (this._stats.quads || 0) + arrays.quadCount;
 
     const geo = new THREE.BufferGeometry();

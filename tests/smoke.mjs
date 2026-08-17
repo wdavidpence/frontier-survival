@@ -284,6 +284,18 @@ test('world streaming ring bootstraps and extends beyond starter chunks', () => 
   assert.match(source, /chunkDetailTier\(/);
 });
 
+test('shore destination silhouette is deterministic and reachable on the exact starter seed', () => {
+  const source = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
+  const gameSource = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  const seed = 1884808540;
+  assert.strictEqual(biomeAt(26, 22, seed), BIOME.SHORE);
+  assert.ok(heightAt(26, 22, seed) >= 16 && heightAt(26, 22, seed) <= 18);
+  assert.match(source, /isShoreDestinationAnchor/);
+  assert.match(source, /collectShoreDestination/);
+  assert.match(source, /buildShoreDestinationGeometry/);
+  assert.match(gameSource, /world\.js\?v=419/);
+});
+
 test('terrain visibility plan extends fog and proxy beyond full mesh', () => {
   const plan = terrainVisibilityPlan(8);
   assert.ok(plan.fullChunks >= 2);
@@ -4363,7 +4375,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.89'), 'HTML must expose v1.12.89');
+  assert.ok(html.includes('v1.12.90'), 'HTML must expose v1.12.90');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
