@@ -922,7 +922,8 @@ export class Game {
       this._destinationLandmarkPlaced = false;
     }
 
-    this._ensureDestinationLandmark();
+    const hasSavedDestination = !!saveData?.destination?.destination || !!saveData?.destination?.position;
+    this._ensureDestinationLandmark({ relocateIfTooClose: freshPlayer || !hasSavedDestination });
 
     if (this.coopMode && !this.player2 && this.player) {
       this._spawnCoopP2({
@@ -1037,7 +1038,7 @@ export class Game {
     return null;
   }
 
-  _ensureDestinationLandmark() {
+  _ensureDestinationLandmark({ relocateIfTooClose = false } = {}) {
     if (!this.world || !this._spawnPos || this._destinationLandmarkPlaced) return;
     if (!this._destinationState?.destination) {
       this._destinationState = createDestinationState({ seed: this.seed, campPosition: this._spawnPos });
@@ -1046,7 +1047,21 @@ export class Game {
     const markerAt = (point) => this.world.getBlock(point.x, point.y + 1, point.z) === BLOCK.IRON_ORE
       && this.world.getBlock(point.x, point.y + 2, point.z) === BLOCK.IRON_ORE;
     if (!markerAt(destination)) {
-      const point = this._findDestinationSurface(destination) || this._findDestinationSurface(placeDestination(this.seed, this._spawnPos));
+      let surfaceTarget = destination;
+      const dx = destination.x - this._spawnPos.x;
+      const dz = destination.z - this._spawnPos.z;
+      const generatedDistance = Math.hypot(dx, dz);
+      if (relocateIfTooClose && Number.isFinite(generatedDistance) && generatedDistance > 0 && generatedDistance < 40) {
+        const targetDistance = 44;
+        surfaceTarget = {
+          ...destination,
+          x: this._spawnPos.x + (dx / generatedDistance) * targetDistance,
+          z: this._spawnPos.z + (dz / generatedDistance) * targetDistance,
+        };
+      }
+      const point = this._findDestinationSurface(surfaceTarget)
+        || this._findDestinationSurface(destination)
+        || this._findDestinationSurface(placeDestination(this.seed, this._spawnPos));
       if (!point) return;
       this._destinationState = deserializeDestinationState({
         ...this._destinationState,
