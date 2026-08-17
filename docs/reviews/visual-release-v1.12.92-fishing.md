@@ -1,6 +1,6 @@
 # Frontier Survival v1.12.92 — fishing depth checkpoint
 
-Decision: SHIPPED CANDIDATE PENDING LIVE VERIFICATION
+Decision: SHIPPED CHECKPOINT
 
 ## Product slice
 
@@ -57,4 +57,11 @@ Exact candidate served at `http://127.0.0.1:49212/`.
 - The catch table is species-specific but still item-based rather than a full fish entity/animation system.
 - Boat boarding, lure physics, and fish schools remain future tropical traversal work.
 
-Live Pages verification is appended after push.
+## Live Pages evidence
+
+- `https://wdavidpence.github.io/frontier-survival/?nocache=v1292-live` exposes v1.12.92 and `main.js?v=454`.
+- Live assets `game.js?v=443`, `fishing-cast.js?v=2`, and `items.js?v=248` each returned HTTP 200.
+- Live Start reached `window.__FS.started === true` with zero page-owned runtime errors.
+- Live controlled water route cast entered `waiting` with bobber and line visible.
+- After the cast settled, live state entered `bite`; immediate reel returned `Caught Reef Crab ×1.`, hid the bobber, returned to `ready`, and kept `runtimeErrors=[]`.
+- Live cast screenshot captured from the exact public URL.
