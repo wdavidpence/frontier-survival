@@ -37,7 +37,7 @@ export function renderFurnaceUi(panel, furnace, stationId, nameOf = (id) => (id 
   if (!panel) return null;
   const view = furnaceUiSnapshot(furnace, stationId);
   const set = (name, value) => {
-    const el = panel.querySelector(`[data-furnace-${name}]`);
+    const el = panel.querySelector(`[data-furnace-${name}], [data-furnace-slot="${name}"]`);
     if (el) el.textContent = value;
   };
   set('title', view.stationName);

@@ -55,6 +55,9 @@ function packSurvival(survival) {
  * @param {object} state.player
  * @param {object} [state.player2]
  * @param {Array} state.edits
+ * @param {object} [state.destination]
+ * @param {object} [state.pressure]
+ * @param {object} [state.workshop]
  */
 export function buildSavePayload(state) {
   return {
@@ -79,6 +82,9 @@ export function buildSavePayload(state) {
     achievements: state.achievements || undefined,
     crops: state.crops || undefined,
     chests: state.chests || undefined,
+    destination: state.destination,
+    pressure: state.pressure,
+    workshop: state.workshop,
     spawnPos: state.spawnPos || undefined,
   };
 }
@@ -105,6 +111,9 @@ export function parseSavePayload(raw) {
   if (!data.time) return { ok: false, error: 'missing time' };
   if (!Array.isArray(data.edits)) data.edits = [];
   if (!Array.isArray(data.animals)) data.animals = [];
+  if (data.destination == null) data.destination = null;
+  if (data.pressure == null) data.pressure = null;
+  if (data.workshop == null) data.workshop = null;
   if (!Array.isArray(data.player.slots)) return { ok: false, error: 'missing slots' };
   if (!data.player.equipment || typeof data.player.equipment !== 'object') {
     data.player.equipment = { head: null, chest: null, feet: null };

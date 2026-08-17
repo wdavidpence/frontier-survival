@@ -4309,7 +4309,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.73'), 'HTML must expose v1.12.73');
+  assert.ok(html.includes('v1.12.81'), 'HTML must expose v1.12.81');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -4410,4 +4410,32 @@ test('inventory supports arm-and-assign hotbar flow', () => {
   assert.ok(game.includes('[pl.slots[source], pl.slots[idx]] = [pl.slots[idx], pl.slots[source]]'));
   assert.ok(game.includes('else {\n            pl.hotbarIndex = idx;'), 'ordinary hotbar selection must remain');
   assert.ok(game.includes('e.shiftKey'), 'shift-click splitting must remain');
+});
+
+test('procedural item icons reach hotbars, inventory, and chest without dropping labels', () => {
+  const game = fsText('js/game.js');
+  const html = fsText('index.html');
+  const pub = fsText('public/index.html');
+  assert.equal(html, pub, 'root/public HTML must stay identical');
+  assert.match(game, /from ['"]\.\/item-icons\.js\?v=2['"]/);
+  assert.match(game, /setItemIcon\(el, stack\.id, name, col, ['"]hb-glyph['"]\)/);
+  assert.match(game, /setItemIcon\(el, s\.id, name, col, ['"]inv-icon['"]\)/);
+  assert.match(game, /_paintChest\(\)[\s\S]*?setItemIcon\(el, s\.id, name, col, ['"]inv-icon['"]\)/);
+  assert.match(game, /hotbar-name/);
+  assert.match(game, /setAttribute\(['"]aria-label['"], el\.title\)/);
+  assert.match(game, /el\.title = `\$\{name\} x\$\{s\.count\}`/);
+  assert.match(html, /\.slot-icon/);
+  assert.match(html, /\.inv-slot \.inv-icon/);
+  assert.match(html, /\.hotbar-slot \.hb-glyph/);
+  assert.match(html, /\.inv-slot \.inv-name[\s\S]*?clip: rect\(0, 0, 0, 0\)/);
+});
+
+test('durability adapter cache and mining wear remain reachable', () => {
+  const game = fsText('js/game.js');
+  const durability = fsText('js/durability.js');
+  assert.match(game, /from ['"]\.\/durability\.js\?v=222['"]/);
+  assert.match(durability, /from ['"]\.\/items\.js\?v=246['"]/);
+  assert.match(durability, /from ['"]\.\/tool-tiers\.js\?v=222['"]/);
+  assert.match(game.slice(game.indexOf('  _handleMining(dt) {'), game.indexOf('  _handlePlace() {')), /wearTool\(this\.player\.slots, this\.player\.hotbarIndex, 1\)/);
+  assert.match(game.slice(game.indexOf('  _handleCoopP2World(dt) {'), game.indexOf('  _spawnCoopP2(spawn) {')), /wearTool\(p\.slots, p\.hotbarIndex, 1\)/);
 });

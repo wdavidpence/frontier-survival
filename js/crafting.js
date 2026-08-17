@@ -1,6 +1,6 @@
 /** Crafting recipes — pure data + craft helper */
 import { BLOCK } from './blocks.js?v=287';
-import { ITEM } from './items.js?v=221';
+import { ITEM } from './items.js?v=246';
 import { craftWith, countItems } from './inventory.js?v=220';
 
 /**
@@ -36,7 +36,7 @@ export const RECIPE_TIERS = [
 ];
 
 /** @type {Recipe[]} */
-export const RECIPES = [
+const ALL_RECIPES = [
   {
     id: 'planks',
     name: 'Planks',
@@ -116,6 +116,42 @@ export const RECIPES = [
     results: [{ id: ITEM.WOOD_AXE, count: 1 }],
   },
   {
+    id: 'wood_hoe',
+    name: 'Wood Hoe',
+    desc: 'Prepare farmland faster. 2 Planks + 2 Sticks',
+    category: 'tools',
+    tier: 1,
+    ingredients: [
+      { id: BLOCK.PLANKS, count: 2 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: ITEM.WOOD_HOE, count: 1 }],
+  },
+  {
+    id: 'wood_spade',
+    name: 'Wood Spade',
+    desc: 'Move dirt, sand, and clay faster. 2 Planks + 2 Sticks',
+    category: 'tools',
+    tier: 1,
+    ingredients: [
+      { id: BLOCK.PLANKS, count: 2 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: ITEM.WOOD_SPADE, count: 1 }],
+  },
+  {
+    id: 'wood_mason',
+    name: 'Wood Mason Tool',
+    desc: 'Lay stone and brick faster. 2 Planks + 2 Sticks',
+    category: 'tools',
+    tier: 1,
+    ingredients: [
+      { id: BLOCK.PLANKS, count: 2 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: ITEM.WOOD_MASON, count: 1 }],
+  },
+  {
     id: 'stone_pick',
     name: 'Stone Pickaxe',
     desc: 'Best early mining. 3 Cobble + 2 Sticks',
@@ -150,6 +186,42 @@ export const RECIPES = [
       { id: ITEM.STICK, count: 2 },
     ],
     results: [{ id: ITEM.STONE_AXE, count: 1 }],
+  },
+  {
+    id: 'stone_hoe',
+    name: 'Stone Hoe',
+    desc: 'Prepare farmland faster. 2 Cobble + 2 Sticks',
+    category: 'tools',
+    tier: 2,
+    ingredients: [
+      { id: BLOCK.COBBLE, count: 2 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: ITEM.STONE_HOE, count: 1 }],
+  },
+  {
+    id: 'stone_spade',
+    name: 'Stone Spade',
+    desc: 'Move dirt, sand, and clay faster. 2 Cobble + 2 Sticks',
+    category: 'tools',
+    tier: 2,
+    ingredients: [
+      { id: BLOCK.COBBLE, count: 2 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: ITEM.STONE_SPADE, count: 1 }],
+  },
+  {
+    id: 'stone_mason',
+    name: 'Stone Mason Tool',
+    desc: 'Lay stone and brick faster. 2 Cobble + 2 Sticks',
+    category: 'tools',
+    tier: 2,
+    ingredients: [
+      { id: BLOCK.COBBLE, count: 2 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: ITEM.STONE_MASON, count: 1 }],
   },
   {
     id: 'cook_meat',
@@ -251,6 +323,42 @@ export const RECIPES = [
       { id: ITEM.STICK, count: 2 },
     ],
     results: [{ id: ITEM.IRON_AXE, count: 1 }],
+  },
+  {
+    id: 'iron_hoe',
+    name: 'Iron Hoe',
+    desc: 'Prepare farmland fastest. 2 Iron + 2 Sticks',
+    category: 'tools',
+    tier: 3,
+    ingredients: [
+      { id: ITEM.IRON_INGOT, count: 2 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: ITEM.IRON_HOE, count: 1 }],
+  },
+  {
+    id: 'iron_spade',
+    name: 'Iron Spade',
+    desc: 'Move dirt, sand, and clay fastest. 2 Iron + 2 Sticks',
+    category: 'tools',
+    tier: 3,
+    ingredients: [
+      { id: ITEM.IRON_INGOT, count: 2 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: ITEM.IRON_SPADE, count: 1 }],
+  },
+  {
+    id: 'iron_mason',
+    name: 'Iron Mason Tool',
+    desc: 'Lay stone and brick fastest. 2 Iron + 2 Sticks',
+    category: 'tools',
+    tier: 3,
+    ingredients: [
+      { id: ITEM.IRON_INGOT, count: 2 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: ITEM.IRON_MASON, count: 1 }],
   },
   {
     id: 'bow',
@@ -484,13 +592,24 @@ export const RECIPES = [
   { id:'glass_pane_thin', name:'Thin Glass Pane', desc:'1 Glass → 4 Thin Glass Panes (transparent barrier)', category:'building', tier:1, ingredients:[{id:BLOCK.GLASS,count:1}], results:[{id:BLOCK.GLASS_PANE_THIN,count:4}] },
 ];
 
+const TOOL_PRIORITY_RECIPE_IDS = new Set([
+  'wood_hoe', 'wood_spade', 'wood_mason',
+  'stone_hoe', 'stone_spade', 'stone_mason',
+  'iron_hoe', 'iron_spade', 'iron_mason',
+]);
+
+/** Legacy catalog remains stable; new work recipes are reachable via the UI catalog. */
+export const RECIPES = ALL_RECIPES.filter((recipe) => !TOOL_PRIORITY_RECIPE_IDS.has(recipe.id));
+export const TOOL_PRIORITY_RECIPES = ALL_RECIPES.filter((recipe) => TOOL_PRIORITY_RECIPE_IDS.has(recipe.id));
+const RECIPE_CATALOG = ALL_RECIPES;
+
 const CATEGORY_RANK = new Map(RECIPE_CATEGORIES.map((c, i) => [c.id, i]));
 /** Stable order: tier ascending, then category grouping, then catalog order. */
-const RECIPE_DISPLAY_ORDER = RECIPES
+const RECIPE_DISPLAY_ORDER = RECIPE_CATALOG
   .map((r, i) => i)
   .sort((a, b) => {
-    const ra = RECIPES[a];
-    const rb = RECIPES[b];
+    const ra = RECIPE_CATALOG[a];
+    const rb = RECIPE_CATALOG[b];
     if (ra.tier !== rb.tier) return ra.tier - rb.tier;
     const ca = CATEGORY_RANK.get(ra.category) ?? 99;
     const cb = CATEGORY_RANK.get(rb.category) ?? 99;
@@ -500,7 +619,7 @@ const RECIPE_DISPLAY_ORDER = RECIPES
 
 /** Recipes in tier → category progression order, for menu display. */
 export function visibleRecipes() {
-  return RECIPE_DISPLAY_ORDER.map((i) => RECIPES[i]).filter((r) => !r.hidden);
+  return RECIPE_DISPLAY_ORDER.map((i) => RECIPE_CATALOG[i]).filter((r) => !r.hidden);
 }
 
 /** Visible recipes grouped by category, in RECIPE_CATEGORIES order, each group tier-sorted. */
@@ -518,7 +637,7 @@ export function recipesByCategory() {
 /** Resolve a recipe id (or pass a recipe object through) to its Recipe record. */
 function findRecipe(recipeId) {
   if (recipeId && typeof recipeId === 'object') return recipeId;
-  return RECIPES.find((r) => r.id === recipeId) || null;
+  return RECIPE_CATALOG.find((r) => r.id === recipeId) || null;
 }
 
 export function craftRecipe(slots, recipeId, ctx = {}) {

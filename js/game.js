@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './world.js?v=417';
+import { World, WORLD_HEIGHT } from './world.js?v=417';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=223';
@@ -20,16 +20,23 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=245';
-import { resolveBlockDrop } from './mine-tier.js?v=220';
+} from './items.js?v=246';
+import { iconDataUriForItem } from './item-icons.js?v=2';
+import { resolveBlockDrop, harvestDurationForBlock, workDurationForBlock } from './mine-tier.js?v=223';
 import {
-  createFurnaceState,
-  insertFuel,
-  insertInput,
-  tickFurnace,
-  takeOutput,
-} from './furnace-tick.js?v=232';
-import { isFuel, canSmelt } from './smelting.js?v=220';
+  FURNACE,
+  createWorkshopState,
+  placeStation,
+  getStation,
+  getStationSummary,
+  deserializeWorkshopState,
+  serializeWorkshopState,
+  insertStationInput,
+  insertStationFuel,
+  tickFurnaceStation,
+  takeStationOutput,
+} from './workshop-stations.js?v=1';
+import { renderFurnaceUi, bindFurnaceUi } from './furnace-ui.js?v=2';
 import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=220';
 import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=220';
 import { advanceCropGrowth } from './crop-growth.js?v=220';
@@ -56,13 +63,14 @@ import {
   ingredientSummary,
   recipeProgress,
   nextProgressionRecipe,
-} from './crafting.js?v=411';
+} from './crafting.js?v=413';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=246';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=245';
 import { createBlockAtlas } from './atlas.js?v=297';
 import { BreakFX, WeatherFX } from './fx.js?v=246';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
+import { heightAt } from './gen.js?v=285';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=11';
 import {
   equipmentWarmth,
@@ -80,8 +88,11 @@ import {
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=220';
+} from './save.js?v=221';
 import { getMode } from './modes.js?v=243';
+
+const HARVEST_BASE_SECONDS = 4.2;
+
 import {
   readSettings,
   writeSettings,
@@ -98,7 +109,7 @@ import {
 } from './achievements.js?v=220';
 import { tickSpoilage } from './spoilage.js?v=220';
 import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=220';
-import { wearTool, durabilityRatio } from './durability.js?v=220';
+import { wearTool, durabilityRatio } from './durability.js?v=222';
 import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=220';
 import { tickLogic, COMPONENT } from './logic.js?v=220';
 import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=245';
@@ -119,6 +130,49 @@ import { readGamepad } from './input-coop.js?v=261';
 import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=220';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=220';
 import { palmLeafDrop } from './palm-drops.js?v=1';
+import {
+  ITEM as DEST_ITEM,
+  IRON_RAVINE,
+  createDestinationState,
+  deserializeDestinationState,
+  placeDestination,
+  prepareDestination,
+  activateDestination,
+  arriveDestination,
+  resolveDestination,
+  returnDestination,
+  claimDestinationReward,
+  getDestinationHudSummary,
+} from './expedition-destination.js?v=1';
+import {
+  createPressureState,
+  deserializePressureState,
+  triggerPressure,
+  securePressure,
+  getPressureHudSummary,
+} from './expedition-pressure.js?v=1';
+
+function setItemIcon(element, itemId, name, color, className) {
+  element.querySelectorAll('.hb-glyph:not(.slot-icon)').forEach((oldIcon) => oldIcon.remove());
+  let icon = element.querySelector('.slot-icon');
+  if (!icon) {
+    icon = document.createElement('img');
+    element.appendChild(icon);
+  }
+  icon.className = `slot-icon ${className}`;
+  icon.alt = '';
+  icon.setAttribute('aria-hidden', 'true');
+  const key = `${itemId}|${name}|${JSON.stringify(color)}`;
+  if (icon.dataset.iconKey !== key) {
+    icon.src = iconDataUriForItem(itemId, name, color);
+    icon.dataset.iconKey = key;
+  }
+  return icon;
+}
+
+function clearItemIcon(element) {
+  element.querySelector('.slot-icon')?.remove();
+}
 
 export class Game {
   /**
@@ -281,7 +335,12 @@ export class Game {
     this._recipeFilter = '';
     this._fishCd = 0;
     this._campFuel = new Map(); // "x,y,z" -> fuel 0..100
-    this._furnaces = new Map(); // "x,y,z" -> furnace-tick state
+    this._destinationState = createDestinationState();
+    this._pressureState = createPressureState();
+    this._destinationLandmarkPlaced = false;
+    // Shared, serializable station state; P1/P2 always address these same records.
+    this._workshopState = createWorkshopState();
+    this._furnaceOpen = null;
     /** Slab half meta "x,y,z" -> 0 bottom / 1 top (additive until mesh uses it). */
     this._slabHalf = new Map();
     /** Stair facing meta "x,y,z" -> 0..3 (additive until mesh uses it). */
@@ -339,6 +398,7 @@ export class Game {
     window.addEventListener('beforeunload', this._onBeforeUnload);
 
     this._bindInventoryUi();
+    this._bindFurnaceUi();
     this._bindPauseUi();
 
     this._last = performance.now();
@@ -469,6 +529,126 @@ export class Game {
     });
   }
 
+  _bindFurnaceUi() {
+    const panel = document.getElementById('furnace-screen');
+    bindFurnaceUi(panel, {
+      onInput: () => this._furnaceInsertHeld('input'),
+      onFuel: () => this._furnaceInsertHeld('fuel'),
+      onOutput: () => this._furnaceTakeOutput(),
+      onClose: () => this._closeFurnace(),
+    });
+  }
+
+  _furnaceStationId(x, y, z) {
+    return `furnace:${x | 0},${y | 0},${z | 0}`;
+  }
+
+  _getOrCreateFurnaceStation(x, y, z) {
+    const id = this._furnaceStationId(x, y, z);
+    if (!getStation(this._workshopState, id)) {
+      this._workshopState = placeStation(
+        this._workshopState,
+        FURNACE,
+        { x: x | 0, y: y | 0, z: z | 0 },
+        id,
+      );
+    }
+    return id;
+  }
+
+  _openFurnace(stationId, owner = 'p1') {
+    if (!getStation(this._workshopState, stationId)) return;
+    this._furnaceOpen = { stationId, owner: owner === 'p2' ? 'p2' : 'p1' };
+    this.setInventoryOpen(false, this._invOwner || 'p1');
+    document.getElementById('chest-screen')?.classList.add('hidden');
+    const panel = document.getElementById('furnace-screen');
+    panel?.classList.remove('hidden');
+    this.input.uiMode = true;
+    this.input.setCaptureEnabled?.(false);
+    this.input.releaseBreak?.();
+    if (document.pointerLockElement) document.exitPointerLock();
+    this._paintFurnace();
+    this.audio.ui();
+  }
+
+  _closeFurnace() {
+    if (!this._furnaceOpen) return;
+    this._furnaceOpen = null;
+    document.getElementById('furnace-screen')?.classList.add('hidden');
+    if (!this.player?.inventoryOpen && !this.paused) {
+      this.input.uiMode = false;
+      this.input.setCaptureEnabled?.(true);
+      this.input.requestLock?.();
+    }
+    this.saveGame({ quiet: true });
+  }
+
+  _furnaceOwnerPlayer() {
+    return this._furnaceOpen?.owner === 'p2' ? this.player2 : this.player;
+  }
+
+  _furnaceInsertHeld(kind) {
+    const session = this._furnaceOpen;
+    const pl = this._furnaceOwnerPlayer();
+    if (!session || !pl) return;
+    const held = pl.heldStack();
+    if (!held || held.id == null || held.count <= 0) {
+      pl.notify('Select input or fuel in the hotbar.');
+      return;
+    }
+    const before = this._workshopState;
+    const next = kind === 'fuel'
+      ? insertStationFuel(before, session.stationId, held.id, 1)
+      : insertStationInput(before, session.stationId, held.id, 1);
+    if (next === before) {
+      pl.notify(kind === 'fuel' ? 'That item cannot fuel this furnace.' : 'That item cannot be smelted here.');
+      return;
+    }
+    const consumed = consumeFromHotbar(pl.slots, pl.hotbarIndex, 1);
+    if (!consumed.ok) return;
+    this._workshopState = next;
+    pl.slots = consumed.slots;
+    pl.notify(kind === 'fuel' ? 'Fuel added.' : `Input added: ${displayName(held.id)}.`, 1.8);
+    this._invNeedsPaint = true;
+    this._paintFurnace();
+    this.audio.placeBlock();
+  }
+
+  _furnaceTakeOutput() {
+    const session = this._furnaceOpen;
+    const pl = this._furnaceOwnerPlayer();
+    if (!session || !pl) return;
+    const taken = takeStationOutput(this._workshopState, session.stationId);
+    if (!taken.output) {
+      pl.notify('No furnace output ready.');
+      return;
+    }
+    const add = addItems(pl.slots, taken.output.id, taken.output.count);
+    if (!add.ok) {
+      pl.notify('Inventory full — output stays in the furnace.');
+      return;
+    }
+    this._workshopState = taken.state;
+    pl.slots = add.slots;
+    if (taken.output.id === ITEM.IRON_INGOT) {
+      this._unlock('first_iron');
+      pl.notify('Workshop milestone: iron smelted. Craft an Iron Pickaxe (3 ingots + 2 sticks).', 3.6);
+    } else {
+      pl.notify(`Furnace → +${taken.output.count} ${displayName(taken.output.id)}.`, 2.2);
+    }
+    this._invNeedsPaint = true;
+    this._paintFurnace();
+    this.audio.ui();
+  }
+
+  _paintFurnace() {
+    const session = this._furnaceOpen;
+    const panel = document.getElementById('furnace-screen');
+    const station = session ? getStation(this._workshopState, session.stationId) : null;
+    if (!panel || !station) return;
+    renderFurnaceUi(panel, station.furnace, session.stationId, displayName);
+  }
+
   _bindPauseUi() {
     document.getElementById('btn-resume')?.addEventListener('click', () => this.setPaused(false));
     document.getElementById('btn-pause-save')?.addEventListener('click', () => {
@@ -563,6 +743,7 @@ export class Game {
     const panel = document.getElementById('pause-screen');
     if (this.paused) {
       this.setInventoryOpen(false, 'p1');
+      this._closeFurnace();
       if (this.player2?.inventoryOpen) this.setInventoryOpen(false, 'p2');
       if (document.pointerLockElement) document.exitPointerLock();
       this.input.uiMode = true;
@@ -655,6 +836,11 @@ export class Game {
       this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0 };
       this._achievements = emptyAchievements();
       this._crops = new Map();
+      this._destinationState = createDestinationState({ seed, campPosition: this._spawnPos });
+      this._pressureState = createPressureState();
+      this._destinationLandmarkPlaced = false;
+      this._workshopState = createWorkshopState();
+      this._furnaceOpen = null;
       this._spawnCoopP2(spawn);
     } else {
       this.player = new Player({
@@ -712,6 +898,8 @@ export class Game {
       }
       this._crops = new Map(Array.isArray(saveData.crops) ? saveData.crops : []);
       this._chests = importChests(saveData.chests || []);
+      this._workshopState = deserializeWorkshopState(saveData.workshop);
+      this._furnaceOpen = null;
       // restore starter spawn pin (fallback to world spawn for older saves)
       if (saveData.spawnPos && Number.isFinite(saveData.spawnPos.x)) {
         this._spawnPos = {
@@ -724,6 +912,17 @@ export class Game {
         this._spawnPos = { x: spawn.x, y: spawn.y, z: spawn.z };
       }
     }
+
+    if (!freshPlayer) {
+      this._destinationState = deserializeDestinationState(saveData.destination, {
+        seed,
+        campPosition: this._spawnPos,
+      });
+      this._pressureState = deserializePressureState(saveData.pressure);
+      this._destinationLandmarkPlaced = false;
+    }
+
+    this._ensureDestinationLandmark();
 
     if (this.coopMode && !this.player2 && this.player) {
       this._spawnCoopP2({
@@ -783,6 +982,184 @@ export class Game {
     this._scanLights(true);
   }
 
+
+  _destinationPlayer(owner = 'p1') {
+    return owner === 'p2' ? this.player2 : this.player;
+  }
+
+  _findDestinationSurface(target) {
+    if (!this.world || !target) return null;
+    const offsets = [[0, 0], [2, 0], [-2, 0], [0, 2], [0, -2], [2, 2], [-2, 2], [2, -2], [-2, -2]];
+    const playerPositions = [this.player, this.player2]
+      .map((player) => player?.position)
+      .filter(Boolean);
+    const safeFromCampAndPlayers = (x, z) => {
+      if (this._spawnPos && Math.hypot(x - this._spawnPos.x, z - this._spawnPos.z) < IRON_RAVINE.minimumCampDistance) return false;
+      return playerPositions.every((position) => Math.hypot(x - position.x, z - position.z) >= 3);
+    };
+    const markerVolumeClear = (x, surfaceY, z, replaceableOnly = false) => {
+      for (let dx = -1; dx <= 1; dx += 1) {
+        for (let dz = -1; dz <= 1; dz += 1) {
+          for (let dy = 0; dy <= 3; dy += 1) {
+            const id = this.world.getBlock(x + dx, surfaceY + dy, z + dz);
+            if (replaceableOnly ? !BLOCK_PROPS[id]?.replaceable : id !== BLOCK.AIR) return false;
+          }
+        }
+      }
+      return true;
+    };
+    for (const [ox, oz] of offsets) {
+      const x = Math.round(target.x + ox);
+      const z = Math.round(target.z + oz);
+      const chunk = this.world.worldToChunk(x, z);
+      this.world.ensureChunk(chunk.cx, chunk.cz);
+      for (let y = WORLD_HEIGHT - 5; y >= 1; y -= 1) {
+        const support = this.world.getBlock(x, y, z);
+        if (!isSolid(support) || support === BLOCK.BEDROCK) continue;
+        if (!markerVolumeClear(x, y + 1, z) || !safeFromCampAndPlayers(x, z)) continue;
+        return { x, y: y + 1, z };
+      }
+    }
+
+    // Some streamed columns can still be all AIR even after ensureChunk(). Use
+    // the same deterministic terrain function as World, but never guess a
+    // non-finite height or overwrite a non-replaceable marker volume.
+    for (const [ox, oz] of offsets) {
+      const x = Math.round(target.x + ox);
+      const z = Math.round(target.z + oz);
+      const sampledY = heightAt(x, z, this.seed);
+      if (!Number.isFinite(sampledY)) continue;
+      const terrainY = Math.max(1, Math.min(WORLD_HEIGHT - 5, Math.floor(sampledY)));
+      if (!safeFromCampAndPlayers(x, z) || !markerVolumeClear(x, terrainY + 1, z, true)) continue;
+      return { x, y: terrainY + 1, z };
+    }
+    return null;
+  }
+
+  _ensureDestinationLandmark() {
+    if (!this.world || !this._spawnPos || this._destinationLandmarkPlaced) return;
+    if (!this._destinationState?.destination) {
+      this._destinationState = createDestinationState({ seed: this.seed, campPosition: this._spawnPos });
+    }
+    let destination = this._destinationState.destination;
+    const markerAt = (point) => this.world.getBlock(point.x, point.y + 1, point.z) === BLOCK.IRON_ORE
+      && this.world.getBlock(point.x, point.y + 2, point.z) === BLOCK.IRON_ORE;
+    if (!markerAt(destination)) {
+      const point = this._findDestinationSurface(destination) || this._findDestinationSurface(placeDestination(this.seed, this._spawnPos));
+      if (!point) return;
+      this._destinationState = deserializeDestinationState({
+        ...this._destinationState,
+        destination: point,
+      }, { seed: this.seed, campPosition: this._spawnPos });
+      destination = this._destinationState.destination;
+    }
+    if (markerAt(destination)) {
+      this._destinationLandmarkPlaced = true;
+      return;
+    }
+    const cells = [
+      [-1, 0, -1, BLOCK.COBBLE], [0, 0, -1, BLOCK.COBBLE], [1, 0, -1, BLOCK.COBBLE],
+      [-1, 0, 0, BLOCK.COBBLE], [0, 0, 0, BLOCK.COBBLE], [1, 0, 0, BLOCK.COBBLE],
+      [-1, 0, 1, BLOCK.COBBLE], [0, 0, 1, BLOCK.COBBLE], [1, 0, 1, BLOCK.COBBLE],
+      [0, 1, 0, BLOCK.IRON_ORE], [0, 2, 0, BLOCK.IRON_ORE], [0, 3, 0, BLOCK.TORCH],
+    ];
+    for (const [dx, dy, dz, id] of cells) {
+      if (!this.world.setBlock(destination.x + dx, destination.y + dy, destination.z + dz, id, { recordEdit: true })) return;
+    }
+    this._destinationLandmarkPlaced = true;
+  }
+
+  _destinationRewardId(id) {
+    if (id === DEST_ITEM.MAP) return ITEM.MAP;
+    if (id === DEST_ITEM.TORCH) return BLOCK.TORCH;
+    return null;
+  }
+
+  _handleDestinationUse(hit, owner = 'p1') {
+    const pl = this._destinationPlayer(owner);
+    const state = this._destinationState;
+    if (!pl || !state?.destination) return false;
+    const destination = state.destination;
+    const held = pl.heldStack();
+    const campfire = hit?.id === BLOCK.CAMPFIRE;
+    const nearLandmark = !!hit
+      && Math.hypot(pl.position.x - destination.x, pl.position.z - destination.z) <= 5
+      && Math.hypot(hit.x - destination.x, hit.z - destination.z) <= 2;
+
+    if (campfire && state.phase === 'unprepared') {
+      // Let fuel/cooking retain their old F behavior when the expedition gate is not used.
+      const fuelIds = new Set([ITEM.STICK, ITEM.COAL, ITEM.CHARCOAL, BLOCK.LOG]);
+      if (countItems(pl.slots, ITEM.IRON_PICK) <= 0 || (held?.id != null && (held.id !== ITEM.IRON_PICK || fuelIds.has(held.id)))) return false;
+      this._destinationState = activateDestination(prepareDestination(state), [DEST_ITEM.IRON_PICK]);
+      pl.notify('Iron Ravine expedition activated. Follow the landmark cue.', 3.5);
+      this.saveGame({ quiet: true });
+      return true;
+    }
+
+    if (nearLandmark && state.phase === 'en_route') {
+      this._destinationState = arriveDestination(state);
+      this._pressureState = triggerPressure(this._pressureState, {
+        isNight: this.time.isNight(),
+        weather: this.time.weather,
+      });
+      pl.notify('Iron Ravine reached. Night Stalkers threaten — bring 1 Torch and 1 Ration.', 3.8);
+      this.saveGame({ quiet: true });
+      return true;
+    }
+    if (nearLandmark && state.phase === 'active') {
+      if (this._pressureState?.phase === 'dormant') {
+        this._pressureState = triggerPressure(this._pressureState, {
+          isNight: this.time.isNight(),
+          weather: this.time.weather,
+        });
+      }
+      if (this._pressureState?.phase === 'threatened') {
+        const torchCount = countItems(pl.slots, BLOCK.TORCH);
+        const rationCount = countItems(pl.slots, ITEM.RATION);
+        const missing = [];
+        if (torchCount < 1) missing.push('1 Torch');
+        if (rationCount < 1) missing.push('1 Ration');
+        if (missing.length > 0) {
+          pl.notify(`Night Stalkers pressure threatened — bring ${missing.join(' and ')}. Nothing consumed.`, 3.8);
+          return true;
+        }
+        let stagedSlots = cloneSlots(pl.slots);
+        const torchRemoved = removeItems(stagedSlots, BLOCK.TORCH, 1);
+        if (!torchRemoved.ok) return true;
+        stagedSlots = torchRemoved.slots;
+        const rationRemoved = removeItems(stagedSlots, ITEM.RATION, 1);
+        if (!rationRemoved.ok) return true;
+        const secured = securePressure(this._pressureState, { torch: 1, ration: 1 });
+        this._pressureState = secured.state;
+        pl.slots = rationRemoved.slots;
+      }
+      this._destinationState = resolveDestination(state);
+      pl.notify('Iron Ravine secured. Return to campfire to claim the reward.', 3.2);
+      this.saveGame({ quiet: true });
+      return true;
+    }
+
+    if (campfire && (state.phase === 'returning' || state.phase === 'completed')) {
+      const completed = state.phase === 'returning' ? returnDestination(state) : state;
+      const claim = claimDestinationReward(completed);
+      let slots = cloneSlots(pl.slots);
+      for (const reward of claim.rewards) {
+        const id = this._destinationRewardId(reward.id);
+        const added = addItems(slots, id, reward.quantity);
+        if (id == null || !added.ok) {
+          pl.notify('Inventory full — Iron Ravine reward remains unclaimed.', 3.2);
+          return true;
+        }
+        slots = added.slots;
+      }
+      this._destinationState = claim.state;
+      pl.slots = slots;
+      pl.notify('Iron Ravine reward claimed.', 3.2);
+      this.saveGame({ quiet: true });
+      return true;
+    }
+    return false;
+  }
 
   _unlock(id) {
     const res = unlockAchievement(this._achievements, id);
@@ -892,14 +1269,18 @@ export class Game {
     return best;
   }
 
-  /** Advance furnace-tick SM for nearby furnaces (additive; does not remove campfire heat). */
+  /** Advance persistent workshop furnaces through the existing furnace-tick authority. */
+  // The adapter retains createFurnaceState and tickFurnace(st, step, mult) semantics.
   _tickFurnaces(dt) {
-    if (!this._furnaces || this._furnaces.size === 0) return;
+    const stations = this._workshopState?.stations;
+    if (!Array.isArray(stations) || stations.length === 0) return;
     const step = Math.max(0, Number(dt) || 0) * 12; // ~12 cook units / second
-    for (const [, st] of this._furnaces) {
-      const mult = st.speedMult != null ? st.speedMult : 1;
-      tickFurnace(st, step, mult);
+    for (const station of stations) {
+      if (station?.type !== FURNACE) continue;
+      const mult = station.furnace?.speedMult != null ? station.furnace.speedMult : 1;
+      this._workshopState = tickFurnaceStation(this._workshopState, station.id, step, mult);
     }
+    if (this._furnaceOpen) this._paintFurnace();
   }
 
   _tickProjectiles(dt) {
@@ -1086,8 +1467,17 @@ export class Game {
         const pr = propsOf(s.id);
         const col = pr?.color || [0.5, 0.5, 0.5];
         el.style.background = `rgb(${(col[0]*255)|0},${(col[1]*255)|0},${(col[2]*255)|0})`;
-        el.innerHTML = `<span class="inv-count">${s.count}</span><span class="inv-name">${displayName(s.id)}</span>`;
-      } else el.classList.add('empty');
+        const name = displayName(s.id);
+        el.title = `${name} x${s.count}`;
+        el.setAttribute('aria-label', `${name} x${s.count}`);
+        el.innerHTML = `<span class="inv-count">${s.count}</span><span class="inv-name">${name}</span>`;
+        setItemIcon(el, s.id, name, col, 'inv-icon');
+      } else {
+        el.classList.add('empty');
+        el.title = 'Empty chest slot';
+        el.setAttribute('aria-label', 'Empty chest slot');
+        clearItemIcon(el);
+      }
       bag.appendChild(el);
     });
   }
@@ -1111,7 +1501,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=220').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=221').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -1160,6 +1550,9 @@ export class Game {
       achievements: this._achievements?.unlocked || {},
       crops: [...(this._crops || new Map()).entries()],
       chests: exportChests(this._chests),
+      destination: this._destinationState,
+      pressure: this._pressureState,
+      workshop: serializeWorkshopState(this._workshopState),
     };
   }
 
@@ -1254,15 +1647,15 @@ export class Game {
       const pauseUi = pauseEl && !pauseEl.classList.contains('hidden');
       if (this.paused && !pauseUi) {
         this.paused = false;
-        this.input.uiMode = !!(this.player?.inventoryOpen);
+        this.input.uiMode = !!(this.player?.inventoryOpen || this._furnaceOpen);
         this.input.setCaptureEnabled?.(true);
       }
-      if (!this.paused && !this.player?.inventoryOpen && this.input.uiMode) {
+      if (!this.paused && !this.player?.inventoryOpen && !this._furnaceOpen && this.input.uiMode) {
         this.input.uiMode = false;
         this.input.setCaptureEnabled?.(true);
       }
-      // Keep capture on while playing
-      if (!this.paused && !this.player?.inventoryOpen) {
+      // Keep capture on while playing, but not while a station panel owns input.
+      if (!this.paused && !this.player?.inventoryOpen && !this._furnaceOpen) {
         this.input.setCaptureEnabled?.(true);
       }
     }
@@ -1534,6 +1927,9 @@ export class Game {
           proxyStep: vis.proxyStep,
         },
       );
+      if (this.started && !this._destinationLandmarkPlaced) {
+        this._ensureDestinationLandmark();
+      }
 
       if (this.coopMode && this.player2 && this.input2 && !this.paused && !this.survival2?.dead) {
         // P2 bow steals R2 when holding bow
@@ -1548,7 +1944,14 @@ export class Game {
           const origin = this.player2.eyePosition();
           const dir = this.player2.lookDir();
           const hit = this._raycastInteraction(origin, dir, 6);
-          if (hit && hit.id === BLOCK.BED) this._trySleep();
+          if (this._handleDestinationUse(hit, 'p2')) {
+            // Destination state is shared; P2 uses the same transition owner path.
+          } else if (hit && hit.id === BLOCK.FURNACE) {
+            const stationId = this._getOrCreateFurnaceStation(hit.x, hit.y, hit.z);
+            this._openFurnace(stationId, 'p2');
+          } else if (hit && hit.id === BLOCK.BED) {
+            this._trySleep();
+          }
         }
       }
 
@@ -2439,9 +2842,17 @@ export class Game {
       if (!this.player.breaking || this.player.breaking.key !== key) {
         this.player.breaking = { key, x: hit.x, y: hit.y, z: hit.z, progress: 0 };
       }
-      const hard = getHardness(hit.id);
-      const mult = mineMultiplier(this.player.heldId(), hit.id);
-      this.player.breaking.progress += (this._breakSpeed * mult * dt) / hard;
+      const harvestDuration = harvestDurationForBlock(
+        hit.id,
+        this.player.heldId(),
+        HARVEST_BASE_SECONDS,
+      ) ?? HARVEST_BASE_SECONDS;
+      const workDuration = workDurationForBlock(
+        hit.id,
+        this.player.heldId(),
+        HARVEST_BASE_SECONDS,
+      );
+      this.player.breaking.progress += dt / (workDuration ?? harvestDuration);
       this.fx.setCrack(hit, this.player.breaking.progress);
       if (this.player.breaking.progress >= 1) {
         let drop = resolveBlockDrop(hit.id, dropForBlock);
@@ -2583,6 +2994,10 @@ export class Game {
     if (this.world.setBlock(px, py, pz, blockId)) {
       this.audio.placeBlock();
       this._showActionCue(`Placed ${displayName(blockId)}`);
+      if (blockId === BLOCK.FURNACE) {
+        this._getOrCreateFurnaceStation(px, py, pz);
+        this.player.notify('Furnace placed. Look and press F to open.', 2.2);
+      }
       if (blockId === BLOCK.SLAB_WOOD) {
         const half = slabHalfFromPitch(this.player.pitch);
         const meta = slabHalfMeta(half);
@@ -2731,6 +3146,8 @@ export class Game {
     const dir = this.player.lookDir();
     const hit = this._raycastInteraction(origin, dir, 5);
 
+    if (this._handleDestinationUse(hit, 'p1')) return;
+
     // Open chest
     if (hit && hit.id === BLOCK.CHEST) {
       this._openChest(chestKey(hit.x, hit.y, hit.z));
@@ -2864,64 +3281,11 @@ export class Game {
       }
     }
 
-    // Feed furnace fuel / smelt input via pure furnace-tick (keeps campfire heat map for warmth)
+    // F on a placed furnace opens the shared station panel. P1/P2 use the same record.
     if (hit && hit.id === BLOCK.FURNACE) {
-      const k = `${hit.x|0},${hit.y|0},${hit.z|0}`;
-      if (!this._furnaces.has(k)) {
-        const st0 = createFurnaceState();
-        st0.speedMult = 1; // smoker/blast can set 2 later
-        this._furnaces.set(k, st0);
-      }
-      const st = this._furnaces.get(k);
-      // Empty hand: take finished output
-      if (held.id == null || held.count <= 0) {
-        const out = takeOutput(st);
-        if (out) {
-          const add = addItems(this.player.slots, out.id, out.count);
-          this.player.slots = add.slots;
-          this.player.notify(`Furnace → +${out.count} ${displayName(out.id)}`, 2.2);
-          this.audio.ui?.() || this.audio.placeBlock();
-          return;
-        }
-      }
-      if (held.id != null && isFuel(held.id)) {
-        const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
-        if (cons.ok) {
-          this.player.slots = cons.slots;
-          insertFuel(st, held.id, 1);
-          // keep legacy warmth fuel map so nearby heat still works
-          let f = this._campFuel.get(k) ?? 40;
-          f += held.id === BLOCK.LOG ? 50 : held.id === ITEM.STICK ? 14 : 32;
-          this._campFuel.set(k, Math.min(150, f));
-          this.audio.placeBlock();
-          this.player.notify('You fed the furnace.', 1.8);
-          return;
-        }
-      }
-      if (held.id != null && canSmelt(held.id)) {
-        const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
-        if (cons.ok) {
-          this.player.slots = cons.slots;
-          insertInput(st, held.id, 1);
-          this.audio.placeBlock();
-          this.player.notify(`Furnace: smelting ${displayName(held.id)}…`, 2);
-          return;
-        }
-      }
-      // legacy stick/coal set still handled above via isFuel; fall through if nothing matched
-      const fuelIds = new Set([ITEM.STICK, ITEM.COAL, ITEM.CHARCOAL, BLOCK.LOG]);
-      if (held.id != null && fuelIds.has(held.id)) {
-        const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
-        if (cons.ok) {
-          this.player.slots = cons.slots;
-          let f = this._campFuel.get(k) ?? 40;
-          f += held.id === BLOCK.LOG ? 50 : held.id === ITEM.STICK ? 14 : 32;
-          this._campFuel.set(k, Math.min(150, f));
-          this.audio.placeBlock();
-          this.player.notify('You fed the furnace.', 1.8);
-          return;
-        }
-      }
+      const stationId = this._getOrCreateFurnaceStation(hit.x, hit.y, hit.z);
+      this._openFurnace(stationId, 'p1');
+      return;
     }
 
     // Equip clothing
@@ -3150,12 +3514,17 @@ export class Game {
           const col = p?.color || [0.5, 0.5, 0.5];
           el.style.background = `rgb(${(col[0]*255)|0},${(col[1]*255)|0},${(col[2]*255)|0})`;
           const dr = durabilityRatio(s);
-          el.title = `${displayName(s.id)} x${s.count}` + (dr < 1 ? ` · ${Math.ceil(dr*100)}%` : '');
-          el.innerHTML = `<span class="inv-count">${s.count}</span><span class="inv-name">${displayName(s.id)}</span>` +
+          const name = displayName(s.id);
+          el.title = `${name} x${s.count}` + (dr < 1 ? ` · ${Math.ceil(dr*100)}%` : '');
+          el.setAttribute('aria-label', el.title);
+          el.innerHTML = `<span class="inv-count">${s.count}</span><span class="inv-name">${name}</span>` +
             (dr < 1 ? `<span class="dur-bar" style="width:${Math.ceil(dr*100)}%"></span>` : '');
+          setItemIcon(el, s.id, name, col, 'inv-icon');
         } else {
           el.classList.add('empty');
           el.title = i < HOTBAR_SIZE ? `Hotbar ${i + 1}` : 'Empty';
+          el.setAttribute('aria-label', `${el.title} slot`);
+          clearItemIcon(el);
         }
         bag.appendChild(el);
       });
@@ -3561,13 +3930,26 @@ export class Game {
         if (!p.breaking || p.breaking.key !== key) {
           p.breaking = { key, x: hit.x, y: hit.y, z: hit.z, progress: 0 };
         }
-        const hard = getHardness(hit.id);
-        const mult = mineMultiplier(p.heldId(), hit.id);
-        p.breaking.progress += (this._breakSpeed * mult * dt) / hard;
+        const harvestDuration = harvestDurationForBlock(
+          hit.id,
+          p.heldId(),
+          HARVEST_BASE_SECONDS,
+        ) ?? HARVEST_BASE_SECONDS;
+        const workDuration = workDurationForBlock(
+          hit.id,
+          p.heldId(),
+          HARVEST_BASE_SECONDS,
+        );
+        p.breaking.progress += dt / (workDuration ?? harvestDuration);
         if (p.breaking.progress >= 1) {
           let drop = resolveBlockDrop(hit.id, dropForBlock);
           if (hit.id === BLOCK.PALM_LEAVES) drop = palmLeafDrop(hit.id, Math.random());
           this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR);
+          {
+            const w = wearTool(p.slots, p.hotbarIndex, 1);
+            p.slots = w.slots;
+            if (w.broken) p.notify('Tool broke!');
+          }
           if (drop != null) {
             const add = addItems(p.slots, drop, 1);
             p.slots = add.slots;
@@ -3605,6 +3987,7 @@ export class Game {
             if (cons.ok) {
               p.slots = cons.slots;
               this.world.setBlock(px, py, pz, placeId);
+              if (placeId === BLOCK.FURNACE) this._getOrCreateFurnaceStation(px, py, pz);
               this.audio.place?.() || this.audio.ui?.();
               this._showActionCue(`P2 placed ${displayName(placeId)}`);
             }
@@ -3661,6 +4044,23 @@ export class Game {
     }
   }
 
+  _updateDestinationHud() {
+    const hud = document.getElementById('destination-hud');
+    const state = this._destinationState;
+    if (!hud || !this.player || !state?.destination) return;
+    const destination = state.destination;
+    const distance = Math.hypot(this.player.position.x - destination.x, this.player.position.z - destination.z);
+    const relevant = this.started && !this.survival?.dead && (state.phase !== 'unprepared' || distance <= 140);
+    hud.classList.toggle('hidden', !relevant);
+    if (!relevant) return;
+    const status = hud.querySelector('[data-destination-status]');
+    if (!status) return;
+    const availability = state.phase === 'unprepared'
+      ? (countItems(this.player.slots, ITEM.IRON_PICK) > 0 ? 'Ready at campfire' : 'Find an Iron Pick')
+      : `${Math.round(distance)}m away`;
+    status.textContent = `${getDestinationHudSummary(state)} · ${getPressureHudSummary(this._pressureState)} · ${availability}`;
+  }
+
   _updateHud() {
     const s = this.survival;
     const setBar = (id, value, max = 100) => {
@@ -3706,7 +4106,32 @@ export class Game {
     if (bleedTag) bleedTag.classList.toggle('on', (s.bleed || 0) > 1);
 
     this._updateSpawnMarker();
+    this._updateDestinationHud();
     this._updateCoopPadPrompt();
+
+    const workshopHud = document.getElementById('workshop-hud');
+    if (workshopHud && this.player) {
+      let station = this._furnaceOpen
+        ? getStation(this._workshopState, this._furnaceOpen.stationId)
+        : null;
+      if (!station) {
+        const players = [this.player, this.coopMode ? this.player2 : null].filter(Boolean);
+        let best = Infinity;
+        for (const candidate of this._workshopState?.stations || []) {
+          if (candidate?.type !== FURNACE) continue;
+          for (const pl of players) {
+            const d = Math.hypot(candidate.position.x - pl.position.x, candidate.position.z - pl.position.z);
+            if (d < best && d <= 8) {
+              best = d;
+              station = candidate;
+            }
+          }
+        }
+      }
+      workshopHud.classList.toggle('hidden', !station);
+      const workshopStatus = workshopHud.querySelector('[data-workshop-status]');
+      if (workshopStatus && station) workshopStatus.textContent = getStationSummary(this._workshopState, station.id);
+    }
 
     const status = document.getElementById('status-line');
     if (status && this.player) {
@@ -3766,17 +4191,13 @@ export class Game {
         const col = p?.color || [0.5, 0.5, 0.5];
         el.style.background = `rgb(${(col[0]*255)|0},${(col[1]*255)|0},${(col[2]*255)|0})`;
         const dr = durabilityRatio(stack);
-        el.title = `${displayName(stack.id)} x${stack.count}` + (dr < 1 ? ` · ${Math.ceil(dr*100)}%` : '');
-        el.dataset.block = displayName(stack.id);
+        const name = displayName(stack.id);
+        el.title = `${name} x${stack.count}` + (dr < 1 ? ` · ${Math.ceil(dr*100)}%` : '');
+        el.setAttribute('aria-label', el.title);
+        el.dataset.block = name;
         el.style.setProperty('--dur', String(dr));
         el.classList.toggle('damaged', dr < 0.35);
-        let glyphEl = el.querySelector('.hb-glyph');
-        if (!glyphEl) {
-          glyphEl = document.createElement('span');
-          glyphEl.className = 'hb-glyph';
-          el.appendChild(glyphEl);
-        }
-        glyphEl.textContent = displayName(stack.id).split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
+        setItemIcon(el, stack.id, name, col, 'hb-glyph');
         let countEl = el.querySelector('.hb-count');
         if (!countEl) {
           countEl = document.createElement('span');
@@ -3788,11 +4209,13 @@ export class Game {
       } else {
         el.style.background = 'rgba(255,255,255,0.04)';
         el.title = 'Empty';
+        el.setAttribute('aria-label', 'Empty hotbar slot');
         el.dataset.block = '';
+        el.style.removeProperty('--dur');
+        el.classList.remove('damaged');
         const countEl = el.querySelector('.hb-count');
         if (countEl) countEl.textContent = '';
-        const glyphEl = el.querySelector('.hb-glyph');
-        if (glyphEl) glyphEl.textContent = '';
+        clearItemIcon(el);
         el.classList.add('empty');
       }
     });
@@ -3829,11 +4252,27 @@ export class Game {
           const p = propsOf(stack.id);
           const col = p?.color || [0.5, 0.5, 0.5];
           el.style.background = `rgb(${(col[0]*255)|0},${(col[1]*255)|0},${(col[2]*255)|0})`;
-          const glyph = displayName(stack.id).split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
-          el.innerHTML = `<span class="hb-glyph">${glyph}</span>${stack.count > 1 ? `<span class="hb-count">${stack.count}</span>` : ''}`;
+          const name = displayName(stack.id);
+          el.title = `${name} x${stack.count}`;
+          el.setAttribute('aria-label', el.title);
+          el.dataset.block = name;
+          setItemIcon(el, stack.id, name, col, 'hb-glyph');
+          let countEl = el.querySelector('.hb-count');
+          if (!countEl) {
+            countEl = document.createElement('span');
+            countEl.className = 'hb-count';
+            el.appendChild(countEl);
+          }
+          countEl.textContent = stack.count > 1 ? String(stack.count) : '';
+          el.classList.remove('empty');
         } else {
-          el.style.background = '';
-          el.innerHTML = '';
+          el.style.background = 'rgba(255,255,255,0.04)';
+          el.title = 'Empty';
+          el.setAttribute('aria-label', 'Empty hotbar slot');
+          el.dataset.block = '';
+          const countEl = el.querySelector('.hb-count');
+          if (countEl) countEl.textContent = '';
+          clearItemIcon(el);
           el.classList.add('empty');
         }
       });

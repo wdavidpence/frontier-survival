@@ -3,7 +3,7 @@
  * Defines the material tiers used by tools (pick, axe) in this game.
  */
 
-import { ITEM } from './items.js?v=220';
+import { ITEM } from './items.js?v=246';
 
 /** Tier names in ascending order. */
 export const TIER_ORDER = ['wood', 'stone', 'iron'];
@@ -16,6 +16,15 @@ export const ITEM_TIER = {
   [ITEM.STONE_AXE]: 'stone',
   [ITEM.IRON_PICK]: 'iron',
   [ITEM.IRON_AXE]: 'iron',
+  [ITEM.WOOD_HOE]: 'wood',
+  [ITEM.STONE_HOE]: 'stone',
+  [ITEM.IRON_HOE]: 'iron',
+  [ITEM.WOOD_SPADE]: 'wood',
+  [ITEM.STONE_SPADE]: 'stone',
+  [ITEM.IRON_SPADE]: 'iron',
+  [ITEM.WOOD_MASON]: 'wood',
+  [ITEM.STONE_MASON]: 'stone',
+  [ITEM.IRON_MASON]: 'iron',
 };
 
 /** Map tier name -> numeric harvest level (1-based, higher = can mine harder blocks). */

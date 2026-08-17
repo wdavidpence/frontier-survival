@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.12.73</title>
+  <title>Frontier Survival v1.12.81</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -102,10 +102,11 @@
     .hotbar-slot.empty { background: rgba(255,255,255,0.04) !important; }
     .hotbar-slot .hb-glyph {
       position: absolute; left: 50%; top: 50%; transform: translate(-50%, -54%);
-      font-size: 15px; font-weight: 800; letter-spacing: 0.03em;
-      color: rgba(255,255,255,0.92); text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      width: 76%; height: 76%; object-fit: contain;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.72));
       pointer-events: none;
     }
+    .slot-icon { display: block; user-select: none; }
     .hotbar-slot .hb-count {
       position: absolute; right: 3px; bottom: 2px;
       font-size: 11px; font-weight: 700;
@@ -267,9 +268,14 @@
       text-shadow: 0 1px 2px #000;
     }
     .inv-slot .inv-name {
-      font-size: 8px; line-height: 1.1; text-align: center;
-      color: #fff; text-shadow: 0 1px 2px #000;
-      max-width: 100%; overflow: hidden;
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+    .inv-slot .inv-icon {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -52%);
+      width: 76%; height: 76%; object-fit: contain;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.72));
+      pointer-events: none;
     }
     .inv-slot[data-hot]::before {
       content: attr(data-hot);
@@ -365,6 +371,28 @@
       border: 1px solid rgba(255,255,255,0.06);
       white-space: nowrap;
     }
+    #workshop-hud {
+      position: absolute; top: 92px; right: 12px;
+      width: min(300px, 32vw); padding: 7px 10px;
+      border: 1px solid rgba(212,165,116,0.38); border-radius: 8px;
+      background: rgba(7,12,19,0.62); color: #e8e0d4;
+      font-size: 11px; line-height: 1.35; pointer-events: none;
+      text-shadow: 0 1px 3px #000;
+    }
+    #workshop-hud.hidden { display: none; }
+    #workshop-hud strong { display: block; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+    body.coop-mode #workshop-hud { right: 12px; max-width: 30vw; }
+    #destination-hud {
+      position: absolute; top: 48px; right: 12px;
+      width: min(320px, 34vw); padding: 6px 9px;
+      border: 1px solid rgba(132,204,232,0.38); border-radius: 8px;
+      background: rgba(7,12,19,0.62); color: #e8e0d4;
+      font-size: 11px; line-height: 1.3; pointer-events: none;
+      text-shadow: 0 1px 3px #000;
+    }
+    #destination-hud.hidden { display: none; }
+    #destination-hud strong { display: block; color: #9de0ef; letter-spacing: .08em; text-transform: uppercase; }
+    body.coop-mode #destination-hud { right: 12px; max-width: 30vw; }
     #message {
       position: absolute;
       top: 22%; left: 50%; transform: translateX(-50%);
@@ -1390,12 +1418,14 @@
     <div id="crosshair"></div>
     <div id="tooltip-box" class="hidden"></div>
     <div id="status-line">Frontier Survival</div>
+    <div id="destination-hud" class="hidden" role="status" aria-live="polite"><strong>Iron Ravine</strong><span data-destination-status>Find an Iron Pick</span></div>
+    <div id="workshop-hud" class="hidden" role="status" aria-live="polite"><strong>Workshop</strong><span data-workshop-status>Furnace nearby</span></div>
     <div id="spawn-marker" class="hidden"><div class="marker-icon"></div><span class="marker-label">SPAWN</span></div>
     <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.12.73</div>
+    <div id="version-badge">v1.12.81</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1483,7 +1513,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.12.73</div>
+      <div class="tag">Browser survival sandbox · v1.12.81</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1562,7 +1592,7 @@
       </div>
       <div class="furnace-progress"><div data-furnace-progress></div></div>
       <div data-furnace-status>Waiting for input and fuel</div>
-      <div class="inv-actions"><button id="btn-close-furnace" type="button">Close (F)</button></div>
+      <div class="inv-actions"><button id="btn-close-furnace" data-furnace-action="close" type="button">Close (F)</button></div>
     </div>
   </div>
 
@@ -1605,6 +1635,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=435"></script>
+  <script type="module" src="./js/main.js?v=443"></script>
 </body>
 </html>

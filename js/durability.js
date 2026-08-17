@@ -1,19 +1,24 @@
 /**
  * Tool durability helpers — pure.
  */
-import { propsOf } from './items.js?v=216';
+import { propsOf } from './items.js?v=246';
+import { tierForItem, TIER_DURABILITY } from './tool-tiers.js?v=222';
 import { cloneSlots } from './inventory.js?v=216';
 
 export function maxDurability(id) {
+  const tier = tierForItem(id);
+  if (tier) return TIER_DURABILITY[tier] ?? 0;
+
   const p = propsOf(id);
   if (!p) return 0;
-  if (p.durability) return p.durability;
+  // Rod and shield keep their explicit, item-specific durability values.
+  if (p.durability != null) return p.durability;
+  // Preserve the legacy name-based fallback for older pick/axe/weapon/bow data.
   if (p.tool === 'pick' || p.tool === 'axe' || p.tool === 'weapon' || p.tool === 'bow') {
     if (String(p.name || '').toLowerCase().includes('iron')) return 180;
     if (String(p.name || '').toLowerCase().includes('stone')) return 100;
     return 60;
   }
-  if (p.tool === 'shield') return 120;
   return 0;
 }
 
