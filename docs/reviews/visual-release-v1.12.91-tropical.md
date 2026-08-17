@@ -1,6 +1,6 @@
 # Frontier Survival v1.12.91 — tropical biome release
 
-Decision: SHIPPED CANDIDATE PENDING LIVE VERIFICATION
+Decision: SHIPPED CHECKPOINT
 
 ## Product slice
 
@@ -59,6 +59,15 @@ At 390×844:
 - v1.12.91 remained started with zero runtime errors.
 - Survival Status remained inside the viewport at the lower-left and moved above the hotbar to avoid overlap.
 - Fishing Rod, Fish Bait, and Raw Fish were visible in the hotbar.
+
+## Live Pages evidence
+
+- `https://wdavidpence.github.io/frontier-survival/?nocache=v1291-live` exposes v1.12.91.
+- Live HTML exposes `main.js?v=453`; changed assets `game.js?v=442`, `world.js?v=420`, and `chunk-worker.js?v=283` each returned HTTP 200.
+- Live browser Start/New World reached `window.__FS.started === true` with `#title-screen` computed display `none`.
+- Live desktop Survival Status rectangle is left 10px, bottom 10px.
+- Live fresh start reports tropical biome, tropical/coastal fauna pool, and `runtimeErrors=[]`.
+- Live in-world screenshot was captured from the exact public URL.
 
 ## Known limits carried forward
 
