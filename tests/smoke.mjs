@@ -4347,11 +4347,23 @@ test('forest floor blocks have atlas tiles and expected solidity', () => {
 
 const fsText = (name) => readFileSync(new URL(`../${name}`, import.meta.url), 'utf8');
 
+test('forest understory correction reaches the exact tropical starter route', () => {
+  const world = fsText('js/world.js');
+  const seed = 1884808540;
+  const x = 42;
+  const z = 51;
+  assert.equal(biomeAt(x, z, seed), BIOME.TROPICAL);
+  assert.ok(heightAt(x, z, seed) > 17, 'probe must be above the sea-level gate');
+  assert.ok(hash2(x * 29 + seed * 7, z * 31 + seed * 11) > 0.70, 'probe must pass the visual roll');
+  assert.match(world, /new Set\(\[BIOME\.FOREST, BIOME\.TROPICAL, BIOME\.SHORE\]\)/);
+  assert.match(world, /FOREST_UNDERSTORY_ROLL = 0\.70/);
+});
+
 test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.87'), 'HTML must expose v1.12.87');
+  assert.ok(html.includes('v1.12.88'), 'HTML must expose v1.12.88');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

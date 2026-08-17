@@ -55,6 +55,37 @@ const PLANT_FORM = new Map([
 /** Worst-case guard: stop stamping plants once a chunk has this many. */
 const PLANT_BUDGET = 768;
 
+/** Visual-only understory guard: sparse, spaced mushroom silhouettes per chunk. */
+const FOREST_UNDERSTORY_CAP = 6;
+const FOREST_UNDERSTORY_SPACING = 4;
+const FOREST_UNDERSTORY_ROLL = 0.70;
+
+/**
+ * Collect deterministic mushroom-standard understory without editing voxel data.
+ * Tropical/shore columns are included because the starter route reaches them
+ * before the inland forest; spacing and the cap keep the silhouette readable.
+ */
+export function collectForestUnderstory({ baseX = 0, baseZ = 0, size = CHUNK_SIZE, seed = 0, getBlock } = {}) {
+  if (typeof getBlock !== 'function') return [];
+  const instances = [];
+  const accepted = new Set([BIOME.FOREST, BIOME.TROPICAL, BIOME.SHORE]);
+  for (let lz = 0; lz < size && instances.length < FOREST_UNDERSTORY_CAP; lz++) {
+    for (let lx = 0; lx < size && instances.length < FOREST_UNDERSTORY_CAP; lx++) {
+      const x = baseX + lx;
+      const z = baseZ + lz;
+      const h = heightAt(x, z, seed);
+      if (h <= SEA_LEVEL + 1 || !accepted.has(biomeAt(x, z, seed))) continue;
+      const surface = getBlock(x, h, z);
+      if (surface !== BLOCK.GRASS && surface !== BLOCK.DIRT && surface !== BLOCK.SAND) continue;
+      if (getBlock(x, h + 1, z) !== BLOCK.AIR) continue;
+      if (hash2(x * 29 + seed * 7, z * 31 + seed * 11) <= FOREST_UNDERSTORY_ROLL) continue;
+      if (instances.some((other) => Math.hypot(other.x - x, other.z - z) < FOREST_UNDERSTORY_SPACING)) continue;
+      instances.push({ x, y: h + 1, z });
+    }
+  }
+  return instances;
+}
+
 /**
  * Silhouette parameters per form, in voxel fractions. `height`, `reach`, `curve`
  * and `width` are [min, max] ranges resolved per blade. `curve` droops a blade
@@ -1346,10 +1377,17 @@ export class World {
         }
       }
     }
+    const understory = collectForestUnderstory({ baseX, baseZ, seed: this.seed, getBlock });
     if (mushrooms.length) {
       appendGeometryPart(
         arrays,
         buildMushroomGeometry(mushrooms, tileForBlock(BLOCK.MUSHROOM), getColor(BLOCK.MUSHROOM)),
+      );
+    }
+    if (understory.length) {
+      appendGeometryPart(
+        arrays,
+        buildMushroomGeometry(understory, tileForBlock(BLOCK.MUSHROOM), getColor(BLOCK.MUSHROOM)),
       );
     }
     if (plants.length) appendGeometryPart(arrays, buildPlantGeometry(plants, this.seed));
