@@ -1,6 +1,6 @@
 # Frontier Survival v1.12.93 — fishing presentation checkpoint
 
-Decision: SHIPPED CANDIDATE PENDING LIVE VERIFICATION
+Decision: SHIPPED CHECKPOINT
 
 ## Product slice
 
@@ -51,4 +51,12 @@ Exact candidate served at `http://127.0.0.1:49213/`.
 - Lure travel is a deterministic visual arc rather than a physics-simulated line.
 - Fish schools, boat boarding, and boat-based casting remain future tropical traversal slices.
 
-Live Pages verification is appended after push.
+## Live Pages evidence
+
+- `https://wdavidpence.github.io/frontier-survival/?nocache=v1293-live` exposes v1.12.93 and `main.js?v=455`.
+- Live assets `game.js?v=444` and `fishing-cast.js?v=3` each returned HTTP 200.
+- Live Start reached `window.__FS.started === true` with zero page-owned runtime errors.
+- Live controlled water route entered `casting` with rod, bobber, and line visible; the airborne bobber began at the player eye origin and was distinct from the water target.
+- After travel, live state became `waiting` with the bobber settled at the target, then `bite` activated.
+- Immediate live reel returned `Caught Reef Fish ×1. Cook it at a fire.`, hid the bobber, returned to `ready`, kept the held-rod view visible, and preserved `runtimeErrors=[]`.
+- Live casting screenshot captured from the exact public URL.
