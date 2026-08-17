@@ -293,7 +293,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=419/);
+  assert.match(gameSource, /world\.js\?v=420/);
 });
 
 test('terrain visibility plan extends fog and proxy beyond full mesh', () => {
@@ -2742,7 +2742,7 @@ test('crafting lists shape building recipes', () => {
 test('crafting progression metadata is complete and reachable', () => {
   const categories = new Set(RECIPE_CATEGORIES.map((c) => c.id));
   const tiers = new Set(RECIPE_TIERS.map((t) => t.tier));
-  assert.equal(RECIPES.length, 55);
+  assert.equal(RECIPES.length, 56);
   for (const recipe of RECIPES) {
     assert.ok(categories.has(recipe.category), `${recipe.id} category`);
     assert.ok(tiers.has(recipe.tier), `${recipe.id} tier`);
@@ -2870,11 +2870,26 @@ test('mine-tier resolveBlockDrop prefers ore catalog', () => {
   assert.strictEqual(resolveBlockDrop(BLOCK.DIRT, legacy), BLOCK.DIRT);
 });
 
-test('palm leaves drop deterministic coconut or stick', () => {
+test('palm leaves drop deterministic tropical collectables', () => {
   assert.strictEqual(palmLeafDrop(BLOCK.PALM_LEAVES, 0.05), ITEM.COCONUT);
-  assert.strictEqual(palmLeafDrop(BLOCK.PALM_LEAVES, 0.25), ITEM.STICK);
+  assert.strictEqual(palmLeafDrop(BLOCK.PALM_LEAVES, 0.25), ITEM.PALM_FROND);
+  assert.strictEqual(palmLeafDrop(BLOCK.PALM_LEAVES, 0.60), ITEM.STICK);
   assert.strictEqual(palmLeafDrop(BLOCK.PALM_LEAVES, 0.8), null);
   assert.strictEqual(palmLeafDrop(BLOCK.LEAVES, 0.05), null);
+});
+
+test('tropical collection and bait fishing progression is reachable', () => {
+  assert.ok(propsOf(ITEM.COCONUT)?.edible > 0);
+  assert.ok(propsOf(ITEM.PALM_FROND));
+  assert.ok(propsOf(ITEM.FISH_BAIT));
+  const bait = RECIPES.find((r) => r.id === 'fish_bait');
+  const rod = RECIPES.find((r) => r.id === 'fishing_rod');
+  assert.deepEqual(bait.ingredients, [{ id: ITEM.BERRIES, count: 2 }]);
+  assert.deepEqual(bait.results, [{ id: ITEM.FISH_BAIT, count: 3 }]);
+  assert.ok(rod.ingredients.some((i) => i.id === ITEM.PALM_FROND));
+  const game = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.match(game, /ITEM\.FISH_BAIT/);
+  assert.match(game, /Need Fish Bait/);
 });
 
 test('furnace-tick smelts with fuel', () => {
@@ -4375,7 +4390,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.90'), 'HTML must expose v1.12.90');
+  assert.ok(html.includes('v1.12.91'), 'HTML must expose v1.12.91');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -4446,12 +4461,12 @@ test('v1.12.21: New World is immediate and randomized', () => {
 test('v1.12.21: ocean island generation is wetter and mirrored', () => {
   const gen = fsText('js/gen.js');
   const worker = fsText('js/chunk-worker.js');
-  assert.match(gen, /Math\.hypot\(x, z\) \/ 240/);
-  assert.match(worker, /Math\.hypot\(x, z\) \/ 240/);
-  assert.match(gen, /coast < 0\.50/);
-  assert.match(worker, /coast < 0\.50/);
-  assert.match(gen, /isle > 0\.66/);
-  assert.match(worker, /isle > 0\.66/);
+  assert.match(gen, /Math\.hypot\(x, z\) \/ 180/);
+  assert.match(worker, /Math\.hypot\(x, z\) \/ 180/);
+  assert.match(gen, /coast < 0\.56/);
+  assert.match(worker, /coast < 0\.56/);
+  assert.match(gen, /isle > 0\.54/);
+  assert.match(worker, /isle > 0\.54/);
 });
 
 test('v1.12.21: setup popup and touch overlay are configured for two-controller TV mode', () => {
@@ -4523,7 +4538,7 @@ test('durability adapter cache and mining wear remain reachable', () => {
   const game = fsText('js/game.js');
   const durability = fsText('js/durability.js');
   assert.match(game, /from ['"]\.\/durability\.js\?v=222['"]/);
-  assert.match(durability, /from ['"]\.\/items\.js\?v=246['"]/);
+  assert.match(durability, /from ['"]\.\/items\.js\?v=247['"]/);
   assert.match(durability, /from ['"]\.\/tool-tiers\.js\?v=222['"]/);
   assert.match(game.slice(game.indexOf('  _handleMining(dt) {'), game.indexOf('  _handlePlace() {')), /wearTool\(this\.player\.slots, this\.player\.hotbarIndex, 1\)/);
   assert.match(game.slice(game.indexOf('  _handleCoopP2World(dt) {'), game.indexOf('  _spawnCoopP2(spawn) {')), /wearTool\(p\.slots, p\.hotbarIndex, 1\)/);

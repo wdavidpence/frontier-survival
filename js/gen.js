@@ -60,7 +60,7 @@ export function forestFloorDetail(x, z, seed, biome, height, surfaceId, aboveId)
 
 /** Blend the first few chunks toward a low, wet island shelf. */
 export function starterCoastBlend(x, z) {
-  return Math.max(0, Math.min(1, 1 - Math.hypot(x, z) / 240));
+  return Math.max(0, Math.min(1, 1 - Math.hypot(x, z) / 180));
 }
 
 export function heightAt(x, z, seed = 0) {
@@ -70,27 +70,40 @@ export function heightAt(x, z, seed = 0) {
   const ridge = Math.abs(fbm(sx * 0.5 + 20, sz * 0.5 - 10, 3) - 0.5) * 2;
   let y = 18 + h * 16 + ridge * 8;
 
-  // Broad ocean / shelf: lower coast noise → deeper water
   const coast = fbm(x * 0.01 * WORLD_SCALE + 3, z * 0.01 * WORLD_SCALE + 7, 3);
-  if (coast < 0.50) {
-    const depth = (0.50 - coast) / 0.50; // 0..1
-    y -= depth * depth * 26;
+  const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
+  if (coast < 0.56) {
+    const depth = (0.56 - coast) / 0.56;
+    y -= depth * depth * 34;
   }
-
-  // Tropical island peaks inside wet basins
-  if (coast < 0.42) {
-    const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
-    if (isle > 0.66) {
-      const peak = GEN_SEA_LEVEL + 1 + Math.floor((isle - 0.66) * 28);
-      y = Math.max(y, peak);
-    }
+  if (coast < 0.50 && isle > 0.54) {
+    const rise = Math.pow((isle - 0.54) / 0.46, 0.62);
+    const ridgeCut = fbm(x * 0.022 * WORLD_SCALE + seed * 4.7, z * 0.022 * WORLD_SCALE - seed * 2.3, 3);
+    y = Math.max(y, GEN_SEA_LEVEL + 1 + rise * 30 + ridgeCut * 5);
   }
 
   const starterBlend = starterCoastBlend(x, z);
   if (starterBlend > 0) {
-    const shelf = 8 + fbm(x * 0.018 * WORLD_SCALE + 41, z * 0.018 * WORLD_SCALE - 17, 3) * 16;
+    const shelf = 4 + fbm(x * 0.018 * WORLD_SCALE + 41, z * 0.018 * WORLD_SCALE - 17, 3) * 10;
     y = y * (1 - starterBlend) + shelf * starterBlend;
   }
-
+  if (Math.hypot(x, z) < 18) y = Math.max(y, GEN_SEA_LEVEL);
+  // Authored starter bay: keep the existing shore destination reachable while
+  // the surrounding tropical shelf becomes wetter and more varied.
+  if (Math.hypot(x - 26, z - 22) < 9) y = Math.max(y, GEN_SEA_LEVEL);
+  // Keep the camp on a beach, but let the first walk immediately reveal
+  // tropical rises instead of a flat starter continent.
+  if (Math.hypot(x, z) > 18 && coast < 0.56 && isle > 0.56) {
+    const rise = Math.pow((isle - 0.56) / 0.44, 0.62);
+    y = Math.max(y, GEN_SEA_LEVEL + 1 + rise * 28);
+  }
   return Math.floor(y);
+}
+
+export function tropicalCliffAt(x, z, seed = 0) {
+  const center = heightAt(x, z, seed);
+  if (center < GEN_SEA_LEVEL + 8) return false;
+  const eastWest = Math.abs(heightAt(x + 2, z, seed) - heightAt(x - 2, z, seed));
+  const northSouth = Math.abs(heightAt(x, z + 2, seed) - heightAt(x, z - 2, seed));
+  return eastWest + northSouth >= 7;
 }

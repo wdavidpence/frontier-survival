@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=287';
-import { heightAt, hash2, fbm, forestFloorDetail } from './gen.js?v=285';
-import { biomeAt, BIOME } from './biomes.js?v=245';
+import { heightAt, hash2, fbm, forestFloorDetail, tropicalCliffAt } from './gen.js?v=286';
+import { biomeAt, BIOME } from './biomes.js?v=246';
 import { tileForBlock } from './atlas-core.js?v=285';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=246';
 import { buildMushroomGeometry } from './mushroom-geometry.js?v=2';
@@ -410,7 +410,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=282';
+    const workerUrl = './js/chunk-worker.js?v=283';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -471,6 +471,7 @@ export class World {
         const z = baseZ + lz;
         const h = heightAt(x, z, this.seed);
         const biome = biomeAt(x, z, this.seed);
+        const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
           let id = BLOCK.AIR;
@@ -481,9 +482,11 @@ export class World {
           } else if (y === h) {
             if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
+            else if (cliff) id = BLOCK.STONE;
             else id = BLOCK.GRASS;
           } else if (y > h - 4) {
             if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN) id = BLOCK.SAND;
+            else if (cliff) id = BLOCK.STONE;
             else id = BLOCK.DIRT;
           } else {
             id = BLOCK.STONE;
@@ -954,6 +957,7 @@ export class World {
         const z = baseZ + lz;
         const h = heightAt(x, z, this.seed);
         const biome = biomeAt(x, z, this.seed);
+        const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
           let id = BLOCK.AIR;
@@ -965,10 +969,12 @@ export class World {
             // Biome-driven surface block
             if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
+            else if (cliff) id = BLOCK.STONE;
             else id = BLOCK.GRASS; // FOREST default
           } else if (y > h - 4) {
             // Sub-surface follows biome: desert/shore → sand, tundra → dirt, else dirt
             if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN) id = BLOCK.SAND;
+            else if (cliff) id = BLOCK.STONE;
             else id = BLOCK.DIRT;
           } else {
             id = BLOCK.STONE;
@@ -1229,28 +1235,30 @@ export class World {
     set(lx, y + 1, lz, BLOCK.BRICKS);
   }
 
-  /** Sparse palm-like tree for tropical islands (tall trunk, small canopy). */
+  /** Tropical palm: tapered trunk, small root flare, and drooping frond crown. */
   _placePalm(data, lx, y, lz) {
-    const trunkH = 5 + Math.floor(hash2(lx + 21, lz + 13) * 3);
+    const trunkH = 6 + Math.floor(hash2(lx + 21, lz + 13) * 4);
+    const lean = hash2(lx + 27, lz + 31) > 0.5 ? 1 : -1;
     for (let i = 0; i < trunkH; i++) {
       const ty = y + i;
       if (ty >= WORLD_HEIGHT) break;
-      data[this._idx(lx, ty, lz)] = BLOCK.LOG;
+      const ox = i >= trunkH - 2 ? (i - trunkH + 2) * lean : 0;
+      this._setAir(data, lx + ox, ty, lz, BLOCK.LOG);
     }
+    for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) this._setAir(data, lx + dx, y, lz + dz, BLOCK.LOG);
     const top = y + trunkH - 1;
     const fronds = [
       [0, 0], [1, 0], [-1, 0], [0, 1], [0, -1],
       [2, 0], [-2, 0], [0, 2], [0, -2],
-      [1, 1], [1, -1], [-1, 1], [-1, -1],
       [2, 1], [2, -1], [-2, 1], [-2, -1],
       [1, 2], [-1, 2], [1, -2], [-1, -2],
     ];
     for (const [dx, dz] of fronds) {
       const tx = lx + dx;
       const tz = lz + dz;
-      const ty = top + (Math.abs(dx) + Math.abs(dz) > 1 ? 0 : 1);
-      if (tx < 0 || tx >= CHUNK_SIZE || tz < 0 || tz >= CHUNK_SIZE || ty < 0 || ty >= WORLD_HEIGHT) continue;
-      if (data[this._idx(tx, ty, tz)] === BLOCK.AIR) data[this._idx(tx, ty, tz)] = BLOCK.PALM_LEAVES;
+      const distance = Math.abs(dx) + Math.abs(dz);
+      const ty = top + (distance >= 2 ? -1 : 1);
+      this._setAir(data, tx, ty, tz, BLOCK.PALM_LEAVES);
     }
   }
 

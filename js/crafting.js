@@ -1,6 +1,6 @@
 /** Crafting recipes — pure data + craft helper */
 import { BLOCK } from './blocks.js?v=287';
-import { ITEM } from './items.js?v=246';
+import { ITEM } from './items.js?v=247';
 import { craftWith, countItems } from './inventory.js?v=220';
 
 /**
@@ -436,14 +436,23 @@ const ALL_RECIPES = [
     results: [{ id: ITEM.BOAT, count: 1 }],
   },
   {
+    id: 'fish_bait',
+    name: 'Fish Bait',
+    desc: '2 Berries → 3 Bait for fishing',
+    category: 'utility',
+    tier: 1,
+    ingredients: [{ id: ITEM.BERRIES, count: 2 }],
+    results: [{ id: ITEM.FISH_BAIT, count: 3 }],
+  },
+  {
     id: 'fishing_rod',
     name: 'Fishing Rod',
-    desc: 'F near water to fish. 3 Sticks + 2 Hide',
+    desc: 'F near water to fish. 3 Sticks + 2 Palm Fronds',
     category: 'utility',
     tier: 1,
     ingredients: [
       { id: ITEM.STICK, count: 3 },
-      { id: ITEM.HIDE, count: 2 },
+      { id: ITEM.PALM_FROND, count: 2 },
     ],
     results: [{ id: ITEM.FISHING_ROD, count: 1 }],
   },

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT } from './world.js?v=419';
+import { World, WORLD_HEIGHT } from './world.js?v=420';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=223';
@@ -20,7 +20,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=246';
+} from './items.js?v=247';
 import { iconDataUriForItem } from './item-icons.js?v=2';
 import { resolveBlockDrop, harvestDurationForBlock, workDurationForBlock } from './mine-tier.js?v=223';
 import {
@@ -63,14 +63,14 @@ import {
   ingredientSummary,
   recipeProgress,
   nextProgressionRecipe,
-} from './crafting.js?v=413';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=250';
-import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=246';
+} from './crafting.js?v=414';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=251';
+import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
 import { createBlockAtlas } from './atlas.js?v=297';
 import { BreakFX, WeatherFX } from './fx.js?v=246';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
-import { heightAt } from './gen.js?v=285';
+import { heightAt } from './gen.js?v=286';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=11';
 import {
   equipmentWarmth,
@@ -112,7 +112,7 @@ import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=220';
 import { wearTool, durabilityRatio } from './durability.js?v=222';
 import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=220';
 import { tickLogic, COMPONENT } from './logic.js?v=220';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=245';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=246';
 import {
   chestKey,
   getChestSlots,
@@ -129,7 +129,7 @@ import { splitViewport } from './viewport-split.js?v=220';
 import { readGamepad } from './input-coop.js?v=261';
 import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=220';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=220';
-import { palmLeafDrop } from './palm-drops.js?v=1';
+import { palmLeafDrop } from './palm-drops.js?v=2';
 import {
   ITEM as DEST_ITEM,
   IRON_RAVINE,
@@ -1434,6 +1434,13 @@ export class Game {
       this.player.notify('Stand next to water to fish.');
       return;
     }
+    if (countItems(this.player.slots, ITEM.FISH_BAIT) < 1) {
+      this.player.notify('Need Fish Bait. Craft it from 2 Berries.', 2.5);
+      return;
+    }
+    const bait = removeItems(this.player.slots, ITEM.FISH_BAIT, 1);
+    if (!bait.ok) return;
+    this.player.slots = bait.slots;
     this._fishCd = 2.2;
     const w = wearTool(this.player.slots, this.player.hotbarIndex, 1);
     this.player.slots = w.slots;

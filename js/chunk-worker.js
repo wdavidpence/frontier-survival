@@ -43,7 +43,7 @@ function fbm(x, z, octaves = 4) {
 
 const WORLD_SCALE = 0.5;
 function starterCoastBlend(x, z) {
-  return Math.max(0, Math.min(1, 1 - Math.hypot(x, z) / 240));
+  return Math.max(0, Math.min(1, 1 - Math.hypot(x, z) / 180));
 }
 function heightAt(x, z, seed = 0) {
   const sx = x * 0.03 * WORLD_SCALE + seed * 17.1;
@@ -52,21 +52,26 @@ function heightAt(x, z, seed = 0) {
   const ridge = Math.abs(fbm(sx * 0.5 + 20, sz * 0.5 - 10, 3) - 0.5) * 2;
   let y = 18 + h * 16 + ridge * 8;
   const coast = fbm(x * 0.01 * WORLD_SCALE + 3, z * 0.01 * WORLD_SCALE + 7, 3);
-  if (coast < 0.50) {
-    const depth = (0.50 - coast) / 0.50;
-    y -= depth * depth * 26;
+  const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
+  if (coast < 0.56) {
+    const depth = (0.56 - coast) / 0.56;
+    y -= depth * depth * 34;
   }
-  if (coast < 0.42) {
-    const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
-    if (isle > 0.66) {
-      const peak = 16 + 1 + Math.floor((isle - 0.66) * 28);
-      y = Math.max(y, peak);
-    }
+  if (coast < 0.50 && isle > 0.54) {
+    const rise = Math.pow((isle - 0.54) / 0.46, 0.62);
+    const ridgeCut = fbm(x * 0.022 * WORLD_SCALE + seed * 4.7, z * 0.022 * WORLD_SCALE - seed * 2.3, 3);
+    y = Math.max(y, 16 + 1 + rise * 30 + ridgeCut * 5);
   }
   const starterBlend = starterCoastBlend(x, z);
   if (starterBlend > 0) {
-    const shelf = 8 + fbm(x * 0.018 * WORLD_SCALE + 41, z * 0.018 * WORLD_SCALE - 17, 3) * 16;
+    const shelf = 4 + fbm(x * 0.018 * WORLD_SCALE + 41, z * 0.018 * WORLD_SCALE - 17, 3) * 10;
     y = y * (1 - starterBlend) + shelf * starterBlend;
+  }
+  if (Math.hypot(x, z) < 18) y = Math.max(y, 16);
+  if (Math.hypot(x - 26, z - 22) < 9) y = Math.max(y, 16);
+  if (Math.hypot(x, z) > 18 && coast < 0.56 && isle > 0.56) {
+    const rise = Math.pow((isle - 0.56) / 0.44, 0.62);
+    y = Math.max(y, 16 + 1 + rise * 28);
   }
   return Math.floor(y);
 }
@@ -81,7 +86,7 @@ function biomeAt(x, z, seed = 0) {
     if (h <= 16 + 1) return 'shore';
     return 'tropical';
   }
-  if (h >= 16 && h <= 16 + 7 && coast < 0.4 && isle > 0.7) return 'tropical';
+  if (h >= 16 && h <= 16 + 24 && coast < 0.56 && isle > 0.54) return 'tropical';
   if (h < 20) return 'shore';
   const dryness = fbm(
     x * 0.015 * WORLD_SCALE + seed * 31.3,
@@ -91,6 +96,14 @@ function biomeAt(x, z, seed = 0) {
   if (h > 30 && dryness < 0.35) return 'tundra';
   if (dryness > 0.65) return 'desert';
   return 'forest';
+}
+
+function tropicalCliffAt(x, z, seed = 0) {
+  const center = heightAt(x, z, seed);
+  if (center < 16 + 8) return false;
+  const eastWest = Math.abs(heightAt(x + 2, z, seed) - heightAt(x - 2, z, seed));
+  const northSouth = Math.abs(heightAt(x, z + 2, seed) - heightAt(x, z - 2, seed));
+  return eastWest + northSouth >= 7;
 }
 
 // ── Block IDs (must match blocks.js) ────────────────────────────────────────
@@ -187,6 +200,7 @@ function generateChunkData(cx, cz, seed) {
       const z = baseZ + lz;
       const h = heightAt(x, z, seed);
       const biome = biomeAt(x, z, seed);
+      const cliff = biome === 'tropical' && tropicalCliffAt(x, z, seed);
 
       for (let y = 0; y < WORLD_HEIGHT; y++) {
         let id = BLOCK.AIR;
@@ -196,9 +210,11 @@ function generateChunkData(cx, cz, seed) {
         } else if (y === h) {
           if (biome === 'shore' || biome === 'desert' || biome === 'ocean') id = BLOCK.SAND;
           else if (biome === 'tundra') id = BLOCK.SNOW;
+          else if (cliff) id = BLOCK.STONE;
           else id = BLOCK.GRASS;
         } else if (y > h - 4) {
           if (biome === 'desert' || biome === 'shore' || biome === 'ocean') id = BLOCK.SAND;
+          else if (cliff) id = BLOCK.STONE;
           else id = BLOCK.DIRT;
         } else {
           id = BLOCK.STONE;
@@ -219,7 +235,7 @@ function generateChunkData(cx, cz, seed) {
         if (biome === 'forest') treeChance = 0.018;
         else if (biome === 'shore') treeChance = 0.028;
         else if (biome === 'tundra') treeChance = 0.012;
-        else if (biome === 'tropical') treeChance = 0.018;
+        else if (biome === 'tropical') treeChance = 0.014;
         const ruinLandmark = biome === 'tropical' && h <= WORLD_HEIGHT - 8
         && ((x % 32) + 32) % 32 === 22
         && ((z % 32) + 32) % 32 === 26;
@@ -307,19 +323,19 @@ function _placeForestMarker(data, idx, lx, y, lz) {
 }
 
 function _placePalm(data, idx, lx, y, lz) {
-  const trunkH = 5 + Math.floor(hash2(lx + 21, lz + 13) * 3);
-  for (let i = 0; i < trunkH; i++) {
-    const ty = y + i;
-    if (ty >= WORLD_HEIGHT) break;
-    data[idx(lx, ty, lz)] = BLOCK.LOG;
-  }
+  const trunkH = 6 + Math.floor(hash2(lx + 21, lz + 13) * 4);
+  const lean = hash2(lx + 27, lz + 31) > 0.5 ? 1 : -1;
+  const set = (x, yy, z, id) => {
+    if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
+    if (data[idx(x, yy, z)] === BLOCK.AIR) data[idx(x, yy, z)] = id;
+  };
+  for (let i = 0; i < trunkH; i++) set(lx + (i >= trunkH - 2 ? (i - trunkH + 2) * lean : 0), y + i, lz, BLOCK.LOG);
+  for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) set(lx + dx, y, lz + dz, BLOCK.LOG);
   const top = y + trunkH - 1;
-  for (const [dx, dz] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
-    const tx = lx + dx;
-    const tz = lz + dz;
-    const ty = top + (Math.abs(dx) + Math.abs(dz) > 1 ? 0 : 1);
-    if (tx < 0 || tx >= CHUNK_SIZE || tz < 0 || tz >= CHUNK_SIZE || ty < 0 || ty >= WORLD_HEIGHT) continue;
-    if (data[idx(tx, ty, tz)] === BLOCK.AIR) data[idx(tx, ty, tz)] = BLOCK.LEAVES;
+  const fronds = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2], [2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [-1, 2], [1, -2], [-1, -2]];
+  for (const [dx, dz] of fronds) {
+    const distance = Math.abs(dx) + Math.abs(dz);
+    set(lx + dx, top + (distance >= 2 ? -1 : 1), lz + dz, BLOCK.PALM_LEAVES);
   }
 }
 

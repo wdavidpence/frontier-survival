@@ -3,8 +3,8 @@
  * Prey flee; predators hunt (worse at night). Meat drops on death.
  */
 import { isSolid, BLOCK } from './blocks.js?v=287';
-import { hash2 } from './gen.js?v=285';
-import { biomeAt, BIOME } from './biomes.js?v=285';
+import { hash2 } from './gen.js?v=286';
+import { biomeAt, BIOME } from './biomes.js?v=246';
 
 export const SPECIES = {
   hare: {
@@ -98,6 +98,7 @@ export const SPECIES = {
     color: [0.35, 0.45, 0.75],
     scale: [0.28, 0.22, 0.35],
     count: 4,
+    tropical: true,
   },
   chicken: {
     id: 'chicken',
@@ -116,6 +117,7 @@ export const SPECIES = {
     color: [0.6, 0.4, 0.3],
     scale: [0.55, 0.45, 0.65],
     count: 10,
+    tropical: true,
   },
   cow: {
     id: 'cow',
@@ -154,6 +156,7 @@ export const SPECIES = {
     scale: [0.6, 0.55, 1.8],
     count: 3,
     aquatic: true, // comfortable in/near water; spawns near water tiles
+    tropical: true,
   },
   fox: {
     id: 'fox',
@@ -216,25 +219,31 @@ export const SPECIES = {
     id: 'tropical_fish', name: 'Tropical Fish', hp: 3, speed: 4.8,
     hostile: false, fleeRange: 7, senseRange: 10, damage: 0, attackRange: 0, attackCd: 99,
     meatMin: 0, meatMax: 1, color: [0.95, 0.35, 0.12], scale: [0.28, 0.22, 0.62], count: 4,
-    aquatic: true, school: true, swimDepth: 2.2,
+    aquatic: true, school: true, swimDepth: 2.2, tropical: true,
   },
   sea_turtle: {
     id: 'sea_turtle', name: 'Sea Turtle', hp: 24, speed: 2.4,
     hostile: false, fleeRange: 8, senseRange: 12, damage: 0, attackRange: 0, attackCd: 99,
     meatMin: 1, meatMax: 2, color: [0.18, 0.48, 0.3], scale: [0.72, 0.32, 1.05], count: 2,
-    aquatic: true, swimDepth: 0.9,
+    aquatic: true, swimDepth: 0.9, tropical: true,
   },
   reef_shark: {
     id: 'reef_shark', name: 'Reef Shark', hp: 42, speed: 3.8,
     hostile: true, fleeRange: 0, senseRange: 8, nightSense: 11, damage: 12, attackRange: 1.5, attackCd: 1.7,
     meatMin: 2, meatMax: 3, color: [0.28, 0.42, 0.5], scale: [0.58, 0.42, 1.55], count: 1,
-    aquatic: true, swimDepth: 2.8, cautious: true,
+    aquatic: true, swimDepth: 2.8, cautious: true, tropical: true,
   },
   crab: {
     id: 'crab', name: 'Reef Crab', hp: 7, speed: 2.2,
     hostile: false, fleeRange: 5, senseRange: 8, damage: 0, attackRange: 0, attackCd: 99,
     meatMin: 1, meatMax: 1, color: [0.82, 0.22, 0.12], scale: [0.42, 0.28, 0.5], count: 2,
-    aquatic: true, swimDepth: 0.25,
+    aquatic: true, swimDepth: 0.25, tropical: true,
+  },
+  parrot: {
+    id: 'parrot', name: 'Parrot', hp: 4, speed: 6.2,
+    hostile: false, fleeRange: 10, senseRange: 14, damage: 0, attackRange: 0, attackCd: 99,
+    meatMin: 0, meatMax: 0, egg: true, feather: true, feedItem: 'seeds',
+    color: [0.12, 0.72, 0.38], scale: [0.3, 0.24, 0.38], count: 4, tropical: true,
   },
 };
 
@@ -350,6 +359,10 @@ export class FaunaSystem {
         const z = Math.sin(ang) * rad;
         if (Math.hypot(x, z) < minR) continue;
         const y = groundY(this.world, x, z);
+        const localBiome = biomeAt(x, z, this.seed);
+        const isTropical = localBiome === BIOME.TROPICAL || localBiome === BIOME.SHORE || localBiome === BIOME.OCEAN;
+        if (isTropical !== !!spec.tropical && !spec.aquatic) continue;
+        if (!isTropical && spec.tropical) continue;
         // aquatic species prefer water; others avoid it
         if (spec.aquatic) {
           const biome = biomeAt(x, z, this.seed);
@@ -379,10 +392,10 @@ export class FaunaSystem {
     if (hasPassive) return false;
     const authored = findStarterEncounterSpawn(this.world, this.seed, this.animals, { x, z });
     if (!authored) return false;
-    const spec = SPECIES.hare;
-    const replacement = this.animals.find((a) => a.type === spec.id && !a.dead);
-    if (replacement) this.animals.splice(this.animals.indexOf(replacement), 1);
-    if (this.countLiving(spec.id) >= spec.count) return false;
+    const tropicalStart = [BIOME.TROPICAL, BIOME.SHORE, BIOME.OCEAN].includes(biomeAt(x, z, this.seed));
+    const preferred = tropicalStart ? [SPECIES.parrot, SPECIES.chicken, SPECIES.bird] : [SPECIES.hare, SPECIES.deer];
+    const spec = preferred.find((candidate) => candidate && this.countLiving(candidate.id) < candidate.count);
+    if (!spec) return false;
     this.animals.push(this._make(spec, authored.x, authored.y, authored.z));
     return true;
   }

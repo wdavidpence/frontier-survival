@@ -54,6 +54,8 @@ export const ITEM = {
   MAP: 146,
   ICE_BOX: 147,
   COCONUT: 148,
+  PALM_FROND: 158,
+  FISH_BAIT: 159,
   WOOD_HOE: 149,
   STONE_HOE: 150,
   IRON_HOE: 151,
@@ -247,6 +249,8 @@ export const ITEM_PROPS = {
   [ITEM.MAP]: { name: 'Map', color: [0.75, 0.7, 0.5], maxStack: 1 },
   [ITEM.ICE_BOX]: { name: 'Ice Box', color: [0.7, 0.85, 0.95], maxStack: 8, placeable: true, placeAs: BLOCK.ICE_BOX },
   [ITEM.COCONUT]: { name: 'Coconut', color: [0.38, 0.24, 0.12], edible: 24, maxStack: 16 },
+  [ITEM.PALM_FROND]: { name: 'Palm Frond', color: [0.2, 0.58, 0.24], maxStack: 32 },
+  [ITEM.FISH_BAIT]: { name: 'Fish Bait', color: [0.62, 0.42, 0.2], maxStack: 32 },
 };
 
 export function propsOf(id) {

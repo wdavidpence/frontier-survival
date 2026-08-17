@@ -520,6 +520,7 @@ const LAYOUTS = {
   bear: layoutBear,
   bird: layoutBird,
   chicken: layoutChicken,
+  parrot: layoutBird,
   cow: layoutCow,
   alligator: layoutAlligator,
   fox: layoutFox,
@@ -609,7 +610,7 @@ export function animalLimbPose(pose, legNames, wingNames, phase, speed01, type, 
     p[name].rz = 0;
   }
 
-  const fly = type === 'bird' || type === 'bat';
+  const fly = type === 'bird' || type === 'parrot' || type === 'bat';
   const wAmp = fly ? 0.2 + 0.55 * Math.max(spd, 0.25) : 0.2 + 0.5 * spd;
   for (const name of wings) {
     if (!p[name]) p[name] = { rx: 0, rz: 0 };

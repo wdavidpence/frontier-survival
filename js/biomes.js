@@ -1,5 +1,5 @@
 /** Pure biome classifier — no game.js coupling. */
-import { heightAt, fbm, WORLD_SCALE, starterCoastBlend } from './gen.js?v=285';
+import { heightAt, fbm, WORLD_SCALE, starterCoastBlend } from './gen.js?v=286';
 
 export const BIOME = {
   OCEAN: 'ocean',
@@ -35,12 +35,7 @@ export function biomeAt(x, z, seed = 0) {
   }
 
   // Tropical islands: modest land bumps in wet coastal noise
-  if (
-    h >= SEA &&
-    h <= SEA + 7 &&
-    coast < 0.4 &&
-    isle > 0.7
-  ) {
+  if (h >= SEA && h <= SEA + 24 && coast < 0.56 && isle > 0.54) {
     return BIOME.TROPICAL;
   }
 
