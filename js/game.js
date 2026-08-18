@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT } from './world.js?v=421';
+import { World, WORLD_HEIGHT } from './world.js?v=422';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=223';
@@ -11,7 +11,7 @@ import {
   drinkWater,
   applyDamage,
 } from './survival.js?v=243';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=287';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=288';
 import {
   ITEM,
   propsOf,
@@ -66,11 +66,11 @@ import {
 } from './crafting.js?v=416';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=251';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
-import { createBlockAtlas } from './atlas.js?v=297';
+import { createBlockAtlas } from './atlas.js?v=298';
 import { BreakFX, WeatherFX } from './fx.js?v=246';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
-import { heightAt } from './gen.js?v=286';
+import { heightAt } from './gen.js?v=287';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=11';
 import {
   equipmentWarmth,
@@ -112,7 +112,7 @@ import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=220';
 import { wearTool, durabilityRatio } from './durability.js?v=222';
 import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=220';
 import { tickLogic, COMPONENT } from './logic.js?v=220';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=246';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=247';
 import {
   chestKey,
   getChestSlots,

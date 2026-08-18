@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=287';
-import { heightAt, hash2, fbm, forestFloorDetail, tropicalCliffAt } from './gen.js?v=286';
-import { biomeAt, BIOME } from './biomes.js?v=246';
-import { tileForBlock } from './atlas-core.js?v=285';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=288';
+import { heightAt, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt } from './gen.js?v=287';
+import { biomeAt, BIOME } from './biomes.js?v=247';
+import { tileForBlock } from './atlas-core.js?v=286';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=246';
 import { buildMushroomGeometry } from './mushroom-geometry.js?v=2';
 import { buildTorchGeometry } from './torch-geometry.js?v=1';
@@ -498,6 +498,10 @@ export class World {
               if (hash2(x + y * 7, z + this.seed * 3) > 0.991) id = BLOCK.AIR;
             }
           }
+          if (y >= h - 1 && y <= h && id === BLOCK.STONE) {
+            const exposedOre = exposedOreAt(x, y, z, this.seed);
+            if (exposedOre) id = exposedOre;
+          }
           data[this._idx(lx, y, lz)] = id;
         }
         if (h > SEA_LEVEL + 1) {
@@ -989,6 +993,10 @@ export class World {
             if (y >= 3 && y <= h - 5) {
               if (hash2(x + y * 7, z + this.seed * 3) > 0.991) id = BLOCK.AIR;
             }
+          }
+          if (y >= h - 1 && y <= h && id === BLOCK.STONE) {
+            const exposedOre = exposedOreAt(x, y, z, this.seed);
+            if (exposedOre) id = exposedOre;
           }
           data[this._idx(lx, y, lz)] = id;
         }

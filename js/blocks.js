@@ -56,6 +56,8 @@ export const BLOCK = {
   STICK_PILE: 53,
   DAMP_SOIL: 54,
   MUSHROOM: 55,
+  COPPER_ORE: 56,
+  DIAMOND_ORE: 57,
 };
 
 /** @type {Record<number, {
@@ -81,7 +83,7 @@ export const BLOCK_PROPS = {
   [BLOCK.LOG]: { name: 'Log', solid: true, transparent: false, hardness: 1.0, color: [0.4, 0.28, 0.14], topColor: [0.55, 0.42, 0.25], drops: BLOCK.LOG },
   [BLOCK.LEAVES]: { name: 'Leaves', solid: true, transparent: true, hardness: 0.2, color: [0.25, 0.5, 0.22], drops: BLOCK.LEAVES },
   [BLOCK.PLANKS]: { name: 'Planks', solid: true, transparent: false, hardness: 0.8, color: [0.72, 0.58, 0.35], drops: BLOCK.PLANKS },
-  [BLOCK.COBBLE]: { name: 'Cobblestone', solid: true, transparent: false, hardness: 1.4, color: [0.48, 0.48, 0.5], drops: BLOCK.COBBLE },
+  [BLOCK.COBBLE]: { name: 'Cobblestone', solid: true, transparent: false, hardness: 1.4, color: [0.58, 0.59, 0.63], drops: BLOCK.COBBLE },
   [BLOCK.SANDSTONE]: { name: 'Sandstone', solid: true, transparent: false, hardness: 1.0, color: [0.78, 0.7, 0.48], drops: BLOCK.SANDSTONE },
   [BLOCK.SNOW]: { name: 'Snow', solid: true, transparent: false, hardness: 0.2, color: [0.92, 0.94, 0.98], drops: BLOCK.SNOW },
   [BLOCK.ICE]: { name: 'Ice', solid: true, transparent: true, hardness: 0.5, color: [0.65, 0.82, 0.95], drops: BLOCK.ICE },
@@ -130,6 +132,8 @@ export const BLOCK_PROPS = {
   [BLOCK.STICK_PILE]: { name: 'Stick Pile', solid: false, transparent: true, hardness: 0.1, color: [0.7, 0.46, 0.2], drops: BLOCK.STICK_PILE, replaceable: true },
   [BLOCK.DAMP_SOIL]: { name: 'Damp Soil', solid: true, transparent: false, hardness: 0.42, color: [0.56, 0.44, 0.24], topColor: [0.5, 0.39, 0.21], drops: BLOCK.DAMP_SOIL },
   [BLOCK.MUSHROOM]: { name: 'Mushroom', solid: false, transparent: true, hardness: 0.08, color: [0.65, 0.2, 0.16], drops: BLOCK.MUSHROOM, replaceable: true },
+  [BLOCK.COPPER_ORE]: { name: 'Copper Ore', solid: true, transparent: false, hardness: 2.2, color: [0.62, 0.38, 0.28], drops: BLOCK.COPPER_ORE },
+  [BLOCK.DIAMOND_ORE]: { name: 'Diamond Ore', solid: true, transparent: false, hardness: 3.0, color: [0.38, 0.78, 0.82], drops: BLOCK.DIAMOND_ORE },
 };
 
 export function isSolid(id) {

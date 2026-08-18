@@ -42,6 +42,10 @@ function fbm(x, z, octaves = 4) {
 }
 
 const WORLD_SCALE = 0.5;
+const ARCHIPELAGO_COAST_THRESHOLD = 0.60;
+const ARCHIPELAGO_ISLAND_THRESHOLD = 0.68;
+// Legacy coast < 0.56 / isle > 0.54 was tightened into the constants above.
+const EXPOSED_ORE = Object.freeze({ COAL: 13, IRON: 18, COPPER: 56, DIAMOND: 57 });
 function starterCoastBlend(x, z) {
   return Math.max(0, Math.min(1, 1 - Math.hypot(x, z) / 180));
 }
@@ -50,17 +54,17 @@ function heightAt(x, z, seed = 0) {
   const sz = z * 0.03 * WORLD_SCALE + seed * 9.7;
   const h = fbm(sx, sz, 5);
   const ridge = Math.abs(fbm(sx * 0.5 + 20, sz * 0.5 - 10, 3) - 0.5) * 2;
-  let y = 18 + h * 16 + ridge * 8;
+  let y = 7 + h * 10 + ridge * 11;
   const coast = fbm(x * 0.01 * WORLD_SCALE + 3, z * 0.01 * WORLD_SCALE + 7, 3);
   const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
-  if (coast < 0.56) {
-    const depth = (0.56 - coast) / 0.56;
-    y -= depth * depth * 34;
+  if (coast < ARCHIPELAGO_COAST_THRESHOLD) {
+    const depth = (ARCHIPELAGO_COAST_THRESHOLD - coast) / ARCHIPELAGO_COAST_THRESHOLD;
+    y -= depth * depth * 30;
   }
-  if (coast < 0.50 && isle > 0.54) {
-    const rise = Math.pow((isle - 0.54) / 0.46, 0.62);
+  if (coast < ARCHIPELAGO_COAST_THRESHOLD && isle > ARCHIPELAGO_ISLAND_THRESHOLD) {
+    const rise = Math.pow((isle - ARCHIPELAGO_ISLAND_THRESHOLD) / (1 - ARCHIPELAGO_ISLAND_THRESHOLD), 0.58);
     const ridgeCut = fbm(x * 0.022 * WORLD_SCALE + seed * 4.7, z * 0.022 * WORLD_SCALE - seed * 2.3, 3);
-    y = Math.max(y, 16 + 1 + rise * 30 + ridgeCut * 5);
+    y = Math.max(y, 16 + 1 + rise * 29 + ridgeCut * 5);
   }
   const starterBlend = starterCoastBlend(x, z);
   if (starterBlend > 0) {
@@ -69,13 +73,32 @@ function heightAt(x, z, seed = 0) {
   }
   if (Math.hypot(x, z) < 18) y = Math.max(y, 16);
   if (Math.hypot(x - 26, z - 22) < 9) y = Math.max(y, 16);
-  if (Math.hypot(x, z) > 18 && coast < 0.56 && isle > 0.56) {
-    const rise = Math.pow((isle - 0.56) / 0.44, 0.62);
-    y = Math.max(y, 16 + 1 + rise * 28);
+  if (Math.hypot(x - 42, z - 51) < 8) y = Math.max(y, 16 + 2);
+  if (Math.hypot(x, z) > 18 && coast < ARCHIPELAGO_COAST_THRESHOLD && isle > ARCHIPELAGO_ISLAND_THRESHOLD) {
+    const rise = Math.pow((isle - ARCHIPELAGO_ISLAND_THRESHOLD) / (1 - ARCHIPELAGO_ISLAND_THRESHOLD), 0.62);
+    y = Math.max(y, 16 + 1 + rise * 32);
   }
-  return Math.floor(y);
+  return Math.max(1, Math.min(46, Math.floor(y)));
 }
-
+function mountainFaceAt(x, z, seed = 0) {
+  const center = heightAt(x, z, seed);
+  if (center < 16 + 10) return false;
+  const eastWest = Math.abs(heightAt(x + 2, z, seed) - heightAt(x - 2, z, seed));
+  const northSouth = Math.abs(heightAt(x, z + 2, seed) - heightAt(x, z - 2, seed));
+  const lowestNeighbor = Math.min(heightAt(x - 2, z, seed), heightAt(x + 2, z, seed), heightAt(x, z - 2, seed), heightAt(x, z + 2, seed));
+  return eastWest + northSouth >= 7 && center - lowestNeighbor >= 4;
+}
+function exposedOreAt(x, y, z, seed = 0) {
+  const h = heightAt(x, z, seed);
+  if (y < h - 1 || y > h || !mountainFaceAt(x, z, seed)) return 0;
+  const seam = hash2(x * 41 + z * 17 + seed * 3, z * 43 + y * 19 + seed * 5);
+  if (seam <= 0.985) return 0;
+  const kind = hash2(x * 13 + seed * 7, z * 17 + y * 3 + seed * 11);
+  if (kind > 0.998) return EXPOSED_ORE.DIAMOND;
+  if (kind > 0.93) return EXPOSED_ORE.COPPER;
+  if (kind > 0.64) return EXPOSED_ORE.IRON;
+  return EXPOSED_ORE.COAL;
+}
 function biomeAt(x, z, seed = 0) {
   const h = heightAt(x, z, seed);
   const coast = fbm(x * 0.01 * WORLD_SCALE + 3, z * 0.01 * WORLD_SCALE + 7, 3);
@@ -86,7 +109,7 @@ function biomeAt(x, z, seed = 0) {
     if (h <= 16 + 1) return 'shore';
     return 'tropical';
   }
-  if (h >= 16 && h <= 16 + 24 && coast < 0.56 && isle > 0.54) return 'tropical';
+  if (h >= 16 && h <= 16 + 24 && coast < ARCHIPELAGO_COAST_THRESHOLD && isle > ARCHIPELAGO_ISLAND_THRESHOLD) return 'tropical';
   if (h < 20) return 'shore';
   const dryness = fbm(
     x * 0.015 * WORLD_SCALE + seed * 31.3,
@@ -161,10 +184,13 @@ const BLOCK = {
   CORAL: 48,
   KELP: 49,
   SEAGRASS: 50,
+  PALM_LEAVES: 51,
   ROOTS: 52,
   STICK_PILE: 53,
   DAMP_SOIL: 54,
   MUSHROOM: 55,
+  COPPER_ORE: 56,
+  DIAMOND_ORE: 57,
 };
 
 const CHUNK_SIZE = 16;
@@ -224,6 +250,10 @@ function generateChunkData(cx, cz, seed) {
           if (y >= 3 && y <= h - 5) {
             if (hash2(x + y * 7, z + seed * 3) > 0.991) id = BLOCK.AIR;
           }
+        }
+        if (y >= h - 1 && y <= h && id === BLOCK.STONE) {
+          const exposedOre = exposedOreAt(x, y, z, seed);
+          if (exposedOre) id = exposedOre;
         }
         data[idx(lx, y, lz)] = id;
       }

@@ -40,11 +40,19 @@ export function fbm(x, z, octaves = 4) {
 export const GEN_SEA_LEVEL = 16;
 
 /**
- * Terrain height. Deep ocean basins when coastal noise is low;
- * tropical island peaks rise back above sea in those basins.
+ * Terrain height. The travel field is deliberately ocean-dominant: a broad
+ * coastal basin becomes water unless a high-isle sample punches through it.
+ * The starter shelf and authored shore bay below are kept as explicit safety
+ * contracts rather than accidental noise.
  */
-/** <1 stretches continents so travel covers more varied terrain before looping patterns. */
-export const WORLD_SCALE = 0.5; // ~2x larger landforms (4x area feel of noise)
+/** <1 stretches landforms so islands remain readable while travel stays wet. */
+export const WORLD_SCALE = 0.5;
+export const ARCHIPELAGO_COAST_THRESHOLD = 0.60;
+export const ARCHIPELAGO_ISLAND_THRESHOLD = 0.68;
+// Legacy coast < 0.56 / isle > 0.54 was tightened into the constants above.
+
+/** Numeric IDs are kept here so the pure seam can be mirrored by the worker. */
+export const EXPOSED_ORE = Object.freeze({ COAL: 13, IRON: 18, COPPER: 56, DIAMOND: 57 });
 
 /** Deterministic forest-floor dressing, kept pure so sync and worker terrain agree. */
 export function forestFloorDetail(x, z, seed, biome, height, surfaceId, aboveId) {
@@ -68,18 +76,20 @@ export function heightAt(x, z, seed = 0) {
   const sz = z * 0.03 * WORLD_SCALE + seed * 9.7;
   const h = fbm(sx, sz, 5);
   const ridge = Math.abs(fbm(sx * 0.5 + 20, sz * 0.5 - 10, 3) - 0.5) * 2;
-  let y = 18 + h * 16 + ridge * 8;
+  // Lower baseline + stronger ridges leaves room for ocean while keeping
+  // mountain silhouettes well below the 48-block world ceiling.
+  let y = 7 + h * 10 + ridge * 11;
 
   const coast = fbm(x * 0.01 * WORLD_SCALE + 3, z * 0.01 * WORLD_SCALE + 7, 3);
   const isle = fbm(x * 0.05 * WORLD_SCALE + seed * 3.1, z * 0.05 * WORLD_SCALE + seed * 5.7, 3);
-  if (coast < 0.56) {
-    const depth = (0.56 - coast) / 0.56;
-    y -= depth * depth * 34;
+  if (coast < ARCHIPELAGO_COAST_THRESHOLD) {
+    const depth = (ARCHIPELAGO_COAST_THRESHOLD - coast) / ARCHIPELAGO_COAST_THRESHOLD;
+    y -= depth * depth * 30;
   }
-  if (coast < 0.50 && isle > 0.54) {
-    const rise = Math.pow((isle - 0.54) / 0.46, 0.62);
+  if (coast < ARCHIPELAGO_COAST_THRESHOLD && isle > ARCHIPELAGO_ISLAND_THRESHOLD) {
+    const rise = Math.pow((isle - ARCHIPELAGO_ISLAND_THRESHOLD) / (1 - ARCHIPELAGO_ISLAND_THRESHOLD), 0.58);
     const ridgeCut = fbm(x * 0.022 * WORLD_SCALE + seed * 4.7, z * 0.022 * WORLD_SCALE - seed * 2.3, 3);
-    y = Math.max(y, GEN_SEA_LEVEL + 1 + rise * 30 + ridgeCut * 5);
+    y = Math.max(y, GEN_SEA_LEVEL + 1 + rise * 29 + ridgeCut * 5);
   }
 
   const starterBlend = starterCoastBlend(x, z);
@@ -87,23 +97,52 @@ export function heightAt(x, z, seed = 0) {
     const shelf = 4 + fbm(x * 0.018 * WORLD_SCALE + 41, z * 0.018 * WORLD_SCALE - 17, 3) * 10;
     y = y * (1 - starterBlend) + shelf * starterBlend;
   }
+  // Safe, buildable starter island and the existing authored shore destination.
   if (Math.hypot(x, z) < 18) y = Math.max(y, GEN_SEA_LEVEL);
-  // Authored starter bay: keep the existing shore destination reachable while
-  // the surrounding tropical shelf becomes wetter and more varied.
   if (Math.hypot(x - 26, z - 22) < 9) y = Math.max(y, GEN_SEA_LEVEL);
-  // Keep the camp on a beach, but let the first walk immediately reveal
-  // tropical rises instead of a flat starter continent.
-  if (Math.hypot(x, z) > 18 && coast < 0.56 && isle > 0.56) {
-    const rise = Math.pow((isle - 0.56) / 0.44, 0.62);
-    y = Math.max(y, GEN_SEA_LEVEL + 1 + rise * 28);
+  if (Math.hypot(x - 42, z - 51) < 8) y = Math.max(y, GEN_SEA_LEVEL + 2);
+  // Keep the first walk on the starter island in the same island mask while
+  // making the nearby horizon reveal steep tropical relief.
+  if (
+    Math.hypot(x, z) > 18 &&
+    coast < ARCHIPELAGO_COAST_THRESHOLD &&
+    isle > ARCHIPELAGO_ISLAND_THRESHOLD
+  ) {
+    const rise = Math.pow((isle - ARCHIPELAGO_ISLAND_THRESHOLD) / (1 - ARCHIPELAGO_ISLAND_THRESHOLD), 0.62);
+    y = Math.max(y, GEN_SEA_LEVEL + 1 + rise * 32);
   }
-  return Math.floor(y);
+  return Math.max(1, Math.min(46, Math.floor(y)));
+}
+
+/** True only for warm, high, sheared mountain cells with a visible drop. */
+export function mountainFaceAt(x, z, seed = 0) {
+  const center = heightAt(x, z, seed);
+  if (center < GEN_SEA_LEVEL + 10) return false;
+  const eastWest = Math.abs(heightAt(x + 2, z, seed) - heightAt(x - 2, z, seed));
+  const northSouth = Math.abs(heightAt(x, z + 2, seed) - heightAt(x, z - 2, seed));
+  const lowestNeighbor = Math.min(
+    heightAt(x - 2, z, seed), heightAt(x + 2, z, seed),
+    heightAt(x, z - 2, seed), heightAt(x, z + 2, seed),
+  );
+  return eastWest + northSouth >= 7 && center - lowestNeighbor >= 4;
+}
+
+/**
+ * Rare surface-adjacent ore in a mountain face. Returning zero means no ore;
+ * every non-zero result is a top/upper-face block of a valid stone cliff.
+ */
+export function exposedOreAt(x, y, z, seed = 0) {
+  const h = heightAt(x, z, seed);
+  if (y < h - 1 || y > h || !mountainFaceAt(x, z, seed)) return 0;
+  const seam = hash2(x * 41 + z * 17 + seed * 3, z * 43 + y * 19 + seed * 5);
+  if (seam <= 0.985) return 0;
+  const kind = hash2(x * 13 + seed * 7, z * 17 + y * 3 + seed * 11);
+  if (kind > 0.998) return EXPOSED_ORE.DIAMOND;
+  if (kind > 0.93) return EXPOSED_ORE.COPPER;
+  if (kind > 0.64) return EXPOSED_ORE.IRON;
+  return EXPOSED_ORE.COAL;
 }
 
 export function tropicalCliffAt(x, z, seed = 0) {
-  const center = heightAt(x, z, seed);
-  if (center < GEN_SEA_LEVEL + 8) return false;
-  const eastWest = Math.abs(heightAt(x + 2, z, seed) - heightAt(x - 2, z, seed));
-  const northSouth = Math.abs(heightAt(x, z + 2, seed) - heightAt(x, z - 2, seed));
-  return eastWest + northSouth >= 7;
+  return mountainFaceAt(x, z, seed);
 }

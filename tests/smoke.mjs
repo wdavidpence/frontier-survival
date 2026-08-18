@@ -4,7 +4,7 @@ import { palmLeafDrop } from '../js/palm-drops.js';
 import { createFishingState, startCast, tickFishing, rollFishingCatch, FISHING_CAST_TRAVEL_SECONDS } from '../js/fishing-cast.js';
 import { createBoat, canPlaceBoat, mountBoat, dismountBoat, stepBoat, buoyancyY, riderPosition } from '../js/boat-entity.js';
 import { schoolFishPose, schoolVisibility } from '../js/fish-school.js';
-import { heightAt, fbm, hash2, forestFloorDetail } from '../js/gen.js';
+import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
 import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
 import { seaTurtleLayout } from '../js/fauna-parts/turtle-layout.js';
@@ -297,7 +297,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=421/);
+  assert.match(gameSource, /world\.js\?v=422/);
 });
 
 test('terrain visibility plan extends fog and proxy beyond full mesh', () => {
@@ -419,6 +419,56 @@ test('heightAt finite', () => {
   const h = heightAt(10, -20, 42);
   assert.ok(Number.isFinite(h));
   assert.ok(h > 0 && h < 48);
+});
+
+test('fixed seed tropical field is water-dominant with bounded relief', () => {
+  const seed = 1884808540;
+  let water = 0;
+  let total = 0;
+  let peak = 0;
+  for (let z = -96; z < 96; z++) {
+    for (let x = -96; x < 96; x++) {
+      const h = heightAt(x, z, seed);
+      if (h < 16) water++;
+      peak = Math.max(peak, h);
+      total++;
+    }
+  }
+  const ratio = water / total;
+  assert.ok(ratio >= 0.80 && ratio <= 0.90, `water ratio ${ratio.toFixed(3)} should read as archipelagic`);
+  assert.ok(peak >= 38 && peak < 48, `mountain peak ${peak} must be tall but bounded`);
+  assert.strictEqual(heightAt(0, 0, seed), 16, 'starter island must stay above water');
+  assert.strictEqual(biomeAt(26, 22, seed), BIOME.SHORE, 'authored shore route must remain buildable');
+  assert.strictEqual(biomeAt(42, 51, seed), BIOME.TROPICAL, 'starter tropical route must remain land');
+});
+
+test('exposed mountain ores are deterministic and face-valid', () => {
+  const seed = 1884808540;
+  const samples = [
+    [-461, -502, EXPOSED_ORE.COAL],
+    [-421, -483, EXPOSED_ORE.IRON],
+    [-10, -403, EXPOSED_ORE.COPPER],
+    [-115, -26, EXPOSED_ORE.DIAMOND],
+  ];
+  for (const [x, z, expected] of samples) {
+    const h = heightAt(x, z, seed);
+    assert.strictEqual(exposedOreAt(x, h, z, seed), expected, `ore at ${x},${z} must be stable`);
+    assert.strictEqual(exposedOreAt(x, h - 2, z, seed), 0, 'ore must not float below the face seam');
+    assert.ok(mountainFaceAt(x, z, seed), 'ore sample must be in a sheared mountain face');
+    assert.ok(h >= 26, 'ore sample must be highland stone, not beach material');
+  }
+});
+
+test('geography seams mirror worker and keep natural masonry authored-only', () => {
+  const world = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
+  const gen = readFileSync(new URL('../js/gen.js', import.meta.url), 'utf8');
+  const worker = readFileSync(new URL('../js/chunk-worker.js', import.meta.url), 'utf8');
+  assert.match(world, /exposedOreAt\(x, y, z/);
+  assert.match(worker, /exposedOreAt\(x, y, z/);
+  assert.match(gen, /ARCHIPELAGO_COAST_THRESHOLD/);
+  assert.match(worker, /ARCHIPELAGO_COAST_THRESHOLD/);
+  assert.doesNotMatch(world, /id = BLOCK\.(COBBLE|BRICKS)/);
+  assert.doesNotMatch(worker, /id = BLOCK\.(COBBLE|BRICKS)/);
 });
 
 test('blocks solid flags', () => {
@@ -676,6 +726,11 @@ test('atlas tiles map blocks and cracks', () => {
   assert.strictEqual(tileForBlock(BLOCK.CORAL, 'side'), TILE.CORAL);
   assert.strictEqual(tileForBlock(BLOCK.KELP, 'side'), TILE.KELP);
   assert.strictEqual(tileForBlock(BLOCK.SEAGRASS, 'side'), TILE.SEAGRASS);
+  assert.strictEqual(tileForBlock(BLOCK.COPPER_ORE, 'top'), TILE.COPPER_ORE);
+  assert.strictEqual(tileForBlock(BLOCK.DIAMOND_ORE, 'side'), TILE.DIAMOND_ORE);
+  assert.strictEqual(tileForBlock(BLOCK.COBBLE, 'top'), TILE.COBBLE);
+  assert.ok(getColor(BLOCK.COBBLE)[0] > 0.5 && getColor(BLOCK.COBBLE)[2] > 0.5, 'cobble should read as weathered gray stone');
+  assert.ok(getColor(BLOCK.COBBLE)[0] > getColor(BLOCK.COAL_ORE)[0], 'cobble must not read like coal');
   assert.ok(TILE.CORAL !== TILE.KELP && TILE.KELP !== TILE.SEAGRASS);
   const uvs = tileUVs(TILE.STONE);
   assert.strictEqual(uvs.length, 4);
@@ -4492,7 +4547,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.96'), 'HTML must expose v1.12.96');
+  assert.ok(html.includes('v1.12.97'), 'HTML must expose v1.12.97');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

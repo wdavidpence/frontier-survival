@@ -1,7 +1,7 @@
 /**
  * Pure atlas tile math — no DOM/Three (unit-testable).
  */
-import { BLOCK } from './blocks.js?v=287';
+import { BLOCK } from './blocks.js?v=288';
 
 export const TILE_PX = 32;
 export const ATLAS_N = 8;
@@ -68,6 +68,8 @@ export const TILE = {
   STICK_PILE: 57,
   DAMP_SOIL: 58,
   MUSHROOM: 59,
+  COPPER_ORE: 60,
+  DIAMOND_ORE: 61,
 };
 
 /** UV corners: bl, tl, tr, br in atlas space */
@@ -190,6 +192,10 @@ export function tileForBlock(blockId, faceDir) {
       return faceDir === 'top' ? TILE.DAMP_SOIL : TILE.DIRT;
     case BLOCK.MUSHROOM:
       return TILE.MUSHROOM;
+    case BLOCK.COPPER_ORE:
+      return TILE.COPPER_ORE;
+    case BLOCK.DIAMOND_ORE:
+      return TILE.DIAMOND_ORE;
     default:
       return TILE.STONE;
   }

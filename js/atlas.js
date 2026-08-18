@@ -11,7 +11,7 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=285';
+} from './atlas-core.js?v=286';
 
 export {
   TILE,
@@ -22,7 +22,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=285';
+} from './atlas-core.js?v=286';
 
 function rnd(seed) {
   let s = seed | 0;
@@ -530,9 +530,10 @@ function drawPlanks(ctx, x0, y0) {
 }
 
 function drawCobble(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [122, 122, 130], 0.22, 33, 255, 2);
+  // Weathered gray stone: cool midtones and pale worn faces, not coal-black.
+  fillNoise(ctx, x0, y0, [148, 150, 158], 0.18, 33, 255, 2);
   const r = rnd(19);
-  ctx.fillStyle = 'rgba(60, 60, 68, 0.55)';
+  ctx.fillStyle = 'rgba(82, 84, 92, 0.42)';
   for (let i = 0; i < 8; i++) {
     const bx = Math.floor(r() * 12) * 2;
     const by = Math.floor(r() * 12) * 2;
@@ -540,7 +541,10 @@ function drawCobble(ctx, x0, y0) {
     const h = 4 + Math.floor(r() * 3) * 2;
     ctx.fillRect(x0 + bx, y0 + by, w, h);
   }
-  applyMicroTexture(ctx, x0, y0, 4);
+  ctx.fillStyle = 'rgba(205, 207, 212, 0.34)';
+  ctx.fillRect(x0 + 4, y0 + 5, 8, 2);
+  ctx.fillRect(x0 + 18, y0 + 21, 7, 2);
+  applyMicroTexture(ctx, x0, y0, 3);
 }
 
 function drawSandstone(ctx, x0, y0) {
@@ -634,6 +638,24 @@ function drawIronOre(ctx, x0, y0) {
     ctx.beginPath();
     ctx.arc(x0 + 5 + r() * 22, y0 + 5 + r() * 22, 1.5 + r() * 2, 0, Math.PI * 2);
     ctx.fill();
+  }
+}
+
+function drawCopperOre(ctx, x0, y0) {
+  drawStone(ctx, x0, y0);
+  const r = rnd(72);
+  for (let i = 0; i < 8; i++) {
+    ctx.fillStyle = 'rgba(190, 105, 66, 0.92)';
+    ctx.fillRect(x0 + 4 + (r() * 23 | 0), y0 + 4 + (r() * 23 | 0), 3, 3);
+  }
+}
+
+function drawDiamondOre(ctx, x0, y0) {
+  drawStone(ctx, x0, y0);
+  const r = rnd(73);
+  for (let i = 0; i < 7; i++) {
+    ctx.fillStyle = 'rgba(104, 230, 226, 0.95)';
+    ctx.fillRect(x0 + 4 + (r() * 23 | 0), y0 + 4 + (r() * 23 | 0), 3, 3);
   }
 }
 
@@ -1116,6 +1138,8 @@ export function createBlockAtlas() {
   paint(TILE.STICK_PILE, drawStickPile);
   paint(TILE.DAMP_SOIL, drawDampSoil);
   paint(TILE.MUSHROOM, drawMushroom);
+  paint(TILE.COPPER_ORE, drawCopperOre);
+  paint(TILE.DIAMOND_ORE, drawDiamondOre);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = THREE.NearestFilter;
