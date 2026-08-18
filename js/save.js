@@ -44,6 +44,22 @@ function packSurvival(survival) {
   };
 }
 
+function packBoat(boat) {
+  if (!boat || typeof boat !== 'object') return null;
+  const fields = ['x', 'y', 'z', 'yaw', 'vx', 'vz'];
+  if (!fields.every((key) => typeof boat[key] === 'number' && Number.isFinite(boat[key]))) return null;
+  const rider = boat.mounted && boat.rider === 'p1' ? 'p1' : null;
+  return { x: boat.x, y: boat.y, z: boat.z, yaw: boat.yaw, vx: boat.vx, vz: boat.vz, rider, mounted: rider !== null };
+}
+
+function parseBoat(boat) {
+  if (!boat || typeof boat !== 'object') return null;
+  const fields = ['x', 'y', 'z', 'yaw', 'vx', 'vz'];
+  if (!fields.every((key) => typeof boat[key] === 'number' && Number.isFinite(boat[key]))) return null;
+  const rider = boat.mounted === true && boat.rider === 'p1' ? 'p1' : null;
+  return { x: boat.x, y: boat.y, z: boat.z, yaw: boat.yaw, vx: boat.vx, vz: boat.vz, rider, mounted: rider !== null };
+}
+
 /**
  * @param {object} state
  * @param {number} state.seed
@@ -54,6 +70,7 @@ function packSurvival(survival) {
  * @param {object} state.time
  * @param {object} state.player
  * @param {object} [state.player2]
+ * @param {object} [state.boat]
  * @param {Array} state.edits
  * @param {object} [state.destination]
  * @param {object} [state.pressure]
@@ -76,6 +93,7 @@ export function buildSavePayload(state) {
     },
     player: packPlayer(state.player),
     player2: packPlayer(state.player2),
+    boat: packBoat(state.boat),
     edits: state.edits || [],
     animals: Array.isArray(state.animals) ? state.animals : [],
     stats: state.stats || undefined,
@@ -111,6 +129,7 @@ export function parseSavePayload(raw) {
   if (!data.time) return { ok: false, error: 'missing time' };
   if (!Array.isArray(data.edits)) data.edits = [];
   if (!Array.isArray(data.animals)) data.animals = [];
+  data.boat = parseBoat(data.boat);
   if (data.destination == null) data.destination = null;
   if (data.pressure == null) data.pressure = null;
   if (data.workshop == null) data.workshop = null;

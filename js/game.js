@@ -88,7 +88,7 @@ import {
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=221';
+} from './save.js?v=222';
 import { getMode } from './modes.js?v=243';
 
 const HARVEST_BASE_SECONDS = 4.2;
@@ -942,6 +942,7 @@ export class Game {
       }
     }
 
+    this._restoreBoat(saveData?.boat);
     if (!freshPlayer) {
       this._destinationState = deserializeDestinationState(saveData.destination, {
         seed,
@@ -1559,6 +1560,20 @@ export class Game {
     this._boatMesh.rotation.z = Math.sin(this._boatClock * 1.7) * 0.025;
   }
 
+  _restoreBoat(saved) {
+    const fields = ['x', 'y', 'z', 'yaw', 'vx', 'vz'];
+    if (!saved || !this.player || !fields.every((key) => Number.isFinite(saved[key]))) return;
+    const boat = createBoat(saved.x, saved.y, saved.z, saved.yaw);
+    boat.vx = saved.vx;
+    boat.vz = saved.vz;
+    if (saved.mounted && saved.rider === 'p1' && mountBoat(boat, 'p1').ok) {
+      this.player.position.copy(riderPosition(boat));
+      this.player.yaw = boat.yaw;
+    }
+    this._boat = boat;
+    this._syncBoatVisual();
+  }
+
   _updateFishSchoolVisual() {
     const visible = this._fishTarget && schoolVisibility(this._fishState?.phase);
     if (!visible) {
@@ -1887,7 +1902,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=221').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=222').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -1930,6 +1945,18 @@ export class Game {
       },
       player: packLive(this.player),
       player2: packLive(this.player2),
+      boat: this._boat
+        ? {
+            x: this._boat.x,
+            y: this._boat.y,
+            z: this._boat.z,
+            yaw: this._boat.yaw,
+            vx: this._boat.vx,
+            vz: this._boat.vz,
+            rider: this._boat.rider,
+            mounted: this._boat.mounted,
+          }
+        : null,
       edits: this.world.exportEdits(),
       animals: this.fauna ? this.fauna.exportState() : [],
       stats: this._stats || { kills: 0, wolfKills: 0, arrowsFired: 0 },

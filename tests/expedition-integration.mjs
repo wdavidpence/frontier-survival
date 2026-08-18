@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { buildSavePayload, parseSavePayload, SAVE_VERSION } from '../js/save.js?v=221';
+import { buildSavePayload, parseSavePayload, SAVE_VERSION } from '../js/save.js?v=222';
 import {
   ITEM as DEST_ITEM,
   IRON_RAVINE,

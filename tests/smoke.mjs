@@ -867,6 +867,7 @@ test('save roundtrip preserves seed inventory edits', () => {
         { id: null, count: 0 },
       ],
     },
+    boat: { x: 8.5, y: 4.12, z: -4.25, yaw: 1.25, vx: 2.5, vz: -0.75, rider: 'p1', mounted: true },
     edits: [
       [10, 18, 5, BLOCK.CAMPFIRE],
       [10, 18, 6, BLOCK.TORCH],
@@ -881,6 +882,16 @@ test('save roundtrip preserves seed inventory edits', () => {
   assert.strictEqual(parsed.data.edits.length, 2);
   assert.strictEqual(parsed.data.edits[0][3], BLOCK.CAMPFIRE);
   assert.strictEqual(parsed.data.time.weather, 'rain');
+  assert.deepStrictEqual(parsed.data.boat, {
+    x: 8.5, y: 4.12, z: -4.25, yaw: 1.25, vx: 2.5, vz: -0.75, rider: 'p1', mounted: true,
+  });
+
+  const legacy = { ...parsed.data, v: 1 };
+  delete legacy.boat;
+  const legacyParsed = parseSavePayload(JSON.stringify(legacy));
+  assert.ok(legacyParsed.ok, legacyParsed.error);
+  assert.strictEqual(legacyParsed.data.boat, null);
+  assert.strictEqual(buildSavePayload({ ...state, boat: { ...state.boat, vx: Infinity } }).boat, null);
 
   const mem = {
     _d: {},
@@ -3120,6 +3131,16 @@ test('production mining uses the World raycast contract without a duplicate DDA'
   assert.equal((gameSrc.match(/this\.world\.raycast\(/g) || []).length, 1, 'World.raycast must be reached only through _raycastInteraction');
 });
 
+test('production save path reaches boat capture, restore, and visual sync', () => {
+  const gameSrc = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  assert.match(gameSrc, /boat: this\._boat/);
+  assert.match(gameSrc, /this\._restoreBoat\(saveData\?\.boat\)/);
+  assert.match(gameSrc, /const boat = createBoat\(saved\.x, saved\.y, saved\.z, saved\.yaw\)/);
+  assert.match(gameSrc, /saved\.mounted && saved\.rider === 'p1'/);
+  assert.match(gameSrc, /this\._boat = null;\n    this\._syncBoatVisual\(\);/);
+  assert.strictEqual((gameSrc.match(/this\._boatMesh = boat;/g) || []).length, 1);
+});
+
 test('stair-place facing from yaw', () => {
   assert.ok(['north','south','east','west'].includes(stairFacingFromYaw(0)));
   assert.strictEqual(stairFacingFromMeta(stairFacingMeta('east')), 'east');
@@ -4436,7 +4457,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.94'), 'HTML must expose v1.12.94');
+  assert.ok(html.includes('v1.12.95'), 'HTML must expose v1.12.95');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
