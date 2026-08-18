@@ -4608,7 +4608,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.99'), 'HTML must expose v1.12.99');
+  assert.ok(html.includes('v1.13.0'), 'HTML must expose v1.13.0');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -4760,6 +4760,36 @@ test('durability adapter cache and mining wear remain reachable', () => {
   assert.match(durability, /from ['"]\.\/tool-tiers\.js\?v=222['"]/);
   assert.match(game.slice(game.indexOf('  _handleMining(dt) {'), game.indexOf('  _handlePlace() {')), /wearTool\(this\.player\.slots, this\.player\.hotbarIndex, 1\)/);
   assert.match(game.slice(game.indexOf('  _handleCoopP2World(dt) {'), game.indexOf('  _spawnCoopP2(spawn) {')), /wearTool\(p\.slots, p\.hotbarIndex, 1\)/);
+});
+
+test('pause save menu wires confirmation and quit-to-title reset', () => {
+  const gameSrc = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const publicHtml = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  assert.ok(html.includes('id="btn-pause-save"'), 'pause menu keeps Save now');
+  assert.ok(html.includes('id="btn-pause-quit"'), 'pause menu exposes Quit to title');
+  assert.match(html, /id="pause-save-status" role="status"/);
+  assert.ok(publicHtml.includes('id="btn-pause-quit"'));
+  assert.match(gameSrc, /getElementById\('btn-pause-save'\)[\s\S]*?this\.saveGame\(\);/);
+  assert.match(gameSrc, /this\._lastSaveStatus = `Saved \$\{new Date\(\)\.toLocaleTimeString\(\)\}`/);
+  assert.match(gameSrc, /this\._updatePauseSaveStatus\(this\._lastSaveStatus\)/);
+  assert.match(gameSrc, /getElementById\('btn-pause-quit'\)[\s\S]*?this\.quitToTitle\(\)/);
+  const quitBody = gameSrc.match(/  quitToTitle\(\) \{([\s\S]*?)\n  \}/)?.[1] || '';
+  assert.ok(quitBody, 'quitToTitle exists');
+  assert.match(quitBody, /this\.saveGame\(\{ quiet: true \}\)/);
+  assert.match(quitBody, /this\.setInventoryOpen\(false\)/);
+  assert.match(quitBody, /this\._closeChest\(\)/);
+  assert.match(quitBody, /this\._closeFurnace\(\)/);
+  assert.match(quitBody, /this\.input\.clearTransient\?\.\(\)/);
+  assert.match(quitBody, /this\.paused = false/);
+  assert.match(quitBody, /this\.started = false/);
+  assert.match(quitBody, /this\.input\.setCaptureEnabled\?\.\(false\)/);
+  assert.match(quitBody, /document\.exitPointerLock\(\)/);
+  assert.match(quitBody, /getElementById\('pause-screen'\)\?\.classList\.add\('hidden'\)/);
+  assert.match(quitBody, /getElementById\('hud'\)\?\.classList\.add\('hidden'\)/);
+  assert.match(quitBody, /getElementById\('title-screen'\)\?\.classList\.remove\('hidden'\)/);
+  assert.doesNotMatch(quitBody, /clearSaveStorage/);
+  assert.strictEqual(html, publicHtml, 'served HTML copies stay identical');
 });
 
 if (process.exitCode) process.exit(1);

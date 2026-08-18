@@ -743,6 +743,7 @@ export class Game {
     document.getElementById('btn-pause-save')?.addEventListener('click', () => {
       this.saveGame();
     });
+    document.getElementById('btn-pause-quit')?.addEventListener('click', () => this.quitToTitle());
     const sens = document.getElementById('sens-slider');
     if (sens) {
       sens.value = String(sliderFromSensitivity(this.input.sensitivity));
@@ -847,6 +848,7 @@ export class Game {
       }
       const modeEl = document.getElementById('pause-mode');
       if (modeEl) modeEl.textContent = this.modeDef().name;
+      this._updatePauseSaveStatus();
     } else {
       panel?.classList.add('hidden');
       if (!this.player?.inventoryOpen) this.input.uiMode = false;
@@ -856,6 +858,34 @@ export class Game {
       this.input.requestLock?.();
     }
     this._updateClickToPlay?.();
+  }
+
+  _updatePauseSaveStatus(text = this._lastSaveStatus) {
+    const status = document.getElementById('pause-save-status');
+    if (status) status.textContent = text || '';
+  }
+
+  quitToTitle() {
+    if (!this.started) return { ok: false, error: 'not started' };
+    const saveRes = this.saveGame({ quiet: true });
+    this.setInventoryOpen(false);
+    this._closeChest();
+    this._closeFurnace();
+    this.started = false;
+    this.paused = false;
+    if (document.pointerLockElement) document.exitPointerLock();
+    this.input.setCaptureEnabled?.(false);
+    this.input.uiMode = true;
+    this.input.releaseBreak?.();
+    this.input.clearTransient?.();
+    this.input.unbind?.();
+    document.getElementById('pause-screen')?.classList.add('hidden');
+    document.getElementById('hud')?.classList.add('hidden');
+    document.getElementById('title-screen')?.classList.remove('hidden');
+    document.body.classList.remove('game-active');
+    this.hud.refreshContinue?.();
+    this._updateClickToPlay?.();
+    return saveRes;
   }
 
   start(seed = this.seed) {
@@ -886,6 +916,9 @@ export class Game {
    */
   _bootWorld({ seed, freshPlayer = true, saveData = null, notify = '' }) {
     this.seed = seed;
+    document.getElementById('hud')?.classList.remove('hidden');
+    this._lastSaveStatus = '';
+    this._updatePauseSaveStatus('');
     this._resetFishingCast();
     this._boat = null;
     this._syncBoatVisual();
@@ -2045,7 +2078,10 @@ export class Game {
     const res = writeSaveToStorage(json);
     if (res.ok) {
       this._lastSaveStatus = `Saved ${new Date().toLocaleTimeString()}`;
-      if (!quiet) this.player.notify('Game saved.', 2);
+      if (!quiet) {
+        this._updatePauseSaveStatus(this._lastSaveStatus);
+        this.player.notify('Game saved.', 2);
+      }
       this.audio.ui();
       this.hud.refreshContinue?.();
     } else if (!quiet) {
