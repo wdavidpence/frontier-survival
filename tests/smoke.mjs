@@ -4608,7 +4608,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.13.0'), 'HTML must expose v1.13.0');
+  assert.ok(html.includes('v1.13.1'), 'HTML must expose v1.13.1');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -4790,6 +4790,20 @@ test('pause save menu wires confirmation and quit-to-title reset', () => {
   assert.match(quitBody, /getElementById\('title-screen'\)\?\.classList\.remove\('hidden'\)/);
   assert.doesNotMatch(quitBody, /clearSaveStorage/);
   assert.strictEqual(html, publicHtml, 'served HTML copies stay identical');
+});
+
+test('held item catalog uses authored family geometry at the camera seam', () => {
+  const gameSrc = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  const geomSrc = readFileSync(new URL('../js/held-item-geometry.js', import.meta.url), 'utf8');
+  assert.match(gameSrc, /buildHeldItemGeometry/);
+  assert.match(gameSrc, /heldFamilyForProps/);
+  assert.match(gameSrc, /this\.camera\.add\(this\._heldItemView\)/);
+  assert.match(gameSrc, /this\._updateHeldItemView\(\)/);
+  assert.match(geomSrc, /export function buildHeldItemGeometry/);
+  for (const family of ['pick', 'axe', 'weapon', 'bow']) assert.match(geomSrc, new RegExp(`['"]${family}['"]`));
+  assert.match(geomSrc, /CylinderGeometry/);
+  assert.match(geomSrc, /ConeGeometry|TorusGeometry/);
+  assert.match(geomSrc, /authoredGeometry/);
 });
 
 if (process.exitCode) process.exit(1);

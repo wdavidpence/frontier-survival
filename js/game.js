@@ -71,6 +71,7 @@ import { createBlockAtlas } from './atlas.js?v=298';
 import { BreakFX, WeatherFX } from './fx.js?v=246';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
+import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=2';
 import { heightAt } from './gen.js?v=288';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=11';
 import {
@@ -271,6 +272,7 @@ export class Game {
     this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 200);
     /** P2 camera for local split-screen (active when coopMode). */
     this.camera2 = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 200);
+    this.scene.add(this.camera, this.camera2);
     this._p2Yaw = 0;
     this._p2Pitch = 0;
     this._p2Offset = new THREE.Vector3(1.6, 0, 0);
@@ -359,6 +361,8 @@ export class Game {
     this._fishLine = null;
     this._fishRipple = null;
     this._fishRodView = null;
+    this._heldItemView = null;
+    this._heldItemKey = '';
     this._fishSchoolMeshes = [];
     this._boat = null;
     this._boatMesh = null;
@@ -421,6 +425,7 @@ export class Game {
     this._outline.visible = false;
     this.scene.add(this._outline);
     this._initFishingVisuals();
+    this._updateHeldItemView();
     this._initBoatVisuals();
 
     this._onResize = () => this.resize();
@@ -1591,6 +1596,28 @@ export class Game {
     this._resetFishingCast();
   }
 
+  _updateHeldItemView() {
+    const heldId = this.player?.heldId?.();
+    const props = heldId != null ? propsOf(heldId) : null;
+    const family = heldFamilyForProps(props);
+    const active = !!(this.started && this.player && !this.player.inventoryOpen && family);
+    if (!active) {
+      if (this._heldItemView) this._heldItemView.visible = false;
+      return;
+    }
+    const key = `${heldId}:${family}:${JSON.stringify(props?.color || [])}`;
+    if (key !== this._heldItemKey) {
+      if (this._heldItemView) this.camera.remove(this._heldItemView);
+      this._heldItemView = buildHeldItemGeometry(THREE, family, props?.color);
+      this._heldItemView.position.set(0.5, -0.5, -0.82);
+      this._heldItemView.rotation.set(-0.3, 0.14, -0.34);
+      this._heldItemView.scale.setScalar(0.82);
+      this.camera.add(this._heldItemView);
+      this._heldItemKey = key;
+    }
+    this._heldItemView.visible = true;
+  }
+
   _initFishSchoolVisuals() {
     const colors = [0xff8a42, 0x5dd7ff, 0xffd14e, 0xf26b8f, 0x8bf06a];
     for (let i = 0; i < FISH_SCHOOL_COUNT; i++) {
@@ -1814,6 +1841,7 @@ export class Game {
 
   _updateFishingVisual(dt = 0) {
     this._fishClock += Math.max(0, Number(dt) || 0);
+    this._updateHeldItemView();
     this._updateFishingRodView();
     this._updateFishSchoolVisual();
     const active = this.started && this._fishState?.phase !== 'ready' && this._fishTarget && this.player;
