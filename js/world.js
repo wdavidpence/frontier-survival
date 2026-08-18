@@ -5,6 +5,7 @@ import { biomeAt, BIOME } from './biomes.js?v=246';
 import { tileForBlock } from './atlas-core.js?v=285';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=246';
 import { buildMushroomGeometry } from './mushroom-geometry.js?v=2';
+import { buildTorchGeometry } from './torch-geometry.js?v=1';
 import {
   terrainVisibilityPlan,
   chunkDetailTier,
@@ -1452,10 +1453,13 @@ export class World {
       sizeY: WORLD_HEIGHT,
       sizeZ: CHUNK_SIZE,
       waterId: BLOCK.WATER,
-      skipBlock: id => id === BLOCK.MUSHROOM || PLANT_FORM.has(id),
+      // Authored props are appended below so small objects do not inherit the
+      // six-face cube treatment used by full blocks.
+      skipBlock: id => id === BLOCK.MUSHROOM || id === BLOCK.TORCH || PLANT_FORM.has(id),
     });
     const arrays = quadsToArrays(quads);
     const mushrooms = [];
+    const torches = [];
     const plants = [];
     for (let lz = 0; lz < CHUNK_SIZE; lz++) {
       for (let ly = 0; ly < WORLD_HEIGHT; ly++) {
@@ -1463,6 +1467,8 @@ export class World {
           const id = data[this._idx(lx, ly, lz)];
           if (id === BLOCK.MUSHROOM) {
             if (mushrooms.length < PLANT_BUDGET) mushrooms.push({ x: baseX + lx, y: ly, z: baseZ + lz });
+          } else if (id === BLOCK.TORCH) {
+            if (torches.length < PLANT_BUDGET) torches.push({ x: baseX + lx, y: ly, z: baseZ + lz });
           } else if (PLANT_FORM.has(id) && plants.length < PLANT_BUDGET) {
             plants.push({ x: baseX + lx, y: ly, z: baseZ + lz, id });
           }
@@ -1475,6 +1481,18 @@ export class World {
       appendGeometryPart(
         arrays,
         buildMushroomGeometry(mushrooms, tileForBlock(BLOCK.MUSHROOM), getColor(BLOCK.MUSHROOM)),
+      );
+    }
+    if (torches.length) {
+      appendGeometryPart(
+        arrays,
+        buildTorchGeometry(
+          torches,
+          tileForBlock(BLOCK.LOG, 'side'),
+          tileForBlock(BLOCK.TORCH),
+          getColor(BLOCK.TORCH),
+          this.seed,
+        ),
       );
     }
     if (understory.length) {

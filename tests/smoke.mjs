@@ -253,6 +253,7 @@ import {
 import { ambientMix } from '../js/audio.js';
 import { greedyMeshChunk, quadsToArrays, countNaiveFaces } from '../js/mesh-greedy.js';
 import { buildMushroomGeometry } from '../js/mushroom-geometry.js';
+import { buildTorchGeometry } from '../js/torch-geometry.js';
 import {
   buildSavePayload,
   parseSavePayload,
@@ -296,7 +297,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=420/);
+  assert.match(gameSource, /world\.js\?v=421/);
 });
 
 test('terrain visibility plan extends fog and proxy beyond full mesh', () => {
@@ -834,6 +835,40 @@ test('mushroom geometry is bounded, opaque, and has stem plus cap depth', () => 
   const uvPairs = new Set(Array.from({ length: geometry.uvs.length / 2 }, (_, i) => geometry.uvs.slice(i * 2, i * 2 + 2).join(',')));
   assert.deepEqual([...uvPairs].sort(), ['0.5,0.24', '0.5,0.75']);
 });
+
+test('torch geometry is centered, deterministic, and uses authored shaft/flame materials', () => {
+  const worldSource = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
+  const geometry = buildTorchGeometry(
+    [{ x: 4, y: 7, z: -2 }],
+    TILE.LOG_SIDE,
+    TILE.TORCH,
+    [1, 0.75, 0.25],
+    1884808540,
+  );
+  const repeat = buildTorchGeometry(
+    [{ x: 4, y: 7, z: -2 }],
+    TILE.LOG_SIDE,
+    TILE.TORCH,
+    [1, 0.75, 0.25],
+    1884808540,
+  );
+  const xs = geometry.positions.filter((_, i) => i % 3 === 0);
+  const ys = geometry.positions.filter((_, i) => i % 3 === 1);
+  const zs = geometry.positions.filter((_, i) => i % 3 === 2);
+  assert.ok(Math.min(...xs) > 4.3 && Math.max(...xs) < 4.7, 'shaft/flame stay centered in the cell');
+  assert.ok(Math.min(...zs) > -1.7 && Math.max(...zs) < -1.3, 'prop stays inside its voxel footprint');
+  assert.ok(Math.min(...ys) >= 7 && Math.max(...ys) <= 8, 'torch stays within one voxel height');
+  assert.ok(Math.max(...ys) - Math.min(...ys) > 0.8, 'shaft and flame have visible height');
+  assert.ok(Math.max(...xs) - Math.min(...xs) > 0.1, 'shaft/flame have authored depth');
+  assert.deepEqual(geometry.positions, repeat.positions, 'same cell and seed rebuild identically');
+  assert.deepEqual([...new Set(geometry.tiles)].sort((a, b) => a - b), [TILE.LOG_SIDE, TILE.TORCH]);
+  assert.ok(geometry.indices.length > 0 && geometry.colors.every((value, i) => i % 4 !== 3 || value === 1));
+  assert.match(worldSource, /skipBlock: id => id === BLOCK\.MUSHROOM \|\| id === BLOCK\.TORCH/);
+  assert.match(worldSource, /buildTorchGeometry\(/);
+  assert.strictEqual(tileForBlock(BLOCK.LOG, 'side'), TILE.LOG_SIDE);
+  assert.strictEqual(tileForBlock(BLOCK.LOG, 'top'), TILE.LOG_TOP);
+});
+
 
 test('save roundtrip preserves seed inventory edits', () => {
   const state = {
@@ -4457,7 +4492,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.95'), 'HTML must expose v1.12.95');
+  assert.ok(html.includes('v1.12.96'), 'HTML must expose v1.12.96');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
