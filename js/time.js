@@ -8,6 +8,13 @@ export function migrateDayLengthSec(value) {
   return dayLengthSec === LEGACY_DEFAULT_DAY_LENGTH_SEC ? DEFAULT_DAY_LENGTH_SEC : dayLengthSec;
 }
 
+/** Snow is a cold-climate event, never a tropical/desert weather result. */
+export function snowAllowed({ biome = null, altitude = null } = {}) {
+  if (biome == null && !Number.isFinite(altitude)) return true;
+  if (biome === 'tropical' || biome === 'desert' || biome === 'shore' || biome === 'ocean') return false;
+  return biome === 'tundra' || (Number.isFinite(altitude) && altitude >= 32);
+}
+
 export class GameTime {
   /**
    * @param {object} opts
@@ -34,14 +41,14 @@ export class GameTime {
     return p > 0.55 && p < 0.95;
   }
 
-  tick(dt) {
+  tick(dt, climate = {}) {
     this.elapsed += dt;
     this.weatherTimer -= dt;
     if (this.weatherTimer <= 0) {
       const r = Math.random();
       if (r < 0.7) this.weather = 'clear';
       else if (r < 0.9) this.weather = 'rain';
-      else this.weather = 'snow';
+      else this.weather = snowAllowed(climate) ? 'snow' : 'rain';
       this.weatherTimer = 60 + Math.random() * 120;
     }
   }

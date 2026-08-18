@@ -12,7 +12,7 @@ import { alligatorScuteRidge, alligatorJaw, alligatorLayout } from '../js/fauna-
 import { layoutWolf, layoutChicken } from '../js/animal-visuals.js';
 import { getPlayMode, DEFAULT_SETTINGS, parseSettings, serializeSettings, SETTINGS_KEY, sensitivityFromSlider, sliderFromSensitivity, writeSettings, readSettings } from '../js/settings.js';
 import { MODES, getMode, scalePredatorDamage, isValidMode, MODE_ORDER } from '../js/modes.js';
-import { GameTime, DEFAULT_DAY_LENGTH_SEC, LEGACY_DEFAULT_DAY_LENGTH_SEC } from '../js/time.js';
+import { GameTime, DEFAULT_DAY_LENGTH_SEC, LEGACY_DEFAULT_DAY_LENGTH_SEC, snowAllowed } from '../js/time.js';
 import { clonePlayer, cloneSurvivalState, serializeCoopGameState } from '../js/coop-state.js';
 import {
   stairShape,
@@ -265,6 +265,8 @@ import {
   SAVE_VERSION,
 } from '../js/save.js';
 
+const fsText = (name) => readFileSync(new URL(`../${name}`, import.meta.url), 'utf8');
+
 let passed = 0;
 function test(name, fn) {
   try {
@@ -297,7 +299,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=422/);
+  assert.match(gameSource, /world\.js\?v=423/);
 });
 
 test('terrain visibility plan extends fog and proxy beyond full mesh', () => {
@@ -419,6 +421,32 @@ test('heightAt finite', () => {
   const h = heightAt(10, -20, 42);
   assert.ok(Number.isFinite(h));
   assert.ok(h > 0 && h < 48);
+});
+
+test('mushroom dressing is deterministically halved in sync and worker paths', () => {
+  const gen = fsText('js/gen.js');
+  const worker = fsText('js/chunk-worker.js');
+  assert.match(gen, /roll > 0\.9875/);
+  assert.match(worker, /roll > 0\.9875/);
+  assert.doesNotMatch(gen, /roll > 0\.975/);
+  assert.doesNotMatch(worker, /roll > 0\.975/);
+  let baseline = 0;
+  let reduced = 0;
+  for (let i = 0; i < 10000; i++) {
+    const roll = hash2(i * 29 + 1884808540 * 7, i * 31 + 1884808540 * 11);
+    if (roll > 0.975) baseline++;
+    if (roll > 0.9875) reduced++;
+  }
+  assert.ok(reduced > 0 && reduced < baseline && reduced / baseline > 0.35 && reduced / baseline < 0.65);
+});
+
+test('snow weather is climate-correct and Game passes context', () => {
+  assert.strictEqual(snowAllowed({ biome: 'tropical', altitude: 40 }), false);
+  assert.strictEqual(snowAllowed({ biome: 'desert', altitude: 40 }), false);
+  assert.strictEqual(snowAllowed({ biome: 'tundra', altitude: 20 }), true);
+  assert.strictEqual(snowAllowed({ biome: 'forest', altitude: 32 }), true);
+  assert.strictEqual(snowAllowed({ biome: 'forest', altitude: 20 }), false);
+  assert.match(fsText('js/game.js'), /this\.time\.tick\(dt, \{ biome: climateBiome, altitude: this\.player\.position\.y \}\)/);
 });
 
 test('fixed seed tropical field is water-dominant with bounded relief', () => {
@@ -4513,7 +4541,7 @@ test('fauna-parts/fox-tail-tip foxTailLayout tip positioned at end', () => {
 });
 
 test('forest floor detail is deterministic and biome-gated', () => {
-  assert.equal(forestFloorDetail(0, 29, 7, 'forest', 25, BLOCK.GRASS, BLOCK.AIR), 'mushroom');
+  assert.equal(forestFloorDetail(0, 29, 7, 'forest', 25, BLOCK.GRASS, BLOCK.AIR), 'roots');
   assert.equal(forestFloorDetail(0, 21, 7, 'forest', 25, BLOCK.GRASS, BLOCK.AIR), 'roots');
   assert.equal(forestFloorDetail(0, 30, 7, 'forest', 25, BLOCK.GRASS, BLOCK.AIR), 'sticks');
   assert.equal(forestFloorDetail(0, 0, 7, 'forest', 25, BLOCK.GRASS, BLOCK.AIR), 'damp-soil');
@@ -4528,8 +4556,6 @@ test('forest floor blocks have atlas tiles and expected solidity', () => {
   assert.equal(tileForBlock(BLOCK.MUSHROOM), TILE.MUSHROOM);
   assert.equal(BLOCK.ROOTS < BLOCK.MUSHROOM, true);
 });
-
-const fsText = (name) => readFileSync(new URL(`../${name}`, import.meta.url), 'utf8');
 
 test('forest understory correction reaches the exact tropical starter route', () => {
   const world = fsText('js/world.js');
@@ -4547,7 +4573,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.97'), 'HTML must expose v1.12.97');
+  assert.ok(html.includes('v1.12.98'), 'HTML must expose v1.12.98');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

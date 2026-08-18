@@ -59,7 +59,7 @@ export function forestFloorDetail(x, z, seed, biome, height, surfaceId, aboveId)
   if (!['forest', 'tropical', 'shore'].includes(biome) || height <= GEN_SEA_LEVEL + 1 || aboveId !== 0) return null;
   const roll = hash2(x * 29 + seed * 7, z * 31 + seed * 11);
   if (surfaceId !== 1 && surfaceId !== 2 && surfaceId !== 4) return null;
-  if (roll > 0.975) return 'mushroom';
+  if (roll > 0.9875) return 'mushroom';
   if (roll > 0.93) return 'roots';
   if (roll > 0.84) return 'sticks';
   if (roll > 0.74) return 'damp-soil';

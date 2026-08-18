@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT } from './world.js?v=422';
+import { World, WORLD_HEIGHT } from './world.js?v=423';
 import { Player } from './player.js?v=238';
 import { Input } from './input.js?v=412';
-import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=223';
+import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
 import { AudioBus } from './audio.js?v=220';
 import {
   DEFAULT_SURVIVAL,
@@ -64,13 +64,13 @@ import {
   recipeProgress,
   nextProgressionRecipe,
 } from './crafting.js?v=416';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=251';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
 import { createBlockAtlas } from './atlas.js?v=298';
 import { BreakFX, WeatherFX } from './fx.js?v=246';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
-import { heightAt } from './gen.js?v=287';
+import { heightAt } from './gen.js?v=288';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=11';
 import {
   equipmentWarmth,
@@ -112,7 +112,7 @@ import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=220';
 import { wearTool, durabilityRatio } from './durability.js?v=222';
 import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=220';
 import { tickLogic, COMPONENT } from './logic.js?v=220';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=247';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=248';
 import {
   chestKey,
   getChestSlots,
@@ -2260,8 +2260,10 @@ export class Game {
       this.saveGame();
     }
 
-    // survival keeps ticking even in inventory (you're still cold/hungry)
-    this.time.tick(dt);
+    // Survival keeps ticking even in inventory (you're still cold/hungry).
+    // Feed climate context so snow cannot appear in tropical/desert regions.
+    const climateBiome = biomeAt(this.player.position.x, this.player.position.z, this.seed);
+    this.time.tick(dt, { biome: climateBiome, altitude: this.player.position.y });
     this._crossHitT = Math.max(0, this._crossHitT - dt);
     this._actionCueT = Math.max(0, this._actionCueT - dt);
     this._bowCd = Math.max(0, this._bowCd - dt);
