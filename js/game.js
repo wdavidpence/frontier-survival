@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { World, WORLD_HEIGHT } from './world.js?v=423';
-import { Player } from './player.js?v=238';
+import { Player } from './player.js?v=239';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
 import { AudioBus } from './audio.js?v=220';
@@ -21,7 +21,7 @@ import {
   mineMultiplier,
   dropForBlock,
 } from './items.js?v=248';
-import { iconDataUriForItem } from './item-icons.js?v=2';
+import { iconDataUriForItem } from './item-icons.js?v=3';
 import { resolveBlockDrop, harvestDurationForBlock, workDurationForBlock } from './mine-tier.js?v=223';
 import {
   FURNACE,
@@ -54,7 +54,8 @@ import {
   createStarterInventory,
   emptySlots,
   splitStack,
-} from './inventory.js?v=220';
+  swapSlots,
+} from './inventory.js?v=221';
 import {
   visibleRecipes,
   craftRecipe,
@@ -63,7 +64,7 @@ import {
   ingredientSummary,
   recipeProgress,
   nextProgressionRecipe,
-} from './crafting.js?v=416';
+} from './crafting.js?v=417';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
 import { createBlockAtlas } from './atlas.js?v=298';
@@ -171,8 +172,12 @@ function setItemIcon(element, itemId, name, color, className) {
     element.appendChild(icon);
   }
   icon.className = `slot-icon ${className}`;
-  icon.alt = '';
-  icon.setAttribute('aria-hidden', 'true');
+  icon.alt = name;
+  icon.title = name;
+  icon.dataset.itemId = String(itemId);
+  icon.dataset.itemName = name;
+  icon.dataset.itemColor = JSON.stringify(color);
+  icon.removeAttribute('aria-hidden');
   const key = `${itemId}|${name}|${JSON.stringify(color)}`;
   if (icon.dataset.iconKey !== key) {
     icon.src = iconDataUriForItem(itemId, name, color);
@@ -553,6 +558,64 @@ export class Game {
         }
       }
     });
+    this._bindInventoryDragUi(panel);
+  }
+
+  _bindInventoryDragUi(panel) {
+    const roots = [panel, document.getElementById('hotbar'), document.getElementById('hotbar-p2')].filter(Boolean);
+    for (const root of roots) {
+      root.addEventListener('dragstart', (e) => {
+        const slot = e.target?.closest?.('[data-slot]');
+        if (!slot || !root.contains(slot)) return;
+        const owner = root.id === 'hotbar' ? 'p1' : root.id === 'hotbar-p2' ? 'p2' : (this._invOwner || 'p1');
+        const pl = owner === 'p2' ? this.player2 : this.player;
+        const index = Number(slot.dataset.slot);
+        if (!pl || !Number.isInteger(index) || !pl.slots[index]?.id || pl.slots[index].count <= 0) {
+          e.preventDefault();
+          return;
+        }
+        const dataTransfer = e.dataTransfer;
+        if (!dataTransfer) return;
+        dataTransfer.effectAllowed = 'move';
+        dataTransfer.setData('text/plain', `frontier-inventory:${owner}:${index}`);
+        slot.classList.add('dragging');
+      });
+      root.addEventListener('dragover', (e) => {
+        const slot = e.target?.closest?.('[data-slot]');
+        if (!slot || !root.contains(slot)) return;
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      });
+      root.addEventListener('drop', (e) => this._dropInventorySlot(e, root));
+      root.addEventListener('dragend', (e) => {
+        e.target?.closest?.('[data-slot]')?.classList.remove('dragging');
+      });
+    }
+  }
+
+  _dropInventorySlot(e, root) {
+    const target = e.target?.closest?.('[data-slot]');
+    if (!target || !root.contains(target)) return;
+    const dataTransfer = e.dataTransfer;
+    const payload = dataTransfer?.getData('text/plain') || '';
+    const match = payload.match(/^frontier-inventory:(p1|p2):(\d+)$/);
+    if (!match) return;
+    const owner = root.id === 'hotbar' ? 'p1' : root.id === 'hotbar-p2' ? 'p2' : (this._invOwner || 'p1');
+    if (match[1] !== owner) return;
+    const pl = owner === 'p2' ? this.player2 : this.player;
+    const source = Number(match[2]);
+    const destination = Number(target.dataset.slot);
+    if (!pl || !Number.isInteger(destination)) return;
+    e.preventDefault();
+    const result = swapSlots(pl.slots, source, destination);
+    if (!result.ok) return;
+    pl.slots = result.slots;
+    if (destination < HOTBAR_SIZE) pl.hotbarIndex = destination;
+    this._inventoryAssign = null;
+    pl.notify(`${displayName(pl.slots[destination].id)} moved to ${destination < HOTBAR_SIZE ? `hotbar ${destination + 1}` : 'inventory'}.`);
+    this._invNeedsPaint = true;
+    if (this.player?.inventoryOpen || this.player2?.inventoryOpen) this._paintInventory();
+    this.audio.ui();
   }
 
   _bindFurnaceUi() {
@@ -1864,6 +1927,8 @@ export class Game {
       const el = document.createElement('div');
       el.className = 'inv-slot';
       el.dataset.chest = String(i);
+      el.dataset.slot = String(i);
+      el.draggable = Boolean(s.id != null && s.count > 0);
       if (s.id != null && s.count > 0) {
         const pr = propsOf(s.id);
         const col = pr?.color || [0.5, 0.5, 0.5];
@@ -3938,7 +4003,11 @@ export class Game {
         el.className = 'inv-slot' + (i === pl.hotbarIndex && i < HOTBAR_SIZE ? ' active' : '') +
           (this._inventoryAssign?.owner === this._invOwner && this._inventoryAssign.slot === i ? ' assign-armed' : '');
         el.dataset.slot = String(i);
-        if (i < HOTBAR_SIZE) el.dataset.hot = String(i + 1);
+        if (i < HOTBAR_SIZE) {
+          el.dataset.hot = String(i + 1);
+          el.dataset.hotbar = String(i);
+        }
+        el.draggable = Boolean(s.id != null && s.count > 0);
         if (s.id != null && s.count > 0) {
           const p = propsOf(s.id);
           const col = p?.color || [0.5, 0.5, 0.5];
@@ -4646,6 +4715,9 @@ export class Game {
     document.querySelectorAll('#hotbar .hotbar-slot').forEach((el, i) => {
       el.classList.toggle('active', i === this.player.hotbarIndex);
       const stack = this.player.slots[i];
+      el.dataset.slot = String(i);
+      el.dataset.hotbar = String(i);
+      el.draggable = Boolean(stack?.id != null && stack.count > 0);
       if (stack && stack.id != null && stack.count > 0) {
         const p = propsOf(stack.id);
         const col = p?.color || [0.5, 0.5, 0.5];
@@ -4713,6 +4785,9 @@ export class Game {
       document.querySelectorAll('#hotbar-p2 .hotbar-slot').forEach((el, i) => {
         el.classList.toggle('active', i === p2.hotbarIndex);
         const stack = p2.slots[i];
+        el.dataset.slot = String(i);
+        el.dataset.hotbar = String(i);
+        el.draggable = Boolean(stack?.id != null && stack.count > 0);
         if (stack && stack.id != null && stack.count > 0) {
           const p = propsOf(stack.id);
           const col = p?.color || [0.5, 0.5, 0.5];

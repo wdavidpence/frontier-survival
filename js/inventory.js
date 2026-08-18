@@ -134,6 +134,24 @@ export function cloneSlots(slots) {
   });
 }
 
+/** Swap two inventory stacks without mutating the caller's slots. */
+export function swapSlots(slots, from, to) {
+  const next = cloneSlots(slots);
+  const source = Number(from);
+  const destination = Number(to);
+  if (!Number.isInteger(source) || !Number.isInteger(destination)
+    || source < 0 || destination < 0
+    || source >= next.length || destination >= next.length) {
+    return { ok: false, slots: next, error: 'invalid slot' };
+  }
+  if (source === destination) return { ok: true, slots: next, from: source, to: destination };
+  if (!next[source] || next[source].id == null || next[source].count <= 0) {
+    return { ok: false, slots: next, error: 'empty source' };
+  }
+  [next[source], next[destination]] = [next[destination], next[source]];
+  return { ok: true, slots: next, from: source, to: destination };
+}
+
 export function getHotbarStack(slots, index) {
   if (index < 0 || index >= HOTBAR_SIZE) return { id: null, count: 0 };
   return slots[index] || { id: null, count: 0 };

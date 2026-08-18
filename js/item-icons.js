@@ -117,7 +117,7 @@ function shapeForKind(kind, p) {
 export function iconSvgForItem(itemId, name, color) {
   const kind = iconKindForItem(itemId, name);
   const p = palette(color);
-  const title = escapeXml(`icon-${kind}`);
+  const title = escapeXml(String(name ?? `Item icon (${kind})`));
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="${title}" preserveAspectRatio="xMidYMid meet"><defs><linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${escapeXml(p.light)}"/><stop offset=".48" stop-color="${escapeXml(p.base)}"/><stop offset="1" stop-color="${escapeXml(p.dark)}"/></linearGradient><filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="2" stdDeviation="1.4" flood-color="#000000" flood-opacity=".48"/></filter></defs>${shapeForKind(kind, p)}</svg>`;
 }
 

@@ -225,7 +225,9 @@ import {
   countItems,
   hasIngredients,
   craftWith,
+  swapSlots,
 } from '../js/inventory.js';
+import { iconKindForItem, iconSvgForItem } from '../js/item-icons.js';
 import {
   craftRecipe,
   visibleRecipes,
@@ -628,6 +630,39 @@ test('add and remove items', () => {
   r = removeItems(slots, BLOCK.LOG, 2);
   assert.ok(r.ok);
   assert.strictEqual(countItems(r.slots, BLOCK.LOG), 4);
+});
+
+test('inventory swapSlots clones and swaps full stacks across hotbar boundary', () => {
+  const slots = [
+    { id: ITEM.RATION, count: 2, age: 4 },
+    { id: BLOCK.LOG, count: 7, dur: 3 },
+    { id: null, count: 0 },
+  ];
+  const result = swapSlots(slots, 0, 1);
+  assert.ok(result.ok);
+  assert.deepEqual(result.slots[0], { id: BLOCK.LOG, count: 7, dur: 3 });
+  assert.deepEqual(result.slots[1], { id: ITEM.RATION, count: 2, age: 4 });
+  assert.deepEqual(slots[0], { id: ITEM.RATION, count: 2, age: 4 }, 'input remains immutable');
+  assert.equal(swapSlots(slots, -1, 0).ok, false);
+  assert.equal(swapSlots(slots, 0, 3).ok, false);
+});
+
+test('inventory icon labels and drag/drop source contracts stay wired', () => {
+  const game = fsText('js/game.js');
+  const iconKinds = new Set([
+    iconKindForItem(1, 'Log'),
+    iconKindForItem(2, 'Wood Pickaxe'),
+    iconKindForItem(3, 'Berries'),
+    iconKindForItem(4, 'Water Bucket'),
+  ]);
+  assert.equal(iconKinds.size, 4, 'representative item icons remain visually distinct');
+  assert.match(iconSvgForItem(2, 'Wood Pickaxe', '#b87333'), /aria-label="Wood Pickaxe"/);
+  assert.match(game, /swapSlots\(pl\.slots, source, destination\)/);
+  assert.match(game, /dataTransfer\.setData\(['"]text\/plain['"], `frontier-inventory:/);
+  assert.match(game, /addEventListener\(['"]dragstart['"]|addEventListener\(['"]drop['"]/);
+  assert.match(game, /dataset\.hotbar/);
+  assert.match(game, /draggable = Boolean\(s\.id != null && s\.count > 0\)/);
+  assert.match(game, /dataTransfer\?\.getData\(['"]text\/plain['"]\)/);
 });
 
 test('craft planks from log', () => {
@@ -4573,7 +4608,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.12.98'), 'HTML must expose v1.12.98');
+  assert.ok(html.includes('v1.12.99'), 'HTML must expose v1.12.99');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -4704,7 +4739,7 @@ test('procedural item icons reach hotbars, inventory, and chest without dropping
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.match(game, /from ['"]\.\/item-icons\.js\?v=2['"]/);
+  assert.ok(game.includes("from './item-icons.js?v=3'"));
   assert.match(game, /setItemIcon\(el, stack\.id, name, col, ['"]hb-glyph['"]\)/);
   assert.match(game, /setItemIcon\(el, s\.id, name, col, ['"]inv-icon['"]\)/);
   assert.match(game, /_paintChest\(\)[\s\S]*?setItemIcon\(el, s\.id, name, col, ['"]inv-icon['"]\)/);
