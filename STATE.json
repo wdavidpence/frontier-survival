@@ -11,11 +11,11 @@
     {"id":"water-shore","status":"accepted","detail":"atlas palette plus authoritative BLOCK.WATER tint visibly improve fixed-seed ordinary coast frame; residual wave repetition remains open"},
     {"id":"expedition-interaction","status":"accepted","detail":"v1.13.3 cast, bite, catch, and miss pass real F-input browser proof at fixed seed; shore target is finite and terrain-safe"},
     {"id":"hud-polish","status":"accepted","detail":"v1.13.4 exploration-mode presentation quiets center/right HUD while preserving survival, hotbar, objective, critical prompts, and controls"},
-    {"id":"release","status":"in_progress","detail":"v1.13.4 local candidate accepted; parity/static gates, commit, push, tag, and live verification remain"}
+    {"id":"release","status":"accepted","detail":"v1.13.4 commit dc570fd pushed, tag present, and live Pages passed Start/runtime and fixed-seed visual HUD proof"}
   ],
   "last_test_report": {"status":"v1.13.4_local_candidate_accepted","smoke_pass_lines":416,"smoke_fail_lines":0,"runtime":"started=true; title hidden; errors=[]; body=exploration-mode","visual":"center/right HUD materially quieter at fixed seed 1884808540; survival/hotbar/objective readable","worktree":"/mnt/c/Users/wdavi/Projects/FS-hud-v1133-20260819"},
-  "last_commit": "83132af4c6cda4459701f024913e554820fcae7d",
-  "next_action": "Commit and push v1.13.4, verify live Pages, then decide whether the next sprint should target water depth/shore detail or held-item refinement.",
+  "last_commit": "dc570fd6bec882ae088d767b410c4728596f2d0a",
+  "next_action": "Decide whether the next sprint should target water depth/shore detail or held-item refinement; do not repeat a palette-only water pass.",
   "pass_count": 1,
   "judge_review_due": true
 }

@@ -31,4 +31,4 @@ Remaining gaps: the held-item pose/scale was not changed because it was not visi
 
 ## Release state
 
-Local v1.13.4 candidate accepted. Version/cache-bust/parity surfaces are prepared; commit, push, tag, and live Pages verification remain separate gates.
+Commit `dc570fd6bec882ae088d767b410c4728596f2d0a` is pushed to `origin/main`, tag `v1.13.4` is present, and live Pages exposes v1.13.4 with `main.js?v=466`. Live Start/runtime passed at fixed seed `1884808540`, body `exploration-mode` was active, and the live ordinary frame matched the accepted local HUD reduction with no page-owned runtime errors. Live evidence: `/tmp/frontier-v1134-live-final.png`.
