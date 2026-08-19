@@ -9,13 +9,13 @@
   "checklist": [
     {"id":"baseline","status":"verified","detail":"origin/main v1.13.1 clean worktree; smoke baseline green"},
     {"id":"water-shore","status":"accepted","detail":"atlas palette plus authoritative BLOCK.WATER tint visibly improve fixed-seed ordinary coast frame; residual wave repetition remains open"},
-    {"id":"expedition-interaction","status":"pending","detail":"fishing or skiff journey with visible result"},
+    {"id":"expedition-interaction","status":"accepted","detail":"v1.13.3 cast, bite, catch, and miss pass real F-input browser proof at fixed seed; shore target is finite and terrain-safe"},
     {"id":"hud-polish","status":"pending","detail":"reduce exploration obstruction without losing actionable context"},
-    {"id":"release","status":"accepted","detail":"v1.13.2 commit 1740391 pushed and live Pages verified with Start/runtime and fixed-seed visual proof"}
+    {"id":"release","status":"in_progress","detail":"v1.13.3 local candidate accepted; commit, push, tag, and live Pages verification remain"}
   ],
-  "last_test_report": {"status":"local_candidate_accepted","smoke_pass_lines":416,"runtime":"started=true; title hidden; errors=[]","visual":"teal water materially improved at fixed seed 1884808540","worktree":"/mnt/c/Users/wdavi/Projects/FS-coastal-expedition-v1131-20260819"},
-  "last_commit": "1740391ea92ddb0f04ee8cbf3b9429138d961979",
-  "next_action": "Create a clean v1.13.2-based worker worktree for the fishing/skiff expedition payoff; preserve residual water repetition as an open follow-up rather than another blind palette pass.",
+  "last_test_report": {"status":"v1.13.3_local_candidate_accepted","smoke_pass_lines":416,"smoke_fail_lines":0,"runtime":"started=true; title hidden; errors=[]; phase=casting; bobber=true; line=true","visual":"cast/bite/catch/miss accepted at fixed seed 1884808540","worktree":"/mnt/c/Users/wdavi/Projects/FS-coastal-expedition-v1132-20260819"},
+  "last_commit": "8e6fa7b",
+  "next_action": "Commit and push v1.13.3, verify live Pages, then dispatch the HUD/held-item obstruction lane from the clean release baseline.",
   "pass_count": 1,
   "judge_review_due": true
 }

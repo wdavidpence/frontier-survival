@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT } from './world.js?v=424';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=424';
 import { Player } from './player.js?v=239';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
@@ -133,16 +133,17 @@ import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=220';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=220';
 import { palmLeafDrop } from './palm-drops.js?v=2';
 import { createBoat, mountBoat, dismountBoat, stepBoat, buoyancyY, riderPosition, BOAT_CONFIG } from './boat-entity.js?v=1';
-import { FISH_SCHOOL_COUNT, schoolFishPose, schoolVisibility } from './fish-school.js?v=1';
+import { FISH_SCHOOL_COUNT, schoolFishPose, schoolVisibility } from './fish-school.js?v=2';
 import {
   FISHING_CAST_SECONDS,
   FISHING_CAST_TRAVEL_SECONDS,
   FISHING_BITE_SECONDS,
+  FISHING_BITE_FLASH_HZ,
   createFishingState,
   startCast,
   tickFishing,
   rollFishingCatch,
-} from './fishing-cast.js?v=3';
+} from './fishing-cast.js?v=4';
 import {
   ITEM as DEST_ITEM,
   IRON_RAVINE,
@@ -1578,7 +1579,7 @@ export class Game {
     this.camera.add(rod);
 
     const bobberMat = new THREE.MeshBasicMaterial({ color: 0xff6f61 });
-    this._fishBobber = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), bobberMat);
+    this._fishBobber = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 8), bobberMat);
     this._fishBobber.visible = false;
     this.scene.add(this._fishBobber);
 
@@ -1588,7 +1589,7 @@ export class Game {
     this.scene.add(this._fishLine);
 
     const rippleMat = new THREE.MeshBasicMaterial({ color: 0x9fe5f4, transparent: true, opacity: 0.62, side: THREE.DoubleSide });
-    this._fishRipple = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.19, 18), rippleMat);
+    this._fishRipple = new THREE.Mesh(new THREE.RingGeometry(0.16, 0.3, 18), rippleMat);
     this._fishRipple.rotation.x = -Math.PI / 2;
     this._fishRipple.visible = false;
     this.scene.add(this._fishRipple);
@@ -1709,7 +1710,10 @@ export class Game {
       fish.visible = true;
       fish.position.set(pose.x, pose.y, pose.z);
       fish.rotation.y = pose.yaw;
-      fish.scale.setScalar(pose.scale);
+      const pulse = this._fishState.phase === 'bite'
+        ? 1 + Math.max(0, Math.sin(this._fishClock * FISHING_BITE_FLASH_HZ)) * 0.18
+        : 1;
+      fish.scale.setScalar(pose.scale * pulse);
     }
   }
 
@@ -1804,23 +1808,50 @@ export class Game {
   _findFishingTarget() {
     if (!this.world || !this.player) return null;
     const p = this.player.position;
-    for (let dx = -2; dx <= 2; dx++) {
-      for (let dz = -2; dz <= 2; dz++) {
-        for (let y = Math.floor(p.y + 1); y >= Math.max(1, Math.floor(p.y - 2)); y--) {
-          if (this.world.getBlock(p.x + dx, y, p.z + dz) !== BLOCK.WATER) continue;
-          const x = Math.floor(p.x + dx) + 0.5;
-          const z = Math.floor(p.z + dz) + 0.5;
-          return {
-            x,
-            y: y + 0.08,
-            z,
-            biome: biomeAt(p.x, p.z, this.seed),
+    const eye = this.player.eyePosition();
+    const maxRadius = 10;
+    let nearest = null;
+    let nearestDistance = Infinity;
+    const clearCast = (target) => {
+      const dx = target.x - eye.x;
+      const dy = target.y - eye.y;
+      const dz = target.z - eye.z;
+      const steps = Math.ceil(Math.hypot(dx, dy, dz) * 3);
+      for (let i = 1; i < steps; i++) {
+        const t = i / steps;
+        const id = this.world.getBlock(
+          Math.floor(eye.x + dx * t),
+          Math.floor(eye.y + dy * t),
+          Math.floor(eye.z + dz * t),
+        );
+        if (id !== BLOCK.AIR && id !== BLOCK.WATER) return false;
+      }
+      return true;
+    };
+    for (let dx = -maxRadius; dx <= maxRadius; dx++) {
+      for (let dz = -maxRadius; dz <= maxRadius; dz++) {
+        const horizontalDistance = Math.hypot(dx, dz);
+        if (horizontalDistance > maxRadius) continue;
+        const x = Math.floor(p.x + dx) + 0.5;
+        const z = Math.floor(p.z + dz) + 0.5;
+        const chunk = this.world.worldToChunk(x, z);
+        this.world.ensureChunk(chunk.cx, chunk.cz);
+        const topY = Math.min(WORLD_HEIGHT - 2, Math.max(SEA_LEVEL, Math.floor(p.y) + 1));
+        for (let y = topY; y >= 1; y--) {
+          if (this.world.getBlock(x, y, z) !== BLOCK.WATER || this.world.getBlock(x, y + 1, z) !== BLOCK.AIR) continue;
+          const target = { x, y: y + 0.08, z };
+          if (horizontalDistance >= nearestDistance || !clearCast(target)) continue;
+          nearestDistance = horizontalDistance;
+          nearest = {
+            ...target,
+            biome: biomeAt(x, z, this.seed),
             depth: Math.max(0, WORLD_HEIGHT - y),
           };
+          break;
         }
       }
     }
-    return null;
+    return nearest;
   }
 
   _updateFishingRodView() {
@@ -1847,6 +1878,7 @@ export class Game {
     const active = this.started && this._fishState?.phase !== 'ready' && this._fishTarget && this.player;
     if (!active) {
       if (this._fishBobber) this._fishBobber.visible = false;
+      if (this._fishBobber) this._fishBobber.scale.setScalar(1);
       if (this._fishLine) this._fishLine.visible = false;
       if (this._fishRipple) this._fishRipple.visible = false;
       return;
@@ -1863,16 +1895,24 @@ export class Game {
       this._fishBobber.position.lerp(new THREE.Vector3(target.x, target.y, target.z), eased);
       this._fishBobber.position.y += Math.sin(Math.PI * progress) * 2.2;
     } else {
-      const bob = Math.sin(this._fishClock * (bite ? 9 : 4)) * (bite ? 0.16 : 0.045);
+      const bob = bite
+        ? -0.08 + Math.sin(this._fishClock * FISHING_BITE_FLASH_HZ) * 0.14
+        : Math.sin(this._fishClock * 4) * 0.045;
       this._fishBobber.position.set(target.x, target.y + bob, target.z);
     }
     this._fishBobber.visible = true;
     this._fishBobber.material.color.setHex(bite ? 0xffd34e : casting ? 0xffa24a : 0xff6f61);
+    this._fishBobber.scale.setScalar(bite
+      ? 1.15 + Math.max(0, Math.sin(this._fishClock * FISHING_BITE_FLASH_HZ)) * 0.35
+      : 1);
 
     this._fishLine.geometry.setFromPoints([eye, this._fishBobber.position]);
+    this._fishLine.material.color.setHex(bite ? 0xfff3a1 : 0xf4dfb1);
+    this._fishLine.material.opacity = bite ? 1 : 0.82;
     this._fishLine.visible = true;
     this._fishRipple.position.set(target.x, target.y - 0.04, target.z);
-    const rippleScale = 0.85 + Math.sin(this._fishClock * 3) * 0.18 + (bite ? 0.32 : 0);
+    const rippleScale = 0.85 + Math.sin(this._fishClock * 3) * 0.18
+      + (bite ? 0.5 + Math.max(0, Math.sin(this._fishClock * FISHING_BITE_FLASH_HZ)) * 0.35 : 0);
     this._fishRipple.scale.setScalar(rippleScale);
     this._fishRipple.material.opacity = bite ? 0.9 : 0.55;
     this._fishRipple.visible = !casting;
@@ -1890,11 +1930,17 @@ export class Game {
       const add = addItems(this.player.slots, outcome.id, outcome.count);
       this.player.slots = add.slots;
       this.audio.splash?.() || this.audio.ui();
-      this.player.notify(`Caught ${outcome.label} ×${outcome.count}. Cook it at a fire.`, 3);
+      const stored = add.ok;
+      this.player.notify(
+        stored
+          ? `Caught ${outcome.label} ×${outcome.count}. Catch! Cook it at a fire.`
+          : `Caught ${outcome.label} ×${outcome.count}, but your pack is full.`,
+        3.4,
+      );
       this._unlock('first_fish');
     } else {
       this.audio.ui();
-      this.player.notify('The line went slack — nothing caught.', 1.8);
+      this.player.notify('Miss — the line went slack; nothing caught.', 2.2);
     }
     this._updateFishingVisual(0);
     return true;
@@ -1915,7 +1961,7 @@ export class Game {
       this._fishContext = null;
       this._fishCastOrigin = null;
       this._fishCd = 0.45;
-      this.player?.notify('The fish got away.', 1.6);
+      this.player?.notify('Miss — the fish got away.', 2.2);
     }
     this._updateFishingVisual(dt);
   }
@@ -1926,7 +1972,7 @@ export class Game {
       return;
     }
     if (this._fishState.phase === 'waiting') {
-      this.player.notify('The bobber is out — wait for a bite.', 1.5);
+      this.player.notify('Waiting — watch the bobber. Reel when it flashes gold.', 1.8);
       return;
     }
     if (this._fishCd > 0) {
