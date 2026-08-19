@@ -1,0 +1,21 @@
+{
+  "project": "Frontier Survival coastal expedition sprint",
+  "target_description": "Camp to shore to offshore resource to return: improve water/shore readability and deliver one complete fishing or skiff expedition payoff without regressions.",
+  "overall_score": {
+    "visual": "baseline v1.13.1; water/shore is the primary gap",
+    "systems": "fishing and skiff contracts exist; vertical browser proof pending",
+    "product": "incremental release program active"
+  },
+  "checklist": [
+    {"id":"baseline","status":"verified","detail":"origin/main v1.13.1 clean worktree; smoke baseline green"},
+    {"id":"water-shore","status":"accepted","detail":"atlas palette plus authoritative BLOCK.WATER tint visibly improve fixed-seed ordinary coast frame; residual wave repetition remains open"},
+    {"id":"expedition-interaction","status":"pending","detail":"fishing or skiff journey with visible result"},
+    {"id":"hud-polish","status":"pending","detail":"reduce exploration obstruction without losing actionable context"},
+    {"id":"release","status":"in_progress","detail":"v1.13.2 local candidate accepted; commit, push, live verification, and next clean worktree remain"}
+  ],
+  "last_test_report": {"status":"local_candidate_accepted","smoke_pass_lines":416,"runtime":"started=true; title hidden; errors=[]","visual":"teal water materially improved at fixed seed 1884808540","worktree":"/mnt/c/Users/wdavi/Projects/FS-coastal-expedition-v1131-20260819"},
+  "last_commit": "11f85f1e325b9d8b86e9ee11d2048c400f39b603",
+  "next_action": "Commit and push the accepted v1.13.2 checkpoint, verify live Pages, then create a clean v1.13.2-based worker worktree for the fishing/skiff expedition payoff.",
+  "pass_count": 1,
+  "judge_review_due": true
+}

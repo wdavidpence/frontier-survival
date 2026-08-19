@@ -79,7 +79,7 @@ export const BLOCK_PROPS = {
   [BLOCK.DIRT]: { name: 'Dirt', solid: true, transparent: false, hardness: 0.5, color: [0.45, 0.32, 0.2], drops: BLOCK.DIRT },
   [BLOCK.STONE]: { name: 'Stone', solid: true, transparent: false, hardness: 1.5, color: [0.55, 0.55, 0.58], drops: BLOCK.COBBLE },
   [BLOCK.SAND]: { name: 'Sand', solid: true, transparent: false, hardness: 0.5, color: [0.86, 0.78, 0.55], drops: BLOCK.SAND },
-  [BLOCK.WATER]: { name: 'Water', solid: false, transparent: true, liquid: true, hardness: 100, color: [0.15, 0.35, 0.75], replaceable: true },
+  [BLOCK.WATER]: { name: 'Water', solid: false, transparent: true, liquid: true, hardness: 100, color: [0.28, 0.62, 0.7], replaceable: true },
   [BLOCK.LOG]: { name: 'Log', solid: true, transparent: false, hardness: 1.0, color: [0.4, 0.28, 0.14], topColor: [0.55, 0.42, 0.25], drops: BLOCK.LOG },
   [BLOCK.LEAVES]: { name: 'Leaves', solid: true, transparent: true, hardness: 0.2, color: [0.25, 0.5, 0.22], drops: BLOCK.LEAVES },
   [BLOCK.PLANKS]: { name: 'Planks', solid: true, transparent: false, hardness: 0.8, color: [0.72, 0.58, 0.35], drops: BLOCK.PLANKS },

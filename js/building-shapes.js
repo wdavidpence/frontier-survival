@@ -1,7 +1,7 @@
 /** Pure building-shape helpers and recipe data for wood stairs/slabs.
  * No game/world/player/main imports — pure data + logic only. */
 
-import { BLOCK } from './blocks.js?v=288';
+import { BLOCK } from './blocks.js?v=289';
 import { ITEM } from './items.js?v=220';
 
 // ── Shape metadata (pure data, no rendering) ────────────────────────

@@ -258,7 +258,9 @@ const PAL_GRASS = { shadow: [70, 96, 52], base: [94, 128, 64], light: [116, 150,
 const PAL_DIRT = { shadow: [74, 52, 34], base: [106, 78, 54], light: [138, 104, 76] };
 const PAL_STONE = { shadow: [88, 90, 96], base: [120, 122, 128], light: [156, 158, 164] };
 const PAL_SAND = { shadow: [186, 160, 110], base: [214, 186, 128], light: [238, 212, 152] };
-const PAL_WATER = { shadow: [24, 82, 142], base: [42, 132, 196], light: [72, 176, 224] };
+// Muted tropical teal keeps the water readable beside warm sand and foliage;
+// the darker trough also gives the atlas material a natural depth cue.
+const PAL_WATER = { shadow: [20, 67, 86], base: [39, 113, 137], light: [88, 163, 169] };
 const PAL_LEAVES = { shadow: [42, 70, 38], base: [60, 104, 46], light: [82, 132, 58] };
 const PAL_PALM = { shadow: [48, 86, 44], base: [70, 122, 56], light: [96, 146, 70] };
 const PAL_SPRUCE = { shadow: [30, 60, 46], base: [46, 88, 66], light: [70, 116, 88] };
@@ -392,9 +394,9 @@ function drawWaterWavelets(ctx, x0, y0) {
   // atlas remains seamless when neighbouring water blocks meet.
   const r = rnd(716);
   const bands = [
-    { color: 'rgba(13, 72, 132, 0.22)', count: 3, w: 4, h: 1, step: 2 },
-    { color: 'rgba(102, 195, 228, 0.22)', count: 3, w: 3, h: 1, step: 2 },
-    { color: 'rgba(219, 243, 250, 0.28)', count: 1, w: 2, h: 1, step: 1 },
+    { color: 'rgba(10, 55, 74, 0.24)', count: 2, w: 4, h: 1, step: 2 },
+    { color: 'rgba(105, 178, 174, 0.18)', count: 2, w: 3, h: 1, step: 2 },
+    { color: 'rgba(218, 241, 233, 0.32)', count: 1, w: 2, h: 1, step: 1 },
   ];
   bands.forEach((band, layer) => {
     ctx.fillStyle = band.color;
@@ -413,30 +415,29 @@ function drawWaterWavelets(ctx, x0, y0) {
 }
 
 function drawWater(ctx, x0, y0) {
-  // Ocean blue ramped through deep / mid / lit stops, with the field stretched
-  // 3x vertically so it bands into wave rolls. Opaque alpha = 255 (no holes in
-  // the opaque pass). Crest colours stay inside the blue family — no neon cyan.
+  // Tropical teal ramped through deep / mid / lit stops, with a broad field that
+  // avoids a tiled grid at the coast. Opaque alpha = 255 (no holes in the pass).
   const field = fillMaterial(ctx, x0, y0, PAL_WATER, {
-    seed: 66, cells: 4, octaves: 3, contrast: 1.15, sy: 3,
+    seed: 66, cells: 4, octaves: 3, contrast: 0.92, sy: 2,
   });
   // Deep troughs between rolls
   scatterFlecks(ctx, x0, y0, {
-    seed: 67, count: 14, color: 'rgba(16, 72, 132, 0.42)',
+    seed: 67, count: 12, color: 'rgba(12, 61, 78, 0.36)',
     field, want: -1, threshold: 0.4, w: 6, h: 2,
   });
   // Lit wave shoulders
   scatterFlecks(ctx, x0, y0, {
-    seed: 68, count: 12, color: 'rgba(92, 190, 228, 0.38)',
+    seed: 68, count: 10, color: 'rgba(96, 174, 173, 0.30)',
     field, want: 1, threshold: 0.58, w: 4, h: 2,
   });
   // Broad layer of sea foam on the crests
   scatterFlecks(ctx, x0, y0, {
-    seed: 69, count: 6, color: 'rgba(205, 235, 248, 0.36)',
+    seed: 69, count: 6, color: 'rgba(198, 229, 221, 0.34)',
     field, want: 1, threshold: 0.72, w: 6, h: 2,
   });
   // Bright layer of fine foam on the highest peaks
   scatterFlecks(ctx, x0, y0, {
-    seed: 70, count: 4, color: 'rgba(235, 250, 255, 0.48)',
+    seed: 70, count: 3, color: 'rgba(230, 247, 238, 0.44)',
     field, want: 1, threshold: 0.80, w: 2, h: 2,
   });
   // A sparse directional pass sits above the broad field: stepped shoulders,
