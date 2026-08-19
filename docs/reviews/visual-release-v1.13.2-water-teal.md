@@ -29,4 +29,4 @@ Remaining gap: the water still has visible repeated stepped wave texture at dist
 
 ## Release state
 
-Local candidate accepted. Commit, remote push, tag, and live Pages verification remain separate gates.
+Commit `1740391ea92ddb0f04ee8cbf3b9429138d961979` is pushed to `origin/main`, tag `v1.13.2` is present, and live Pages exposes v1.13.2 with Start/runtime and fixed-seed visual proof.

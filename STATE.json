@@ -11,11 +11,11 @@
     {"id":"water-shore","status":"accepted","detail":"atlas palette plus authoritative BLOCK.WATER tint visibly improve fixed-seed ordinary coast frame; residual wave repetition remains open"},
     {"id":"expedition-interaction","status":"pending","detail":"fishing or skiff journey with visible result"},
     {"id":"hud-polish","status":"pending","detail":"reduce exploration obstruction without losing actionable context"},
-    {"id":"release","status":"in_progress","detail":"v1.13.2 local candidate accepted; commit, push, live verification, and next clean worktree remain"}
+    {"id":"release","status":"accepted","detail":"v1.13.2 commit 1740391 pushed and live Pages verified with Start/runtime and fixed-seed visual proof"}
   ],
   "last_test_report": {"status":"local_candidate_accepted","smoke_pass_lines":416,"runtime":"started=true; title hidden; errors=[]","visual":"teal water materially improved at fixed seed 1884808540","worktree":"/mnt/c/Users/wdavi/Projects/FS-coastal-expedition-v1131-20260819"},
-  "last_commit": "11f85f1e325b9d8b86e9ee11d2048c400f39b603",
-  "next_action": "Commit and push the accepted v1.13.2 checkpoint, verify live Pages, then create a clean v1.13.2-based worker worktree for the fishing/skiff expedition payoff.",
+  "last_commit": "1740391ea92ddb0f04ee8cbf3b9429138d961979",
+  "next_action": "Create a clean v1.13.2-based worker worktree for the fishing/skiff expedition payoff; preserve residual water repetition as an open follow-up rather than another blind palette pass.",
   "pass_count": 1,
   "judge_review_due": true
 }
