@@ -40,4 +40,4 @@ Remaining gaps: held fishing-rod geometry is still large, and the broad explorat
 
 ## Release state
 
-Local candidate accepted. v1.13.3 version surfaces and cache-bust chain are prepared; commit, push, tag, and live Pages verification remain separate gates.
+Commit `9fdacefa4f606e0388e1ae0e751c737ec7d0af0d` is pushed to `origin/main`, tag `v1.13.3` is present, and live Pages exposes v1.13.3. Live Start/runtime is clean and the real fixed-seed cast → bite → reel proof reached both catch and miss outcomes with no page-owned runtime errors. Clean pinned live evidence: `/tmp/frontier-v1133-live-fishing-clean.png`.
