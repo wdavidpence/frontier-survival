@@ -864,6 +864,7 @@ export class Game {
       this.input.requestLock?.();
     }
     this._updateClickToPlay?.();
+    this._applyHudPresentation();
   }
 
   _updatePauseSaveStatus(text = this._lastSaveStatus) {
@@ -2263,6 +2264,32 @@ export class Game {
     help.classList.toggle('faded', false);
   }
 
+  _applyHudPresentation() {
+    if (!document.getElementById('exploration-hud-style')) {
+      const style = document.createElement('style');
+      style.id = 'exploration-hud-style';
+      style.textContent = [
+        'body.game-active.exploration-mode #status-line{width:min(360px,calc(100vw - 220px));min-height:32px;gap:8px;padding:5px 9px 5px 11px;opacity:.82;background:rgba(7,12,19,.58);box-shadow:0 8px 20px rgba(0,0,0,.16)}',
+        'body.game-active.exploration-mode #status-line .status-detail{display:none}',
+        'body.game-active.exploration-mode #status-line .status-location{font-size:10px;letter-spacing:.06em}',
+        'body.game-active.exploration-mode #status-line .status-compass{min-width:48px;padding-left:7px}',
+        'body.game-active.exploration-mode #destination-hud{top:56px;width:min(240px,26vw);padding:5px 8px;opacity:.74;background:rgba(7,12,19,.52);box-shadow:0 8px 20px rgba(0,0,0,.16);font-size:10px;line-height:1.25}',
+        'body.game-active.exploration-mode #destination-hud [data-destination-next]{margin-top:2px;font-size:9px}',
+        'body.game-active.exploration-mode #message{top:18%;width:min(430px,calc(100vw - 80px));padding:7px 12px 8px;opacity:.78;background:rgba(7,12,19,.58);box-shadow:0 8px 20px rgba(0,0,0,.16);font-size:12px}',
+        'body.game-active.exploration-mode #message:not(:empty)::before{margin-bottom:2px;font-size:7px}',
+        'body.game-active.exploration-mode #message.critical{opacity:1;background:linear-gradient(180deg,rgba(46,29,24,.94),rgba(18,14,15,.9));border-color:rgba(255,184,92,.7);box-shadow:0 12px 30px rgba(0,0,0,.35),0 0 18px rgba(255,146,60,.12);font-size:14px}',
+        'body.game-active.exploration-mode #prompt.critical{border-color:rgba(255,184,92,.82);box-shadow:0 8px 24px rgba(0,0,0,.35),0 0 14px rgba(255,146,60,.14);color:#fff1d2}',
+      ].join('');
+      document.head.appendChild(style);
+    }
+    const exploration = !!(
+      this.started && !this.paused && !this.survival?.dead
+      && !this.player?.inventoryOpen && !this.player2?.inventoryOpen
+      && !this._furnaceOpen && !this._chestOpenKey
+    );
+    document.body.classList.toggle('exploration-mode', exploration);
+  }
+
 
   /** Active bag for inventory UI (P1 or P2). */
 
@@ -2390,6 +2417,7 @@ export class Game {
       }
     }
     this._updateClickToPlay?.();
+    this._applyHudPresentation();
   }
 
   _tryCraft(recipeId) {
@@ -4778,9 +4806,13 @@ export class Game {
       bits.push(this.modeDef().name);
       bits.push(`Seed ${this.seed}`);
       bits.push(this._compassHeading());
+      let biomeName = '';
       try {
         const b = biomeAt(this.player.position.x, this.player.position.z, this.seed);
-        if (b) bits.push(String(b));
+        if (b) {
+          biomeName = String(b);
+          bits.push(biomeName);
+        }
       } catch (_) {}
       if (this.player.heldId() === ITEM.COMPASS || this.player.heldId() === ITEM.MAP) {
         bits.push(`xyz ${this.player.position.x.toFixed(0)},${this.player.position.y.toFixed(0)},${this.player.position.z.toFixed(0)}`);
@@ -4809,7 +4841,17 @@ export class Game {
       if (this._actionCueT > 0 && this._actionCueText) bits.push(`✦ ${this._actionCueText}`);
       if (this.fauna) bits.push(`Wildlife ${this.fauna.living().length}`);
       if (this._lastSaveStatus) bits.push(this._lastSaveStatus);
-      const statusText = bits.join(' · ');
+      const compactBits = [
+        this.modeDef().name,
+        this._compassHeading(),
+        biomeName,
+        `Day ${this.time.dayNumber}`,
+        this.time.isNight() ? 'Night' : 'Day',
+        this.time.weather,
+      ].filter(Boolean);
+      const statusText = document.body.classList.contains('exploration-mode')
+        ? compactBits.join(' · ')
+        : bits.join(' · ');
       if (typeof window !== 'undefined' && typeof window.__FSStatusRender === 'function') {
         window.__FSStatusRender(statusText);
       } else {
@@ -4819,7 +4861,13 @@ export class Game {
 
     const msg = document.getElementById('message');
     if (msg) {
-      msg.textContent = this.player.messageT > 0 ? this.player.message : '';
+      const messageText = this.player.messageT > 0 ? this.player.message : '';
+      msg.textContent = messageText;
+      msg.classList.toggle('critical', /bite|caught|catch|death|died|down|bleed|starv|hypotherm|drown|rod snapped/i.test(messageText));
+    }
+    const prompt = document.getElementById('prompt');
+    if (prompt) {
+      prompt.classList.toggle('critical', /bite|reel|caught|catch|death|died/i.test(prompt.textContent || ''));
     }
 
     document.querySelectorAll('#hotbar .hotbar-slot').forEach((el, i) => {
