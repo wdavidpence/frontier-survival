@@ -1,25 +1,30 @@
-# Frontier Survival — v1.13.9 stepped Rootwalk checkpoint
+# Frontier Survival — v1.14.0 Mangrove Rootwalk cue checkpoint
 
 Updated: 2026-08-20
 
 ## Result
 
-Published v1.13.9 as an incremental stepped Rootwalk checkpoint.
+Published v1.14.0 as an accepted incremental player-facing destination cue.
 
-- Product commit: `38cbb360a4d7ad53446b4ce74ec748aeccd346fd`
-- Tag: `v1.13.9`
+- Product commit: `db8abdfde67b11ae9441149720b760382de03da0`
+- Tag: `v1.14.0`
 - Live: https://wdavidpence.github.io/frontier-survival/
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
 - Canonical checkout remains broad dirty WIP and quarantined.
 
-## Accepted mechanically
+## Accepted slice
 
-- Water-to-mud stepped plank span added to the authored Mangrove destination.
-- Root support and raised lantern finial mirrored in sync/worker generation.
-- Cache chain: `main.js?v=471` → `game.js?v=460` → `world.js?v=429` → `chunk-worker.js?v=290`.
+- Production biome transition now announces `Entered Mangrove Lantern Rootwalk`.
+- Water-side Rootwalk torch beacon remains mirrored in sync/worker generation.
+- Cache chain: `main.js?v=472` → `game.js?v=461` → `world.js?v=430` → `chunk-worker.js?v=290`.
 - Smoke, syntax, diff-check, parity, and import audit pass.
-- Local fixed-seed Start reaches `started=true`, title hidden, `biome=mangrove`, and zero page-owned errors.
+- Fixed-seed running browser reaches `started=true`, `biome=mangrove`, title hidden, and zero page-owned errors.
+- Immediate screenshot shows the cue over readable sky/water/terrain/HUD.
 
-## Visual limitation
+## Honest limitation
 
-The accepted open-water composition remains intact, but the Rootwalk is still not clearly exposed in the wide frame. The next pass must solve landmark visibility through camera-readable placement or a restrained beacon/approach cue, not more hidden geometry.
+The arrival cue is accepted, but the full ordinary mid-distance Rootwalk vista is still open. The biome is not complete at the astonishing Wow/AAA bar.
+
+## Next bounded slice
+
+Use the cue to guide a real ordinary approach and capture the Rootwalk silhouette. Correct placement or approach readability before adding more content.
