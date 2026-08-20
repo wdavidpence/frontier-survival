@@ -1,29 +1,29 @@
-# Frontier Survival — v1.13.7 Lantern Rootwalk checkpoint
+# Frontier Survival — v1.13.8 raised Rootwalk checkpoint
 
 Updated: 2026-08-20
 
 ## Result
 
-Published v1.13.7 as an explicitly incremental Lantern Rootwalk checkpoint on top of the accepted v1.13.6 Mangrove approach composition.
+Published v1.13.8 as an incremental Rootwalk-lantern checkpoint on top of the accepted v1.13.6 Mangrove approach composition.
 
-- Product commit: `1b47164a4de322a1f3e9caa3661c277d4a472280`
-- Tag: `v1.13.7`
+- Product commit: `1d88ee6caae3d1e9920cc6aa4ba68a342abde041`
+- Tag: `v1.13.8`
 - Live: https://wdavidpence.github.io/frontier-survival/
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
 - Canonical checkout remains broad dirty WIP and quarantined.
 
 ## Accepted mechanically
 
-- Authored rootwalk at `(55,58)` with plank span, mangrove posts, canopy, torch, and roots.
+- Raised Mangrove Rootwalk log/torch finial and leaf halo.
 - Sync/worker placement mirrored.
-- Cache chain: `main.js?v=469` → `game.js?v=458` → `world.js?v=427` → `chunk-worker.js?v=288`.
-- Smoke, syntax, diff-check, parity, and import audit all pass.
-- Local fixed-seed runtime reached `biome=mangrove` with zero page-owned errors.
+- Cache chain: `main.js?v=470` → `game.js?v=459` → `world.js?v=428` → `chunk-worker.js?v=289`.
+- Smoke, syntax, diff-check, parity, and import audit pass.
+- Live v1.13.8 Start reaches `started=true`, title hidden, fixed seed `1884808540`, 1280×720 canvas, and zero page-owned errors.
 
 ## Visual limitation
 
-The accepted v1.13.6 open-water approach remains intact. The new Rootwalk has not yet cleared visual acceptance: its direct frame was too close to foreground geometry and the water-side screenshot timed out. Do not call the biome goal complete.
+The open-water approach remains readable, but the Rootwalk itself is not yet visually accepted because the wide frame does not clearly expose the finial and close frames have been occluded or unstable.
 
 ## Next bounded slice
 
-Obtain a stable ordinary player-height water-side Rootwalk frame. Prefer moving the prop slightly into the open approach corridor if it remains hidden; do not stack more props until the existing destination reads clearly.
+Move the Rootwalk one or two cells toward the open-water edge if needed, then obtain one stable ordinary player-height mid-distance frame showing the prop and the accepted water/horizon composition together.
