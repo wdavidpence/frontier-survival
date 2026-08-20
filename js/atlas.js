@@ -11,7 +11,7 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=286';
+} from './atlas-core.js?v=287';
 
 export {
   TILE,
@@ -22,7 +22,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=286';
+} from './atlas-core.js?v=287';
 
 function rnd(seed) {
   let s = seed | 0;
@@ -463,6 +463,23 @@ function drawLogSide(ctx, x0, y0) {
   applyMicroTexture(ctx, x0, y0, 4, 2);
 }
 
+function drawMangroveLogSide(ctx, x0, y0) {
+  const field = fillMaterial(ctx, x0, y0, {
+    shadow: [52, 28, 22], base: [104, 52, 34], light: [154, 82, 48],
+  }, {
+    seed: 778, cells: 4, octaves: 3, contrast: 1.25, sy: 7,
+  });
+  scatterFlecks(ctx, x0, y0, {
+    seed: 779, count: 16, color: 'rgba(34, 22, 18, 0.46)',
+    field, want: -1, threshold: 0.44, w: 2, h: 8,
+  });
+  scatterFlecks(ctx, x0, y0, {
+    seed: 780, count: 12, color: 'rgba(172, 108, 64, 0.28)',
+    field, want: 1, threshold: 0.62, w: 2, h: 4,
+  });
+  applyMicroTexture(ctx, x0, y0, 4, 1);
+}
+
 function drawLogTop(ctx, x0, y0) {
   const field = fillMaterial(ctx, x0, y0, {
     shadow: [142, 108, 70], base: [176, 136, 88], light: [204, 160, 106]
@@ -519,6 +536,12 @@ function drawFoliage(ctx, x0, y0, palette, seed, opts = {}) {
 
 function drawLeaves(ctx, x0, y0) {
   drawFoliage(ctx, x0, y0, PAL_LEAVES, 101, { phase: 1 });
+}
+
+function drawMangroveLeaves(ctx, x0, y0) {
+  drawFoliage(ctx, x0, y0, {
+    shadow: [26, 84, 44], base: [52, 132, 66], light: [92, 178, 88],
+  }, 881, { phase: 3, contrast: 1.25, litAlpha: 0.34 });
 }
 
 function drawPlanks(ctx, x0, y0) {
@@ -1141,6 +1164,8 @@ export function createBlockAtlas() {
   paint(TILE.MUSHROOM, drawMushroom);
   paint(TILE.COPPER_ORE, drawCopperOre);
   paint(TILE.DIAMOND_ORE, drawDiamondOre);
+  paint(TILE.MANGROVE_LOG_SIDE, drawMangroveLogSide);
+  paint(TILE.MANGROVE_LEAVES, drawMangroveLeaves);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = THREE.NearestFilter;

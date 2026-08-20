@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=289';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=290';
 import { heightAt, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt } from './gen.js?v=288';
-import { biomeAt, BIOME } from './biomes.js?v=248';
-import { tileForBlock } from './atlas-core.js?v=286';
+import { biomeAt, BIOME } from './biomes.js?v=249';
+import { tileForBlock } from './atlas-core.js?v=287';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=246';
 import { buildMushroomGeometry } from './mushroom-geometry.js?v=2';
 import { buildTorchGeometry } from './torch-geometry.js?v=1';
@@ -69,7 +69,7 @@ const FOREST_UNDERSTORY_ROLL = 0.70;
 export function collectForestUnderstory({ baseX = 0, baseZ = 0, size = CHUNK_SIZE, seed = 0, getBlock } = {}) {
   if (typeof getBlock !== 'function') return [];
   const instances = [];
-  const accepted = new Set([BIOME.FOREST, BIOME.TROPICAL, BIOME.SHORE]);
+  const accepted = new Set([BIOME.FOREST, BIOME.TROPICAL, BIOME.MANGROVE, BIOME.SHORE]);
   for (let lz = 0; lz < size && instances.length < FOREST_UNDERSTORY_CAP; lz++) {
     for (let lx = 0; lx < size && instances.length < FOREST_UNDERSTORY_CAP; lx++) {
       const x = baseX + lx;
@@ -77,7 +77,7 @@ export function collectForestUnderstory({ baseX = 0, baseZ = 0, size = CHUNK_SIZ
       const h = heightAt(x, z, seed);
       if (h <= SEA_LEVEL + 1 || !accepted.has(biomeAt(x, z, seed))) continue;
       const surface = getBlock(x, h, z);
-      if (surface !== BLOCK.GRASS && surface !== BLOCK.DIRT && surface !== BLOCK.SAND) continue;
+      if (surface !== BLOCK.GRASS && surface !== BLOCK.DIRT && surface !== BLOCK.SAND && surface !== BLOCK.MANGROVE_MUD) continue;
       if (getBlock(x, h + 1, z) !== BLOCK.AIR) continue;
       if (hash2(x * 29 + seed * 7, z * 31 + seed * 11) <= FOREST_UNDERSTORY_ROLL) continue;
       if (instances.some((other) => Math.hypot(other.x - x, other.z - z) < FOREST_UNDERSTORY_SPACING)) continue;
@@ -239,7 +239,7 @@ export function buildPlantGeometry(instances, seed = 0) {
       if (biome === BIOME.SHORE || instance.y <= SEA_LEVEL + 2) form = 'reed';
       else if (biome === BIOME.TROPICAL) form = 'fan';
     }
-    const isTropicalOrShore = biome === BIOME.TROPICAL || biome === BIOME.SHORE;
+    const isTropicalOrShore = biome === BIOME.TROPICAL || biome === BIOME.MANGROVE || biome === BIOME.SHORE;
     const kTipBoost = isTropicalOrShore ? 0.12 : 0;
     const shape = PLANT_SHAPE[form];
     const texel = PLANT_TEXEL[form];
@@ -411,7 +411,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=284';
+    const workerUrl = './js/chunk-worker.js?v=285';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -481,12 +481,14 @@ export class World {
             if (y <= SEA_LEVEL) id = BLOCK.WATER;
             else id = BLOCK.AIR;
           } else if (y === h) {
-            if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN) id = BLOCK.SAND;
+            if (biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
+            else if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
             else if (cliff) id = BLOCK.STONE;
             else id = BLOCK.GRASS;
           } else if (y > h - 4) {
-            if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN) id = BLOCK.SAND;
+            if (biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
+            else if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else if (cliff) id = BLOCK.STONE;
             else id = BLOCK.DIRT;
           } else {
@@ -511,6 +513,7 @@ export class World {
           else if (biome === BIOME.SHORE) treeChance = 0.020; // coastal palms/scrub
           else if (biome === BIOME.TUNDRA) treeChance = 0.012;
           else if (biome === BIOME.TROPICAL) treeChance = 0.014; // trimmed further so the starter island sightline reads clearly
+          else if (biome === BIOME.MANGROVE) treeChance = 0.014; // sparse tidal grove sightlines
           else if (biome === BIOME.OCEAN) treeChance = 0;
           const ruinLandmark = biome === BIOME.TROPICAL && h <= WORLD_HEIGHT - 8
           && ((x % 32) + 32) % 32 === 22
@@ -533,6 +536,8 @@ export class World {
             } else if (biome === BIOME.FOREST && spruceRoll > 0.85) {
               // Forest: ~15% of non-sequoia trees are spruce
               this._placeSpruce(data, lx, h + 1, lz);
+            } else if (biome === BIOME.MANGROVE) {
+              this._placeMangrove(data, lx, h + 1, lz);
             } else if (biome === BIOME.TROPICAL || biome === BIOME.SHORE) {
               this._placePalm(data, lx, h + 1, lz);
             } else {
@@ -541,10 +546,11 @@ export class World {
           }
         }
         this._populateOceanColumn(data, lx, h, lz, x, z, biome);
+        this._populateMangroveColumn(data, lx, h, lz, x, z, biome);
         if (
-          (biome === BIOME.FOREST || biome === BIOME.SHORE || biome === BIOME.TROPICAL) &&
+          (biome === BIOME.FOREST || biome === BIOME.MANGROVE || biome === BIOME.SHORE || biome === BIOME.TROPICAL) &&
           h > SEA_LEVEL + 1 &&
-          (data[this._idx(lx, h, lz)] === BLOCK.GRASS || data[this._idx(lx, h, lz)] === BLOCK.SAND) &&
+          (data[this._idx(lx, h, lz)] === BLOCK.GRASS || data[this._idx(lx, h, lz)] === BLOCK.SAND || data[this._idx(lx, h, lz)] === BLOCK.MANGROVE_MUD) &&
           data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
           hash2(x + 91, z * 3 + (this.seed | 0)) > 0.94
         ) {
@@ -972,13 +978,15 @@ export class World {
             else id = BLOCK.AIR;
           } else if (y === h) {
             // Biome-driven surface block
-            if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN) id = BLOCK.SAND;
+            if (biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
+            else if (biome === BIOME.SHORE || biome === BIOME.DESERT || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
             else if (cliff) id = BLOCK.STONE;
             else id = BLOCK.GRASS; // FOREST default
           } else if (y > h - 4) {
             // Sub-surface follows biome: desert/shore → sand, tundra → dirt, else dirt
-            if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN) id = BLOCK.SAND;
+            if (biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
+            else if (biome === BIOME.DESERT || biome === BIOME.SHORE || biome === BIOME.OCEAN) id = BLOCK.SAND;
             else if (cliff) id = BLOCK.STONE;
             else id = BLOCK.DIRT;
           } else {
@@ -1008,6 +1016,7 @@ export class World {
           else if (biome === BIOME.SHORE) treeChance = 0.020; // coastal palms/scrub
           else if (biome === BIOME.TUNDRA) treeChance = 0.012;
           else if (biome === BIOME.TROPICAL) treeChance = 0.014; // trimmed further so the starter island sightline reads clearly
+          else if (biome === BIOME.MANGROVE) treeChance = 0.014; // sparse tidal grove sightlines
           else if (biome === BIOME.OCEAN) treeChance = 0;
           const ruinLandmark = biome === BIOME.TROPICAL && h <= WORLD_HEIGHT - 8
           && ((x % 32) + 32) % 32 === 22
@@ -1030,6 +1039,8 @@ export class World {
             } else if (biome === BIOME.FOREST && spruceRoll > 0.85) {
               // Forest: ~15% of non-sequoia trees are spruce
               this._placeSpruce(data, lx, h + 1, lz);
+            } else if (biome === BIOME.MANGROVE) {
+              this._placeMangrove(data, lx, h + 1, lz);
             } else if (biome === BIOME.TROPICAL || biome === BIOME.SHORE) {
               this._placePalm(data, lx, h + 1, lz);
             } else {
@@ -1039,10 +1050,11 @@ export class World {
         }
         // berry bushes on grass surface — forest mainly
         this._populateOceanColumn(data, lx, h, lz, x, z, biome);
+        this._populateMangroveColumn(data, lx, h, lz, x, z, biome);
         if (
-          (biome === BIOME.FOREST || biome === BIOME.SHORE || biome === BIOME.TROPICAL) &&
+          (biome === BIOME.FOREST || biome === BIOME.MANGROVE || biome === BIOME.SHORE || biome === BIOME.TROPICAL) &&
           h > SEA_LEVEL + 1 &&
-          (data[this._idx(lx, h, lz)] === BLOCK.GRASS || data[this._idx(lx, h, lz)] === BLOCK.SAND) &&
+          (data[this._idx(lx, h, lz)] === BLOCK.GRASS || data[this._idx(lx, h, lz)] === BLOCK.SAND || data[this._idx(lx, h, lz)] === BLOCK.MANGROVE_MUD) &&
           data[this._idx(lx, h + 1, lz)] === BLOCK.AIR &&
           hash2(x + 91, z * 3 + (this.seed | 0)) > 0.94
         ) {
@@ -1136,6 +1148,15 @@ export class World {
         }
       }
     }
+  }
+
+  /** Flood low mangrove pockets with sparse tidal channels and aquatic accents. */
+  _populateMangroveColumn(data, lx, h, lz, x, z, biome) {
+    if (biome !== BIOME.MANGROVE || h > SEA_LEVEL + 2) return;
+    const channel = hash2(x * 19 + this.seed * 3, z * 23 + this.seed * 5);
+    if (channel < 0.72) return;
+    data[this._idx(lx, h, lz)] = BLOCK.WATER;
+    if (channel > 0.86) data[this._idx(lx, h, lz)] = BLOCK.KELP;
   }
 
   /** Populate shallow ocean shelves with deterministic reefs and underwater plants. */
@@ -1269,6 +1290,34 @@ export class World {
       const ty = top + (distance >= 2 ? -1 : 1);
       this._setAir(data, tx, ty, tz, BLOCK.PALM_LEAVES);
     }
+  }
+
+  /** Place a tidal mangrove: low forked trunk, flared roots, and a bright umbrella canopy. */
+  _placeMangrove(data, lx, y, lz) {
+    const trunkH = 3 + Math.floor(hash2(lx + 121, lz + 137) * 2);
+    const lean = hash2(lx + 127, lz + 131) > 0.5 ? 1 : -1;
+    for (let i = 0; i < trunkH; i++) {
+      const ty = y + i;
+      const ox = i >= trunkH - 2 ? (i - trunkH + 2) * lean : 0;
+      this._setAir(data, lx + ox, ty, lz, BLOCK.MANGROVE_LOG);
+    }
+    // Buttress roots make the wetland silhouette unmistakable at player scale.
+    for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      this._setAir(data, lx + dx, y, lz + dz, BLOCK.ROOTS);
+    }
+    const top = y + trunkH - 1;
+    for (let dy = -1; dy <= 2; dy++) {
+      const radius = dy === 2 ? 1 : 2;
+      for (let dx = -radius; dx <= radius; dx++) {
+        for (let dz = -radius; dz <= radius; dz++) {
+          const dist = Math.abs(dx) + Math.abs(dz);
+          if (dist > radius + 1 || (dy === -1 && dist > 2)) continue;
+          if (dx === 0 && dz === 0 && dy < 0) continue;
+          this._setAir(data, lx + dx, top + dy, lz + dz, BLOCK.MANGROVE_LEAVES);
+        }
+      }
+    }
+    this._setAir(data, lx, top + 3, lz, BLOCK.MANGROVE_LEAVES);
   }
 
   /** Place a massive sequoia — thick trunk, tall, reddish canopy. */

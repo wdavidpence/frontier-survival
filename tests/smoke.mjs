@@ -301,7 +301,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=424/);
+  assert.match(gameSource, /world\.js\?v=425/);
 });
 
 test('terrain visibility plan extends fog and proxy beyond full mesh', () => {
@@ -1558,7 +1558,7 @@ test('biomeAt returns known biome strings', () => {
   for (const b of seen) {
     assert.ok(
       b === 'shore' || b === 'forest' || b === 'desert' || b === 'tundra'
-        || b === 'ocean' || b === 'tropical',
+        || b === 'ocean' || b === 'tropical' || b === 'mangrove',
       `unexpected biome: ${b}`,
     );
   }
@@ -1582,7 +1582,7 @@ test('starter band is tropical/coastal dominant', () => {
 test('biomeAt origin sample', () => {
   // biomeAt(0,0,1) is deterministic — just assert it lands in a valid set
   const b = biomeAt(0, 0, 1);
-  assert.ok(['shore', 'forest', 'desert', 'tundra', 'ocean', 'tropical'].includes(b));
+  assert.ok(['shore', 'forest', 'desert', 'tundra', 'ocean', 'tropical', 'mangrove'].includes(b));
 });
 
 test('biomeAt shore near sea-level seed', () => {
@@ -1618,6 +1618,7 @@ test('biome_temp_table complete mapping', () => {
     { biome: BIOME.DESERT, expected: +8 },
     { biome: BIOME.TUNDRA, expected: -10 },
     { biome: BIOME.SHORE, expected: +2 },
+    { biome: BIOME.MANGROVE, expected: +9 },
     { biome: BIOME.FOREST, expected: 0 },
   ];
   for (const { biome, expected } of table) {
@@ -1635,7 +1636,7 @@ test('biome_temp_table unknown biome returns default 0', () => {
 
 test('biome_temp_table all BIOME constants have entries', () => {
   // Guard against adding a new BIOME constant without an offset entry
-  const knownBiomes = [BIOME.SHORE, BIOME.FOREST, BIOME.DESERT, BIOME.TUNDRA];
+  const knownBiomes = [BIOME.SHORE, BIOME.MANGROVE, BIOME.FOREST, BIOME.DESERT, BIOME.TUNDRA];
   for (const b of knownBiomes) {
     const offset = ambientTempOffset(b);
     assert.ok(
@@ -1719,7 +1720,7 @@ test('tickSurvival ambientTempOffset tundra makes it colder', () => {
 // ── biome → world gen integration ─────────────────────────
 
 test('biomeAt returns valid biome for any coordinate', () => {
-  const valid = new Set(['shore', 'forest', 'desert', 'tundra', 'ocean', 'tropical']);
+  const valid = new Set(['shore', 'forest', 'desert', 'tundra', 'ocean', 'tropical', 'mangrove']);
   for (let x = -30; x <= 30; x += 7) {
     for (let z = -30; z <= 30; z += 7) {
       const b = biomeAt(x, z, 42);
@@ -4592,6 +4593,22 @@ test('forest floor blocks have atlas tiles and expected solidity', () => {
   assert.equal(BLOCK.ROOTS < BLOCK.MUSHROOM, true);
 });
 
+test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
+  const seed = 1884808540;
+  const world = fsText('js/world.js');
+  const worker = fsText('js/chunk-worker.js');
+  assert.equal(biomeAt(55, 58, seed), BIOME.MANGROVE);
+  assert.equal(biomeAt(42, 51, seed), BIOME.TROPICAL, 'Iron Ravine sightline stays tropical');
+  assert.equal(ambientTempOffset(BIOME.MANGROVE), 9);
+  assert.equal(tileForBlock(BLOCK.MANGROVE_LOG), TILE.MANGROVE_LOG_SIDE);
+  assert.equal(tileForBlock(BLOCK.MANGROVE_LEAVES), TILE.MANGROVE_LEAVES);
+  assert.equal(tileForBlock(BLOCK.MANGROVE_MUD, 'top'), TILE.DAMP_SOIL);
+  assert.match(world, /_placeMangrove\(data, lx, h \+ 1, lz\)/);
+  assert.match(worker, /_placeMangrove\(data, idx, lx, h \+ 1, lz\)/);
+  assert.match(world, /_populateMangroveColumn/);
+  assert.match(worker, /populateMangroveColumn/);
+});
+
 test('forest understory correction reaches the exact tropical starter route', () => {
   const world = fsText('js/world.js');
   const seed = 1884808540;
@@ -4600,7 +4617,7 @@ test('forest understory correction reaches the exact tropical starter route', ()
   assert.equal(biomeAt(x, z, seed), BIOME.TROPICAL);
   assert.ok(heightAt(x, z, seed) > 17, 'probe must be above the sea-level gate');
   assert.ok(hash2(x * 29 + seed * 7, z * 31 + seed * 11) > 0.70, 'probe must pass the visual roll');
-  assert.match(world, /new Set\(\[BIOME\.FOREST, BIOME\.TROPICAL, BIOME\.SHORE\]\)/);
+  assert.match(world, /new Set\(\[BIOME\.FOREST, BIOME\.TROPICAL, BIOME\.MANGROVE, BIOME\.SHORE\]\)/);
   assert.match(world, /FOREST_UNDERSTORY_ROLL = 0\.70/);
 });
 
@@ -4608,7 +4625,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.13.4'), 'HTML must expose v1.13.4');
+  assert.ok(html.includes('v1.13.5'), 'HTML must expose v1.13.5');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

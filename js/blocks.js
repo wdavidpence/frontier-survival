@@ -58,6 +58,9 @@ export const BLOCK = {
   MUSHROOM: 55,
   COPPER_ORE: 56,
   DIAMOND_ORE: 57,
+  MANGROVE_LOG: 58,
+  MANGROVE_LEAVES: 59,
+  MANGROVE_MUD: 60,
 };
 
 /** @type {Record<number, {
@@ -134,6 +137,9 @@ export const BLOCK_PROPS = {
   [BLOCK.MUSHROOM]: { name: 'Mushroom', solid: false, transparent: true, hardness: 0.08, color: [0.65, 0.2, 0.16], drops: BLOCK.MUSHROOM, replaceable: true },
   [BLOCK.COPPER_ORE]: { name: 'Copper Ore', solid: true, transparent: false, hardness: 2.2, color: [0.62, 0.38, 0.28], drops: BLOCK.COPPER_ORE },
   [BLOCK.DIAMOND_ORE]: { name: 'Diamond Ore', solid: true, transparent: false, hardness: 3.0, color: [0.38, 0.78, 0.82], drops: BLOCK.DIAMOND_ORE },
+  [BLOCK.MANGROVE_LOG]: { name: 'Mangrove Log', solid: true, transparent: false, hardness: 1.0, color: [0.28, 0.16, 0.10], topColor: [0.46, 0.28, 0.15], drops: BLOCK.MANGROVE_LOG },
+  [BLOCK.MANGROVE_LEAVES]: { name: 'Mangrove Leaves', solid: true, transparent: true, hardness: 0.2, color: [0.12, 0.42, 0.24], drops: BLOCK.MANGROVE_LEAVES },
+  [BLOCK.MANGROVE_MUD]: { name: 'Mangrove Mud', solid: true, transparent: false, hardness: 0.42, color: [0.28, 0.24, 0.15], topColor: [0.36, 0.31, 0.19], drops: BLOCK.MANGROVE_MUD },
 };
 
 export function isSolid(id) {

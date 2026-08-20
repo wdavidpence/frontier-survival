@@ -4,6 +4,7 @@ import { heightAt, fbm, WORLD_SCALE, starterCoastBlend, ARCHIPELAGO_COAST_THRESH
 export const BIOME = {
   OCEAN: 'ocean',
   TROPICAL: 'tropical',
+  MANGROVE: 'mangrove',
   SHORE: 'shore',
   FOREST: 'forest',
   DESERT: 'desert',
@@ -11,6 +12,25 @@ export const BIOME = {
 };
 
 const SEA = 16; // must match World.SEA_LEVEL
+
+/** A warm, tidal wetland pocket that grows out of the tropical coast. */
+export function mangroveAt(x, z, seed = 0) {
+  const h = heightAt(x, z, seed);
+  // Keep the authored Iron Ravine sightline open for the first expedition.
+  if (Math.hypot(x - 42, z - 51) < 8) return false;
+  if (h < SEA || h > SEA + 4 || starterCoastBlend(x, z) <= 0.12) return false;
+  const wet = fbm(
+    x * 0.025 * WORLD_SCALE + seed * 7.3,
+    z * 0.025 * WORLD_SCALE - seed * 4.1,
+    3,
+  );
+  const tide = fbm(
+    x * 0.045 * WORLD_SCALE - seed * 2.7,
+    z * 0.045 * WORLD_SCALE + seed * 5.9,
+    2,
+  );
+  return wet > 0.57 && tide > 0.38;
+}
 
 /**
  * Return biome string for world coordinates (x, z) given seed.
@@ -30,6 +50,7 @@ export function biomeAt(x, z, seed = 0) {
   // Starter island shelf: warm tropical land + wet beach lip (palms, sand, coast first)
   const starter = starterCoastBlend(x, z);
   if (starter > 0.12 && h >= SEA) {
+    if (mangroveAt(x, z, seed)) return BIOME.MANGROVE;
     if (h <= SEA + 1) return BIOME.SHORE;
     return BIOME.TROPICAL;
   }
@@ -69,6 +90,8 @@ export function ambientTempOffset(biome) {
       return +1;
     case BIOME.TROPICAL:
       return +11;
+    case BIOME.MANGROVE:
+      return +9;
     default:
       return 0;
   }

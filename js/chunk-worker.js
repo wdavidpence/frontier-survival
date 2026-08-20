@@ -106,6 +106,7 @@ function biomeAt(x, z, seed = 0) {
   if (h < 16 - 1) return 'ocean';
   const starter = starterCoastBlend(x, z);
   if (starter > 0.12 && h >= 16) {
+    if (mangroveAt(x, z, seed)) return 'mangrove';
     if (h <= 16 + 1) return 'shore';
     return 'tropical';
   }
@@ -119,6 +120,15 @@ function biomeAt(x, z, seed = 0) {
   if (h > 30 && dryness < 0.35) return 'tundra';
   if (dryness > 0.65) return 'desert';
   return 'forest';
+}
+
+function mangroveAt(x, z, seed = 0) {
+  const h = heightAt(x, z, seed);
+  if (Math.hypot(x - 42, z - 51) < 8) return false;
+  if (h < 16 || h > 16 + 4 || starterCoastBlend(x, z) <= 0.12) return false;
+  const wet = fbm(x * 0.025 * WORLD_SCALE + seed * 7.3, z * 0.025 * WORLD_SCALE - seed * 4.1, 3);
+  const tide = fbm(x * 0.045 * WORLD_SCALE - seed * 2.7, z * 0.045 * WORLD_SCALE + seed * 5.9, 2);
+  return wet > 0.57 && tide > 0.38;
 }
 
 function tropicalCliffAt(x, z, seed = 0) {
@@ -191,6 +201,9 @@ const BLOCK = {
   MUSHROOM: 55,
   COPPER_ORE: 56,
   DIAMOND_ORE: 57,
+  MANGROVE_LOG: 58,
+  MANGROVE_LEAVES: 59,
+  MANGROVE_MUD: 60,
 };
 
 const CHUNK_SIZE = 16;
@@ -234,12 +247,14 @@ function generateChunkData(cx, cz, seed) {
         else if (y > h) {
           if (y <= SEA_LEVEL) id = BLOCK.WATER;
         } else if (y === h) {
-          if (biome === 'shore' || biome === 'desert' || biome === 'ocean') id = BLOCK.SAND;
+          if (biome === 'mangrove') id = BLOCK.MANGROVE_MUD;
+          else if (biome === 'shore' || biome === 'desert' || biome === 'ocean') id = BLOCK.SAND;
           else if (biome === 'tundra') id = BLOCK.SNOW;
           else if (cliff) id = BLOCK.STONE;
           else id = BLOCK.GRASS;
         } else if (y > h - 4) {
-          if (biome === 'desert' || biome === 'shore' || biome === 'ocean') id = BLOCK.SAND;
+          if (biome === 'mangrove') id = BLOCK.MANGROVE_MUD;
+          else if (biome === 'desert' || biome === 'shore' || biome === 'ocean') id = BLOCK.SAND;
           else if (cliff) id = BLOCK.STONE;
           else id = BLOCK.DIRT;
         } else {
@@ -266,6 +281,7 @@ function generateChunkData(cx, cz, seed) {
         else if (biome === 'shore') treeChance = 0.028;
         else if (biome === 'tundra') treeChance = 0.012;
         else if (biome === 'tropical') treeChance = 0.014;
+        else if (biome === 'mangrove') treeChance = 0.014;
         const ruinLandmark = biome === 'tropical' && h <= WORLD_HEIGHT - 8
         && ((x % 32) + 32) % 32 === 22
         && ((z % 32) + 32) % 32 === 26;
@@ -276,12 +292,14 @@ function generateChunkData(cx, cz, seed) {
       } else if (forestLandmark) {
         _placeForestMarker(data, idx, lx, h + 1, lz);
       } else if (!forestPocket && th > 1 - treeChance) {
-          if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);
+          if (biome === 'mangrove') _placeMangrove(data, idx, lx, h + 1, lz);
+          else if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);
           else _placeTree(data, idx, lx, h + 1, lz);
         }
       }
 
       populateOceanColumn(data, idx, lx, h, lz, x, z, biome, seed);
+      populateMangroveColumn(data, idx, lx, h, lz, x, z, biome, seed);
 
       // Berry bushes
       if (
@@ -296,9 +314,9 @@ function generateChunkData(cx, cz, seed) {
 
       const surfaceId = data[idx(lx, h, lz)];
       const aboveId = data[idx(lx, h + 1, lz)];
-      if ((biome === 'forest' || biome === 'tropical' || biome === 'shore') && h > SEA_LEVEL + 1 && aboveId === BLOCK.AIR) {
+      if ((biome === 'forest' || biome === 'tropical' || biome === 'mangrove' || biome === 'shore') && h > SEA_LEVEL + 1 && aboveId === BLOCK.AIR) {
         const roll = hash2(x * 29 + seed * 7, z * 31 + seed * 11);
-        if (surfaceId === BLOCK.GRASS || surfaceId === BLOCK.DIRT || surfaceId === BLOCK.SAND) {
+        if (surfaceId === BLOCK.GRASS || surfaceId === BLOCK.DIRT || surfaceId === BLOCK.SAND || surfaceId === BLOCK.MANGROVE_MUD) {
           if (roll > 0.9875) data[idx(lx, h + 1, lz)] = BLOCK.MUSHROOM;
           else if (roll > 0.93) data[idx(lx, h + 1, lz)] = BLOCK.ROOTS;
           else if (roll > 0.84) data[idx(lx, h + 1, lz)] = BLOCK.STICK_PILE;
@@ -369,6 +387,35 @@ function _placePalm(data, idx, lx, y, lz) {
   }
 }
 
+function _placeMangrove(data, idx, lx, y, lz) {
+  const trunkH = 3 + Math.floor(hash2(lx + 121, lz + 137) * 2);
+  const lean = hash2(lx + 127, lz + 131) > 0.5 ? 1 : -1;
+  const set = (x, yy, z, id) => {
+    if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
+    if (data[idx(x, yy, z)] === BLOCK.AIR) data[idx(x, yy, z)] = id;
+  };
+  for (let i = 0; i < trunkH; i++) {
+    const ox = i >= trunkH - 2 ? (i - trunkH + 2) * lean : 0;
+    set(lx + ox, y + i, lz, BLOCK.MANGROVE_LOG);
+  }
+  for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+    set(lx + dx, y, lz + dz, BLOCK.ROOTS);
+  }
+  const top = y + trunkH - 1;
+  for (let dy = -1; dy <= 2; dy++) {
+    const radius = dy === 2 ? 1 : 2;
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dz = -radius; dz <= radius; dz++) {
+        const dist = Math.abs(dx) + Math.abs(dz);
+        if (dist > radius + 1 || (dy === -1 && dist > 2)) continue;
+        if (dx === 0 && dz === 0 && dy < 0) continue;
+        set(lx + dx, top + dy, lz + dz, BLOCK.MANGROVE_LEAVES);
+      }
+    }
+  }
+  set(lx, top + 3, lz, BLOCK.MANGROVE_LEAVES);
+}
+
 function _placeTree(data, idx, lx, y, lz) {
   const trunkH = 4 + Math.floor(hash2(lx + 11, lz + 7) * 4);
   for (let i = 0; i < trunkH; i++) {
@@ -398,6 +445,14 @@ function _placeTree(data, idx, lx, y, lz) {
     const i = idx(lx, peak, lz);
     if (data[i] === BLOCK.AIR) data[i] = BLOCK.LEAVES;
   }
+}
+
+function populateMangroveColumn(data, idx, lx, h, lz, x, z, biome, seed) {
+  if (biome !== 'mangrove' || h > SEA_LEVEL + 2) return;
+  const channel = hash2(x * 19 + seed * 3, z * 23 + seed * 5);
+  if (channel < 0.72) return;
+  data[idx(lx, h, lz)] = BLOCK.WATER;
+  if (channel > 0.86) data[idx(lx, h, lz)] = BLOCK.KELP;
 }
 
 function populateOceanColumn(data, idx, lx, h, lz, x, z, biome, seed) {

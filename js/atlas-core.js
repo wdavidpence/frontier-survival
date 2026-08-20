@@ -70,6 +70,8 @@ export const TILE = {
   MUSHROOM: 59,
   COPPER_ORE: 60,
   DIAMOND_ORE: 61,
+  MANGROVE_LOG_SIDE: 62,
+  MANGROVE_LEAVES: 63,
 };
 
 /** UV corners: bl, tl, tr, br in atlas space */
@@ -196,6 +198,12 @@ export function tileForBlock(blockId, faceDir) {
       return TILE.COPPER_ORE;
     case BLOCK.DIAMOND_ORE:
       return TILE.DIAMOND_ORE;
+    case BLOCK.MANGROVE_LOG:
+      return faceDir === 'top' || faceDir === 'bottom' ? TILE.LOG_TOP : TILE.MANGROVE_LOG_SIDE;
+    case BLOCK.MANGROVE_LEAVES:
+      return TILE.MANGROVE_LEAVES;
+    case BLOCK.MANGROVE_MUD:
+      return TILE.DAMP_SOIL;
     default:
       return TILE.STONE;
   }
