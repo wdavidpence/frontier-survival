@@ -30,6 +30,9 @@ function forestMarkerAt(x, z, biome, height) {
 function mangroveMarkerAt(x, z, biome, height) {
   return biome === BIOME.MANGROVE && x === 55 && z === 58 && height <= WORLD_HEIGHT - 5;
 }
+function mangroveSightlinePocket(x, z, biome) {
+  return biome === BIOME.MANGROVE && x >= 48 && x <= 61 && z >= 53 && z <= 65;
+}
 
 // ── Procedural plantlife ────────────────────────────────────────────────────
 // Generation already scatters plant blocks over the surface (berry bushes on
@@ -414,7 +417,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=290';
+    const workerUrl = './js/chunk-worker.js?v=292';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -530,7 +533,7 @@ export class World {
           this._placeRuin(data, lx, h + 1, lz);
         } else if (forestLandmark) {
           this._placeForestMarker(data, lx, h + 1, lz);
-        } else if (!forestPocket && th > 1 - treeChance) {
+        } else if (!forestPocket && !mangroveSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
             const spruceRoll = hash2(x * 5 + 17, z * 3 + (this.seed | 0));
@@ -1036,7 +1039,7 @@ export class World {
           this._placeRuin(data, lx, h + 1, lz);
         } else if (forestLandmark) {
           this._placeForestMarker(data, lx, h + 1, lz);
-        } else if (!forestPocket && th > 1 - treeChance) {
+        } else if (!forestPocket && !mangroveSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
             const spruceRoll = hash2(x * 5 + 17, z * 3 + (this.seed | 0));

@@ -225,6 +225,9 @@ function forestMarkerAt(x, z, biome, height) {
 function mangroveMarkerAt(x, z, biome, height) {
   return biome === 'mangrove' && x === 55 && z === 58 && height <= WORLD_HEIGHT - 5;
 }
+function mangroveSightlinePocket(x, z, biome) {
+  return biome === 'mangrove' && x >= 48 && x <= 61 && z >= 53 && z <= 65;
+}
 
 // ── Chunk generation (mirrors World._generateChunk) ─────────────────────────
 
@@ -299,7 +302,7 @@ function generateChunkData(cx, cz, seed) {
         _placeRuin(data, idx, lx, h + 1, lz);
       } else if (forestLandmark) {
         _placeForestMarker(data, idx, lx, h + 1, lz);
-      } else if (!forestPocket && th > 1 - treeChance) {
+      } else if (!forestPocket && !mangroveSightlinePocket(x, z, biome) && th > 1 - treeChance) {
           if (biome === 'mangrove') _placeMangrove(data, idx, lx, h + 1, lz);
           else if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);
           else _placeTree(data, idx, lx, h + 1, lz);
