@@ -27,6 +27,9 @@ function forestMarkerAt(x, z, biome, height) {
   return biome === BIOME.FOREST && height <= WORLD_HEIGHT - 5
     && forestPhase(x) === 31 && forestPhase(z) === 31;
 }
+function mangroveMarkerAt(x, z, biome, height) {
+  return biome === BIOME.MANGROVE && x === 55 && z === 58 && height <= WORLD_HEIGHT - 5;
+}
 
 // ── Procedural plantlife ────────────────────────────────────────────────────
 // Generation already scatters plant blocks over the surface (berry bushes on
@@ -411,7 +414,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=286';
+    const workerUrl = './js/chunk-worker.js?v=288';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -520,7 +523,10 @@ export class World {
           && ((z % 32) + 32) % 32 === 26;
           const forestPocket = forestSightlinePocket(x, z, biome);
           const forestLandmark = forestMarkerAt(x, z, biome, h);
-        if (ruinLandmark) {
+          const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
+        if (mangroveLandmark) {
+          this._placeMangroveBridge(data, lx, h + 1, lz);
+        } else if (ruinLandmark) {
           this._placeRuin(data, lx, h + 1, lz);
         } else if (forestLandmark) {
           this._placeForestMarker(data, lx, h + 1, lz);
@@ -1023,7 +1029,10 @@ export class World {
           && ((z % 32) + 32) % 32 === 26;
           const forestPocket = forestSightlinePocket(x, z, biome);
           const forestLandmark = forestMarkerAt(x, z, biome, h);
-        if (ruinLandmark) {
+          const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
+        if (mangroveLandmark) {
+          this._placeMangroveBridge(data, lx, h + 1, lz);
+        } else if (ruinLandmark) {
           this._placeRuin(data, lx, h + 1, lz);
         } else if (forestLandmark) {
           this._placeForestMarker(data, lx, h + 1, lz);
@@ -1290,6 +1299,24 @@ export class World {
       const ty = top + (distance >= 2 ? -1 : 1);
       this._setAir(data, tx, ty, tz, BLOCK.PALM_LEAVES);
     }
+  }
+
+  /** Place the authored Lantern Rootwalk destination in the wetland. */
+  _placeMangroveBridge(data, lx, y, lz) {
+    const set = (x, yy, z, id) => {
+      if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
+      const i = this._idx(x, yy, z);
+      if (data[i] === BLOCK.AIR) data[i] = id;
+    };
+    for (let dx = -2; dx <= 2; dx++) set(lx + dx, y, lz, BLOCK.PLANKS);
+    for (const dx of [-2, 2]) {
+      set(lx + dx, y + 1, lz, BLOCK.MANGROVE_LOG);
+      set(lx + dx, y + 2, lz, BLOCK.MANGROVE_LOG);
+      set(lx + dx, y + 3, lz, BLOCK.MANGROVE_LEAVES);
+    }
+    set(lx, y + 1, lz, BLOCK.TORCH);
+    for (const dx of [-1, 1]) set(lx + dx, y, lz + 1, BLOCK.ROOTS);
+    for (const dx of [-1, 0, 1]) set(lx + dx, y + 3, lz, BLOCK.MANGROVE_LEAVES);
   }
 
   /** Place a tidal mangrove: low forked trunk, flared roots, and a bright umbrella canopy. */

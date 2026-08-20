@@ -222,6 +222,9 @@ function forestMarkerAt(x, z, biome, height) {
   return biome === 'forest' && height <= WORLD_HEIGHT - 5
     && forestPhase(x) === 31 && forestPhase(z) === 31;
 }
+function mangroveMarkerAt(x, z, biome, height) {
+  return biome === 'mangrove' && x === 55 && z === 58 && height <= WORLD_HEIGHT - 5;
+}
 
 // ── Chunk generation (mirrors World._generateChunk) ─────────────────────────
 
@@ -289,7 +292,10 @@ function generateChunkData(cx, cz, seed) {
         && ((z % 32) + 32) % 32 === 26;
       const forestPocket = forestSightlinePocket(x, z, biome);
       const forestLandmark = forestMarkerAt(x, z, biome, h);
-      if (ruinLandmark) {
+      const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
+      if (mangroveLandmark) {
+        _placeMangroveBridge(data, idx, lx, h + 1, lz);
+      } else if (ruinLandmark) {
         _placeRuin(data, idx, lx, h + 1, lz);
       } else if (forestLandmark) {
         _placeForestMarker(data, idx, lx, h + 1, lz);
@@ -387,6 +393,23 @@ function _placePalm(data, idx, lx, y, lz) {
     const distance = Math.abs(dx) + Math.abs(dz);
     set(lx + dx, top + (distance >= 2 ? -1 : 1), lz + dz, BLOCK.PALM_LEAVES);
   }
+}
+
+function _placeMangroveBridge(data, idx, lx, y, lz) {
+  const set = (x, yy, z, id) => {
+    if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
+    const i = idx(x, yy, z);
+    if (data[i] === BLOCK.AIR) data[i] = id;
+  };
+  for (let dx = -2; dx <= 2; dx++) set(lx + dx, y, lz, BLOCK.PLANKS);
+  for (const dx of [-2, 2]) {
+    set(lx + dx, y + 1, lz, BLOCK.MANGROVE_LOG);
+    set(lx + dx, y + 2, lz, BLOCK.MANGROVE_LOG);
+    set(lx + dx, y + 3, lz, BLOCK.MANGROVE_LEAVES);
+  }
+  set(lx, y + 1, lz, BLOCK.TORCH);
+  for (const dx of [-1, 1]) set(lx + dx, y, lz + 1, BLOCK.ROOTS);
+  for (const dx of [-1, 0, 1]) set(lx + dx, y + 3, lz, BLOCK.MANGROVE_LEAVES);
 }
 
 function _placeMangrove(data, idx, lx, y, lz) {
