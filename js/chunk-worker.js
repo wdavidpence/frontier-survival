@@ -125,7 +125,9 @@ function biomeAt(x, z, seed = 0) {
 function mangroveAt(x, z, seed = 0) {
   const h = heightAt(x, z, seed);
   if (Math.hypot(x - 42, z - 51) < 8) return false;
-  if (h < 16 || h > 16 + 4 || starterCoastBlend(x, z) <= 0.12) return false;
+  if (h < 16 || h > 16 + 8 || starterCoastBlend(x, z) <= 0.12) return false;
+  if (x >= 46 && x <= 68 && z >= 52 && z <= 72 && h <= 16 + 8) return true;
+  if (h > 16 + 4) return false;
   const wet = fbm(x * 0.025 * WORLD_SCALE + seed * 7.3, z * 0.025 * WORLD_SCALE - seed * 4.1, 3);
   const tide = fbm(x * 0.045 * WORLD_SCALE - seed * 2.7, z * 0.045 * WORLD_SCALE + seed * 5.9, 2);
   return wet > 0.57 && tide > 0.38;

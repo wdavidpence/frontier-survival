@@ -18,7 +18,11 @@ export function mangroveAt(x, z, seed = 0) {
   const h = heightAt(x, z, seed);
   // Keep the authored Iron Ravine sightline open for the first expedition.
   if (Math.hypot(x - 42, z - 51) < 8) return false;
-  if (h < SEA || h > SEA + 4 || starterCoastBlend(x, z) <= 0.12) return false;
+  if (h < SEA || h > SEA + 8 || starterCoastBlend(x, z) <= 0.12) return false;
+  // Authored approach shelf: the tropical route opens into the wetland instead
+  // of asking procedural noise to place the first readable grove by chance.
+  if (x >= 46 && x <= 68 && z >= 52 && z <= 72 && h <= SEA + 8) return true;
+  if (h > SEA + 4) return false;
   const wet = fbm(
     x * 0.025 * WORLD_SCALE + seed * 7.3,
     z * 0.025 * WORLD_SCALE - seed * 4.1,

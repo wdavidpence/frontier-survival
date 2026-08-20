@@ -301,7 +301,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=425/);
+  assert.match(gameSource, /world\.js\?v=426/);
 });
 
 test('terrain visibility plan extends fog and proxy beyond full mesh', () => {
@@ -4597,6 +4597,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   const seed = 1884808540;
   const world = fsText('js/world.js');
   const worker = fsText('js/chunk-worker.js');
+  assert.equal(biomeAt(57, 56, seed), BIOME.MANGROVE, 'approach shelf must open into mangrove');
   assert.equal(biomeAt(55, 58, seed), BIOME.MANGROVE);
   assert.equal(biomeAt(42, 51, seed), BIOME.TROPICAL, 'Iron Ravine sightline stays tropical');
   assert.equal(ambientTempOffset(BIOME.MANGROVE), 9);
@@ -4625,7 +4626,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.13.5'), 'HTML must expose v1.13.5');
+  assert.ok(html.includes('v1.13.6'), 'HTML must expose v1.13.6');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
