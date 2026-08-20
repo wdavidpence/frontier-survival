@@ -1,34 +1,29 @@
-# Frontier Survival — v1.13.6 Mangrove approach checkpoint
+# Frontier Survival — v1.13.7 Lantern Rootwalk checkpoint
 
 Updated: 2026-08-20
 
 ## Result
 
-Published v1.13.6, an accepted incremental visual checkpoint that improves the Mangrove Lagoon transition from procedural chance to an authored approach shelf.
+Published v1.13.7 as an explicitly incremental Lantern Rootwalk checkpoint on top of the accepted v1.13.6 Mangrove approach composition.
 
-- Product commit: `90f80dc0f96ee8a77fedfe434bd37bce7bb7d392`
-- Tag: `v1.13.6`
+- Product commit: `1b47164a4de322a1f3e9caa3661c277d4a472280`
+- Tag: `v1.13.7`
 - Live: https://wdavidpence.github.io/frontier-survival/
-- Clean candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
+- Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
 - Canonical checkout remains broad dirty WIP and quarantined.
 
-## Accepted change
+## Accepted mechanically
 
-- Iron Ravine tropical sightline remains protected around `(42,51)`.
-- Low authored Mangrove corridor spans `x=46..68`, `z=52..72` when elevation permits.
-- Synchronous and worker classifiers remain mirrored.
-- Cache chain: `main.js?v=468` → `game.js?v=457` → `world.js?v=426` → `biomes.js?v=250` / `chunk-worker.js?v=286`.
+- Authored rootwalk at `(55,58)` with plank span, mangrove posts, canopy, torch, and roots.
+- Sync/worker placement mirrored.
+- Cache chain: `main.js?v=469` → `game.js?v=458` → `world.js?v=427` → `chunk-worker.js?v=288`.
+- Smoke, syntax, diff-check, parity, and import audit all pass.
+- Local fixed-seed runtime reached `biome=mangrove` with zero page-owned errors.
 
-## Evidence
+## Visual limitation
 
-- Full smoke: PASS.
-- Syntax, diff-check, parity: PASS.
-- Import audit: 125 edges, 0 missing targets, 0 missing cache-bust queries.
-- Fixed-seed local Start: `started=true`, title hidden, zero page-owned errors.
-- Controlled runtime reached `biome=mangrove` on the authored low shelf.
-- Accepted local approach frame shows open water/horizon, tropical sky, readable islands, and sparse distinct mangrove silhouettes without black/gray occlusion or HUD overlap.
-- Mobile not rerun for this desktop visual slice.
+The accepted v1.13.6 open-water approach remains intact. The new Rootwalk has not yet cleared visual acceptance: its direct frame was too close to foreground geometry and the water-side screenshot timed out. Do not call the biome goal complete.
 
 ## Next bounded slice
 
-Add one small authored wetland destination prop—such as a root-bridge/lantern marker—plus visible roots/channels in the open approach. Preserve the accepted water/horizon composition and rerun all release gates.
+Obtain a stable ordinary player-height water-side Rootwalk frame. Prefer moving the prop slightly into the open approach corridor if it remains hidden; do not stack more props until the existing destination reads clearly.
