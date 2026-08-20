@@ -401,11 +401,16 @@ function _placeMangroveBridge(data, idx, lx, y, lz) {
     const i = idx(x, yy, z);
     if (data[i] === BLOCK.AIR) data[i] = id;
   };
-  for (let dx = -2; dx <= 2; dx++) set(lx + dx, y, lz, BLOCK.PLANKS);
-  for (const dx of [-2, 2]) {
-    set(lx + dx, y + 1, lz, BLOCK.MANGROVE_LOG);
-    set(lx + dx, y + 2, lz, BLOCK.MANGROVE_LOG);
-    set(lx + dx, y + 3, lz, BLOCK.MANGROVE_LEAVES);
+  for (let dx = -4; dx <= 2; dx++) {
+    const stepY = dx < -1 ? y + dx + 1 : y;
+    set(lx + dx, stepY, lz, BLOCK.PLANKS);
+    if (dx === -4) set(lx + dx, stepY - 1, lz, BLOCK.ROOTS);
+  }
+  for (const dx of [-4, 2]) {
+    const postY = dx === -4 ? y - 2 : y;
+    set(lx + dx, postY + 1, lz, BLOCK.MANGROVE_LOG);
+    set(lx + dx, postY + 2, lz, BLOCK.MANGROVE_LOG);
+    set(lx + dx, postY + 3, lz, BLOCK.MANGROVE_LEAVES);
   }
   set(lx, y + 1, lz, BLOCK.TORCH);
   set(lx, y + 4, lz, BLOCK.MANGROVE_LOG);
