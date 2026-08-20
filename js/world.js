@@ -414,7 +414,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=288';
+    const workerUrl = './js/chunk-worker.js?v=289';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -1315,8 +1315,11 @@ export class World {
       set(lx + dx, y + 3, lz, BLOCK.MANGROVE_LEAVES);
     }
     set(lx, y + 1, lz, BLOCK.TORCH);
+    set(lx, y + 4, lz, BLOCK.MANGROVE_LOG);
+    set(lx, y + 5, lz, BLOCK.TORCH);
     for (const dx of [-1, 1]) set(lx + dx, y, lz + 1, BLOCK.ROOTS);
     for (const dx of [-1, 0, 1]) set(lx + dx, y + 3, lz, BLOCK.MANGROVE_LEAVES);
+    for (const dx of [-1, 0, 1]) set(lx + dx, y + 5, lz, BLOCK.MANGROVE_LEAVES);
   }
 
   /** Place a tidal mangrove: low forked trunk, flared roots, and a bright umbrella canopy. */

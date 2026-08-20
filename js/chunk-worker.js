@@ -408,8 +408,11 @@ function _placeMangroveBridge(data, idx, lx, y, lz) {
     set(lx + dx, y + 3, lz, BLOCK.MANGROVE_LEAVES);
   }
   set(lx, y + 1, lz, BLOCK.TORCH);
+  set(lx, y + 4, lz, BLOCK.MANGROVE_LOG);
+  set(lx, y + 5, lz, BLOCK.TORCH);
   for (const dx of [-1, 1]) set(lx + dx, y, lz + 1, BLOCK.ROOTS);
   for (const dx of [-1, 0, 1]) set(lx + dx, y + 3, lz, BLOCK.MANGROVE_LEAVES);
+  for (const dx of [-1, 0, 1]) set(lx + dx, y + 5, lz, BLOCK.MANGROVE_LEAVES);
 }
 
 function _placeMangrove(data, idx, lx, y, lz) {
