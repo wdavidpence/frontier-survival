@@ -1311,7 +1311,10 @@ export class World {
     for (let dx = -4; dx <= 2; dx++) {
       const stepY = dx < -1 ? y + dx + 1 : y;
       set(lx + dx, stepY, lz, BLOCK.PLANKS);
-      if (dx === -4) set(lx + dx, stepY - 1, lz, BLOCK.ROOTS);
+      if (dx === -4) {
+        set(lx + dx, stepY - 1, lz, BLOCK.ROOTS);
+        set(lx + dx, stepY + 1, lz, BLOCK.TORCH);
+      }
     }
     for (const dx of [-4, 2]) {
       const postY = dx === -4 ? y - 2 : y;

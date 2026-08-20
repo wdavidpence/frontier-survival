@@ -301,7 +301,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=429/);
+  assert.match(gameSource, /world\.js\?v=430/);
 });
 
 test('terrain visibility plan extends fog and proxy beyond full mesh', () => {
@@ -4597,6 +4597,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   const seed = 1884808540;
   const world = fsText('js/world.js');
   const worker = fsText('js/chunk-worker.js');
+  const game = fsText('js/game.js');
   assert.equal(biomeAt(57, 56, seed), BIOME.MANGROVE, 'approach shelf must open into mangrove');
   assert.equal(biomeAt(55, 58, seed), BIOME.MANGROVE);
   assert.equal(biomeAt(42, 51, seed), BIOME.TROPICAL, 'Iron Ravine sightline stays tropical');
@@ -4608,8 +4609,11 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(worker, /_placeMangrove\(data, idx, lx, h \+ 1, lz\)/);
   assert.match(world, /_placeMangroveBridge\(data, lx, h \+ 1, lz\)/);
   assert.match(worker, /_placeMangroveBridge\(data, idx, lx, h \+ 1, lz\)/);
+  assert.match(world, /stepY \+ 1, lz, BLOCK.TORCH/);
+  assert.match(worker, /stepY \+ 1, lz, BLOCK.TORCH/);
   assert.match(world, /_populateMangroveColumn/);
   assert.match(worker, /populateMangroveColumn/);
+  assert.match(game, /Mangrove Lantern Rootwalk/);
 });
 
 test('forest understory correction reaches the exact tropical starter route', () => {
@@ -4628,7 +4632,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.13.9'), 'HTML must expose v1.13.9');
+  assert.ok(html.includes('v1.14.0'), 'HTML must expose v1.14.0');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

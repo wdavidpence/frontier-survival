@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=429';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=430';
 import { Player } from './player.js?v=239';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
@@ -2697,7 +2697,7 @@ export class Game {
 
     // Notify on biome change
     if (currentBiome !== this._lastBiome) {
-      const labels = { ocean: 'Ocean', tropical: 'Tropical Isle', shore: 'Shore', forest: 'Forest', desert: 'Desert', tundra: 'Tundra' };
+      const labels = { ocean: 'Ocean', tropical: 'Tropical Isle', shore: 'Shore', forest: 'Forest', desert: 'Desert', tundra: 'Tundra', mangrove: 'Mangrove Lantern Rootwalk' };
       this.player.notify(`Entered ${labels[currentBiome] || currentBiome}`, 4);
       if (currentBiome === 'desert' || currentBiome === BIOME.DESERT) this._unlock('first_desert');
       this._lastBiome = currentBiome;
