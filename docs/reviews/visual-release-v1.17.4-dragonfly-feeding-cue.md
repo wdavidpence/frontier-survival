@@ -35,6 +35,13 @@ Connected the authored daytime dragonflies to the authored mudskipper feeding si
   - two dragonflies remained visible;
   - zero page-owned errors.
 - Local visual: clean daytime primary Rootwalk frame preserves the accepted bridge, water, horizon, seagrass, HUD, and renderer; cyan dragonfly motifs remain sparse and subordinate.
+- Live Pages:
+  - title `Frontier Survival v1.17.4`;
+  - `started=true`, seed `1884808540`, 1280×720 canvas;
+  - idle dragonflies: cue `0`, y `[17.605,17.649]`, rotation x `[0,0]`;
+  - feeding signal: cue `1`, y `[17.525,17.569]`, rotation x `[0.14,0.14]`;
+  - clean live daytime primary frame passed visual review;
+  - zero page-owned errors.
 
 ## Honest limitation
 

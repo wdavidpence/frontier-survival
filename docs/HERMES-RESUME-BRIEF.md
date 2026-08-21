@@ -22,7 +22,7 @@ v1.17.4 connects the two authored daytime dragonflies to the mudskipper feeding 
 
 ## Runtime judgment
 
-Local idle dragonflies were y `[17.605,17.649]` with zero cue; feeding signal moved them to `[17.525,17.569]` with synchronized rotation x `[0.14,0.14]`. Clean daytime primary visual passed with no regression.
+Local and live idle dragonflies were y `[17.605,17.649]` with zero cue; feeding signal moved them to `[17.525,17.569]` with synchronized rotation x `[0.14,0.14]`. Clean local and live daytime primary visuals passed with no regression.
 
 ## Next bounded slice
 
