@@ -1,29 +1,30 @@
-# Frontier Survival — v1.14.3 firefly ecology checkpoint
+# Frontier Survival — v1.14.6 channel ecology checkpoint
 
 Updated: 2026-08-21
 
-## Current candidate
+## Current live candidate
 
-v1.14.3 adds the first cohesive ecology/atmosphere pass around the accepted Mangrove Rootwalk.
+v1.14.6 adds the second cohesive Mangrove ecology pass around the accepted Rootwalk.
 
-- 18 deterministic warm additive fireflies;
-- Rootwalk-centered activation radius of 22 blocks;
-- fixed anchor `(55.5,20.2,58.5)`;
-- subtle pulse/drift;
-- no gameplay/collision changes.
+- four authored channel clusters beside the bridge;
+- KELP depth below the waterline;
+- SEAGRASS cluster tips;
+- emergent SEAGRASS at the surface-plus-one waterline cell;
+- sync/worker parity retained;
+- bridge, fireflies, route, and collision unchanged.
 
 ## Release state
 
-- Product candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Base live release: v1.14.2 / `46a3031`
-- Cache chain: `main.js?v=475` → `game.js?v=464` → `fx.js?v=247`.
+- Product commit: `07e901b62b5bf0079ae2b672ffa8543f0df8f15e`
+- Tag: `v1.14.6`
+- Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
+- Cache chain: `main.js?v=478` → `game.js?v=467` → `world.js?v=435` → `chunk-worker.js?v=295`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
-- Local fixed-seed Rootwalk frame passes with `started=true`, `onGround=true`, visible firefly FX, and zero page-owned errors.
 
 ## Visual judgment
 
-The accepted land-side bridge/lantern/water frame remains readable. Firefly glints add a restrained wetland-nightlife cue without clutter, black/gray artifacts, HUD overlap, or foreground regression.
+The clean primary frame preserves the accepted Rootwalk composition. A supplemental channel angle visibly shows restrained emergent green seagrass at the waterline. The water/horizon, HUD, bridge, lantern, and fireflies remain readable with no renderer regression.
 
 ## Next bounded slice
 
-Add one authored shallow-channel ecology detail pass—reeds/kelp clusters or reflective wet mud—without changing the accepted Rootwalk composition.
+Add one wet-mud/shore material variation around the accepted channel, then repeat the same fixed-seed local/live gates.
