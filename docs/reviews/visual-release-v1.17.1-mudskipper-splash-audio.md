@@ -39,10 +39,14 @@ Added a tiny mudskipper splash chirp to close player alerts.
 - Local primary night frame: bridge, lantern, fireflies, moths, frogs, crabs, mudskippers, water, seagrass, reflection/foam, HUD, and renderer remain healthy with no visual regression.
 - Local daytime: mudskippers `0`, ripples `0`, alert `0`, cooldown `0`, crabs `0`, frogs `0`, zero errors.
 - Live Pages:
-  - title `Frontier Survival v1.17.1`;
+  - initial navigation encountered a transient HTTP 503;
+  - bounded retry succeeded with `Frontier Survival v1.17.1`;
   - `started=true`, seed `1884808540`, 1280×720 canvas;
+  - first production tick made exactly one splash call at alert `0.889`;
+  - AudioContext `running`, cooldown `0.8`;
+  - next `0.1s` tick made no additional call;
   - clean live primary frame passed visual review;
-  - daytime gate passed with zero errors.
+  - daytime gate: mudskippers `0`, ripples `0`, alert `0`, cooldown `0`, crabs `0`, frogs `0`, zero errors.
 
 ## Honest limitation
 

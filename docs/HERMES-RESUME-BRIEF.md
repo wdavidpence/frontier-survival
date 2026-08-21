@@ -23,7 +23,7 @@ v1.17.1 adds a tiny spatial mudskipper splash chirp when close player alert begi
 
 ## Runtime judgment
 
-Local production probe with alert `0.889` made exactly one splash call, set cooldown `0.8`, and suppressed the next `0.1s` call with AudioContext `running`. Clean night visual and daytime gates passed.
+Local and live production probes with alert `0.889` made exactly one splash call, set cooldown `0.8`, and suppressed the next `0.1s` call with AudioContext `running`. The first live navigation hit a transient 503; the bounded retry loaded cleanly. Clean night visual and daytime gates passed.
 
 ## Next bounded slice
 
