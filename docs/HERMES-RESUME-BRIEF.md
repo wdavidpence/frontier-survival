@@ -22,7 +22,7 @@ v1.17.5 gives feeding dragonflies a short authored skim pass toward the active M
 
 ## Runtime judgment
 
-Local idle skim was `0`; feeding phases produced skim pulses `1` and `0.88` with distinct positions and rotations while both dragonflies stayed visible. Clean daytime primary visual passed with no regression.
+Local and live idle skim was `0`; feeding phases produced skim pulses `1` and `0.88` with distinct positions and rotations while both dragonflies stayed visible. Live nighttime feeding hid all dragonflies with skim pulse `0`. Clean local and live daytime primary visuals passed with no regression.
 
 ## Next bounded slice
 

@@ -36,6 +36,13 @@ Made feeding dragonflies perform a short authored skim pass toward the active Ma
   - both dragonflies remained visible;
   - zero page-owned errors.
 - Local visual: clean daytime primary Rootwalk frame preserves accepted bridge, water, horizon, seagrass, HUD, renderer, and subordinate cyan dragonfly motifs.
+- Live Pages:
+  - title `Frontier Survival v1.17.5`;
+  - `started=true`, seed `1884808540`, 1280×720 canvas;
+  - idle phase and feeding phases matched local exactly;
+  - clean live daytime primary frame passed visual review;
+  - nighttime feeding probe hid all dragonflies (`visible=0`, `skimPulse=0`);
+  - zero page-owned errors.
 
 ## Honest limitation
 
