@@ -1,28 +1,28 @@
-# Frontier Survival — v1.17.5 dragonfly-skim checkpoint
+# Frontier Survival — v1.17.6 dragonfly-skim-ripple checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.17.5 gives feeding dragonflies a short authored skim pass toward the active Mangrove channel spot.
+v1.17.6 completes the mudskipper → dragonfly → water feedback chain.
 
-- feeding-only lateral return arc;
-- additional `0.06` block dip and `0.18` pitch accent;
-- idle hover unchanged;
-- day/dusk visibility, scatter, nighttime suppression, mudskipper feeding dimple, hops, dart, splash audio, and inter-species feeding dip preserved.
+- idle dragonflies create no skim ripple;
+- low feeding skim creates one tiny localized cyan dimple at `y=17.14`;
+- nighttime hides dragonflies and ripples;
+- existing feeding dimple, dragonfly dip/skim, mudskipper hops/dart, splash audio, crab water response, bridge, lantern, water, horizon, seagrass, and HUD preserved.
 
 ## Release state
 
-- Product commit: `00937373953adba413c6a9ca9ebfc3e900a6c12e`
+- Product commit: `34508200c5d169ca3982196c83bf4c69a4d3be72`
 - Documentation commit: recorded below
-- Tag: `v1.17.5`
+- Tag: `v1.17.6`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=507` → `game.js?v=496` → `fx.js?v=270`.
+- Cache chain: `main.js?v=508` → `game.js?v=497` → `fx.js?v=271`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Local and live idle skim was `0`; feeding phases produced skim pulses `1` and `0.88` with distinct positions and rotations while both dragonflies stayed visible. Live nighttime feeding hid all dragonflies with skim pulse `0`. Clean local and live daytime primary visuals passed with no regression.
+Local idle showed 0 ripples; feeding low pass showed 1 ripple at waterline `y=17.14`; nighttime showed 0 flies, 0 ripples, and skim `0`. Clean local daytime primary visual passed without regression.
 
 ## Next bounded slice
 
