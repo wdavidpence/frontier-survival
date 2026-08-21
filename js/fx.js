@@ -544,3 +544,68 @@ export class MangroveWaterFX {
     }
   }
 }
+
+/** Three tiny authored frog silhouettes that wake beside the Rootwalk channel at dusk. */
+export class MangroveFrogFX {
+  constructor(scene) {
+    this.scene = scene;
+    this.elapsed = 0;
+    this.frogs = [];
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x315b43, roughness: 0.95 });
+    const bellyMat = new THREE.MeshStandardMaterial({ color: 0x6e8a54, roughness: 1 });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffd56a, transparent: true });
+    const pupilMat = new THREE.MeshBasicMaterial({ color: 0x18251c });
+    const spots = [[53.4, 17.25, 58.2], [54.7, 17.2, 58.8], [52.6, 17.25, 57.5]];
+    for (let i = 0; i < spots.length; i++) {
+      const group = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 5), bodyMat);
+      body.scale.set(1.15, 0.62, 1.35);
+      body.position.y = 0.2;
+      const belly = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 5), bellyMat);
+      belly.scale.set(1.1, 0.5, 0.85);
+      belly.position.set(0, 0.18, 0.12);
+      const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.065, 6, 4), eyeMat);
+      const eyeR = eyeL.clone();
+      eyeL.position.set(-0.12, 0.42, 0.08);
+      eyeR.position.set(0.12, 0.42, 0.08);
+      const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.027, 5, 3), pupilMat);
+      const pupilR = pupilL.clone();
+      pupilL.position.set(-0.12, 0.43, 0.135);
+      pupilR.position.set(0.12, 0.43, 0.135);
+      group.add(body, belly, eyeL, eyeR, pupilL, pupilR);
+      group.position.set(...spots[i]);
+      group.rotation.y = i * 1.8;
+      group.visible = false;
+      scene?.add(group);
+      this.frogs.push(group);
+    }
+    this._bodyMat = bodyMat;
+    this._bellyMat = bellyMat;
+    this._eyeMat = eyeMat;
+    this._pupilMat = pupilMat;
+  }
+
+  tick(dt, active, center, nightMix = 0) {
+    this.elapsed += dt;
+    const show = Boolean(active && center && nightMix > 0.18);
+    for (let i = 0; i < this.frogs.length; i++) {
+      const frog = this.frogs[i];
+      frog.visible = show;
+      if (!show) continue;
+      frog.position.y = 17.2 + Math.sin(this.elapsed * 1.4 + i * 1.9) * 0.018;
+      frog.rotation.z = Math.sin(this.elapsed * 1.1 + i) * 0.025;
+      frog.scale.setScalar(0.9 + nightMix * 0.06);
+    }
+    this._eyeMat.opacity = show ? 0.58 + nightMix * 0.35 : 0;
+  }
+
+  dispose() {
+    for (const frog of this.frogs) {
+      this.scene?.remove(frog);
+      frog.traverse((child) => {
+        if (child.geometry) child.geometry.dispose();
+      });
+    }
+    for (const mat of [this._bodyMat, this._bellyMat, this._eyeMat, this._pupilMat]) mat.dispose();
+  }
+}
