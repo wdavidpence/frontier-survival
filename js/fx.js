@@ -859,3 +859,77 @@ export class MangroveMudskipperFX {
     for (const mat of [this._bodyMat, this._finMat, this._eyeMat, this._rippleMat]) mat.dispose();
   }
 }
+
+/** Two sparse authored dragonflies hovering above the Mangrove channel in day and dusk. */
+export class MangroveDragonflyFX {
+  constructor(scene) {
+    this.scene = scene;
+    this.elapsed = 0;
+    this.scatterPulse = 0;
+    this.flies = [];
+    this._wings = [];
+    this._spots = [[53.0, 17.42, 58.7], [54.25, 17.58, 59.05]];
+    const bodyMat = new THREE.MeshBasicMaterial({ color: 0x2f6f77, transparent: true, opacity: 0.96, depthTest: false, depthWrite: false });
+    const wingMat = new THREE.MeshBasicMaterial({ color: 0x79d8da, transparent: true, opacity: 0.72, depthTest: false, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xd8fff0, transparent: true, opacity: 0.88, depthTest: false, depthWrite: false });
+    for (let i = 0; i < this._spots.length; i++) {
+      const group = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.065, 0.52, 6), bodyMat);
+      body.rotation.z = Math.PI / 2;
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 4), eyeMat);
+      head.position.x = -0.2;
+      const wings = [];
+      for (const [x, z, rot] of [[-0.02, 0.07, 0.22], [-0.02, -0.07, -0.22], [0.1, 0.06, 0.48], [0.1, -0.06, -0.48]]) {
+        const wing = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.12), wingMat);
+        wing.position.set(x, 0.025, z);
+        wing.rotation.set(0, rot, rot * 0.25);
+        group.add(wing);
+        wings.push(wing);
+      }
+      group.add(body, head);
+      group.position.set(...this._spots[i]);
+      group.rotation.y = i * 1.8;
+      group.visible = false;
+      scene?.add(group);
+      this.flies.push(group);
+      this._wings.push(wings);
+    }
+    this._bodyMat = bodyMat;
+    this._wingMat = wingMat;
+    this._eyeMat = eyeMat;
+  }
+
+  tick(dt, active, center, nightMix = 0) {
+    this.elapsed += dt;
+    this.scatterPulse = 0;
+    const show = Boolean(active && center && nightMix < 0.65);
+    for (let i = 0; i < this.flies.length; i++) {
+      const fly = this.flies[i];
+      fly.visible = show;
+      if (!show) continue;
+      const distance = Math.hypot(center.x - this._spots[i][0], center.z - this._spots[i][2]);
+      const scatter = Math.max(0, 1 - distance / 6);
+      this.scatterPulse = Math.max(this.scatterPulse, scatter);
+      const dx = this._spots[i][0] - center.x;
+      const dz = this._spots[i][2] - center.z;
+      const length = Math.hypot(dx, dz) || 1;
+      const drift = Math.sin(this.elapsed * 0.7 + i * 1.4) * 0.18;
+      fly.position.x = this._spots[i][0] + drift + (dx / length) * scatter * 0.3;
+      fly.position.y = this._spots[i][1] + Math.sin(this.elapsed * 2.1 + i) * 0.11 + scatter * 0.16;
+      fly.position.z = this._spots[i][2] + Math.cos(this.elapsed * 0.8 + i) * 0.12 + (dz / length) * scatter * 0.3;
+      fly.rotation.y += dt * (0.7 + i * 0.15);
+      fly.rotation.z = Math.sin(this.elapsed * 1.3 + i) * 0.16;
+      const flap = 0.72 + Math.abs(Math.sin(this.elapsed * 8.5 + i)) * 0.55;
+      for (const wing of this._wings[i]) wing.scale.y = flap;
+    }
+    return this.scatterPulse;
+  }
+
+  dispose() {
+    for (const fly of this.flies) {
+      this.scene?.remove(fly);
+      fly.traverse((child) => { if (child.geometry) child.geometry.dispose(); });
+    }
+    for (const mat of [this._bodyMat, this._wingMat, this._eyeMat]) mat.dispose();
+  }
+}
