@@ -677,6 +677,8 @@ export class MangroveCrabFX {
     this.crabs = [];
     this._flecks = [];
     this.scuttlePulse = 0;
+    this.scuttleSourceX = 52.3;
+    this.scuttleSourceZ = 59.4;
     this.audioCooldown = 0;
     this._spots = [[51.6, 16.92, 59.1], [53.1, 16.92, 59.8], [50.8, 16.92, 57.9]];
     const shellMat = new THREE.MeshBasicMaterial({ color: 0xb5653e, transparent: true, opacity: 0.78, depthTest: false, depthWrite: false });
@@ -734,6 +736,10 @@ export class MangroveCrabFX {
       const sidestep = Math.sin(this.elapsed * 0.55 + i * 1.8) * 0.16;
       const scuttle = away * flee * (0.22 + Math.sin(this.elapsed * 4.2 + i) * 0.06) * (1 - freeze * 0.85);
       const scuttlePulse = flee * Math.max(0, Math.sin(this.elapsed * 4.2 + i));
+      if (scuttlePulse > this.scuttlePulse) {
+        this.scuttleSourceX = crab.position.x + away * 0.55;
+        this.scuttleSourceZ = crab.position.z + 0.28;
+      }
       this.scuttlePulse = Math.max(this.scuttlePulse, scuttlePulse);
       crab.position.x = this._spots[i][0] + sidestep + scuttle;
       crab.position.y = this._spots[i][1] + Math.sin(this.elapsed * 1.6 + i) * 0.012;
