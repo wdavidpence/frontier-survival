@@ -1,29 +1,25 @@
-# Frontier Survival — v1.17.8 dragonfly-perch checkpoint
+# Frontier Survival — v1.17.9 egret stopping checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.17.8 adds a deterministic authored perch window for the first Mangrove dragonfly.
+v1.17.9 adds one authored Mangrove egret at the shallow-channel edge.
 
-- ordinary route perch `1`, scatter `0`;
-- feeding suppresses perch to `0`;
-- close-player scatter suppresses perch to `0`;
-- existing feeding/skim/ripple, mudskipper, audio, water, bridge, lantern, horizon, seagrass, HUD, and night gates preserved.
+- far/ordinary route: visible, perched, scatter `0`;
+- close approach: visible, perch `0`, scatter `1`, wing lift active;
+- nighttime: hidden;
+- existing dragonfly, mudskipper, crab, frog, water, bridge, lantern, horizon, seagrass, HUD, and Rootwalk gates preserved.
 
 ## Release state
 
-- Product commit: `d4020b0dc75fb900c2d4c6347255fa89e9350d50`
+- Product commit: `3b6fd90d66c777ec8b316d15faf164f121b9c41c`
 - Documentation commit: recorded below
-- Tag: `v1.17.8`
+- Tag: `v1.17.9`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=510` → `game.js?v=499` → `fx.js?v=273`.
+- Cache chain: `main.js?v=511` → `game.js?v=500` → `fx.js?v=274`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
-## Runtime judgment
+## Stop/resume rule
 
-Local and live ordinary/feeding/close probes passed with zero errors. Clean local and live daytime primary visuals passed with no regression or clutter.
-
-## Next bounded slice
-
-Advance Mangrove toward richer authored ecology or deeper spatial wildlife behavior while preserving accepted Rootwalk gates.
+The requested stopping point is here. Do not begin another feature slice until a new session/resume instruction. On resume, continue toward richer authored ecology or deeper spatial wildlife behavior while preserving accepted Rootwalk gates.
