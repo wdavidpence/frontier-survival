@@ -773,6 +773,7 @@ export class MangroveMudskipperFX {
     this.elapsed = 0;
     this.skippers = [];
     this._ripples = [];
+    this.alertPulse = 0;
     this._spots = [[52.9, 17.04, 59.5], [54.0, 17.04, 59.2]];
     const bodyMat = new THREE.MeshBasicMaterial({ color: 0x9b7d55, transparent: true, opacity: 0.82, depthTest: false, depthWrite: false });
     const finMat = new THREE.MeshBasicMaterial({ color: 0xc8a56d, transparent: true, opacity: 0.78, depthTest: false, depthWrite: false });
@@ -809,6 +810,7 @@ export class MangroveMudskipperFX {
   tick(dt, active, center, nightMix = 0) {
     this.elapsed += dt;
     const show = Boolean(active && center && nightMix > 0.1);
+    this.alertPulse = 0;
     let maxHop = 0;
     for (let i = 0; i < this.skippers.length; i++) {
       const skipper = this.skippers[i];
@@ -817,12 +819,20 @@ export class MangroveMudskipperFX {
       ripple.visible = false;
       if (!show) continue;
       const distance = Math.hypot(center.x - this._spots[i][0], center.z - this._spots[i][2]);
+      const approach = Math.max(0, 1 - distance / 7);
       const cycle = (this.elapsed + i * 2.4) % 5.8;
-      const hop = distance < 18 && cycle < 0.58 ? Math.sin((cycle / 0.58) * Math.PI) * 0.24 : 0;
+      const hop = distance < 18 && cycle < 0.58 ? Math.sin((cycle / 0.58) * Math.PI) * (0.24 + approach * 0.08) : 0;
+      const alert = approach * Math.max(0, Math.sin(this.elapsed * 5.2 + i * 1.7));
+      const dx = 55.5 - this._spots[i][0];
+      const dz = 58.5 - this._spots[i][2];
+      const length = Math.hypot(dx, dz) || 1;
+      const dart = alert * 0.2;
+      this.alertPulse = Math.max(this.alertPulse, alert);
       maxHop = Math.max(maxHop, hop);
-      skipper.position.x = this._spots[i][0] + Math.sin(this.elapsed * 0.45 + i) * 0.11;
+      skipper.position.x = this._spots[i][0] + Math.sin(this.elapsed * 0.45 + i) * 0.11 + (dx / length) * dart;
       skipper.position.y = this._spots[i][1] + hop;
-      skipper.rotation.x = -hop * 0.32;
+      skipper.position.z = this._spots[i][2] + (dz / length) * dart;
+      skipper.rotation.x = -hop * 0.32 - alert * 0.12;
       skipper.rotation.z = Math.sin(this.elapsed * 1.2 + i) * 0.035;
       skipper.scale.setScalar(0.92 + nightMix * 0.04);
       ripple.visible = hop > 0.04;
