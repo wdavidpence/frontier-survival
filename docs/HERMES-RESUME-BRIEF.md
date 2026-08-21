@@ -14,6 +14,7 @@ v1.16.8 makes the crab-triggered shallow-channel ripple follow the crab that gen
 ## Release state
 
 - Product commit: `f00bb81b25c642e03d3897d916f2da0b51de2e5e`
+- Documentation commit: recorded below
 - Tag: `v1.16.8`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
 - Cache chain: `main.js?v=500` → `game.js?v=489` → `fx.js?v=263`.
@@ -21,7 +22,7 @@ v1.16.8 makes the crab-triggered shallow-channel ripple follow the crab that gen
 
 ## Runtime judgment
 
-Local fixed-seed probes produced distinct dynamic sources `[52.15,59.38]` and `[53.892,60.08]` for different close crab approaches, both at waterline `y=17.13`, with zero errors. Clean primary night and daytime gates passed.
+Local and live fixed-seed probes produced distinct dynamic sources `[52.15,59.38]` and `[53.892,60.08]` for different close crab approaches, both at waterline `y=17.13`, with zero errors. Clean primary night and daytime gates passed.
 
 ## Next bounded slice
 

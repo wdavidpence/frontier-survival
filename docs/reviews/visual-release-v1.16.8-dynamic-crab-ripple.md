@@ -35,6 +35,13 @@ Made the crab-triggered shallow-channel ripple follow the specific crab that gen
   - zero page-owned errors.
 - Local clean accepted primary night frame: bridge, lantern, fireflies, moths, frogs, crabs, water, seagrass, reflection/foam, and HUD remain healthy with no visual regression.
 - Local daytime: ripple hidden/opacity `0`, crabs `0`, flecks `0`, frogs `0`, zero errors.
+- Live Pages:
+  - title `Frontier Survival v1.16.8`;
+  - `started=true`, seed `1884808540`, 1280×720 canvas;
+  - dynamic-source probe reproduced `[52.15,17.13,59.38]` and `[53.892,17.13,60.08]`;
+  - zero page-owned errors;
+  - clean live primary night frame passed visual review;
+  - daytime gate: `night=false`, ripple hidden/opacity `0`, crabs `0`, flecks `0`, frogs `0`, zero errors.
 
 ## Honest limitation
 
