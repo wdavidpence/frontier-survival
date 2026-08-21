@@ -864,6 +864,12 @@ test('ambient mix day vs night fire rain', () => {
   assert.ok(fire.fire > 0.1);
   assert.ok(rain.rain > day.rain);
   assert.ok(night.howl > 0);
+  const frog = ambientMix({ mangrove: true, isNight: true, nearWater: true, dayPhase: 0.75 });
+  const frogDay = ambientMix({ mangrove: true, isNight: false, nearWater: true, dayPhase: 0.25 });
+  assert.ok(frog.frog > 0);
+  assert.strictEqual(frogDay.frog, 0);
+  assert.match(fsText('js/game.js'), /rootwalkWater/);
+  assert.match(fsText('js/game.js'), /getBlock\(this\.player\.position\.x, 16/);
   const dead = ambientMix({ dead: true, isNight: true, heat: 20 });
   assert.strictEqual(dead.wind, 0);
 });
@@ -4656,7 +4662,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.15.1'), 'HTML must expose v1.15.1');
+  assert.ok(html.includes('v1.15.3'), 'HTML must expose v1.15.3');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

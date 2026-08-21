@@ -3,7 +3,7 @@ import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=436';
 import { Player } from './player.js?v=239';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
-import { AudioBus } from './audio.js?v=220';
+import { AudioBus } from './audio.js?v=222';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
@@ -2679,11 +2679,17 @@ export class Game {
       this.world.getBlock(this.player.position.x - 2, this.player.position.y, this.player.position.z) === BLOCK.WATER ||
       this.world.getBlock(this.player.position.x, this.player.position.y, this.player.position.z + 2) === BLOCK.WATER ||
       this.world.getBlock(this.player.position.x, this.player.position.y, this.player.position.z - 2) === BLOCK.WATER;
+    const rootwalkWater = Math.hypot(this.player.position.x - 55.5, this.player.position.z - 58.5) < 22 && (
+      this.world.getBlock(this.player.position.x, 16, this.player.position.z) === BLOCK.WATER ||
+      this.world.getBlock(this.player.position.x + 2, 16, this.player.position.z) === BLOCK.WATER ||
+      this.world.getBlock(this.player.position.x, 16, this.player.position.z + 2) === BLOCK.WATER
+    );
     this.audio.tickAmbient(dt, {
       isNight: this.time.isNight(),
       weather: this.time.weather,
       heat,
-      nearWater,
+      nearWater: nearWater || rootwalkWater,
+      mangrove: Math.hypot(this.player.position.x - 55.5, this.player.position.z - 58.5) < 22,
       dayPhase: this.time.dayPhase,
       dead: this.survival.dead,
       biome: this._lastBiome,

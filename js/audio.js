@@ -10,11 +10,12 @@ export function ambientMix({
   weather = 'clear',
   heat = 0,
   nearWater = false,
+  mangrove = false,
   dayPhase = 0.25,
   dead = false,
 } = {}) {
   if (dead) {
-    return { master: 0, wind: 0, night: 0, rain: 0, fire: 0, water: 0, birds: 0, howl: 0 };
+    return { master: 0, wind: 0, night: 0, rain: 0, fire: 0, water: 0, birds: 0, howl: 0, frog: 0 };
   }
   const sun = Math.max(0, Math.cos((dayPhase - 0.25) * Math.PI * 2));
   const wind = isNight ? 0.22 : 0.14 + sun * 0.06;
@@ -24,6 +25,7 @@ export function ambientMix({
   const water = nearWater ? 0.18 : 0;
   let birds = !isNight && weather === 'clear' ? 0.55 : 0;
   const howl = isNight ? 0.4 : 0;
+  const frog = mangrove && isNight && nearWater ? 0.32 : 0;
   let windOut = wind;
   let waterOut = water;
   if (biome === 'desert') { windOut = Math.min(1, wind + 0.15); birds *= 0.35; }
@@ -38,6 +40,7 @@ export function ambientMix({
     water: waterOut,
     birds,
     howl,
+    frog,
   };
 }
 
@@ -50,6 +53,7 @@ export class AudioBus {
     this._layers = {};
     this._birdTimer = 0;
     this._howlTimer = 0;
+    this._frogTimer = 0;
     this._crackleTimer = 0;
     this._lastMix = ambientMix();
     this._voices = [];
@@ -243,6 +247,24 @@ export class AudioBus {
         if (Math.random() < mix.howl) this._wolfHowl();
       }
     }
+
+    // Mangrove frog chorus: sparse, low-gain nocturnal calls near the channel.
+    if (mix.frog > 0) {
+      this._frogTimer -= dt;
+      if (this._frogTimer <= 0) {
+        this._frogTimer = 5 + Math.random() * 8;
+        this._frogChorus(mix.frog);
+      }
+    } else {
+      this._frogTimer = Math.min(this._frogTimer, 2);
+    }
+  }
+
+  _frogChorus(strength = 0.32) {
+    if (!this.ctx) return;
+    const base = 360 + Math.random() * 80;
+    this.beep(base, 0.08, 'triangle', 0.018 * strength * 3);
+    if (Math.random() < 0.72) this.beep(base * 1.22, 0.07, 'triangle', 0.014 * strength * 3);
   }
 
   _birdPhrase() {
