@@ -1,30 +1,28 @@
-# Frontier Survival — v1.14.6 channel ecology checkpoint
+# Frontier Survival — v1.14.7 wet-mud landfall checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.14.6 adds the second cohesive Mangrove ecology pass around the accepted Rootwalk.
+v1.14.7 adds a compact authored wet-mud contrast patch at the Mangrove Lantern Rootwalk landfall.
 
-- four authored channel clusters beside the bridge;
-- KELP depth below the waterline;
-- SEAGRASS cluster tips;
-- emergent SEAGRASS at the surface-plus-one waterline cell;
-- sync/worker parity retained;
-- bridge, fireflies, route, and collision unchanged.
+- three deterministic candidate cells;
+- replacement only when existing material is Mangrove mud, dirt, or sand;
+- sync/worker parity;
+- bridge, fireflies, seagrass, route, and collision unchanged.
 
 ## Release state
 
-- Product commit: `07e901b62b5bf0079ae2b672ffa8543f0df8f15e`
-- Tag: `v1.14.6`
+- Product commit: `b3361e60b253292d1c02615708e4c3a95b3de9b9`
+- Tag: `v1.14.7`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=478` → `game.js?v=467` → `world.js?v=435` → `chunk-worker.js?v=295`.
+- Cache chain: `main.js?v=479` → `game.js?v=468` → `world.js?v=436` → `chunk-worker.js?v=296`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Visual judgment
 
-The clean primary frame preserves the accepted Rootwalk composition. A supplemental channel angle visibly shows restrained emergent green seagrass at the waterline. The water/horizon, HUD, bridge, lantern, and fireflies remain readable with no renderer regression.
+Clean fixed-seed local runtime remains readable: Rootwalk bridge, lanterns, firefly glints, emergent seagrass, water/horizon, and HUD all survive. The DAMP_SOIL patch is a safe, subtle dark-wet landing contrast with no black/gray artifact or giant occlusion.
 
 ## Next bounded slice
 
-Add one wet-mud/shore material variation around the accepted channel, then repeat the same fixed-seed local/live gates.
+Advance atmosphere with a restrained dusk/night wetland reveal around the existing Rootwalk. Preserve daytime readability and reuse the fixed-seed evidence points.
