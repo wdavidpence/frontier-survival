@@ -1,30 +1,27 @@
-# Frontier Survival — v1.16.7 crab-water-ripple checkpoint
+# Frontier Survival — v1.16.8 dynamic-crab-ripple checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.16.7 connects close authored crab scuttles to a localized shallow-channel water ripple.
+v1.16.8 makes the crab-triggered shallow-channel ripple follow the crab that generated the strongest scuttle pulse.
 
-- reuses `MangroveWaterFX`;
-- one pale-green additive ring at `(52.3,17.13,59.4)`;
-- visible only above scuttle pulse `0.62` and nocturnal Rootwalk gating;
-- final ring is at the established visible waterline `y=17.13`;
-- final readable geometry is `0.22–0.34` with peak opacity about `0.10`;
-- quiet/daytime hidden;
-- bridge, lantern, fireflies, moths, frogs, crab flecks, skitter audio, water reflection/foam, and HUD preserved.
+- `scuttleSourceX/Z` derives from the winning crab’s live position;
+- water response is now authored cause-and-effect across all three crab edge positions;
+- visible waterline `y=17.13`, pale-green ring, night gate, and quiet reset preserved;
+- bridge, lantern, fireflies, moths, frogs, crab flecks, skitter audio, reflection/foam, and HUD preserved.
 
 ## Release state
 
-- Product commit: `b2329e6bbff8a4d7962860145d65912b0ffcc33a`
-- Tag: `v1.16.7`
+- Product commit: `f00bb81b25c642e03d3897d916f2da0b51de2e5e`
+- Tag: `v1.16.8`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=499` → `game.js?v=488` → `fx.js?v=262`.
+- Cache chain: `main.js?v=500` → `game.js?v=489` → `fx.js?v=263`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Local close pulse `0.8226` produced a visible ring at the authored waterline; quiet pulse `0.5686` hid it and reset opacity to zero. Final frozen proof crop showed the pale-green ring separate from the larger lantern ring without clutter or renderer regression. Live near-channel probe reproduced the pulse; live primary and daytime gates passed with zero errors.
+Local fixed-seed probes produced distinct dynamic sources `[52.15,59.38]` and `[53.892,60.08]` for different close crab approaches, both at waterline `y=17.13`, with zero errors. Clean primary night and daytime gates passed.
 
 ## Next bounded slice
 
