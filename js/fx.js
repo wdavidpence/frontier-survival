@@ -557,6 +557,7 @@ export class MangroveFrogFX {
     const pupilMat = new THREE.MeshBasicMaterial({ color: 0x18251c });
     const spots = [[53.4, 17.25, 58.2], [54.7, 17.2, 58.8], [52.6, 17.25, 57.5]];
     this._spots = spots;
+    this._baseRotations = spots.map((_, i) => i * 1.8);
     for (let i = 0; i < spots.length; i++) {
       const group = new THREE.Group();
       const body = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 5), bodyMat);
@@ -589,19 +590,24 @@ export class MangroveFrogFX {
   tick(dt, active, center, nightMix = 0) {
     this.elapsed += dt;
     const show = Boolean(active && center && nightMix > 0.18);
+    let maxAlert = 0;
     for (let i = 0; i < this.frogs.length; i++) {
       const frog = this.frogs[i];
       frog.visible = show;
       if (!show) continue;
       const distance = Math.hypot(center.x - this._spots[i][0], center.z - this._spots[i][2]);
+      const alert = Math.max(0, 1 - distance / 14);
+      maxAlert = Math.max(maxAlert, alert);
       const cycle = (this.elapsed + i * 2.3) % 7;
       const hop = distance < 16 && cycle < 0.72 ? Math.sin((cycle / 0.72) * Math.PI) * 0.28 : 0;
       frog.position.y = 17.2 + Math.sin(this.elapsed * 1.4 + i * 1.9) * 0.018 + hop;
       frog.rotation.z = Math.sin(this.elapsed * 1.1 + i) * 0.025;
       frog.rotation.x = hop * 0.18;
+      frog.rotation.y = this._baseRotations[i] + Math.atan2(center.x - this._spots[i][0], center.z - this._spots[i][2]) * alert;
       frog.scale.setScalar(0.9 + nightMix * 0.06);
     }
-    this._eyeMat.opacity = show ? 0.58 + nightMix * 0.35 : 0;
+    const alertPulse = maxAlert * (0.5 + 0.5 * Math.sin(this.elapsed * 5.5)) * 0.16;
+    this._eyeMat.opacity = show ? 0.58 + nightMix * 0.35 + alertPulse : 0;
   }
 
   dispose() {

@@ -4650,6 +4650,9 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(fx, /Three tiny authored frog silhouettes/);
   assert.match(fx, /cycle < 0\.72/);
   assert.match(fx, /distance < 16/);
+  assert.match(fx, /distance \/ 14/);
+  assert.match(fx, /alertPulse/);
+  assert.match(fx, /Math\.atan2\(center\.x/);
 });
 
 test('forest understory correction reaches the exact tropical starter route', () => {
@@ -4668,7 +4671,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.15.5'), 'HTML must expose v1.15.5');
+  assert.ok(html.includes('v1.15.6'), 'HTML must expose v1.15.6');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
