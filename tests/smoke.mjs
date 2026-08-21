@@ -4666,7 +4666,11 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(game, /this\.waterFx\.tick\(dt, active, nightMix, p\)/);
   assert.match(audio, /mangroveDistance = 0/);
   assert.match(audio, /frogFalloff = Math\.max\(0, 1 - mangroveDistance \/ 22\)/);
+  assert.match(audio, /const frogPan = Math\.max\(-1, Math\.min\(1, mangroveLateral \/ 12\)\)/);
+  assert.match(audio, /createStereoPanner/);
+  assert.match(audio, /_frogChorus\(mix\.frog, mix\.frogPan\)/);
   assert.match(game, /mangroveDistance: Math\.hypot/);
+  assert.match(game, /mangroveLateral: 55\.5 - this\.player\.position\.x/);
 });
 
 test('forest understory correction reaches the exact tropical starter route', () => {
@@ -4685,7 +4689,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.16.0'), 'HTML must expose v1.16.0');
+  assert.ok(html.includes('v1.16.1'), 'HTML must expose v1.16.1');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

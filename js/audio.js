@@ -12,6 +12,7 @@ export function ambientMix({
   nearWater = false,
   mangrove = false,
   mangroveDistance = 0,
+  mangroveLateral = 0,
   dayPhase = 0.25,
   dead = false,
 } = {}) {
@@ -28,6 +29,7 @@ export function ambientMix({
   const howl = isNight ? 0.4 : 0;
   const frogFalloff = Math.max(0, 1 - mangroveDistance / 22);
   const frog = mangrove && isNight && nearWater ? 0.32 * frogFalloff : 0;
+  const frogPan = Math.max(-1, Math.min(1, mangroveLateral / 12));
   let windOut = wind;
   let waterOut = water;
   if (biome === 'desert') { windOut = Math.min(1, wind + 0.15); birds *= 0.35; }
@@ -43,6 +45,7 @@ export function ambientMix({
     birds,
     howl,
     frog,
+    frogPan,
   };
 }
 
@@ -255,18 +258,18 @@ export class AudioBus {
       this._frogTimer -= dt;
       if (this._frogTimer <= 0) {
         this._frogTimer = 5 + Math.random() * 8;
-        this._frogChorus(mix.frog);
+        this._frogChorus(mix.frog, mix.frogPan);
       }
     } else {
       this._frogTimer = Math.min(this._frogTimer, 2);
     }
   }
 
-  _frogChorus(strength = 0.32) {
+  _frogChorus(strength = 0.32, pan = 0) {
     if (!this.ctx) return;
     const base = 360 + Math.random() * 80;
-    this.beep(base, 0.08, 'triangle', 0.018 * strength * 3);
-    if (Math.random() < 0.72) this.beep(base * 1.22, 0.07, 'triangle', 0.014 * strength * 3);
+    this.beep(base, 0.08, 'triangle', 0.018 * strength * 3, pan);
+    if (Math.random() < 0.72) this.beep(base * 1.22, 0.07, 'triangle', 0.014 * strength * 3, pan * 0.8);
   }
 
   _birdPhrase() {
@@ -305,7 +308,7 @@ export class AudioBus {
   /** Maximum concurrent oscillator voices for SFX. */
   static MAX_VOICES = 8;
 
-  beep(freq, dur = 0.08, type = 'square', gain = 0.2) {
+  beep(freq, dur = 0.08, type = 'square', gain = 0.2, pan = 0) {
     if (!this.enabled) return;
     this.ensure();
     if (!this.ctx) return;
@@ -326,7 +329,14 @@ export class AudioBus {
     g.gain.setValueAtTime(gain, t);
     g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     o.connect(g);
-    g.connect(this.master);
+    const panner = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : null;
+    if (panner) {
+      panner.pan.value = Math.max(-1, Math.min(1, pan));
+      g.connect(panner);
+      panner.connect(this.master);
+    } else {
+      g.connect(this.master);
+    }
     o.start(t);
     o.stop(t + dur);
 
