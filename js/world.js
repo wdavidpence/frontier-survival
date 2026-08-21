@@ -417,7 +417,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=292';
+    const workerUrl = './js/chunk-worker.js?v=295';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -1331,6 +1331,16 @@ export class World {
     for (const dx of [-1, 1]) set(lx + dx, y, lz + 1, BLOCK.ROOTS);
     for (const dx of [-1, 0, 1]) set(lx + dx, y + 3, lz, BLOCK.MANGROVE_LEAVES);
     for (const dx of [-1, 0, 1]) set(lx + dx, y + 5, lz, BLOCK.MANGROVE_LEAVES);
+    const plant = (x, yy, z, id) => {
+      if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
+      const i = this._idx(x, yy, z);
+      if (data[i] === BLOCK.WATER) data[i] = id;
+    };
+    for (const [dx, dz, h] of [[-5, -2, 2], [-6, 1, 3], [-5, 2, 2], [-3, -3, 1]]) {
+      for (let i = 0; i < h; i++) plant(lx + dx, SEA_LEVEL - 1 - i, lz + dz, i === h - 1 ? BLOCK.SEAGRASS : BLOCK.KELP);
+      const tip = this._idx(lx + dx, SEA_LEVEL + 1, lz + dz);
+      if (data[tip] === BLOCK.AIR) data[tip] = BLOCK.SEAGRASS;
+    }
   }
 
   /** Place a tidal mangrove: low forked trunk, flared roots, and a bright umbrella canopy. */

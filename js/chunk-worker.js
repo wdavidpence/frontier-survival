@@ -424,6 +424,16 @@ function _placeMangroveBridge(data, idx, lx, y, lz) {
   for (const dx of [-1, 1]) set(lx + dx, y, lz + 1, BLOCK.ROOTS);
   for (const dx of [-1, 0, 1]) set(lx + dx, y + 3, lz, BLOCK.MANGROVE_LEAVES);
   for (const dx of [-1, 0, 1]) set(lx + dx, y + 5, lz, BLOCK.MANGROVE_LEAVES);
+  const plant = (x, yy, z, id) => {
+    if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
+    const i = idx(x, yy, z);
+    if (data[i] === BLOCK.WATER) data[i] = id;
+  };
+  for (const [dx, dz, h] of [[-5, -2, 2], [-6, 1, 3], [-5, 2, 2], [-3, -3, 1]]) {
+    for (let i = 0; i < h; i++) plant(lx + dx, SEA_LEVEL - 1 - i, lz + dz, i === h - 1 ? BLOCK.SEAGRASS : BLOCK.KELP);
+    const tip = idx(lx + dx, SEA_LEVEL + 1, lz + dz);
+    if (data[tip] === BLOCK.AIR) data[tip] = BLOCK.SEAGRASS;
+  }
 }
 
 function _placeMangrove(data, idx, lx, y, lz) {
