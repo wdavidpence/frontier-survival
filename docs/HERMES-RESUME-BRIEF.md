@@ -1,6 +1,6 @@
-# Frontier Survival — v1.14.2 live / next Rootwalk vista
+# Frontier Survival — v1.14.2 accepted Rootwalk vista / next ecology pass
 
-Updated: 2026-08-20
+Updated: 2026-08-21
 
 ## Current live release
 
@@ -9,21 +9,29 @@ Updated: 2026-08-20
 - Tag: `v1.14.2`
 - Live URL: https://wdavidpence.github.io/frontier-survival/
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Canonical checkout remains broad dirty WIP and quarantined.
 
-## Accepted slice
+## Accepted Rootwalk vista
 
-- Widened the authored Mangrove sightline pocket to `x=48..61`, `z=53..65`.
-- Sync and worker tree suppression mirrored.
-- Rootwalk steps/beacon/lantern/roots and `Entered Mangrove Lantern Rootwalk` cue retained.
-- Cache chain: `main.js?v=474` → `game.js?v=463` → `world.js?v=432` → `chunk-worker.js?v=292`.
-- Smoke, syntax, diff-check, parity, and import audit pass.
-- Supported ordinary running proof at `(52.5,19,58.5)` remained `onGround=true`, showed the plank deck/elevated torch/open water, and had zero page-owned errors.
+The first clean ordinary land-side mid-distance frame is accepted on both local and live Pages:
 
-## Remaining gap
+- fixed seed `1884808540`;
+- position `(47.5,19.0001,47.5)`;
+- yaw `-2.51`;
+- `onGround=true`;
+- tropical approach facing the Mangrove Rootwalk;
+- full plank staircase/deck, elevated torch, water edge, distant horizon, readable HUD;
+- zero page-owned runtime errors.
 
-The close approach is accepted, but the final AAA/Wow vista is still open: a land-side mid-distance frame must reveal the full Rootwalk silhouette without the close foreground wall.
+Runtime scan proved the approach cell had direct center support, 3×3×6 headroom, and zero ray blockage to the destination. This closes the active `rootwalk-vista` slice.
+
+## Release gates
+
+Smoke, syntax, diff-check, root/public parity, 125-edge import audit, local Start/runtime, and live Pages Start/runtime all pass.
+
+## Honest maturity status
+
+The new biome is now an authored, navigable, player-readable destination checkpoint. It is not complete at literal AAA parity or the final astonishing Wow bar. Remaining gaps are richer Mangrove ecology, wetland material variation, and cinematic atmosphere.
 
 ## Next bounded slice
 
-Author a land-side approach cell connected to the supported steps, enforce the same 3×3×6 clearance contract, and capture an ordinary mid-distance frame before adding another prop.
+Add one cohesive wetland ecology/atmosphere pass around the accepted Rootwalk route. Preserve the land-side composition and reuse the fixed-seed evidence points; do not regress the clean bridge/lantern/water frame.
