@@ -1,30 +1,29 @@
-# Frontier Survival — v1.17.0 mudskipper-dart checkpoint
+# Frontier Survival — v1.17.1 mudskipper-splash checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.17.0 gives the two authored Mangrove mudskippers a close-player waterward dart response.
+v1.17.1 adds a tiny spatial mudskipper splash chirp when close player alert begins.
 
-- seven-block alert falloff;
-- waterward dart toward channel center;
-- small alert lean;
-- close hops gain up to `0.08` extra height;
-- existing night gate, 18-block activation, idle drift, and hop ripples preserved;
-- bridge, lantern, fireflies, moths, frogs, crabs, dynamic crab ripple, flecks, skitter audio, reflection/foam, and HUD preserved.
+- low-gain triangle/sine two-note cue;
+- existing AudioBus and lateral pan path;
+- alert threshold `0.65`;
+- `0.8s` cooldown;
+- bridge, lantern, fireflies, moths, frogs, crabs, mudskippers, crab water response, flecks, reflection/foam, and HUD preserved.
 
 ## Release state
 
-- Product commit: `a34caf9452c4af62a45c6cbefe80fa78047d9706`
+- Product commit: `c86893e43350df5961413d0594b490e779ff32da`
 - Documentation commit: recorded below
-- Tag: `v1.17.0`
+- Tag: `v1.17.1`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=502` → `game.js?v=491` → `fx.js?v=265`.
+- Cache chain: `main.js?v=503` → `game.js?v=492` → `fx.js?v=266` → `audio.js?v=226`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Local and live far approach alert was `0`; close approach alert was `0.889`. The lead mudskipper moved from `[52.911,17.267,59.5]` to `[53.077,17.34,59.436]`, proving waterward response. Clean primary night and daytime gates passed with zero errors.
+Local production probe with alert `0.889` made exactly one splash call, set cooldown `0.8`, and suppressed the next `0.1s` call with AudioContext `running`. Clean night visual and daytime gates passed.
 
 ## Next bounded slice
 
