@@ -1,29 +1,28 @@
-# Frontier Survival — v1.16.4 crab-freeze checkpoint
+# Frontier Survival — v1.16.5 crab-fleck checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.16.4 adds a brief close-approach freeze to the authored Rootwalk crabs.
+v1.16.5 connects close crab scuttle to a tiny shoreline disturbance.
 
-- five-block freeze falloff;
-- scuttle displacement suppression up to 85%;
-- small body tilt during pause;
-- seven-block flee/scuttle preserved;
-- dusk/night-only visibility preserved;
+- two small lifted tan flecks per crab;
+- close-pulse-only visibility;
+- flecks disappear in quiet phase and daytime;
+- existing crab freeze/scuttle and dusk/night gates preserved;
 - bridge, lantern, fireflies, moths, frogs, frog audio, water, seagrass, reflection/foam, and HUD preserved.
 
 ## Release state
 
-- Product commit: `463e96d5ac2c8bc925d7099e058fc94c720b0c34`
-- Tag: `v1.16.4`
+- Product commit: `887fa9a61cd08ae9ef44ed21f5a9a71ca070672a`
+- Tag: `v1.16.5`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=496` → `game.js?v=485` → `fx.js?v=259`.
+- Cache chain: `main.js?v=497` → `game.js?v=486` → `fx.js?v=260`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Local and live freeze/movement phases produced first-crab positions `51.684 → 51.901` with response tilt `0.22 → 0.149`. Clean live primary night frame remained readable; live daytime hid crabs and frogs with zero errors.
+Night pulse counts were `[2,2,0]` and quiet counts `[0,0,0]`. Corrected supplemental frame makes the flecks readable without clutter; clean primary night and daytime gates pass with zero errors.
 
 ## Next bounded slice
 
