@@ -22,7 +22,7 @@ v1.16.5 connects close crab scuttle to a tiny shoreline disturbance.
 
 ## Runtime judgment
 
-Night pulse counts were `[2,2,0]` and quiet counts `[0,0,0]`. Corrected supplemental frame makes the flecks readable without clutter; clean primary night and daytime gates pass with zero errors.
+Night pulse counts were `[2,2,0]` locally and four active flecks live across close groups. Quiet counts were `[0,0,0]`. Corrected supplemental frame makes the flecks readable without clutter; clean primary night and live daytime gates pass with zero errors.
 
 ## Next bounded slice
 

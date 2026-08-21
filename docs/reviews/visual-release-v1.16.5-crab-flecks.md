@@ -18,6 +18,7 @@ Connected close crab scuttle to a tiny shoreline disturbance.
 
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
 - Product commit: `887fa9a61cd08ae9ef44ed21f5a9a71ca070672a`
+- Documentation commit: recorded below
 - Tag: `v1.16.5`
 - Cache chain: `main.js?v=497` → `game.js?v=486` → `fx.js?v=260`.
 
@@ -35,7 +36,15 @@ Connected close crab scuttle to a tiny shoreline disturbance.
   - zero page-owned errors.
 - Corrected supplemental channel frame: flecks are separately readable as a tiny lifted tan cluster near the crab silhouettes, subordinate to the larger lantern reflection.
 - Clean primary night frame: flecks are absent in quiet phase; crabs remain unobtrusive and Rootwalk composition is healthy.
-- Daytime gate: `night=false`, crabs `0`, flecks `0`, frogs `0`, zero errors.
+- Live Pages:
+  - title `Frontier Survival v1.16.5`;
+  - `started=true`, seed `1884808540`;
+  - 1280×720 canvas;
+  - three crabs visible during night pulse;
+  - four flecks visible across the close groups during the forced pulse;
+  - quiet phase flecks `0`;
+  - zero page-owned errors;
+  - final daytime gate: `night=false`, crabs `0`, flecks `0`, frogs `0`, zero errors.
 
 ## Honest limitation
 
