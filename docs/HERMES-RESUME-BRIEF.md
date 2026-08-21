@@ -1,33 +1,29 @@
-# Frontier Survival — v1.15.4 frog fauna checkpoint
+# Frontier Survival — v1.15.5 frog-hop checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.15.4 adds three tiny authored frog silhouettes beside the Mangrove Rootwalk channel.
+v1.15.5 upgrades the three Rootwalk frogs with staggered proximity-driven hops.
 
-- dark green low-poly bodies;
-- lighter bellies;
-- pale-gold eye glints with dark pupils;
-- idle bob and slight rotation;
-- dusk/night visibility only inside the existing Rootwalk radius;
-- preserves v1.15.3 frog chorus audio behavior.
+- seven-second phase;
+- `0.72s` hop window;
+- `0.28` block peak;
+- active within `16` blocks;
+- dusk/night visibility only;
+- frog chorus, bridge, lantern, fireflies, moths, water response, seagrass, wet mud, and HUD preserved.
 
 ## Release state
 
-- Product commit: `6aa20acb64e8bb96dd3248cd9ba3de8b41fe1078`
-- Tag: `v1.15.4`
+- Product commit: `e7f95075c06ede194257a5efd0077a09eaf9cf5f`
+- Tag: `v1.15.5`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=486` → `game.js?v=475` → `fx.js?v=253`.
+- Cache chain: `main.js?v=487` → `game.js?v=476` → `fx.js?v=254`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Local fixed-seed night evidence: three frog groups visible, frog audio `0.32`, fireflies/moths/water response active, zero errors.
-
-Local fixed-seed day evidence: three groups allocated but hidden, frog audio `0`, birds `0.55`, zero errors.
-
-Clean night screenshot preserves bridge, lantern, water, moths, fireflies, seagrass, and HUD while adding a restrained small frog cluster at the channel.
+Timed local samples prove actual hop motion: a frog moved from `17.275` to `17.465` during a proximity hop. Daytime hides all frogs and disables frog audio. Night retains three visible frogs and `frog=0.32` audio mix.
 
 ## Next bounded slice
 
