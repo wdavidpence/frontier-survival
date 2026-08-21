@@ -1,29 +1,28 @@
-# Frontier Survival — v1.17.3 dragonfly checkpoint
+# Frontier Survival — v1.17.4 dragonfly-feeding checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.17.3 adds two authored cyan dragonflies over the Mangrove shallow channel.
+v1.17.4 connects the two authored daytime dragonflies to the mudskipper feeding signal.
 
-- day/dusk-only (`nightMix < 0.65`);
-- deterministic hover, wing flap, and channel drift;
-- six-block player scatter response;
-- two fixed authored positions;
-- bridge, lantern, water, horizon, seagrass, frogs, crabs, mudskippers, crab water response, splash audio, reflection/foam, and HUD preserved.
+- feeding cue `1` lowers both dragonflies by `0.08` blocks;
+- synchronized pitch/dip `0.14` radians;
+- idle hover remains unchanged;
+- day/dusk visibility, six-block scatter, nighttime suppression, mudskipper feeding dimple, hops, dart, and splash audio preserved.
 
 ## Release state
 
-- Product commit: `0b8a002e1d64d91409eef771252ef061785f2c20`
+- Product commit: `cb488983086abf7805c78383105f6ae02ac079f`
 - Documentation commit: recorded below
-- Tag: `v1.17.3`
+- Tag: `v1.17.4`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=505` → `game.js?v=494` → `fx.js?v=268`.
+- Cache chain: `main.js?v=506` → `game.js?v=495` → `fx.js?v=269`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Local and live runtime showed two day dragonflies, near-player scatter `0.879`, and complete nighttime suppression. Clean local and live daytime primary visuals passed; lower-center crop showed two small cyan winged motifs over the channel without route or HUD overlap.
+Local idle dragonflies were y `[17.605,17.649]` with zero cue; feeding signal moved them to `[17.525,17.569]` with synchronized rotation x `[0.14,0.14]`. Clean daytime primary visual passed with no regression.
 
 ## Next bounded slice
 
