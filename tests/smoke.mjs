@@ -4708,6 +4708,9 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(game, /this\.dragonflyFx = new MangroveDragonflyFX/);
   assert.match(fx, /this\.feedingCue = Math\.max\(this\.feedingCue, feedingPulse\)/);
   assert.match(fx, /feedingPulse \* 0\.08/);
+  assert.match(fx, /const skim = feedingPulse \* Math\.max\(0, Math\.sin\(this\.elapsed \* 4\.8 \+ i \* 1\.6\)\)/);
+  assert.match(fx, /this\.skimPulse = Math\.max\(this\.skimPulse, skim\)/);
+  assert.match(fx, /skim \* 0\.22/);
   assert.match(game, /this\.dragonflyFx\.tick\(dt, active, p, nightMix, this\.mudskipperFx\.feedingPulse\)/);
   assert.match(game, /this\.waterFx\.setCrabPulse\(this\.crabFx\.scuttlePulse/);
   assert.match(audio, /frogFalloff = Math\.max\(0, 1 - mangroveDistance \/ 22\)/);
@@ -4734,7 +4737,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.17.4'), 'HTML must expose v1.17.4');
+  assert.ok(html.includes('v1.17.5'), 'HTML must expose v1.17.5');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
