@@ -1,25 +1,29 @@
-# Frontier Survival — paused at v1.17.7
+# Frontier Survival — v1.17.8 dragonfly-perch checkpoint
 
 Updated: 2026-08-21
 
-## Published pause point
+## Current live candidate
 
-The Mangrove sprint is paused at the clean, live-verified v1.17.7 checkpoint.
+v1.17.8 adds a deterministic authored perch window for the first Mangrove dragonfly.
 
-- v1.17.7 dragonfly skim ripple decay and per-ripple material isolation;
-- product commit: `b7457cde273c9cc7cc9f5917e2a843b6ad7f7037`;
-- documentation commit: recorded below;
-- tag: `v1.17.7`;
-- live: `https://wdavidpence.github.io/frontier-survival/`;
-- cache chain: `main.js?v=509` → `game.js?v=498` → `fx.js?v=272`;
-- local and live hit/linger/gone probes pass;
-- clean local/live primary daytime frames pass;
-- zero page-owned errors.
+- ordinary route perch `1`, scatter `0`;
+- feeding suppresses perch to `0`;
+- close-player scatter suppresses perch to `0`;
+- existing feeding/skim/ripple, mudskipper, audio, water, bridge, lantern, horizon, seagrass, HUD, and night gates preserved.
 
-## Resume rule
+## Release state
 
-Do not start another feature slice until a new session/resume instruction. On resume, advance Mangrove toward richer authored ecology or deeper spatial wildlife behavior while preserving accepted Rootwalk gates.
+- Product commit: `d4020b0dc75fb900c2d4c6347255fa89e9350d50`
+- Documentation commit: recorded below
+- Tag: `v1.17.8`
+- Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
+- Cache chain: `main.js?v=510` → `game.js?v=499` → `fx.js?v=273`.
+- Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
-## Open premium gaps
+## Runtime judgment
 
-Deeper wildlife AI; navigation, feeding, and predator/prey simulation; broader species variety; true HRTF/occlusion/reverb; richer authored ecological storytelling and habitat density.
+Local ordinary/feeding/close probes passed with zero errors. Clean local daytime primary visual passed with no regression. Live Pages verification remains the final gate before this checkpoint is considered published live.
+
+## Next bounded slice
+
+Advance Mangrove toward richer authored ecology or deeper spatial wildlife behavior while preserving accepted Rootwalk gates.
