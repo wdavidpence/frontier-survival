@@ -1,28 +1,29 @@
-# Frontier Survival — v1.16.8 dynamic-crab-ripple checkpoint
+# Frontier Survival — v1.16.9 mudskipper-ecology checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.16.8 makes the crab-triggered shallow-channel ripple follow the crab that generated the strongest scuttle pulse.
+v1.16.9 adds two authored Mangrove mudskippers at the channel edge.
 
-- `scuttleSourceX/Z` derives from the winning crab’s live position;
-- water response is now authored cause-and-effect across all three crab edge positions;
-- visible waterline `y=17.13`, pale-green ring, night gate, and quiet reset preserved;
-- bridge, lantern, fireflies, moths, frogs, crab flecks, skitter audio, reflection/foam, and HUD preserved.
+- warm mud/ochre low-poly silhouettes;
+- dusk/night-only, 18-block proximity gate;
+- deterministic staggered hops up to `0.24` blocks;
+- one localized hop ripple per active jump;
+- bridge, lantern, fireflies, moths, frogs, crabs, crab flecks, dynamic crab water response, skitter audio, reflection/foam, and HUD preserved.
 
 ## Release state
 
-- Product commit: `f00bb81b25c642e03d3897d916f2da0b51de2e5e`
+- Product commit: `8fd350619f42037411d33bba5c591d13a2d4bddb`
 - Documentation commit: recorded below
-- Tag: `v1.16.8`
+- Tag: `v1.16.9`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=500` → `game.js?v=489` → `fx.js?v=263`.
+- Cache chain: `main.js?v=501` → `game.js?v=490` → `fx.js?v=264`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Local and live fixed-seed probes produced distinct dynamic sources `[52.15,59.38]` and `[53.892,60.08]` for different close crab approaches, both at waterline `y=17.13`, with zero errors. Clean primary night and daytime gates passed.
+Local runtime showed two visible mudskippers, one active hop at `y=17.252`, and one localized hop ripple with zero errors. Controlled supplemental crop showed the new silhouettes integrated into the existing lower-center ecology cluster without route or HUD occlusion. Daytime hid both skippers and ripples.
 
 ## Next bounded slice
 
