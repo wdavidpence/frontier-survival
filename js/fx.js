@@ -647,9 +647,11 @@ export class MangroveCrabFX {
     this.scene = scene;
     this.elapsed = 0;
     this.crabs = [];
+    this._flecks = [];
     this._spots = [[51.6, 16.92, 59.1], [53.1, 16.92, 59.8], [50.8, 16.92, 57.9]];
     const shellMat = new THREE.MeshBasicMaterial({ color: 0xb5653e, transparent: true, opacity: 0.78, depthTest: false, depthWrite: false });
     const clawMat = new THREE.MeshBasicMaterial({ color: 0xe09a62, transparent: true, opacity: 0.72, depthTest: false, depthWrite: false });
+    const fleckMat = new THREE.MeshBasicMaterial({ color: 0xe0bf83, transparent: true, opacity: 0.56, depthTest: false, depthWrite: false });
     for (let i = 0; i < count; i++) {
       const group = new THREE.Group();
       const shell = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 5), shellMat);
@@ -667,11 +669,20 @@ export class MangroveCrabFX {
         claw.position.set(side * 0.26, 0.12, 0.16);
         group.add(claw);
       }
+      const flecks = [];
+      for (const side of [-1, 1]) {
+        const fleck = new THREE.Mesh(new THREE.TetrahedronGeometry(0.06, 0), fleckMat);
+        fleck.position.set(side * 0.2, 0.04, -0.08);
+        fleck.visible = false;
+        group.add(fleck);
+        flecks.push(fleck);
+      }
       group.position.set(...this._spots[i]);
       group.rotation.y = i * 1.7;
       group.visible = false;
       scene?.add(group);
       this.crabs.push(group);
+      this._flecks.push(flecks);
     }
     this._shellMat = shellMat;
     this._clawMat = clawMat;
@@ -690,12 +701,18 @@ export class MangroveCrabFX {
       const freeze = Math.max(0, 1 - distance / 5) * (0.5 + 0.5 * Math.sin(this.elapsed * 3.2 + i));
       const sidestep = Math.sin(this.elapsed * 0.55 + i * 1.8) * 0.16;
       const scuttle = away * flee * (0.22 + Math.sin(this.elapsed * 4.2 + i) * 0.06) * (1 - freeze * 0.85);
+      const scuttlePulse = flee * Math.max(0, Math.sin(this.elapsed * 4.2 + i));
       crab.position.x = this._spots[i][0] + sidestep + scuttle;
       crab.position.y = this._spots[i][1] + Math.sin(this.elapsed * 1.6 + i) * 0.012;
       crab.rotation.y = away * (0.3 + flee * 0.35);
       crab.rotation.z = Math.sin(this.elapsed * 1.1 + i * 0.7) * 0.04;
       crab.rotation.x = flee * 0.08 + freeze * 0.14;
       crab.scale.setScalar(0.9 + nightMix * 0.05);
+      for (const [index, fleck] of this._flecks[i].entries()) {
+        fleck.visible = scuttlePulse > 0.62;
+        fleck.position.y = 0.06 + scuttlePulse * (0.12 + index * 0.03);
+        fleck.scale.setScalar(0.65 + scuttlePulse * 0.7);
+      }
     }
   }
 
@@ -706,5 +723,6 @@ export class MangroveCrabFX {
     }
     this._shellMat.dispose();
     this._clawMat.dispose();
+    this._flecks[0]?.[0]?.material.dispose();
   }
 }
