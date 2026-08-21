@@ -68,7 +68,7 @@ import {
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
 import { createBlockAtlas } from './atlas.js?v=300';
-import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX } from './fx.js?v=263';
+import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX } from './fx.js?v=264';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=2';
@@ -322,6 +322,7 @@ export class Game {
     this.waterFx = new MangroveWaterFX(this.scene);
     this.frogFx = new MangroveFrogFX(this.scene);
     this.crabFx = new MangroveCrabFX(this.scene);
+    this.mudskipperFx = new MangroveMudskipperFX(this.scene);
     // Outer streaming ring; overwritten by _applyRenderDistance via visibility plan.
     this.worldRadius = this._visPlan?.proxyChunks || 5;
 
@@ -1382,6 +1383,7 @@ export class Game {
     this.mothFx.tick(dt, active, p, nightMix);
     this.frogFx.tick(dt, active, p, nightMix);
     this.crabFx.tick(dt, active, p, nightMix);
+    this.mudskipperFx.tick(dt, active, p, nightMix);
     if (this.crabFx.scuttlePulse > 0.62) {
       this.waterFx.setCrabPulse(this.crabFx.scuttlePulse, this.crabFx.scuttleSourceX, this.crabFx.scuttleSourceZ);
     }

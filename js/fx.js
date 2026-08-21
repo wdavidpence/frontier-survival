@@ -765,3 +765,78 @@ export class MangroveCrabFX {
     this._flecks[0]?.[0]?.material.dispose();
   }
 }
+
+/** Two sparse authored mudskippers that hop between the channel surface and wet mud after dusk. */
+export class MangroveMudskipperFX {
+  constructor(scene) {
+    this.scene = scene;
+    this.elapsed = 0;
+    this.skippers = [];
+    this._ripples = [];
+    this._spots = [[52.9, 17.04, 59.5], [54.0, 17.04, 59.2]];
+    const bodyMat = new THREE.MeshBasicMaterial({ color: 0x9b7d55, transparent: true, opacity: 0.82, depthTest: false, depthWrite: false });
+    const finMat = new THREE.MeshBasicMaterial({ color: 0xc8a56d, transparent: true, opacity: 0.78, depthTest: false, depthWrite: false });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffd978, transparent: true, opacity: 0.9, depthTest: false, depthWrite: false });
+    const rippleMat = new THREE.MeshBasicMaterial({ color: 0xb8ead8, transparent: true, opacity: 0, depthTest: false, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+    for (let i = 0; i < this._spots.length; i++) {
+      const group = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 5), bodyMat);
+      body.scale.set(0.9, 0.42, 1.5);
+      body.position.y = 0.11;
+      const fin = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.16, 5), finMat);
+      fin.rotation.z = Math.PI / 2;
+      fin.position.set(0.12, 0.16, 0.02);
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 3), eyeMat);
+      eye.position.set(-0.08, 0.24, 0.18);
+      const ripple = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.2, 12), rippleMat);
+      ripple.rotation.x = -Math.PI / 2;
+      ripple.position.y = 0.02;
+      ripple.visible = false;
+      group.add(body, fin, eye, ripple);
+      group.position.set(...this._spots[i]);
+      group.rotation.y = i * 1.2;
+      group.visible = false;
+      scene?.add(group);
+      this.skippers.push(group);
+      this._ripples.push(ripple);
+    }
+    this._bodyMat = bodyMat;
+    this._finMat = finMat;
+    this._eyeMat = eyeMat;
+    this._rippleMat = rippleMat;
+  }
+
+  tick(dt, active, center, nightMix = 0) {
+    this.elapsed += dt;
+    const show = Boolean(active && center && nightMix > 0.1);
+    let maxHop = 0;
+    for (let i = 0; i < this.skippers.length; i++) {
+      const skipper = this.skippers[i];
+      skipper.visible = show;
+      const ripple = this._ripples[i];
+      ripple.visible = false;
+      if (!show) continue;
+      const distance = Math.hypot(center.x - this._spots[i][0], center.z - this._spots[i][2]);
+      const cycle = (this.elapsed + i * 2.4) % 5.8;
+      const hop = distance < 18 && cycle < 0.58 ? Math.sin((cycle / 0.58) * Math.PI) * 0.24 : 0;
+      maxHop = Math.max(maxHop, hop);
+      skipper.position.x = this._spots[i][0] + Math.sin(this.elapsed * 0.45 + i) * 0.11;
+      skipper.position.y = this._spots[i][1] + hop;
+      skipper.rotation.x = -hop * 0.32;
+      skipper.rotation.z = Math.sin(this.elapsed * 1.2 + i) * 0.035;
+      skipper.scale.setScalar(0.92 + nightMix * 0.04);
+      ripple.visible = hop > 0.04;
+      ripple.scale.setScalar(1 + hop * 2.2);
+      ripple.material.opacity = hop * 0.24;
+    }
+    return maxHop;
+  }
+
+  dispose() {
+    for (const skipper of this.skippers) {
+      this.scene?.remove(skipper);
+      skipper.traverse((child) => { if (child.geometry) child.geometry.dispose(); });
+    }
+    for (const mat of [this._bodyMat, this._finMat, this._eyeMat, this._rippleMat]) mat.dispose();
+  }
+}
