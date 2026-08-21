@@ -440,12 +440,13 @@ export class MangroveMothFX {
     this.elapsed = 0;
     this.geometry = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
+    this._basePositions = [];
     for (let i = 0; i < count; i++) {
       const a = (i / count) * Math.PI * 2;
       const r = 2.1 + (i % 3) * 0.7;
-      pos[i * 3] = Math.cos(a) * r;
-      pos[i * 3 + 1] = 2.4 + (i % 3) * 0.55;
-      pos[i * 3 + 2] = Math.sin(a) * r * 0.6;
+      const base = [Math.cos(a) * r, 2.4 + (i % 3) * 0.55, Math.sin(a) * r * 0.6];
+      this._basePositions.push(base);
+      pos.set(base, i * 3);
     }
     this.geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     this.material = new THREE.PointsMaterial({
@@ -468,11 +469,15 @@ export class MangroveMothFX {
     if (!this.points.visible) return;
     this.points.position.set(55.5, 20.2, 58.5);
     const pos = this.geometry.attributes.position.array;
+    const lanternPull = 0.45 + nightMix * 0.55;
     for (let i = 0; i < this.count; i++) {
       const idx = i * 3;
-      pos[idx] += Math.sin(this.elapsed * 1.8 + i * 1.9) * 0.006;
-      pos[idx + 1] += Math.cos(this.elapsed * 2.1 + i * 1.3) * 0.005;
-      pos[idx + 2] += Math.sin(this.elapsed * 1.5 + i) * 0.004;
+      const base = this._basePositions[i];
+      const angle = this.elapsed * (0.38 + i * 0.018) + i * 1.047;
+      const radius = 1 - lanternPull * 0.18;
+      pos[idx] = base[0] * radius + Math.sin(angle) * 0.08;
+      pos[idx + 1] = base[1] + Math.sin(angle * 1.7) * 0.07;
+      pos[idx + 2] = base[2] * radius + Math.cos(angle) * 0.06;
     }
     this.geometry.attributes.position.needsUpdate = true;
     this.material.size = 0.08 + nightMix * 0.04;
