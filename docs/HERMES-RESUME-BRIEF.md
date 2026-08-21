@@ -1,33 +1,29 @@
-# Frontier Survival — v1.15.9 approach-water checkpoint
+# Frontier Survival — v1.16.0 spatial frog-chorus checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.15.9 makes the shallow-channel water response react subtly to player approach.
+v1.16.0 spatializes the Mangrove frog chorus by fading it with Rootwalk distance.
 
-- approach measured against authored water cell `(54,58)`;
-- 12-block falloff;
-- near landing, foam gains up to `0.025` opacity;
-- night reflection gains up to `0.05` opacity;
-- reflection/foam scale expands slightly;
-- daytime reflection remains hidden and foam stays low;
-- bridge, lantern, fireflies, moths, frogs, frog audio, seagrass, and HUD preserved.
+- 22-block linear falloff;
+- full direct-call default preserved;
+- night + near-water gating preserved;
+- dead state silences chorus;
+- bridge, lantern, fireflies, moths, frogs, water, seagrass, reflection/foam, and HUD preserved.
 
 ## Release state
 
-- Product commit: `5ea3aaaa91e2b7850f3ac48b4bb1ef96e1eabea2`
-- Tag: `v1.15.9`
+- Product commit: `e2be777a3b5a28388ecbe87351a3ffea72b62e2d`
+- Tag: `v1.16.0`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=491` → `game.js?v=480` → `fx.js?v=258`.
+- Cache chain: `main.js?v=492` → `game.js?v=481` → `audio.js?v=223`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Night near/far probe: reflection `0.47 → 0.42`, foam `0.145 → 0.12`, bounded scale increase, zero errors. Daytime: reflection hidden, foam `0.0515`, zero errors.
-
-Clean local night frame remains readable with no over-brightening or clutter.
+Night near-water mix probe: frog `0.2970` at distance `1.58`, `0` at distance `22`, `0` outside Mangrove, and `0` dead. Zero errors. Clean local night frame shows no visual regression.
 
 ## Next bounded slice
 
-Add one further authored Mangrove environmental interaction while preserving Rootwalk visual/audio gates.
+Advance Mangrove toward richer authored ecology or deeper spatial water/fauna audio while preserving accepted Rootwalk gates.
