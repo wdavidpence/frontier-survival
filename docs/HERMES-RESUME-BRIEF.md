@@ -23,7 +23,7 @@ v1.17.2 gives the two authored Mangrove mudskippers a deterministic feeding paus
 
 ## Runtime judgment
 
-Outer-ring active context produced feeding `0` and no ripple. Near-channel context produced feeding `1`, alert `0.871`, and one ripple with zero errors. The ordinary player-facing Rootwalk frame remained healthy. A close-camera supplemental angle was rejected for dark cliff occlusion and is not release evidence.
+Local and live outer-ring context produced feeding `0` and no ripple. Local and live near-channel context produced feeding `1`, alert `0.871`, and one ripple with zero errors. Clean ordinary Rootwalk night frames passed visual review. A close-camera supplemental angle was rejected for dark cliff occlusion and is not release evidence. Daytime hid all mudskipper state.
 
 ## Next bounded slice
 

@@ -35,6 +35,13 @@ Added a restrained authored feeding pause at the two existing Mangrove mudskippe
   - zero page-owned errors.
 - Local ordinary Rootwalk primary proof: bridge, lantern, fireflies, moths, frogs, crabs, mudskippers, water, seagrass, reflection/foam, HUD, and renderer remain healthy with no visual regression.
 - Supplemental close-camera attempt was rejected as evidence because the angle introduced dark cliff occlusion; the ordinary player-facing Rootwalk frame remains the visual acceptance gate.
+- Live Pages:
+  - title `Frontier Survival v1.17.2`;
+  - `started=true`, seed `1884808540`, 1280×720 canvas;
+  - outer-ring feeding `0`, alert `0`, ripples `0`;
+  - near-channel feeding `1`, alert `0.871`, ripples `1`;
+  - clean live primary night frame passed visual review;
+  - daytime gate: mudskippers `0`, ripples `0`, feeding `0`, alert `0`, crabs `0`, frogs `0`, zero errors.
 
 ## Honest limitation
 
