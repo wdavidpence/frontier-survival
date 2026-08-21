@@ -4710,6 +4710,10 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(fx, /feedingPulse \* 0\.08/);
   assert.match(fx, /const skim = feedingPulse \* Math\.max\(0, Math\.sin\(this\.elapsed \* 4\.8 \+ i \* 1\.6\)\)/);
   assert.match(fx, /this\.skimPulse = Math\.max\(this\.skimPulse, skim\)/);
+  assert.match(fx, /const perchCycle = \(this\.elapsed \+ i \* 3\.6\) % 11\.2/);
+  assert.match(fx, /this\.perchPulse = Math\.max\(this\.perchPulse, perch\)/);
+  assert.match(fx, /perch \* 0\.22/);
+  assert.match(fx, /1 - perch \* 0\.55/);
   assert.match(fx, /skim \* 0\.22/);
   assert.match(fx, /new THREE\.RingGeometry\(0\.06, 0\.1, 10\)/);
   assert.match(fx, /rippleMat\.clone\(\)/);
@@ -4744,7 +4748,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.17.7'), 'HTML must expose v1.17.7');
+  assert.ok(html.includes('v1.17.8'), 'HTML must expose v1.17.8');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

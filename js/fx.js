@@ -868,6 +868,7 @@ export class MangroveDragonflyFX {
     this.scatterPulse = 0;
     this.feedingCue = 0;
     this.skimPulse = 0;
+    this.perchPulse = 0;
     this.flies = [];
     this.ripples = [];
     this.ripplePulse = [];
@@ -919,6 +920,7 @@ export class MangroveDragonflyFX {
     this.scatterPulse = 0;
     this.feedingCue = 0;
     this.skimPulse = 0;
+    this.perchPulse = 0;
     const show = Boolean(active && center && nightMix < 0.65);
     for (let i = 0; i < this.ripples.length; i++) {
       this.ripplePulse[i] = Math.max(0, this.ripplePulse[i] - dt * 2.8);
@@ -934,17 +936,22 @@ export class MangroveDragonflyFX {
       this.feedingCue = Math.max(this.feedingCue, feedingPulse);
       const skim = feedingPulse * Math.max(0, Math.sin(this.elapsed * 4.8 + i * 1.6));
       this.skimPulse = Math.max(this.skimPulse, skim);
+      const perchCycle = (this.elapsed + i * 3.6) % 11.2;
+      const perch = i === 0 && feedingPulse < 0.2 && perchCycle > 5.0 && perchCycle < 6.8
+        ? Math.max(0, 1 - scatter) * Math.max(0, Math.sin((perchCycle - 5.0) * Math.PI / 1.8))
+        : 0;
+      this.perchPulse = Math.max(this.perchPulse, perch);
       const dx = this._spots[i][0] - center.x;
       const dz = this._spots[i][2] - center.z;
       const length = Math.hypot(dx, dz) || 1;
       const drift = Math.sin(this.elapsed * 0.7 + i * 1.4) * 0.18;
       fly.position.x = this._spots[i][0] + drift + (dx / length) * scatter * 0.3 + Math.cos(this.elapsed * 4.8 + i * 1.6) * skim * 0.22;
-      fly.position.y = this._spots[i][1] + Math.sin(this.elapsed * 2.1 + i) * 0.11 + scatter * 0.16 - feedingPulse * 0.08 - skim * 0.06;
+      fly.position.y = this._spots[i][1] + Math.sin(this.elapsed * 2.1 + i) * 0.11 + scatter * 0.16 - feedingPulse * 0.08 - skim * 0.06 - perch * 0.22;
       fly.position.z = this._spots[i][2] + Math.cos(this.elapsed * 0.8 + i) * 0.12 + (dz / length) * scatter * 0.3 + Math.sin(this.elapsed * 4.8 + i * 1.6) * skim * 0.18;
-      fly.rotation.x = feedingPulse * 0.14 + skim * 0.18;
+      fly.rotation.x = feedingPulse * 0.14 + skim * 0.18 + perch * 0.22;
       fly.rotation.y += dt * (0.7 + i * 0.15);
-      fly.rotation.z = Math.sin(this.elapsed * 1.3 + i) * 0.16;
-      const flap = 0.72 + Math.abs(Math.sin(this.elapsed * 8.5 + i)) * 0.55;
+      fly.rotation.z = Math.sin(this.elapsed * 1.3 + i) * 0.16 + perch * 0.3;
+      const flap = (0.72 + Math.abs(Math.sin(this.elapsed * 8.5 + i)) * 0.55) * (1 - perch * 0.55);
       for (const wing of this._wings[i]) wing.scale.y = flap;
       const ripple = this.ripples[i];
       this.ripplePulse[i] = Math.max(this.ripplePulse[i], skim > 0.55 ? skim : 0);
