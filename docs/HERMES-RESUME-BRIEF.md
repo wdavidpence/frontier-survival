@@ -1,34 +1,32 @@
-# Frontier Survival — v1.15.6 frog-awareness checkpoint
+# Frontier Survival — v1.15.7 frog-ripple checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.15.6 adds player awareness to the Rootwalk frogs.
+v1.15.7 connects frog hops to the shallow-channel water response.
 
-- within 14 blocks, frogs partially turn toward the player;
-- eye glints pulse while alert;
-- existing 16-block staggered hops remain;
-- dusk/night-only behavior;
-- day hides frogs and disables frog audio;
-- bridge, lantern, fireflies, moths, water response, seagrass, wet mud, and HUD preserved.
+- pale-green ring per frog;
+- visible only during the `0.72s` hop window;
+- peak opacity approximately `0.075`;
+- modest expansion with hop height;
+- water-surface placement at local `y=-1.15`, world `y≈16.05`;
+- bridge, lantern, fireflies, moths, seagrass, water reflection, frog audio, and HUD preserved.
 
 ## Release state
 
-- Product commit: `9fa4173cd39ab3521fd7621dd4010d78e1f631d0`
-- Tag: `v1.15.6`
+- Product commit: `3b270a0dcce8e3d5cd7886cd8187ef79d4218ba1`
+- Tag: `v1.15.7`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=488` → `game.js?v=477` → `fx.js?v=255`.
+- Cache chain: `main.js?v=489` → `game.js?v=478` → `fx.js?v=256`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Local night accepted land position: three frogs visible, eye opacity `0.9507`, player-aware rotations recorded, one frog at `y=17.494`, frog audio `0.32`, zero errors.
+Deterministic local night proof: one ripple visible at opacity `0.0745`, frog at `y=17.455`, projected ripple around screen `(701,566)`, zero errors.
 
-Local daytime: frogs hidden, eye opacity `0`, frog audio `0`, birds `0.55`, zero errors.
-
-Clean night frame preserves the accepted Rootwalk composition with the player-aware fauna cue remaining small and localized.
+Pixel proof confirms a distinct small pale-green ring in the water, subordinate to the larger lantern reflection and free of HUD/renderer regression.
 
 ## Next bounded slice
 
-Add one more authored Mangrove fauna interaction cue while preserving Rootwalk day/dusk/night visuals and frog-audio gate.
+Advance Mangrove toward richer fauna behavior or water/sound interaction while preserving accepted Rootwalk gates.
