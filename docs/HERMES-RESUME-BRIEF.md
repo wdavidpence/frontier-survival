@@ -1,29 +1,29 @@
-# Frontier Survival — v1.17.2 mudskipper-feeding checkpoint
+# Frontier Survival — v1.17.3 dragonfly checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.17.2 gives the two authored Mangrove mudskippers a deterministic feeding pause at their wet-mud spots.
+v1.17.3 adds two authored cyan dragonflies over the Mangrove shallow channel.
 
-- staggered `0.8s` feeding windows;
-- active only within 18 blocks;
-- small head dip/body pause;
-- one tiny reused surface dimple;
-- bridge, lantern, fireflies, moths, frogs, crabs, mudskippers, crab water response, flecks, splash audio, reflection/foam, and HUD preserved.
+- day/dusk-only (`nightMix < 0.65`);
+- deterministic hover, wing flap, and channel drift;
+- six-block player scatter response;
+- two fixed authored positions;
+- bridge, lantern, water, horizon, seagrass, frogs, crabs, mudskippers, crab water response, splash audio, reflection/foam, and HUD preserved.
 
 ## Release state
 
-- Product commit: `3e777df687924a173963d06ad22f14bde7a480c2`
+- Product commit: `0b8a002e1d64d91409eef771252ef061785f2c20`
 - Documentation commit: recorded below
-- Tag: `v1.17.2`
+- Tag: `v1.17.3`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=504` → `game.js?v=493` → `fx.js?v=267`.
+- Cache chain: `main.js?v=505` → `game.js?v=494` → `fx.js?v=268`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Local and live outer-ring context produced feeding `0` and no ripple. Local and live near-channel context produced feeding `1`, alert `0.871`, and one ripple with zero errors. Clean ordinary Rootwalk night frames passed visual review. A close-camera supplemental angle was rejected for dark cliff occlusion and is not release evidence. Daytime hid all mudskipper state.
+Local runtime showed two visible day dragonflies, near-player scatter `0.879`, and complete nighttime suppression. Clean daytime primary visual passed; the lower-center crop showed two small cyan winged motifs over the channel without route or HUD overlap.
 
 ## Next bounded slice
 
