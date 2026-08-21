@@ -496,6 +496,9 @@ export class MangroveWaterFX {
   constructor(scene) {
     this.scene = scene;
     this.elapsed = 0;
+    this.crabPulse = 0;
+    this.crabPulseX = 53;
+    this.crabPulseZ = 58.8;
     this.reflection = new THREE.Mesh(
       new THREE.RingGeometry(0.34, 0.68, 18),
       new THREE.MeshBasicMaterial({
@@ -520,12 +523,31 @@ export class MangroveWaterFX {
         side: THREE.DoubleSide,
       }),
     );
-    for (const mesh of [this.reflection, this.foam]) {
+    this.crabRipple = new THREE.Mesh(
+      new THREE.RingGeometry(0.22, 0.34, 14),
+      new THREE.MeshBasicMaterial({
+        color: 0xc3f5df,
+        transparent: true,
+        opacity: 0,
+        depthTest: false,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      }),
+    );
+    for (const mesh of [this.reflection, this.foam, this.crabRipple]) {
       mesh.rotation.x = -Math.PI / 2;
       mesh.position.set(54, 17.12, 58);
       mesh.visible = false;
       scene?.add(mesh);
     }
+    this.crabRipple.position.y = 17.13;
+  }
+
+  setCrabPulse(strength, x = 52.3, z = 59.4) {
+    this.crabPulse = Math.max(this.crabPulse, strength || 0);
+    this.crabPulseX = x;
+    this.crabPulseZ = z;
   }
 
   tick(dt, active, nightMix = 0, center = null) {
@@ -533,6 +555,12 @@ export class MangroveWaterFX {
     const show = Boolean(active);
     this.reflection.visible = show && nightMix > 0.05;
     this.foam.visible = show;
+    this.crabRipple.visible = show && nightMix > 0.1 && this.crabPulse > 0.62;
+    this.crabRipple.position.x = this.crabPulseX;
+    this.crabRipple.position.z = this.crabPulseZ;
+    this.crabRipple.material.opacity = this.crabRipple.visible ? 0.08 + (this.crabPulse - 0.62) * 0.1 : 0;
+    this.crabRipple.scale.setScalar(0.85 + Math.max(0, this.crabPulse - 0.62) * 0.9);
+    this.crabPulse = 0;
     if (!show) return;
     const pulse = 0.5 + 0.5 * Math.sin(this.elapsed * 2.4);
     const approach = center ? Math.max(0, 1 - Math.hypot(center.x - 54, center.z - 58) / 12) : 0;
@@ -543,7 +571,7 @@ export class MangroveWaterFX {
   }
 
   dispose() {
-    for (const mesh of [this.reflection, this.foam]) {
+    for (const mesh of [this.reflection, this.foam, this.crabRipple]) {
       this.scene?.remove(mesh);
       mesh.geometry.dispose();
       mesh.material.dispose();

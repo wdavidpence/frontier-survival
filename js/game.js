@@ -68,7 +68,7 @@ import {
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
 import { createBlockAtlas } from './atlas.js?v=300';
-import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX } from './fx.js?v=261';
+import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX } from './fx.js?v=262';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=2';
@@ -1380,9 +1380,12 @@ export class Game {
     const nightMix = phase < 0.5 ? 0 : Math.min(1, (phase - 0.5) / 0.12);
     this.fireflyFx.tick(dt, active, p, nightMix);
     this.mothFx.tick(dt, active, p, nightMix);
-    this.waterFx.tick(dt, active, nightMix, p);
     this.frogFx.tick(dt, active, p, nightMix);
     this.crabFx.tick(dt, active, p, nightMix);
+    if (this.crabFx.scuttlePulse > 0.62) {
+      this.waterFx.setCrabPulse(this.crabFx.scuttlePulse, 52.3, 59.4);
+    }
+    this.waterFx.tick(dt, active, nightMix, p);
     if (this.crabFx.scuttlePulse > 0.62 && this.crabFx.audioCooldown <= 0 && p) {
       const pan = Math.max(-1, Math.min(1, (55.5 - p.x) / 12));
       this.audio._crabSkitter(this.crabFx.scuttlePulse, pan);
