@@ -866,6 +866,7 @@ export class MangroveDragonflyFX {
     this.scene = scene;
     this.elapsed = 0;
     this.scatterPulse = 0;
+    this.feedingCue = 0;
     this.flies = [];
     this._wings = [];
     this._spots = [[53.0, 17.42, 58.7], [54.25, 17.58, 59.05]];
@@ -899,9 +900,10 @@ export class MangroveDragonflyFX {
     this._eyeMat = eyeMat;
   }
 
-  tick(dt, active, center, nightMix = 0) {
+  tick(dt, active, center, nightMix = 0, feedingPulse = 0) {
     this.elapsed += dt;
     this.scatterPulse = 0;
+    this.feedingCue = 0;
     const show = Boolean(active && center && nightMix < 0.65);
     for (let i = 0; i < this.flies.length; i++) {
       const fly = this.flies[i];
@@ -910,13 +912,15 @@ export class MangroveDragonflyFX {
       const distance = Math.hypot(center.x - this._spots[i][0], center.z - this._spots[i][2]);
       const scatter = Math.max(0, 1 - distance / 6);
       this.scatterPulse = Math.max(this.scatterPulse, scatter);
+      this.feedingCue = Math.max(this.feedingCue, feedingPulse);
       const dx = this._spots[i][0] - center.x;
       const dz = this._spots[i][2] - center.z;
       const length = Math.hypot(dx, dz) || 1;
       const drift = Math.sin(this.elapsed * 0.7 + i * 1.4) * 0.18;
       fly.position.x = this._spots[i][0] + drift + (dx / length) * scatter * 0.3;
-      fly.position.y = this._spots[i][1] + Math.sin(this.elapsed * 2.1 + i) * 0.11 + scatter * 0.16;
+      fly.position.y = this._spots[i][1] + Math.sin(this.elapsed * 2.1 + i) * 0.11 + scatter * 0.16 - feedingPulse * 0.08;
       fly.position.z = this._spots[i][2] + Math.cos(this.elapsed * 0.8 + i) * 0.12 + (dz / length) * scatter * 0.3;
+      fly.rotation.x = feedingPulse * 0.14;
       fly.rotation.y += dt * (0.7 + i * 0.15);
       fly.rotation.z = Math.sin(this.elapsed * 1.3 + i) * 0.16;
       const flap = 0.72 + Math.abs(Math.sin(this.elapsed * 8.5 + i)) * 0.55;
