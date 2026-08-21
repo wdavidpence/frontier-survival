@@ -39,6 +39,14 @@ Added two authored low-poly dragonflies hovering over the Mangrove shallow chann
   - clean accepted daytime Rootwalk frame preserves bridge, lantern, water, horizon, seagrass, HUD, and renderer;
   - lower-center crop shows two distinct cyan winged motifs over the channel, sparse and subordinate;
   - no route or HUD overlap.
+- Live Pages:
+  - title `Frontier Survival v1.17.3`;
+  - `started=true`, seed `1884808540`, 1280×720 canvas;
+  - daytime ordinary point: two visible dragonflies, scatter `0`;
+  - daytime near-channel point: two visible dragonflies, scatter `0.879`;
+  - nighttime near-channel point: zero visible dragonflies;
+  - clean live daytime primary frame passed visual review;
+  - zero page-owned errors.
 
 ## Honest limitation
 

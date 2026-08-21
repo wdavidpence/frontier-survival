@@ -23,7 +23,7 @@ v1.17.3 adds two authored cyan dragonflies over the Mangrove shallow channel.
 
 ## Runtime judgment
 
-Local runtime showed two visible day dragonflies, near-player scatter `0.879`, and complete nighttime suppression. Clean daytime primary visual passed; the lower-center crop showed two small cyan winged motifs over the channel without route or HUD overlap.
+Local and live runtime showed two day dragonflies, near-player scatter `0.879`, and complete nighttime suppression. Clean local and live daytime primary visuals passed; lower-center crop showed two small cyan winged motifs over the channel without route or HUD overlap.
 
 ## Next bounded slice
 
