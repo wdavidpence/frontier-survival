@@ -556,6 +556,7 @@ export class MangroveFrogFX {
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffd56a, transparent: true });
     const pupilMat = new THREE.MeshBasicMaterial({ color: 0x18251c });
     const spots = [[53.4, 17.25, 58.2], [54.7, 17.2, 58.8], [52.6, 17.25, 57.5]];
+    this._spots = spots;
     for (let i = 0; i < spots.length; i++) {
       const group = new THREE.Group();
       const body = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 5), bodyMat);
@@ -592,8 +593,12 @@ export class MangroveFrogFX {
       const frog = this.frogs[i];
       frog.visible = show;
       if (!show) continue;
-      frog.position.y = 17.2 + Math.sin(this.elapsed * 1.4 + i * 1.9) * 0.018;
+      const distance = Math.hypot(center.x - this._spots[i][0], center.z - this._spots[i][2]);
+      const cycle = (this.elapsed + i * 2.3) % 7;
+      const hop = distance < 16 && cycle < 0.72 ? Math.sin((cycle / 0.72) * Math.PI) * 0.28 : 0;
+      frog.position.y = 17.2 + Math.sin(this.elapsed * 1.4 + i * 1.9) * 0.018 + hop;
       frog.rotation.z = Math.sin(this.elapsed * 1.1 + i) * 0.025;
+      frog.rotation.x = hop * 0.18;
       frog.scale.setScalar(0.9 + nightMix * 0.06);
     }
     this._eyeMat.opacity = show ? 0.58 + nightMix * 0.35 : 0;
