@@ -1,28 +1,28 @@
-# Frontier Survival — v1.16.5 crab-fleck checkpoint
+# Frontier Survival — v1.16.6 spatial crab-skitter checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.16.5 connects close crab scuttle to a tiny shoreline disturbance.
+v1.16.6 adds a tiny spatial crab skitter sound to close scuttle pulses.
 
-- two small lifted tan flecks per crab;
-- close-pulse-only visibility;
-- flecks disappear in quiet phase and daytime;
-- existing crab freeze/scuttle and dusk/night gates preserved;
+- two low-gain clicks per accepted pulse;
+- Rootwalk lateral stereo panning;
+- 0.65-second cooldown;
+- existing AudioBus autoplay, voice-cap, and fallback behavior preserved;
 - bridge, lantern, fireflies, moths, frogs, frog audio, water, seagrass, reflection/foam, and HUD preserved.
 
 ## Release state
 
-- Product commit: `887fa9a61cd08ae9ef44ed21f5a9a71ca070672a`
-- Tag: `v1.16.5`
+- Product commit: `897e8802cd77973057e73c4053928b6c376ab2ea`
+- Tag: `v1.16.6`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=497` → `game.js?v=486` → `fx.js?v=260`.
+- Cache chain: `main.js?v=498` → `game.js?v=487` → `audio.js?v=225` / `fx.js?v=261`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Night pulse counts were `[2,2,0]` locally and four active flecks live across close groups. Quiet counts were `[0,0,0]`. Corrected supplemental frame makes the flecks readable without clutter; clean primary night and live daytime gates pass with zero errors.
+Local production path created exactly two voices on the first close pulse, retained two on the immediate cooldown-protected second tick, and reported a running AudioContext with zero errors. Clean primary night frame showed no visual regression.
 
 ## Next bounded slice
 
