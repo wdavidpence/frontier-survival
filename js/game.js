@@ -68,7 +68,7 @@ import {
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
 import { createBlockAtlas } from './atlas.js?v=300';
-import { BreakFX, WeatherFX, MangroveFireflyFX } from './fx.js?v=247';
+import { BreakFX, WeatherFX, MangroveFireflyFX } from './fx.js?v=248';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=2';
@@ -1372,7 +1372,9 @@ export class Game {
     const p = this.player?.position;
     const nearRootwalk = p && Math.hypot(p.x - 55.5, p.z - 58.5) < 22;
     const active = this.started && !this.survival.dead && nearRootwalk;
-    this.fireflyFx.tick(dt, active, p);
+    const phase = this.time?.dayPhase ?? 0;
+    const nightMix = phase < 0.5 ? 0 : Math.min(1, (phase - 0.5) / 0.12);
+    this.fireflyFx.tick(dt, active, p, nightMix);
   }
 
   _tickCrops(dt) {

@@ -409,7 +409,7 @@ export class MangroveFireflyFX {
     scene?.add(this.points);
   }
 
-  tick(dt, active, center) {
+  tick(dt, active, center, nightMix = 0) {
     this.elapsed += dt;
     this.points.visible = Boolean(active && center);
     if (!this.points.visible) return;
@@ -421,7 +421,8 @@ export class MangroveFireflyFX {
       pos[idx] += Math.sin(this.elapsed * 1.4 + i) * 0.002;
     }
     this.geometry.attributes.position.needsUpdate = true;
-    this.material.opacity = 0.58 + Math.sin(this.elapsed * 3.1) * 0.22;
+    this.material.size = 0.14 + nightMix * 0.07;
+    this.material.opacity = 0.58 + Math.sin(this.elapsed * 3.1) * 0.22 + nightMix * 0.16;
   }
 
   dispose() {

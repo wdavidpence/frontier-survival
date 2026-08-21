@@ -4627,6 +4627,8 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(game, /_tickMangroveFX/);
   assert.match(fx, /export class MangroveFireflyFX/);
   assert.match(fx, /0xffd86a/);
+  assert.match(game, /nightMix/);
+  assert.match(fx, /this\.material\.size = 0\.14 \+ nightMix/);
 });
 
 test('forest understory correction reaches the exact tropical starter route', () => {
@@ -4645,7 +4647,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.14.7'), 'HTML must expose v1.14.7');
+  assert.ok(html.includes('v1.14.8'), 'HTML must expose v1.14.8');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
