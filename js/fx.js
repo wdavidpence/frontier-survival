@@ -684,11 +684,16 @@ export class MangroveCrabFX {
       const crab = this.crabs[i];
       crab.visible = show;
       if (!show) continue;
+      const distance = Math.hypot(center.x - this._spots[i][0], center.z - this._spots[i][2]);
+      const flee = Math.max(0, 1 - distance / 7);
+      const away = this._spots[i][0] >= center.x ? 1 : -1;
       const sidestep = Math.sin(this.elapsed * 0.55 + i * 1.8) * 0.16;
-      crab.position.x = this._spots[i][0] + sidestep;
+      const scuttle = away * flee * (0.22 + Math.sin(this.elapsed * 4.2 + i) * 0.06);
+      crab.position.x = this._spots[i][0] + sidestep + scuttle;
       crab.position.y = this._spots[i][1] + Math.sin(this.elapsed * 1.6 + i) * 0.012;
-      crab.rotation.y = this._spots[i][0] < center.x ? 0.3 : -0.3;
+      crab.rotation.y = away * (0.3 + flee * 0.35);
       crab.rotation.z = Math.sin(this.elapsed * 1.1 + i * 0.7) * 0.04;
+      crab.rotation.x = flee * 0.08;
       crab.scale.setScalar(0.9 + nightMix * 0.05);
     }
   }
