@@ -24,7 +24,7 @@ v1.17.0 gives the two authored Mangrove mudskippers a close-player waterward dar
 
 ## Runtime judgment
 
-Far approach alert was `0`; close approach alert was `0.889`. The lead mudskipper moved from `[52.911,17.267,59.5]` to `[53.077,17.34,59.436]`, proving waterward response. Clean primary night and daytime gates passed with zero errors.
+Local and live far approach alert was `0`; close approach alert was `0.889`. The lead mudskipper moved from `[52.911,17.267,59.5]` to `[53.077,17.34,59.436]`, proving waterward response. Clean primary night and daytime gates passed with zero errors.
 
 ## Next bounded slice
 

@@ -40,8 +40,12 @@ Made the two authored Mangrove mudskippers react to close player approach.
 - Live Pages:
   - title `Frontier Survival v1.17.0`;
   - `started=true`, seed `1884808540`, 1280×720 canvas;
-  - live clean primary scene remains healthy;
-  - daytime suppression passes with zero errors.
+  - live far approach alert `0`;
+  - live close approach alert `0.889`;
+  - lead skipper movement matched local;
+  - zero page-owned errors;
+  - clean live primary scene remains healthy;
+  - daytime gate: mudskippers `0`, ripples `0`, alert `0`, crabs `0`, frogs `0`, zero errors.
 
 ## Honest limitation
 
