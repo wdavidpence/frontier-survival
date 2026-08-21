@@ -485,3 +485,62 @@ export class MangroveMothFX {
     this.material.dispose();
   }
 }
+
+/** Small Rootwalk water response: lantern reflection plus a restrained foam ring. */
+export class MangroveWaterFX {
+  constructor(scene) {
+    this.scene = scene;
+    this.elapsed = 0;
+    this.reflection = new THREE.Mesh(
+      new THREE.RingGeometry(0.34, 0.68, 18),
+      new THREE.MeshBasicMaterial({
+        color: 0xffc36a,
+        transparent: true,
+        opacity: 0,
+        depthTest: false,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      }),
+    );
+    this.foam = new THREE.Mesh(
+      new THREE.RingGeometry(0.55, 0.7, 18),
+      new THREE.MeshBasicMaterial({
+        color: 0xd8f4ed,
+        transparent: true,
+        opacity: 0,
+        depthTest: false,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      }),
+    );
+    for (const mesh of [this.reflection, this.foam]) {
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(54, 17.12, 58);
+      mesh.visible = false;
+      scene?.add(mesh);
+    }
+  }
+
+  tick(dt, active, nightMix = 0) {
+    this.elapsed += dt;
+    const show = Boolean(active);
+    this.reflection.visible = show && nightMix > 0.05;
+    this.foam.visible = show;
+    if (!show) return;
+    const pulse = 0.5 + 0.5 * Math.sin(this.elapsed * 2.4);
+    this.reflection.material.opacity = this.reflection.visible ? 0.12 + nightMix * 0.30 : 0;
+    this.foam.material.opacity = 0.045 + pulse * 0.02 + nightMix * 0.055;
+    this.reflection.scale.set(1.55 + pulse * 0.1, 1, 0.78 + pulse * 0.06);
+    this.foam.scale.set(1.12 + pulse * 0.05, 1, 0.7 + pulse * 0.04);
+  }
+
+  dispose() {
+    for (const mesh of [this.reflection, this.foam]) {
+      this.scene?.remove(mesh);
+      mesh.geometry.dispose();
+      mesh.material.dispose();
+    }
+  }
+}
