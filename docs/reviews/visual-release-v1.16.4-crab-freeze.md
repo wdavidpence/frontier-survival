@@ -17,6 +17,7 @@ Added a brief close-approach freeze response before crab scuttle motion.
 
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
 - Product commit: `463e96d5ac2c8bc925d7099e058fc94c720b0c34`
+- Documentation commit: recorded below
 - Tag: `v1.16.4`
 - Cache chain: `main.js?v=496` → `game.js?v=485` → `fx.js?v=259`.
 
@@ -32,8 +33,14 @@ Added a brief close-approach freeze response before crab scuttle motion.
   - movement phase elapsed `1.96`: first crab `x=51.901`, `rotation.x=0.149`;
   - all three crabs visible;
   - zero page-owned errors.
-- Clean local primary night frame: freeze/scuttle behavior remains visually restrained; bridge, lantern, fireflies, moths, frogs, water, seagrass, reflection/foam, and HUD remain healthy.
-- Daytime gate: `night=false`, crabs `0`, frogs `0`, zero errors.
+- Local clean primary night frame: freeze/scuttle behavior remains visually restrained; bridge, lantern, fireflies, moths, frogs, water, seagrass, reflection/foam, and HUD remain healthy.
+- Live Pages:
+  - title `Frontier Survival v1.16.4`;
+  - `started=true`, seed `1884808540`;
+  - three crab groups, zero runtime errors;
+  - live freeze/movement probe reproduced the same phase values;
+  - clean 1280×720 primary frame passed visual review;
+  - daytime gate: `night=false`, crabs `0`, frogs `0`, zero errors.
 
 ## Honest limitation
 

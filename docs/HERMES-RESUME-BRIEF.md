@@ -23,7 +23,7 @@ v1.16.4 adds a brief close-approach freeze to the authored Rootwalk crabs.
 
 ## Runtime judgment
 
-Local freeze/movement phases produced first-crab positions `51.684 → 51.901` with response tilt `0.22 → 0.149`. Clean primary night frame remained readable; daytime hid crabs and frogs with zero errors.
+Local and live freeze/movement phases produced first-crab positions `51.684 → 51.901` with response tilt `0.22 → 0.149`. Clean live primary night frame remained readable; live daytime hid crabs and frogs with zero errors.
 
 ## Next bounded slice
 
