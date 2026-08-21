@@ -22,7 +22,7 @@ v1.16.6 adds a tiny spatial crab skitter sound to close scuttle pulses.
 
 ## Runtime judgment
 
-Local production path created exactly two voices on the first close pulse, retained two on the immediate cooldown-protected second tick, and reported a running AudioContext with zero errors. Clean primary night frame showed no visual regression.
+Local and live production paths created exactly two voices on the first close pulse, retained two on the immediate cooldown-protected second tick, and reported a running AudioContext with zero errors. Clean live primary night frame showed no visual regression; live daytime hid crabs, flecks, and frogs with zero errors.
 
 ## Next bounded slice
 
