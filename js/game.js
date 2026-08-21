@@ -3,7 +3,7 @@ import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=436';
 import { Player } from './player.js?v=239';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
-import { AudioBus } from './audio.js?v=222';
+import { AudioBus } from './audio.js?v=223';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
@@ -2691,6 +2691,7 @@ export class Game {
       weather: this.time.weather,
       heat,
       nearWater: nearWater || rootwalkWater,
+      mangroveDistance: Math.hypot(this.player.position.x - 55.5, this.player.position.z - 58.5),
       mangrove: Math.hypot(this.player.position.x - 55.5, this.player.position.z - 58.5) < 22,
       dayPhase: this.time.dayPhase,
       dead: this.survival.dead,

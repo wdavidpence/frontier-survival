@@ -11,6 +11,7 @@ export function ambientMix({
   heat = 0,
   nearWater = false,
   mangrove = false,
+  mangroveDistance = 0,
   dayPhase = 0.25,
   dead = false,
 } = {}) {
@@ -25,7 +26,8 @@ export function ambientMix({
   const water = nearWater ? 0.18 : 0;
   let birds = !isNight && weather === 'clear' ? 0.55 : 0;
   const howl = isNight ? 0.4 : 0;
-  const frog = mangrove && isNight && nearWater ? 0.32 : 0;
+  const frogFalloff = Math.max(0, 1 - mangroveDistance / 22);
+  const frog = mangrove && isNight && nearWater ? 0.32 * frogFalloff : 0;
   let windOut = wind;
   let waterOut = water;
   if (biome === 'desert') { windOut = Math.min(1, wind + 0.15); birds *= 0.35; }
