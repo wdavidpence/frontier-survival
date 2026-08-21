@@ -1,32 +1,34 @@
-# Frontier Survival — v1.15.1 water response checkpoint
+# Frontier Survival — v1.15.3 frog chorus checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.15.1 adds a Rootwalk lantern reflection/foam response at the center of verified open-water cell `(54,58)`.
+v1.15.3 adds a sparse authored Mangrove frog chorus to the Rootwalk near-water night soundscape.
 
-- dusk/night amber reflection ring;
-- low-opacity pale foam ring;
-- additive depth-independent materials;
-- subtle pulse;
-- day hides reflection while retaining subtle foam;
-- bridge, lanterns, fireflies, moths, seagrass, wet mud, route, and collision unchanged.
+- low-gain triangle chirps;
+- 5–13 second interval;
+- existing AudioBus voice cap;
+- night + near-water + Rootwalk radius only;
+- day disables frogs and restores birds;
+- Rootwalk surface probe at `y=16` accounts for the land player standing around `y=18`.
 
 ## Release state
 
-- Product commit: `7e6907197fe2c8b425270f928b555a5a23d4cd31`
-- Tag: `v1.15.1`
+- Product commit: `e777ca965bef8db1408011b234ac509ae12a4863`
+- Tag: `v1.15.3`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=483` → `game.js?v=472` → `fx.js?v=251`.
+- Cache chain: `main.js?v=485` → `game.js?v=474` → `audio.js?v=222`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
-## Visual judgment
+## Runtime judgment
 
-The first half-cell placement was rejected because it visually landed on the shoreline boundary. The final integer cell-center placement plus depth-independent material is accepted: the supplemental night frame visibly shows the cue in blue channel water, while the primary night frame preserves the Rootwalk silhouette, lantern, fireflies, moths, water, seagrass, and HUD.
+Local fixed-seed landfall verification:
 
-Daytime state confirms `reflection=false`, subtle foam active, and zero page-owned errors.
+- night: `frog=0.32`, `water=0.18`, AudioContext running, chorus timer active, zero errors;
+- day: `frog=0`, `birds=0.55`, `water=0.18`, AudioContext running, zero errors;
+- direct timer-zero test produced one active capped oscillator voice.
 
 ## Next bounded slice
 
-Advance authored Mangrove fauna or soundscape while preserving the accepted Rootwalk day/dusk/night evidence.
+Advance authored Mangrove fauna behavior or silhouette while preserving Rootwalk day/dusk/night visuals and frog audio gates.
