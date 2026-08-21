@@ -1,29 +1,29 @@
-# Frontier Survival — v1.16.3 crab-scuttle checkpoint
+# Frontier Survival — v1.16.4 crab-freeze checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.16.3 gives the authored Rootwalk crabs a close-range player response.
+v1.16.4 adds a brief close-approach freeze to the authored Rootwalk crabs.
 
-- seven-block alert falloff;
-- sideways scuttle away from player;
-- response yaw/tilt;
-- existing idle sidestep preserved;
+- five-block freeze falloff;
+- scuttle displacement suppression up to 85%;
+- small body tilt during pause;
+- seven-block flee/scuttle preserved;
 - dusk/night-only visibility preserved;
 - bridge, lantern, fireflies, moths, frogs, frog audio, water, seagrass, reflection/foam, and HUD preserved.
 
 ## Release state
 
-- Product commit: `89179bc2fa702ac5cf1790e42f7cdccbb214a766`
-- Tag: `v1.16.3`
+- Product commit: `463e96d5ac2c8bc925d7099e058fc94c720b0c34`
+- Tag: `v1.16.4`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=495` → `game.js?v=484` → `fx.js?v=258`.
+- Cache chain: `main.js?v=496` → `game.js?v=485` → `fx.js?v=259`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Far/near local production-tick comparison showed crab position deltas `[+0.266, +0.212, -0.187]` and close-response rotations. Clean primary night frame remained readable; daytime hid crabs and frogs with zero errors.
+Local freeze/movement phases produced first-crab positions `51.684 → 51.901` with response tilt `0.22 → 0.149`. Clean primary night frame remained readable; daytime hid crabs and frogs with zero errors.
 
 ## Next bounded slice
 
