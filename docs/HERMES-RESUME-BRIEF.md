@@ -1,29 +1,30 @@
-# Frontier Survival — v1.16.9 mudskipper-ecology checkpoint
+# Frontier Survival — v1.17.0 mudskipper-dart checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.16.9 adds two authored Mangrove mudskippers at the channel edge.
+v1.17.0 gives the two authored Mangrove mudskippers a close-player waterward dart response.
 
-- warm mud/ochre low-poly silhouettes;
-- dusk/night-only, 18-block proximity gate;
-- deterministic staggered hops up to `0.24` blocks;
-- one localized hop ripple per active jump;
-- bridge, lantern, fireflies, moths, frogs, crabs, crab flecks, dynamic crab water response, skitter audio, reflection/foam, and HUD preserved.
+- seven-block alert falloff;
+- waterward dart toward channel center;
+- small alert lean;
+- close hops gain up to `0.08` extra height;
+- existing night gate, 18-block activation, idle drift, and hop ripples preserved;
+- bridge, lantern, fireflies, moths, frogs, crabs, dynamic crab ripple, flecks, skitter audio, reflection/foam, and HUD preserved.
 
 ## Release state
 
-- Product commit: `8fd350619f42037411d33bba5c591d13a2d4bddb`
+- Product commit: `a34caf9452c4af62a45c6cbefe80fa78047d9706`
 - Documentation commit: recorded below
-- Tag: `v1.16.9`
+- Tag: `v1.17.0`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=501` → `game.js?v=490` → `fx.js?v=264`.
+- Cache chain: `main.js?v=502` → `game.js?v=491` → `fx.js?v=265`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Local and live runtime showed two visible mudskippers, one active hop at `y=17.252`, and one localized hop ripple with zero errors. Controlled supplemental crop showed the new silhouettes integrated into the existing lower-center ecology cluster without route or HUD occlusion. Daytime hid both skippers and ripples.
+Far approach alert was `0`; close approach alert was `0.889`. The lead mudskipper moved from `[52.911,17.267,59.5]` to `[53.077,17.34,59.436]`, proving waterward response. Clean primary night and daytime gates passed with zero errors.
 
 ## Next bounded slice
 
