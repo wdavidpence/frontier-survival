@@ -68,7 +68,7 @@ import {
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
 import { createBlockAtlas } from './atlas.js?v=300';
-import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX } from './fx.js?v=257';
+import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX } from './fx.js?v=258';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=2';
@@ -1379,7 +1379,7 @@ export class Game {
     const nightMix = phase < 0.5 ? 0 : Math.min(1, (phase - 0.5) / 0.12);
     this.fireflyFx.tick(dt, active, p, nightMix);
     this.mothFx.tick(dt, active, p, nightMix);
-    this.waterFx.tick(dt, active, nightMix);
+    this.waterFx.tick(dt, active, nightMix, p);
     this.frogFx.tick(dt, active, p, nightMix);
   }
 

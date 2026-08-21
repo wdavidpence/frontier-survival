@@ -528,17 +528,18 @@ export class MangroveWaterFX {
     }
   }
 
-  tick(dt, active, nightMix = 0) {
+  tick(dt, active, nightMix = 0, center = null) {
     this.elapsed += dt;
     const show = Boolean(active);
     this.reflection.visible = show && nightMix > 0.05;
     this.foam.visible = show;
     if (!show) return;
     const pulse = 0.5 + 0.5 * Math.sin(this.elapsed * 2.4);
-    this.reflection.material.opacity = this.reflection.visible ? 0.12 + nightMix * 0.30 : 0;
-    this.foam.material.opacity = 0.045 + pulse * 0.02 + nightMix * 0.055;
-    this.reflection.scale.set(1.55 + pulse * 0.1, 1, 0.78 + pulse * 0.06);
-    this.foam.scale.set(1.12 + pulse * 0.05, 1, 0.7 + pulse * 0.04);
+    const approach = center ? Math.max(0, 1 - Math.hypot(center.x - 54, center.z - 58) / 12) : 0;
+    this.reflection.material.opacity = this.reflection.visible ? 0.12 + nightMix * 0.30 + approach * 0.05 : 0;
+    this.foam.material.opacity = 0.045 + pulse * 0.02 + nightMix * 0.055 + approach * 0.025;
+    this.reflection.scale.set(1.55 + pulse * 0.1 + approach * 0.08, 1, 0.78 + pulse * 0.06 + approach * 0.04);
+    this.foam.scale.set(1.12 + pulse * 0.05 + approach * 0.04, 1, 0.7 + pulse * 0.04 + approach * 0.03);
   }
 
   dispose() {
