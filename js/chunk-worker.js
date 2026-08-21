@@ -434,6 +434,10 @@ function _placeMangroveBridge(data, idx, lx, y, lz) {
     const tip = idx(lx + dx, SEA_LEVEL + 1, lz + dz);
     if (data[tip] === BLOCK.AIR) data[tip] = BLOCK.SEAGRASS;
   }
+  for (const [dx, dz] of [[2, -1], [2, 1], [3, 0]]) {
+    const mud = idx(lx + dx, y - 1, lz + dz);
+    if (data[mud] === BLOCK.MANGROVE_MUD || data[mud] === BLOCK.DIRT || data[mud] === BLOCK.SAND) data[mud] = BLOCK.DAMP_SOIL;
+  }
 }
 
 function _placeMangrove(data, idx, lx, y, lz) {

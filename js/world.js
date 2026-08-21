@@ -417,7 +417,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=295';
+    const workerUrl = './js/chunk-worker.js?v=296';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -1340,6 +1340,10 @@ export class World {
       for (let i = 0; i < h; i++) plant(lx + dx, SEA_LEVEL - 1 - i, lz + dz, i === h - 1 ? BLOCK.SEAGRASS : BLOCK.KELP);
       const tip = this._idx(lx + dx, SEA_LEVEL + 1, lz + dz);
       if (data[tip] === BLOCK.AIR) data[tip] = BLOCK.SEAGRASS;
+    }
+    for (const [dx, dz] of [[2, -1], [2, 1], [3, 0]]) {
+      const mud = this._idx(lx + dx, y - 1, lz + dz);
+      if (data[mud] === BLOCK.MANGROVE_MUD || data[mud] === BLOCK.DIRT || data[mud] === BLOCK.SAND) data[mud] = BLOCK.DAMP_SOIL;
     }
   }
 
