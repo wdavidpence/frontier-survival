@@ -975,3 +975,77 @@ export class MangroveDragonflyFX {
     for (const mat of [this._bodyMat, this._wingMat, this._eyeMat, this._rippleMat, ...this._rippleMats]) mat.dispose();
   }
 }
+
+/** One sparse authored Mangrove egret perched over the shallow channel. */
+export class MangroveEgretFX {
+  constructor(scene) {
+    this.scene = scene;
+    this.elapsed = 0;
+    this.scatterPulse = 0;
+    this.perchPulse = 0;
+    this.bird = new THREE.Group();
+    this._spot = [55.0, 17.72, 60.6];
+    const bodyMat = new THREE.MeshBasicMaterial({ color: 0xdfe8dd, transparent: true, opacity: 0.9, depthTest: false, depthWrite: false });
+    const wingMat = new THREE.MeshBasicMaterial({ color: 0x41545a, transparent: true, opacity: 0.88, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
+    const beakMat = new THREE.MeshBasicMaterial({ color: 0xd4a34a, transparent: true, opacity: 0.95, depthTest: false, depthWrite: false });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.32, 0.18), bodyMat);
+    body.position.y = 0.25;
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 0.34, 6), bodyMat);
+    neck.position.y = 0.53;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.1, 7, 5), bodyMat);
+    head.position.y = 0.75;
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.18, 4), beakMat);
+    beak.rotation.z = -Math.PI / 2;
+    beak.position.set(0.13, 0.73, 0);
+    const wings = [];
+    for (const side of [-1, 1]) {
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.24, 0.26), wingMat);
+      wing.position.set(side * 0.14, 0.36, 0);
+      this.bird.add(wing);
+      wings.push(wing);
+    }
+    const legs = [];
+    for (const side of [-1, 1]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.3, 5), beakMat);
+      leg.position.set(side * 0.07, 0.0, 0);
+      this.bird.add(leg);
+      legs.push(leg);
+    }
+    this.bird.add(body, neck, head, beak);
+    this.bird.position.set(...this._spot);
+    this.bird.visible = false;
+    scene?.add(this.bird);
+    this._wings = wings;
+    this._bodyMat = bodyMat;
+    this._wingMat = wingMat;
+    this._beakMat = beakMat;
+  }
+
+  tick(dt, active, center, nightMix = 0) {
+    this.elapsed += dt;
+    this.scatterPulse = 0;
+    this.perchPulse = 0;
+    const distance = center ? Math.hypot(center.x - this._spot[0], center.z - this._spot[2]) : Infinity;
+    const show = Boolean(active && center && nightMix < 0.5 && distance < 24);
+    this.bird.visible = show;
+    if (!show) return 0;
+    const scatter = Math.max(0, 1 - distance / 7);
+    this.scatterPulse = scatter;
+    this.perchPulse = 1 - scatter;
+    const flap = 0.72 + Math.abs(Math.sin(this.elapsed * 7.2)) * 0.28 + scatter * 0.45;
+    for (const wing of this._wings) wing.rotation.z = scatter * 0.5 * (wing.position.x < 0 ? -1 : 1) + Math.sin(this.elapsed * 7.2) * 0.08;
+    for (const wing of this._wings) wing.scale.y = flap;
+    this.bird.position.x = this._spot[0] + scatter * 0.45 + Math.sin(this.elapsed * 0.8) * 0.05;
+    this.bird.position.y = this._spot[1] + scatter * 0.42 + Math.sin(this.elapsed * 2.2) * 0.03;
+    this.bird.position.z = this._spot[2] + Math.cos(this.elapsed * 0.7) * 0.06;
+    this.bird.rotation.z = scatter * 0.32;
+    this.bird.rotation.x = scatter * -0.18;
+    return this.scatterPulse;
+  }
+
+  dispose() {
+    this.scene?.remove(this.bird);
+    this.bird.traverse((child) => { if (child.geometry) child.geometry.dispose(); });
+    for (const mat of [this._bodyMat, this._wingMat, this._beakMat]) mat.dispose();
+  }
+}
