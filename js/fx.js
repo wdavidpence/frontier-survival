@@ -378,3 +378,55 @@ export class WeatherFX {
     }
   }
 }
+
+/** Small deterministic firefly constellation for the Mangrove Rootwalk. */
+export class MangroveFireflyFX {
+  constructor(scene, count = 18) {
+    this.scene = scene;
+    this.count = count;
+    this.elapsed = 0;
+    this.geometry = new THREE.BufferGeometry();
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2;
+      const r = 2.5 + (i % 5) * 0.8;
+      pos[i * 3] = Math.cos(a) * r;
+      pos[i * 3 + 1] = 1.8 + (i % 4) * 0.65;
+      pos[i * 3 + 2] = Math.sin(a) * r * 0.72;
+    }
+    this.geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    this.material = new THREE.PointsMaterial({
+      color: 0xffd86a,
+      size: 0.14,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true,
+    });
+    this.points = new THREE.Points(this.geometry, this.material);
+    this.points.visible = false;
+    scene?.add(this.points);
+  }
+
+  tick(dt, active, center) {
+    this.elapsed += dt;
+    this.points.visible = Boolean(active && center);
+    if (!this.points.visible) return;
+    this.points.position.set(55.5, 20.2, 58.5);
+    const pos = this.geometry.attributes.position.array;
+    for (let i = 0; i < this.count; i++) {
+      const idx = i * 3;
+      pos[idx + 1] += Math.sin(this.elapsed * 2.2 + i * 1.7) * 0.004;
+      pos[idx] += Math.sin(this.elapsed * 1.4 + i) * 0.002;
+    }
+    this.geometry.attributes.position.needsUpdate = true;
+    this.material.opacity = 0.58 + Math.sin(this.elapsed * 3.1) * 0.22;
+  }
+
+  dispose() {
+    this.scene?.remove(this.points);
+    this.geometry.dispose();
+    this.material.dispose();
+  }
+}

@@ -68,7 +68,7 @@ import {
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
 import { createBlockAtlas } from './atlas.js?v=300';
-import { BreakFX, WeatherFX } from './fx.js?v=246';
+import { BreakFX, WeatherFX, MangroveFireflyFX } from './fx.js?v=247';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=2';
@@ -317,6 +317,7 @@ export class Game {
     this._lastHeat = 0;
     this.atlas = createBlockAtlas();
     this.fx = new BreakFX(this.scene, this.atlas);
+    this.fireflyFx = new MangroveFireflyFX(this.scene);
     // Outer streaming ring; overwritten by _applyRenderDistance via visibility plan.
     this.worldRadius = this._visPlan?.proxyChunks || 5;
 
@@ -1365,6 +1366,13 @@ export class Game {
     const active = this.started && !this.survival.dead;
     const pos = this.player ? this.player.position : null;
     this.weatherFx.tick(dt, this.time.weather, pos, active);
+  }
+
+  _tickMangroveFX(dt) {
+    const p = this.player?.position;
+    const nearRootwalk = p && Math.hypot(p.x - 55.5, p.z - 58.5) < 22;
+    const active = this.started && !this.survival.dead && nearRootwalk;
+    this.fireflyFx.tick(dt, active, p);
   }
 
   _tickCrops(dt) {
@@ -3021,6 +3029,7 @@ export class Game {
       this._tickCrops(dt);
       this._tickLogicPower(dt);
       this._tickWeatherFX(dt);
+      this._tickMangroveFX(dt);
     } else if (this._outline) {
       this._outline.visible = false;
     }
