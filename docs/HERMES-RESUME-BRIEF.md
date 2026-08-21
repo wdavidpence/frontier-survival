@@ -1,28 +1,28 @@
-# Frontier Survival — v1.17.6 dragonfly-skim-ripple checkpoint
+# Frontier Survival — v1.17.7 dragonfly-ripple checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.17.6 completes the mudskipper → dragonfly → water feedback chain.
+v1.17.7 makes dragonfly skim dimples decay as short water-contact pulses and isolates each ripple material.
 
-- idle dragonflies create no skim ripple;
-- low feeding skim creates one tiny localized cyan dimple at `y=17.14`;
-- nighttime hides dragonflies and ripples;
-- existing feeding dimple, dragonfly dip/skim, mudskipper hops/dart, splash audio, crab water response, bridge, lantern, water, horizon, seagrass, and HUD preserved.
+- hit opacity `[0.16,0]` for the two independent dimples;
+- quiet `0.1s` tick lingers at `[0.115,0]`;
+- after `0.3s` decay both are `[0,0]` and hidden;
+- existing day/dusk visibility, nighttime suppression, feeding/skimming, mudskipper dimple, hops, dart, splash audio, crab water response, bridge, lantern, water, horizon, seagrass, and HUD preserved.
 
 ## Release state
 
-- Product commit: `34508200c5d169ca3982196c83bf4c69a4d3be72`
+- Product commit: `b7457cde273c9cc7cc9f5917e2a843b6ad7f7037`
 - Documentation commit: recorded below
-- Tag: `v1.17.6`
+- Tag: `v1.17.7`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=508` → `game.js?v=497` → `fx.js?v=271`.
+- Cache chain: `main.js?v=509` → `game.js?v=498` → `fx.js?v=272`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Local and live idle showed 0 ripples; feeding low pass showed 1 localized ripple at waterline `y=17.14`; nighttime showed 0 flies, 0 ripples, and skim `0`. Clean local and live daytime primary visuals passed without regression.
+The shared-material regression was caught and corrected before publication. Local clean primary visual passed; next live gate is Pages propagation plus the same hit/linger/gone runtime probe.
 
 ## Next bounded slice
 
