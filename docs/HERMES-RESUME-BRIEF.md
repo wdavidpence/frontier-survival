@@ -10,6 +10,7 @@ v1.16.7 connects close authored crab scuttles to a localized shallow-channel wat
 - one pale-green additive ring at `(52.3,17.13,59.4)`;
 - visible only above scuttle pulse `0.62` and nocturnal Rootwalk gating;
 - final ring is at the established visible waterline `y=17.13`;
+- final readable geometry is `0.22–0.34` with peak opacity about `0.10`;
 - quiet/daytime hidden;
 - bridge, lantern, fireflies, moths, frogs, crab flecks, skitter audio, water reflection/foam, and HUD preserved.
 
@@ -23,7 +24,7 @@ v1.16.7 connects close authored crab scuttles to a localized shallow-channel wat
 
 ## Runtime judgment
 
-Local close pulse `0.8226` produced a visible ring at the authored waterline; quiet pulse `0.5686` hid it and reset opacity to zero. Final frozen proof crop showed the pale-green ring separate from the larger lantern ring without clutter or renderer regression.
+Local close pulse `0.8226` produced a visible ring at the authored waterline; quiet pulse `0.5686` hid it and reset opacity to zero. Final frozen proof crop showed the pale-green ring separate from the larger lantern ring without clutter or renderer regression. Live near-channel probe reproduced the pulse; live primary and daytime gates passed with zero errors.
 
 ## Next bounded slice
 
