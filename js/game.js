@@ -3,7 +3,7 @@ import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=436';
 import { Player } from './player.js?v=239';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
-import { AudioBus } from './audio.js?v=224';
+import { AudioBus } from './audio.js?v=225';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
@@ -68,7 +68,7 @@ import {
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
 import { createBlockAtlas } from './atlas.js?v=300';
-import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX } from './fx.js?v=260';
+import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX } from './fx.js?v=261';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=2';
@@ -1383,6 +1383,11 @@ export class Game {
     this.waterFx.tick(dt, active, nightMix, p);
     this.frogFx.tick(dt, active, p, nightMix);
     this.crabFx.tick(dt, active, p, nightMix);
+    if (this.crabFx.scuttlePulse > 0.62 && this.crabFx.audioCooldown <= 0 && p) {
+      const pan = Math.max(-1, Math.min(1, (55.5 - p.x) / 12));
+      this.audio._crabSkitter(this.crabFx.scuttlePulse, pan);
+      this.crabFx.audioCooldown = 0.65;
+    }
   }
 
   _tickCrops(dt) {

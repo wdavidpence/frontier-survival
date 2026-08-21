@@ -272,6 +272,13 @@ export class AudioBus {
     if (Math.random() < 0.72) this.beep(base * 1.22, 0.07, 'triangle', 0.014 * strength * 3, pan * 0.8);
   }
 
+  _crabSkitter(strength = 0.7, pan = 0) {
+    if (!this.ctx) return;
+    const gain = 0.012 * Math.max(0, Math.min(1, strength));
+    this.beep(1500, 0.035, 'square', gain, pan);
+    this.beep(2050, 0.028, 'square', gain * 0.72, pan * 0.8);
+  }
+
   _birdPhrase() {
     if (!this.ctx) return;
     const base = 1200 + Math.random() * 800;
