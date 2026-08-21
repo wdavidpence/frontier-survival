@@ -1,28 +1,28 @@
-# Frontier Survival — v1.17.4 dragonfly-feeding checkpoint
+# Frontier Survival — v1.17.5 dragonfly-skim checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.17.4 connects the two authored daytime dragonflies to the mudskipper feeding signal.
+v1.17.5 gives feeding dragonflies a short authored skim pass toward the active Mangrove channel spot.
 
-- feeding cue `1` lowers both dragonflies by `0.08` blocks;
-- synchronized pitch/dip `0.14` radians;
-- idle hover remains unchanged;
-- day/dusk visibility, six-block scatter, nighttime suppression, mudskipper feeding dimple, hops, dart, and splash audio preserved.
+- feeding-only lateral return arc;
+- additional `0.06` block dip and `0.18` pitch accent;
+- idle hover unchanged;
+- day/dusk visibility, scatter, nighttime suppression, mudskipper feeding dimple, hops, dart, splash audio, and inter-species feeding dip preserved.
 
 ## Release state
 
-- Product commit: `cb488983086abf7805c78383105f6ae02ac079f`
+- Product commit: `00937373953adba413c6a9ca9ebfc3e900a6c12e`
 - Documentation commit: recorded below
-- Tag: `v1.17.4`
+- Tag: `v1.17.5`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=506` → `game.js?v=495` → `fx.js?v=269`.
+- Cache chain: `main.js?v=507` → `game.js?v=496` → `fx.js?v=270`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Local and live idle dragonflies were y `[17.605,17.649]` with zero cue; feeding signal moved them to `[17.525,17.569]` with synchronized rotation x `[0.14,0.14]`. Clean local and live daytime primary visuals passed with no regression.
+Local idle skim was `0`; feeding phases produced skim pulses `1` and `0.88` with distinct positions and rotations while both dragonflies stayed visible. Clean daytime primary visual passed with no regression.
 
 ## Next bounded slice
 
