@@ -774,6 +774,7 @@ export class MangroveMudskipperFX {
     this.skippers = [];
     this._ripples = [];
     this.alertPulse = 0;
+    this.feedingPulse = 0;
     this.audioCooldown = 0;
     this._spots = [[52.9, 17.04, 59.5], [54.0, 17.04, 59.2]];
     const bodyMat = new THREE.MeshBasicMaterial({ color: 0x9b7d55, transparent: true, opacity: 0.82, depthTest: false, depthWrite: false });
@@ -813,6 +814,7 @@ export class MangroveMudskipperFX {
     this.audioCooldown = Math.max(0, this.audioCooldown - dt);
     const show = Boolean(active && center && nightMix > 0.1);
     this.alertPulse = 0;
+    this.feedingPulse = 0;
     let maxHop = 0;
     for (let i = 0; i < this.skippers.length; i++) {
       const skipper = this.skippers[i];
@@ -825,21 +827,26 @@ export class MangroveMudskipperFX {
       const cycle = (this.elapsed + i * 2.4) % 5.8;
       const hop = distance < 18 && cycle < 0.58 ? Math.sin((cycle / 0.58) * Math.PI) * (0.24 + approach * 0.08) : 0;
       const alert = approach * Math.max(0, Math.sin(this.elapsed * 5.2 + i * 1.7));
+      const feedCycle = (this.elapsed + i * 1.9) % 8.2;
+      const feeding = distance < 18 && feedCycle > 2.4 && feedCycle < 3.2
+        ? Math.sin(((feedCycle - 2.4) / 0.8) * Math.PI)
+        : 0;
       const dx = 55.5 - this._spots[i][0];
       const dz = 58.5 - this._spots[i][2];
       const length = Math.hypot(dx, dz) || 1;
       const dart = alert * 0.2;
       this.alertPulse = Math.max(this.alertPulse, alert);
+      this.feedingPulse = Math.max(this.feedingPulse, feeding);
       maxHop = Math.max(maxHop, hop);
       skipper.position.x = this._spots[i][0] + Math.sin(this.elapsed * 0.45 + i) * 0.11 + (dx / length) * dart;
-      skipper.position.y = this._spots[i][1] + hop;
+      skipper.position.y = this._spots[i][1] + hop - feeding * 0.045;
       skipper.position.z = this._spots[i][2] + (dz / length) * dart;
-      skipper.rotation.x = -hop * 0.32 - alert * 0.12;
+      skipper.rotation.x = -hop * 0.32 - alert * 0.12 + feeding * 0.22;
       skipper.rotation.z = Math.sin(this.elapsed * 1.2 + i) * 0.035;
       skipper.scale.setScalar(0.92 + nightMix * 0.04);
-      ripple.visible = hop > 0.04;
-      ripple.scale.setScalar(1 + hop * 2.2);
-      ripple.material.opacity = hop * 0.24;
+      ripple.visible = hop > 0.04 || feeding > 0.08;
+      ripple.scale.setScalar(1 + hop * 2.2 + feeding * 0.65);
+      ripple.material.opacity = Math.max(hop * 0.24, feeding * 0.12);
     }
     return maxHop;
   }
