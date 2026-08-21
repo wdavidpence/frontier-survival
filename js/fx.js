@@ -640,3 +640,65 @@ export class MangroveFrogFX {
     for (const mat of [this._bodyMat, this._bellyMat, this._eyeMat, this._pupilMat, this._rippleMat]) mat.dispose();
   }
 }
+
+/** Sparse authored crabs that sidestep along the Rootwalk channel edge after dusk. */
+export class MangroveCrabFX {
+  constructor(scene, count = 3) {
+    this.scene = scene;
+    this.elapsed = 0;
+    this.crabs = [];
+    this._spots = [[51.6, 16.92, 59.1], [53.1, 16.92, 59.8], [50.8, 16.92, 57.9]];
+    const shellMat = new THREE.MeshBasicMaterial({ color: 0xb5653e, transparent: true, opacity: 0.78, depthTest: false, depthWrite: false });
+    const clawMat = new THREE.MeshBasicMaterial({ color: 0xe09a62, transparent: true, opacity: 0.72, depthTest: false, depthWrite: false });
+    for (let i = 0; i < count; i++) {
+      const group = new THREE.Group();
+      const shell = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 5), shellMat);
+      shell.scale.set(1.35, 0.55, 1.0);
+      shell.position.y = 0.12;
+      group.add(shell);
+      for (const side of [-1, 1]) {
+        for (let leg = -1; leg <= 1; leg++) {
+          const limb = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.035, 0.2), clawMat);
+          limb.position.set(side * 0.17, 0.08, leg * 0.1);
+          limb.rotation.y = side * (0.65 + leg * 0.18);
+          group.add(limb);
+        }
+        const claw = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 4), clawMat);
+        claw.position.set(side * 0.26, 0.12, 0.16);
+        group.add(claw);
+      }
+      group.position.set(...this._spots[i]);
+      group.rotation.y = i * 1.7;
+      group.visible = false;
+      scene?.add(group);
+      this.crabs.push(group);
+    }
+    this._shellMat = shellMat;
+    this._clawMat = clawMat;
+  }
+
+  tick(dt, active, center, nightMix = 0) {
+    this.elapsed += dt;
+    const show = Boolean(active && center && nightMix > 0.1);
+    for (let i = 0; i < this.crabs.length; i++) {
+      const crab = this.crabs[i];
+      crab.visible = show;
+      if (!show) continue;
+      const sidestep = Math.sin(this.elapsed * 0.55 + i * 1.8) * 0.16;
+      crab.position.x = this._spots[i][0] + sidestep;
+      crab.position.y = this._spots[i][1] + Math.sin(this.elapsed * 1.6 + i) * 0.012;
+      crab.rotation.y = this._spots[i][0] < center.x ? 0.3 : -0.3;
+      crab.rotation.z = Math.sin(this.elapsed * 1.1 + i * 0.7) * 0.04;
+      crab.scale.setScalar(0.9 + nightMix * 0.05);
+    }
+  }
+
+  dispose() {
+    for (const crab of this.crabs) {
+      this.scene?.remove(crab);
+      crab.traverse((child) => { if (child.geometry) child.geometry.dispose(); });
+    }
+    this._shellMat.dispose();
+    this._clawMat.dispose();
+  }
+}

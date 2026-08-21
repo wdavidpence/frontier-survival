@@ -68,7 +68,7 @@ import {
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
 import { createBlockAtlas } from './atlas.js?v=300';
-import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX } from './fx.js?v=258';
+import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX } from './fx.js?v=257';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=2';
@@ -321,6 +321,7 @@ export class Game {
     this.mothFx = new MangroveMothFX(this.scene);
     this.waterFx = new MangroveWaterFX(this.scene);
     this.frogFx = new MangroveFrogFX(this.scene);
+    this.crabFx = new MangroveCrabFX(this.scene);
     // Outer streaming ring; overwritten by _applyRenderDistance via visibility plan.
     this.worldRadius = this._visPlan?.proxyChunks || 5;
 
@@ -1381,6 +1382,7 @@ export class Game {
     this.mothFx.tick(dt, active, p, nightMix);
     this.waterFx.tick(dt, active, nightMix, p);
     this.frogFx.tick(dt, active, p, nightMix);
+    this.crabFx.tick(dt, active, p, nightMix);
   }
 
   _tickCrops(dt) {
