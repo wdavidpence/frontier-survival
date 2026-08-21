@@ -38,6 +38,15 @@ Added two sparse authored mudskippers along the Mangrove channel edge.
 - Local primary night frame: bridge, lantern, fireflies, moths, frogs, crabs, dynamic water response, seagrass, reflection/foam, HUD, and renderer remain healthy; mudskippers remain subordinate at the accepted distance.
 - Controlled supplemental crop: tan mudskipper silhouettes and one pale hop ripple integrate into the lower-center ecology cluster without route or HUD occlusion.
 - Local daytime: mudskippers `0`, hop ripples `0`, `night=false`, zero errors.
+- Live Pages:
+  - title `Frontier Survival v1.16.9`;
+  - `started=true`, seed `1884808540`, 1280×720 canvas;
+  - two visible mudskippers;
+  - one active hop at `y=17.252`;
+  - one hop ripple;
+  - zero page-owned errors;
+  - clean live primary night frame passed visual review;
+  - daytime gate: mudskippers `0`, ripples `0`, crabs `0`, frogs `0`, zero errors.
 
 ## Honest limitation
 

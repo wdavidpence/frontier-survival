@@ -23,7 +23,7 @@ v1.16.9 adds two authored Mangrove mudskippers at the channel edge.
 
 ## Runtime judgment
 
-Local runtime showed two visible mudskippers, one active hop at `y=17.252`, and one localized hop ripple with zero errors. Controlled supplemental crop showed the new silhouettes integrated into the existing lower-center ecology cluster without route or HUD occlusion. Daytime hid both skippers and ripples.
+Local and live runtime showed two visible mudskippers, one active hop at `y=17.252`, and one localized hop ripple with zero errors. Controlled supplemental crop showed the new silhouettes integrated into the existing lower-center ecology cluster without route or HUD occlusion. Daytime hid both skippers and ripples.
 
 ## Next bounded slice
 
