@@ -551,10 +551,12 @@ export class MangroveFrogFX {
     this.scene = scene;
     this.elapsed = 0;
     this.frogs = [];
+    this._ripples = [];
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0x315b43, roughness: 0.95 });
     const bellyMat = new THREE.MeshStandardMaterial({ color: 0x6e8a54, roughness: 1 });
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffd56a, transparent: true });
     const pupilMat = new THREE.MeshBasicMaterial({ color: 0x18251c });
+    const rippleMat = new THREE.MeshBasicMaterial({ color: 0x8fd3c4, transparent: true, opacity: 0, depthTest: false, depthWrite: false });
     const spots = [[53.4, 17.25, 58.2], [54.7, 17.2, 58.8], [52.6, 17.25, 57.5]];
     this._spots = spots;
     this._baseRotations = spots.map((_, i) => i * 1.8);
@@ -574,23 +576,30 @@ export class MangroveFrogFX {
       const pupilR = pupilL.clone();
       pupilL.position.set(-0.12, 0.43, 0.135);
       pupilR.position.set(0.12, 0.43, 0.135);
-      group.add(body, belly, eyeL, eyeR, pupilL, pupilR);
+      const ripple = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.2, 12), rippleMat);
+      ripple.rotation.x = -Math.PI / 2;
+      ripple.position.y = -1.15;
+      ripple.visible = false;
+      group.add(body, belly, eyeL, eyeR, pupilL, pupilR, ripple);
       group.position.set(...spots[i]);
       group.rotation.y = i * 1.8;
       group.visible = false;
       scene?.add(group);
       this.frogs.push(group);
+      this._ripples.push(ripple);
     }
     this._bodyMat = bodyMat;
     this._bellyMat = bellyMat;
     this._eyeMat = eyeMat;
     this._pupilMat = pupilMat;
+    this._rippleMat = rippleMat;
   }
 
   tick(dt, active, center, nightMix = 0) {
     this.elapsed += dt;
     const show = Boolean(active && center && nightMix > 0.18);
     let maxAlert = 0;
+    let maxHop = 0;
     for (let i = 0; i < this.frogs.length; i++) {
       const frog = this.frogs[i];
       frog.visible = show;
@@ -600,6 +609,10 @@ export class MangroveFrogFX {
       maxAlert = Math.max(maxAlert, alert);
       const cycle = (this.elapsed + i * 2.3) % 7;
       const hop = distance < 16 && cycle < 0.72 ? Math.sin((cycle / 0.72) * Math.PI) * 0.28 : 0;
+      maxHop = Math.max(maxHop, hop);
+      const ripple = this._ripples[i];
+      ripple.visible = show && hop > 0.03;
+      ripple.scale.setScalar(1 + hop * 2.4);
       frog.position.y = 17.2 + Math.sin(this.elapsed * 1.4 + i * 1.9) * 0.018 + hop;
       frog.rotation.z = Math.sin(this.elapsed * 1.1 + i) * 0.025;
       frog.rotation.x = hop * 0.18;
@@ -608,6 +621,7 @@ export class MangroveFrogFX {
     }
     const alertPulse = maxAlert * (0.5 + 0.5 * Math.sin(this.elapsed * 5.5)) * 0.16;
     this._eyeMat.opacity = show ? 0.58 + nightMix * 0.35 + alertPulse : 0;
+    this._rippleMat.opacity = show ? maxHop * 0.3 : 0;
   }
 
   dispose() {
@@ -617,6 +631,6 @@ export class MangroveFrogFX {
         if (child.geometry) child.geometry.dispose();
       });
     }
-    for (const mat of [this._bodyMat, this._bellyMat, this._eyeMat, this._pupilMat]) mat.dispose();
+    for (const mat of [this._bodyMat, this._bellyMat, this._eyeMat, this._pupilMat, this._rippleMat]) mat.dispose();
   }
 }
