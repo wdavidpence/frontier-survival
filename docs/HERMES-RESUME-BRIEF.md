@@ -1,28 +1,27 @@
-# Frontier Survival — v1.14.7 wet-mud landfall checkpoint
+# Frontier Survival — v1.14.8 dusk firefly checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.14.7 adds a compact authored wet-mud contrast patch at the Mangrove Lantern Rootwalk landfall.
+v1.14.8 adds the first clock-responsive Mangrove night reveal around the Lantern Rootwalk.
 
-- three deterministic candidate cells;
-- replacement only when existing material is Mangrove mud, dirt, or sand;
-- sync/worker parity;
-- bridge, fireflies, seagrass, route, and collision unchanged.
+- daytime firefly baseline unchanged;
+- dusk/night point size and opacity lift;
+- bridge, lantern, seagrass, wet mud, route, and collision unchanged.
 
 ## Release state
 
-- Product commit: `b3361e60b253292d1c02615708e4c3a95b3de9b9`
-- Tag: `v1.14.7`
+- Product commit: `80cc33942c8a882f60e0568fc5c9c2da3b240558`
+- Tag: `v1.14.8`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=479` → `game.js?v=468` → `world.js?v=436` → `chunk-worker.js?v=296`.
+- Cache chain: `main.js?v=480` → `game.js?v=469` → `fx.js?v=248`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Visual judgment
 
-Clean fixed-seed local runtime remains readable: Rootwalk bridge, lanterns, firefly glints, emergent seagrass, water/horizon, and HUD all survive. The DAMP_SOIL patch is a safe, subtle dark-wet landing contrast with no black/gray artifact or giant occlusion.
+Daytime baseline remains intact. At forced dusk (`dayPhase≈0.555`), the sky shifts blue/pink, the Rootwalk remains readable, and the fireflies strengthen without creating clutter or renderer artifacts. At forced night (`dayPhase≈0.625`), the scene is darker but still playable with moon/stars, lantern, bridge silhouette, water, seagrass, HUD, and the stronger constellation visible.
 
 ## Next bounded slice
 
-Advance atmosphere with a restrained dusk/night wetland reveal around the existing Rootwalk. Preserve daytime readability and reuse the fixed-seed evidence points.
+Add one restrained authored nocturnal wetland cue—small bat/moth pass or lantern reflection/foam—while preserving daytime and dusk evidence.
