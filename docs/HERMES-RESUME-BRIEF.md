@@ -1,27 +1,29 @@
-# Frontier Survival — v1.14.8 dusk firefly checkpoint
+# Frontier Survival — v1.14.9 nocturnal moth checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.14.8 adds the first clock-responsive Mangrove night reveal around the Lantern Rootwalk.
+v1.14.9 adds six low-opacity pale moth motes around the Mangrove Lantern Rootwalk.
 
-- daytime firefly baseline unchanged;
-- dusk/night point size and opacity lift;
-- bridge, lantern, seagrass, wet mud, route, and collision unchanged.
+- daytime hidden;
+- dusk/night visible only after `nightMix > 0.18`;
+- independent subtle flutter;
+- sync/game FX path retained;
+- bridge, lanterns, fireflies, seagrass, wet mud, route, and collision unchanged.
 
 ## Release state
 
-- Product commit: `80cc33942c8a882f60e0568fc5c9c2da3b240558`
-- Tag: `v1.14.8`
+- Product commit: `6eafca216963ac5556b87569ebcf92199d96aef6`
+- Tag: `v1.14.9`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=480` → `game.js?v=469` → `fx.js?v=248`.
+- Cache chain: `main.js?v=481` → `game.js?v=470` → `fx.js?v=249`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Visual judgment
 
-Daytime baseline remains intact. At forced dusk (`dayPhase≈0.555`), the sky shifts blue/pink, the Rootwalk remains readable, and the fireflies strengthen without creating clutter or renderer artifacts. At forced night (`dayPhase≈0.625`), the scene is darker but still playable with moon/stars, lantern, bridge silhouette, water, seagrass, HUD, and the stronger constellation visible.
+Daytime runtime confirms moths hidden. Night runtime confirms moths visible at size `0.12` and opacity `0.44`. The night frame reads as a restrained nocturnal wetland cue without clutter, bridge/lantern loss, HUD overlap, or renderer artifact.
 
 ## Next bounded slice
 
-Add one restrained authored nocturnal wetland cue—small bat/moth pass or lantern reflection/foam—while preserving daytime and dusk evidence.
+Advance water response with a small Rootwalk lantern reflection/foam cue while preserving daytime, dusk, and night evidence.
