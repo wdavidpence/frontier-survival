@@ -431,3 +431,57 @@ export class MangroveFireflyFX {
     this.material.dispose();
   }
 }
+
+/** Restrained pale moth motes that appear only after dusk at the Rootwalk. */
+export class MangroveMothFX {
+  constructor(scene, count = 6) {
+    this.scene = scene;
+    this.count = count;
+    this.elapsed = 0;
+    this.geometry = new THREE.BufferGeometry();
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2;
+      const r = 2.1 + (i % 3) * 0.7;
+      pos[i * 3] = Math.cos(a) * r;
+      pos[i * 3 + 1] = 2.4 + (i % 3) * 0.55;
+      pos[i * 3 + 2] = Math.sin(a) * r * 0.6;
+    }
+    this.geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    this.material = new THREE.PointsMaterial({
+      color: 0xd9e7ff,
+      size: 0.08,
+      transparent: true,
+      opacity: 0.32,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true,
+    });
+    this.points = new THREE.Points(this.geometry, this.material);
+    this.points.visible = false;
+    scene?.add(this.points);
+  }
+
+  tick(dt, active, center, nightMix = 0) {
+    this.elapsed += dt;
+    this.points.visible = Boolean(active && center && nightMix > 0.18);
+    if (!this.points.visible) return;
+    this.points.position.set(55.5, 20.2, 58.5);
+    const pos = this.geometry.attributes.position.array;
+    for (let i = 0; i < this.count; i++) {
+      const idx = i * 3;
+      pos[idx] += Math.sin(this.elapsed * 1.8 + i * 1.9) * 0.006;
+      pos[idx + 1] += Math.cos(this.elapsed * 2.1 + i * 1.3) * 0.005;
+      pos[idx + 2] += Math.sin(this.elapsed * 1.5 + i) * 0.004;
+    }
+    this.geometry.attributes.position.needsUpdate = true;
+    this.material.size = 0.08 + nightMix * 0.04;
+    this.material.opacity = 0.18 + nightMix * 0.26;
+  }
+
+  dispose() {
+    this.scene?.remove(this.points);
+    this.geometry.dispose();
+    this.material.dispose();
+  }
+}

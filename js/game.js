@@ -68,7 +68,7 @@ import {
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
 import { createBlockAtlas } from './atlas.js?v=300';
-import { BreakFX, WeatherFX, MangroveFireflyFX } from './fx.js?v=248';
+import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX } from './fx.js?v=249';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=2';
@@ -318,6 +318,7 @@ export class Game {
     this.atlas = createBlockAtlas();
     this.fx = new BreakFX(this.scene, this.atlas);
     this.fireflyFx = new MangroveFireflyFX(this.scene);
+    this.mothFx = new MangroveMothFX(this.scene);
     // Outer streaming ring; overwritten by _applyRenderDistance via visibility plan.
     this.worldRadius = this._visPlan?.proxyChunks || 5;
 
@@ -1375,6 +1376,7 @@ export class Game {
     const phase = this.time?.dayPhase ?? 0;
     const nightMix = phase < 0.5 ? 0 : Math.min(1, (phase - 0.5) / 0.12);
     this.fireflyFx.tick(dt, active, p, nightMix);
+    this.mothFx.tick(dt, active, p, nightMix);
   }
 
   _tickCrops(dt) {
