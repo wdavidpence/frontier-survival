@@ -870,6 +870,8 @@ export class MangroveDragonflyFX {
     this.skimPulse = 0;
     this.flies = [];
     this.ripples = [];
+    this.ripplePulse = [];
+    this._rippleMats = [];
     this._wings = [];
     this._spots = [[53.0, 17.42, 58.7], [54.25, 17.58, 59.05]];
     const bodyMat = new THREE.MeshBasicMaterial({ color: 0x2f6f77, transparent: true, opacity: 0.96, depthTest: false, depthWrite: false });
@@ -894,12 +896,14 @@ export class MangroveDragonflyFX {
       group.position.set(...this._spots[i]);
       group.rotation.y = i * 1.8;
       group.visible = false;
-      const ripple = new THREE.Mesh(new THREE.RingGeometry(0.06, 0.1, 10), rippleMat);
+      const ripple = new THREE.Mesh(new THREE.RingGeometry(0.06, 0.1, 10), rippleMat.clone());
+      this._rippleMats.push(ripple.material);
       ripple.rotation.x = -Math.PI / 2;
       ripple.position.set(this._spots[i][0], 17.14, this._spots[i][2]);
       ripple.visible = false;
       scene?.add(ripple);
       this.ripples.push(ripple);
+      this.ripplePulse.push(0);
       scene?.add(group);
       this.flies.push(group);
       this._wings.push(wings);
@@ -916,7 +920,10 @@ export class MangroveDragonflyFX {
     this.feedingCue = 0;
     this.skimPulse = 0;
     const show = Boolean(active && center && nightMix < 0.65);
-    for (const ripple of this.ripples) ripple.visible = false;
+    for (let i = 0; i < this.ripples.length; i++) {
+      this.ripplePulse[i] = Math.max(0, this.ripplePulse[i] - dt * 2.8);
+      this.ripples[i].visible = false;
+    }
     for (let i = 0; i < this.flies.length; i++) {
       const fly = this.flies[i];
       fly.visible = show;
@@ -940,10 +947,11 @@ export class MangroveDragonflyFX {
       const flap = 0.72 + Math.abs(Math.sin(this.elapsed * 8.5 + i)) * 0.55;
       for (const wing of this._wings[i]) wing.scale.y = flap;
       const ripple = this.ripples[i];
-      ripple.visible = skim > 0.55;
+      this.ripplePulse[i] = Math.max(this.ripplePulse[i], skim > 0.55 ? skim : 0);
+      ripple.visible = this.ripplePulse[i] > 0.06;
       ripple.position.set(fly.position.x, 17.14, fly.position.z);
-      ripple.scale.setScalar(1 + skim * 1.8);
-      ripple.material.opacity = skim * 0.16;
+      ripple.scale.setScalar(1 + this.ripplePulse[i] * 1.8);
+      ripple.material.opacity = this.ripplePulse[i] * 0.16;
     }
     return this.scatterPulse;
   }
@@ -957,6 +965,6 @@ export class MangroveDragonflyFX {
       this.scene?.remove(ripple);
       if (ripple.geometry) ripple.geometry.dispose();
     }
-    for (const mat of [this._bodyMat, this._wingMat, this._eyeMat, this._rippleMat]) mat.dispose();
+    for (const mat of [this._bodyMat, this._wingMat, this._eyeMat, this._rippleMat, ...this._rippleMats]) mat.dispose();
   }
 }
