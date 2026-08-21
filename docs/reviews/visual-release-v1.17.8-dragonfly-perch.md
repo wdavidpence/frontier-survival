@@ -39,6 +39,12 @@ Added a deterministic authored perch window for the first Mangrove dragonfly.
   - close player at first authored spot: perch `0`, scatter `1`, y `17.561`, rotation x `0`, wing scale `0.783`;
   - zero page-owned errors.
 - Local visual: clean daytime primary Rootwalk frame preserves accepted bridge, water, horizon, seagrass, HUD, renderer, and subordinate cyan fauna.
+- Live Pages:
+  - title `Frontier Survival v1.17.8`;
+  - `started=true`, seed `1884808540`, 1280×720 canvas;
+  - ordinary/feeding/close perch probes matched local exactly;
+  - clean live daytime primary frame passed visual review;
+  - zero page-owned errors.
 
 ## Honest limitation
 

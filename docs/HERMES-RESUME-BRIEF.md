@@ -22,7 +22,7 @@ v1.17.8 adds a deterministic authored perch window for the first Mangrove dragon
 
 ## Runtime judgment
 
-Local ordinary/feeding/close probes passed with zero errors. Clean local daytime primary visual passed with no regression. Live Pages verification remains the final gate before this checkpoint is considered published live.
+Local and live ordinary/feeding/close probes passed with zero errors. Clean local and live daytime primary visuals passed with no regression or clutter.
 
 ## Next bounded slice
 
