@@ -34,10 +34,18 @@ Completed the feeding chain with one tiny cyan water dimple under a low dragonfl
 - Local fixed-seed runtime:
   - `started=true`, seed `1884808540`;
   - idle: `skimPulse=0`, flies `2`, ripples `0`, opacity `0`;
-  - feeding low pass: `skimPulse=1`, flies `2`, ripples `1`, opacity `0`, localized ripple positions `[[52.966,17.14,58.742],[54.662,17.14,59.009]]`;
+  - feeding low pass: `skimPulse=1`, flies `2`, ripples `1`, opacity `0.16`, localized ripple positions `[[52.966,17.14,58.742],[54.662,17.14,59.009]]`;
   - nighttime feeding: flies `0`, ripples `0`, `skimPulse=0`;
   - zero page-owned errors.
 - Local visual: clean daytime primary Rootwalk frame preserves accepted bridge, water, horizon, seagrass, HUD, renderer, and subordinate cyan fauna.
+- Live Pages:
+  - title `Frontier Survival v1.17.6`;
+  - `started=true`, seed `1884808540`, 1280×720 canvas;
+  - idle: flies `2`, ripples `0`;
+  - feeding low pass: flies `2`, ripples `1`, localized ripple at `y=17.14`;
+  - nighttime feeding: flies `0`, ripples `0`, skim `0`;
+  - clean live daytime primary frame passed visual review;
+  - zero page-owned errors.
 
 ## Honest limitation
 

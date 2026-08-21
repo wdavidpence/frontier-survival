@@ -22,7 +22,7 @@ v1.17.6 completes the mudskipper → dragonfly → water feedback chain.
 
 ## Runtime judgment
 
-Local idle showed 0 ripples; feeding low pass showed 1 ripple at waterline `y=17.14`; nighttime showed 0 flies, 0 ripples, and skim `0`. Clean local daytime primary visual passed without regression.
+Local and live idle showed 0 ripples; feeding low pass showed 1 localized ripple at waterline `y=17.14`; nighttime showed 0 flies, 0 ripples, and skim `0`. Clean local and live daytime primary visuals passed without regression.
 
 ## Next bounded slice
 
