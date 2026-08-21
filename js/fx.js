@@ -774,6 +774,7 @@ export class MangroveMudskipperFX {
     this.skippers = [];
     this._ripples = [];
     this.alertPulse = 0;
+    this.audioCooldown = 0;
     this._spots = [[52.9, 17.04, 59.5], [54.0, 17.04, 59.2]];
     const bodyMat = new THREE.MeshBasicMaterial({ color: 0x9b7d55, transparent: true, opacity: 0.82, depthTest: false, depthWrite: false });
     const finMat = new THREE.MeshBasicMaterial({ color: 0xc8a56d, transparent: true, opacity: 0.78, depthTest: false, depthWrite: false });
@@ -809,6 +810,7 @@ export class MangroveMudskipperFX {
 
   tick(dt, active, center, nightMix = 0) {
     this.elapsed += dt;
+    this.audioCooldown = Math.max(0, this.audioCooldown - dt);
     const show = Boolean(active && center && nightMix > 0.1);
     this.alertPulse = 0;
     let maxHop = 0;

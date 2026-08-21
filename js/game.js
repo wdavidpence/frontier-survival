@@ -3,7 +3,7 @@ import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=436';
 import { Player } from './player.js?v=239';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
-import { AudioBus } from './audio.js?v=225';
+import { AudioBus } from './audio.js?v=226';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
@@ -68,7 +68,7 @@ import {
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
 import { createBlockAtlas } from './atlas.js?v=300';
-import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX } from './fx.js?v=265';
+import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX } from './fx.js?v=266';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=2';
@@ -1384,6 +1384,11 @@ export class Game {
     this.frogFx.tick(dt, active, p, nightMix);
     this.crabFx.tick(dt, active, p, nightMix);
     this.mudskipperFx.tick(dt, active, p, nightMix);
+    if (this.mudskipperFx.alertPulse > 0.65 && this.mudskipperFx.audioCooldown <= 0 && p) {
+      const pan = Math.max(-1, Math.min(1, (55.5 - p.x) / 12));
+      this.audio._mudskipperSplash(this.mudskipperFx.alertPulse, pan);
+      this.mudskipperFx.audioCooldown = 0.8;
+    }
     if (this.crabFx.scuttlePulse > 0.62) {
       this.waterFx.setCrabPulse(this.crabFx.scuttlePulse, this.crabFx.scuttleSourceX, this.crabFx.scuttleSourceZ);
     }
