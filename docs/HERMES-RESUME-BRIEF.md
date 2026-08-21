@@ -1,28 +1,28 @@
-# Frontier Survival — v1.16.0 spatial frog-chorus checkpoint
+# Frontier Survival — v1.16.1 directional frog-chorus checkpoint
 
 Updated: 2026-08-21
 
 ## Current live candidate
 
-v1.16.0 spatializes the Mangrove frog chorus by fading it with Rootwalk distance.
+v1.16.1 gives the Mangrove frog chorus directional stereo placement.
 
-- 22-block linear falloff;
-- full direct-call default preserved;
-- night + near-water gating preserved;
-- dead state silences chorus;
+- lateral player offset maps to `frogPan` in `[-1, +1]`;
+- second note narrows the spread;
+- native `StereoPannerNode` with mono fallback;
+- distance falloff, night/near-water/dead gates preserved;
 - bridge, lantern, fireflies, moths, frogs, water, seagrass, reflection/foam, and HUD preserved.
 
 ## Release state
 
-- Product commit: `e2be777a3b5a28388ecbe87351a3ffea72b62e2d`
-- Tag: `v1.16.0`
+- Product commit: `aa39b1746bad0e7117da78a26bdf2797fd1bdddb`
+- Tag: `v1.16.1`
 - Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-biome-sprint-20260820`
-- Cache chain: `main.js?v=492` → `game.js?v=481` → `audio.js?v=223`.
+- Cache chain: `main.js?v=493` → `game.js?v=482` → `audio.js?v=224`.
 - Smoke, syntax, diff-check, parity, and 125-edge import audit pass.
 
 ## Runtime judgment
 
-Night near-water mix probe: frog `0.2970` at distance `1.58`, `0` at distance `22`, `0` outside Mangrove, and `0` dead. Zero errors. Clean local night frame shows no visual regression.
+Local probe confirms `frogPan=-1/0/+1` for left/center/right lateral positions, unchanged chorus strength, native stereo support, and zero errors. Clean local night screenshot has no visual regression.
 
 ## Next bounded slice
 
