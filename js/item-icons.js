@@ -103,7 +103,7 @@ function shapeForItemVariant(itemId, name, p) {
   if (/(iron ore|iron ingot|copper ore|copper ingot|coal|charcoal|ore)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="faceted-ore"><path d="M11 28 22 14l18-3 14 14-8 25-20 5-17-13z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.5"/><path d="M11 28 22 14l10 11-7 18z" fill="${p.light}"/><path d="M32 25 40 11l14 14-12 10z" fill="${p.base}"/><path d="M25 43 32 25l10 10-4 20z" fill="${p.mid}"/><path d="M17 28 25 25M42 20l7 5M29 47l6 2" stroke="${p.glint}" stroke-width="2" stroke-linecap="round" opacity=".9"/></g>`;
   }
-  if (/(chest|barrel|crate|ice box)/.test(text)) {
+  if (/(chest)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="hero-chest"><path d="M12 25h40v25H12z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.5"/><path d="M12 25c2-10 10-15 20-15s18 5 20 15z" fill="${p.light}" stroke="${p.deep}" stroke-width="1.5"/><path d="M16 27h32v18H16z" fill="url(#body)"/><path d="M21 25v21M43 25v21" stroke="${p.glint}" stroke-width="1.6" opacity=".8"/><rect x="29" y="28" width="7" height="9" rx="1.5" fill="${p.glint}" stroke="${p.deep}" stroke-width="1.2"/><path d="M16 43h32" stroke="${p.dark}" stroke-width="2"/></g>`;
   }
   if (/(furnace|kiln|smelter)/.test(text)) {
@@ -189,6 +189,18 @@ function shapeForItemVariant(itemId, name, p) {
   }
   if (/(berries|berry)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="berry-cluster"><path d="M31 48c-2-8-1-15 4-22" fill="none" stroke="#486b3c" stroke-width="2.5" stroke-linecap="round"/><path d="M34 29c-7 1-12-2-14-7 8-2 13 0 14 7zM35 27c2-7 7-10 13-9-1 7-5 10-13 9z" fill="#5f9e55" stroke="#315c39" stroke-width="1"/><circle cx="22" cy="37" r="8" fill="${p.deep}"/><circle cx="33" cy="36" r="9" fill="${p.dark}"/><circle cx="43" cy="39" r="8" fill="${p.deep}"/><circle cx="27" cy="44" r="8" fill="${p.base}"/><circle cx="38" cy="46" r="8" fill="${p.base}"/><circle cx="24" cy="34" r="2.2" fill="${p.glint}"/><circle cx="35" cy="33" r="2.4" fill="${p.glint}"/><circle cx="45" cy="36" r="2" fill="${p.glint}"/></g>`;
+  }
+  if (/(ice box|cooler)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="ice-box"><path d="M12 25h40v26H12z" fill="#b9e7f2" stroke="${p.deep}" stroke-width="1.5"/><path d="M10 18h44v10H10z" rx="2" fill="#e8fbff" stroke="${p.deep}" stroke-width="1.5"/><path d="M18 19h28" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity=".85"/><path d="M18 34h28M18 41h18" stroke="#65b8d0" stroke-width="1.5" stroke-linecap="round"/><path d="M22 28v-6M42 28v-6" stroke="#4d9ab6" stroke-width="1.5"/></g>`;
+  }
+  if (/(barrel|crate|supply crate)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="supply-crate"><path d="M13 19h38v32H13z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.6"/><path d="M17 19v32M47 19v32" stroke="${p.glint}" stroke-width="2" opacity=".7"/><path d="M13 27h38M13 43h38" stroke="#7c5633" stroke-width="2.2"/><path d="M27 19v32M37 19v32" stroke="${p.dark}" stroke-width="1.3" opacity=".8"/><rect x="28" y="29" width="8" height="7" rx="1" fill="#d6b36a" stroke="#745031" stroke-width="1"/><path d="M19 23h12" stroke="#ffe0a0" stroke-width="1.3" stroke-linecap="round" opacity=".75"/></g>`;
+  }
+  if (/(generator|power unit)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="generator-housing"><path d="M13 17 32 10l19 7v34l-19 7-19-7z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.6"/><path d="M13 17l19 8 19-8-19-7z" fill="${p.light}"/><circle cx="32" cy="34" r="10" fill="#1b2a35" stroke="${p.glint}" stroke-width="1.5"/><circle cx="32" cy="34" r="6" fill="#84c6d4" opacity=".82"/><path d="M32 34l5-4" stroke="#f3df9b" stroke-width="1.8" stroke-linecap="round"/><path d="M20 22h6M38 22h6M21 48h22" stroke="${p.glint}" stroke-width="1.4" stroke-linecap="round"/></g>`;
+  }
+  if (/(wire|copper coil|coil)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="wire-coil"><path d="M14 22h36v28H14z" fill="#704d35" stroke="${p.deep}" stroke-width="1.5"/><path d="M20 27c10-8 22-8 25 0s-4 12-14 10-13 3-8 8 15 5 22-1" fill="none" stroke="#e8a34c" stroke-width="3" stroke-linecap="round"/><path d="M20 27c10-8 22-8 25 0" fill="none" stroke="#fff0a8" stroke-width="1" opacity=".8"/><path d="M18 46h28" stroke="#9d6a3d" stroke-width="1.5" stroke-linecap="round"/></g>`;
   }
   if (/(compass)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="compass-dial"><circle cx="32" cy="32" r="20" fill="#d8e2e7" stroke="${p.deep}" stroke-width="1.6"/><circle cx="32" cy="32" r="15" fill="#f5f1d0" stroke="${p.dark}" stroke-width="1.2"/><path d="M39 24 34 35l-11 5 5-11z" fill="#d85a4d" stroke="${p.deep}" stroke-width="1.1"/><path d="m25 40 5-11 11-5-5 11z" fill="#5e8fa9" opacity=".9"/><circle cx="32" cy="32" r="2" fill="${p.glint}" stroke="${p.deep}" stroke-width=".8"/><path d="M32 13v4M32 47v4M13 32h4M47 32h4" stroke="${p.glint}" stroke-width="1.4" stroke-linecap="round"/></g>`;
