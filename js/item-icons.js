@@ -88,6 +88,9 @@ export function iconKindForItem(itemId, name) {
 
 function shapeForItemVariant(itemId, name, p) {
   const text = normalizedParts(itemId, name);
+  if (/(anchored boat|moored boat|beached boat)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="anchored-boat"><path d="M9 34h46l-7 14c-3 6-9 8-16 8s-13-2-16-8z" fill="#8f5b37" stroke="${p.deep}" stroke-width="1.6"/><path d="M15 34h34l-6 9H21z" fill="#d59655" stroke="#63432f" stroke-width="1.2"/><path d="M32 11v23" stroke="${p.deep}" stroke-width="2"/><path d="M33 13 48 28H33z" fill="#e9d9a5" stroke="${p.deep}" stroke-width="1.2"/><path d="M15 46h34" stroke="#f2c47b" stroke-width="1.5" stroke-linecap="round"/><path d="M46 45c7 2 7 6 2 9l-5 3" fill="none" stroke="#a8e8ef" stroke-width="1.4"/><path d="M43 55l4 2-3 3-4-2z" fill="#b8c2c8" stroke="#687681" stroke-width="1"/><circle cx="20" cy="42" r="1.6" fill="#ffe6a3"/></g>`;
+  }
   if (/(pick|pickaxe)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="hero-pickaxe"><path d="M28 52 31 24h5l3 28z" fill="${p.deep}" stroke="${p.deep}" stroke-width="1.4"/><path d="M31 28h4l2 22h-4z" fill="${p.base}"/><path d="M12 18c8-8 25-9 39-1l-2 8c-13-5-25-5-35 2z" fill="${p.light}" stroke="${p.deep}" stroke-width="1.5" stroke-linejoin="round"/><path d="M16 19c10-4 20-4 31-1" fill="none" stroke="${p.glint}" stroke-width="2" stroke-linecap="round"/><path d="M23 22h9" stroke="${p.dark}" stroke-width="2" stroke-linecap="round"/><circle cx="33" cy="25" r="1.8" fill="${p.glint}"/></g>`;
   }
@@ -132,6 +135,9 @@ function shapeForItemVariant(itemId, name, p) {
   }
   if (/(cooked crab|raw crab)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="crab-claw"><path d="M32 27c-8-9-19-7-22 1-2 6 3 10 10 8l-6 10c-3 5 3 8 7 4l9-10 9 10c4 4 10 1 7-4l-6-10c7 2 12-2 10-8-3-8-14-10-22-1z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M20 30c7 4 17 4 24 0M27 27l5 8 5-8" fill="none" stroke="${p.light}" stroke-width="1.6" stroke-linecap="round"/><circle cx="26" cy="24" r="1.4" fill="${p.glint}"/><circle cx="38" cy="24" r="1.4" fill="${p.glint}"/></g>`;
+  }
+  if (/(reef caught fish|reef fish|coral fish)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="reef-caught-fish"><path d="M11 34c8-13 23-16 38-7l9-5-3 12 3 11-9-6c-15 8-30 6-38 0z" fill="#2e9fb5" stroke="${p.deep}" stroke-width="1.5"/><path d="M18 33h34" stroke="#ffd45e" stroke-width="3" stroke-linecap="round"/><path d="M25 25v18M33 23v20M41 26v15" stroke="#f06b83" stroke-width="2" opacity=".95"/><path d="M21 28c5-5 12-6 19-4" fill="none" stroke="#a8f0e5" stroke-width="1.6" stroke-linecap="round"/><circle cx="19" cy="31" r="2" fill="#fff7d6" stroke="${p.deep}" stroke-width=".8"/><path d="M46 27l7 7-7 7" fill="none" stroke="#fff0a4" stroke-width="1.5"/><circle cx="29" cy="17" r="1.6" fill="#9fe6ee"/><circle cx="38" cy="14" r="1.2" fill="#9fe6ee"/></g>`;
   }
   if (/(raw fish|fish)(?!ing)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="fish-fillet"><path d="M12 34c8-13 24-15 38-5l7-5-2 10 2 10-7-5c-14 10-30 8-38-5z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5" stroke-linejoin="round"/><path d="M19 34c8-4 17-5 26-2" fill="none" stroke="${p.light}" stroke-width="3" stroke-linecap="round"/><path d="M26 28c4 3 5 9 1 13M33 27c4 4 5 10 1 14" fill="none" stroke="${p.dark}" stroke-width="1.3"/><circle cx="19" cy="32" r="2" fill="#f5fbff"/><circle cx="19" cy="32" r=".8" fill="${p.deep}"/><path d="M44 28l7 6-7 6" fill="none" stroke="${p.glint}" stroke-width="1.4"/></g>`;
@@ -232,6 +238,9 @@ function shapeForItemVariant(itemId, name, p) {
   if (/(generator|power unit)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="generator-housing"><path d="M13 17 32 10l19 7v34l-19 7-19-7z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.6"/><path d="M13 17l19 8 19-8-19-7z" fill="${p.light}"/><circle cx="32" cy="34" r="10" fill="#1b2a35" stroke="${p.glint}" stroke-width="1.5"/><circle cx="32" cy="34" r="6" fill="#84c6d4" opacity=".82"/><path d="M32 34l5-4" stroke="#f3df9b" stroke-width="1.8" stroke-linecap="round"/><path d="M20 22h6M38 22h6M21 48h22" stroke="${p.glint}" stroke-width="1.4" stroke-linecap="round"/></g>`;
   }
+  if (/(reef bait|saltwater bait|bait pouch|fish bait)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="reef-bait-pouch"><path d="M16 24h32v25H16z" fill="#b47748" stroke="${p.deep}" stroke-width="1.5"/><path d="M16 24c5-6 27-6 32 0" fill="#d59a5c" stroke="${p.deep}" stroke-width="1.4"/><path d="M20 29h24M20 44h24" stroke="#f2c47b" stroke-width="1.4" stroke-linecap="round"/><path d="M25 36c4-6 10-6 14 0-4 4-10 4-14 0z" fill="#d9e3df" stroke="#557b79" stroke-width="1.1"/><circle cx="29" cy="34" r="1.2" fill="#f07c68"/><circle cx="35" cy="38" r="1.2" fill="#f07c68"/><path d="M27 21c3-4 8-4 11 0" fill="none" stroke="#8bd8ef" stroke-width="1.4" stroke-linecap="round"/><path d="M21 49h22" stroke="#6f442f" stroke-width="1.4" stroke-linecap="round"/></g>`;
+  }
   if (/(wire|copper coil|coil)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="wire-coil"><path d="M14 22h36v28H14z" fill="#704d35" stroke="${p.deep}" stroke-width="1.5"/><path d="M20 27c10-8 22-8 25 0s-4 12-14 10-13 3-8 8 15 5 22-1" fill="none" stroke="#e8a34c" stroke-width="3" stroke-linecap="round"/><path d="M20 27c10-8 22-8 25 0" fill="none" stroke="#fff0a8" stroke-width="1" opacity=".8"/><path d="M18 46h28" stroke="#9d6a3d" stroke-width="1.5" stroke-linecap="round"/></g>`;
   }
@@ -247,6 +256,9 @@ function shapeForItemVariant(itemId, name, p) {
   if (/(shield)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="shield-crest"><path d="M12 16c12 5 28 5 40 0v18c0 13-8 22-20 26-12-4-20-13-20-26z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.6"/><path d="M17 20c9 3 19 4 30 0v14c0 9-5 16-15 21-10-5-15-12-15-21z" fill="${p.dark}"/><path d="M32 22v27M20 34h24" stroke="${p.glint}" stroke-width="2" opacity=".85"/><path d="m32 25 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" fill="#d9b463" stroke="#7d5635" stroke-width="1"/></g>`;
   }
+  if (/(anchored boat|moored boat|beached boat)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="anchored-boat"><path d="M9 34h46l-7 14c-3 6-9 8-16 8s-13-2-16-8z" fill="#8f5b37" stroke="${p.deep}" stroke-width="1.6"/><path d="M15 34h34l-6 9H21z" fill="#d59655" stroke="#63432f" stroke-width="1.2"/><path d="M32 11v23" stroke="${p.deep}" stroke-width="2"/><path d="M33 13 48 28H33z" fill="#e9d9a5" stroke="${p.deep}" stroke-width="1.2"/><path d="M15 46h34" stroke="#f2c47b" stroke-width="1.5" stroke-linecap="round"/><path d="M46 45c7 2 7 6 2 9l-5 3" fill="none" stroke="#a8e8ef" stroke-width="1.4"/><path d="M43 55l4 2-3 3-4-2z" fill="#b8c2c8" stroke="#687681" stroke-width="1"/><circle cx="20" cy="42" r="1.6" fill="#ffe6a3"/></g>`;
+  }
   if (/(boat)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="boat-hull"><path d="M9 34h46l-7 14c-3 6-9 8-16 8s-13-2-16-8z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.6"/><path d="M15 34h34l-6 9H21z" fill="${p.light}" stroke="${p.dark}" stroke-width="1.2"/><path d="M32 11v23" stroke="${p.deep}" stroke-width="2"/><path d="M33 13 48 28H33z" fill="#e9d9a5" stroke="${p.deep}" stroke-width="1.2"/><path d="M15 46h34" stroke="${p.glint}" stroke-width="1.5" stroke-linecap="round"/></g>`;
   }
@@ -255,6 +267,9 @@ function shapeForItemVariant(itemId, name, p) {
   }
   if (/(fishing rod|rod)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="fishing-rod"><path d="M16 50 42 12" stroke="${p.deep}" stroke-width="4" stroke-linecap="round"/><path d="M18 49 43 13" stroke="${p.base}" stroke-width="2" stroke-linecap="round"/><path d="M42 13c10 5 10 14 5 20l-8 10" fill="none" stroke="${p.glint}" stroke-width="1.2"/><path d="M39 43c5 3 8 5 12 3" fill="none" stroke="#8bd8ef" stroke-width="1.3"/><circle cx="18" cy="49" r="4" fill="${p.light}" stroke="${p.deep}" stroke-width="1.2"/></g>`;
+  }
+  if (/(marked map|charted map|treasure map)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="marked-map"><path d="M10 15l14-5 14 5 16-5v39l-16 5-14-5-14 5z" fill="#e9cf88" stroke="${p.deep}" stroke-width="1.5"/><path d="M24 10v39M38 15v39" stroke="#9f774d" stroke-width="1.3"/><path d="M15 27c6-5 11 2 16-3s8 1 16-4" fill="none" stroke="#5b9b76" stroke-width="2"/><path d="M18 35l7-2M42 34l10-3" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round"/><path d="M39 25 44 18l5 7-5 7z" fill="#e4574f" stroke="#8d3d38" stroke-width="1.1"/><circle cx="44" cy="25" r="2" fill="#ffe79c"/></g>`;
   }
   if (/(^| )map( |$)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="map-scroll"><path d="M10 17 24 11l15 6 15-6v34l-15 6-15-6-14 6z" fill="#e6ca84" stroke="${p.deep}" stroke-width="1.5"/><path d="M24 11v34M39 17v34" stroke="#9f774d" stroke-width="1.2"/><path d="M15 30c6-7 10 3 16-3s9 2 16-4" fill="none" stroke="#5b9b76" stroke-width="2"/><path d="M18 22h6M42 25h7M18 40h7" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" opacity=".75"/></g>`;
