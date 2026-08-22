@@ -190,6 +190,15 @@ function shapeForItemVariant(itemId, name, p) {
   if (/(berries|berry)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="berry-cluster"><path d="M31 48c-2-8-1-15 4-22" fill="none" stroke="#486b3c" stroke-width="2.5" stroke-linecap="round"/><path d="M34 29c-7 1-12-2-14-7 8-2 13 0 14 7zM35 27c2-7 7-10 13-9-1 7-5 10-13 9z" fill="#5f9e55" stroke="#315c39" stroke-width="1"/><circle cx="22" cy="37" r="8" fill="${p.deep}"/><circle cx="33" cy="36" r="9" fill="${p.dark}"/><circle cx="43" cy="39" r="8" fill="${p.deep}"/><circle cx="27" cy="44" r="8" fill="${p.base}"/><circle cx="38" cy="46" r="8" fill="${p.base}"/><circle cx="24" cy="34" r="2.2" fill="${p.glint}"/><circle cx="35" cy="33" r="2.4" fill="${p.glint}"/><circle cx="45" cy="36" r="2" fill="${p.glint}"/></g>`;
   }
+  if (/(lamp|lantern)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="lamp-glow"><path d="M20 20h24v24H20z" fill="#58748c" stroke="${p.deep}" stroke-width="1.5"/><path d="M24 15h16v7H24z" fill="#7e9eb2" stroke="${p.deep}" stroke-width="1.3"/><path d="M25 25h14v14H25z" fill="#ffd66d" stroke="#b47b36" stroke-width="1.2"/><path d="M28 29c2-5 5-5 8 0-2 5-6 5-8 0z" fill="#fff5b1"/><path d="M16 46h32" stroke="${p.glint}" stroke-width="1.6" stroke-linecap="round"/><path d="M27 12h10" stroke="#eaf8ff" stroke-width="1.5" stroke-linecap="round"/></g>`;
+  }
+  if (/(bricks|brick)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="brick-stack"><path d="M11 23 32 12l21 11-21 11z" fill="#d56b56" stroke="${p.deep}" stroke-width="1.5"/><path d="M11 23v21l21 10V34z" fill="#a9433e" stroke="${p.deep}" stroke-width="1.5"/><path d="M32 34l21-11v21L32 54z" fill="#82383a" stroke="${p.deep}" stroke-width="1.5"/><path d="M16 25h12M37 29h10M17 38h10M38 42h9M35 20h10" stroke="#f3a27b" stroke-width="1.5" stroke-linecap="round" opacity=".8"/></g>`;
+  }
+  if (/(cobble wall|cobble|wall)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="cobble-wall"><path d="M11 22l21-10 21 10-21 10z" fill="#b8bbc0" stroke="${p.deep}" stroke-width="1.5"/><path d="M11 22v22l21 10V32z" fill="#858a93" stroke="${p.deep}" stroke-width="1.5"/><path d="M32 32l21-10v22L32 54z" fill="#686e78" stroke="${p.deep}" stroke-width="1.5"/><path d="M17 23l5-3 5 3-5 4zM37 24l6-3 5 3-6 4zM17 37l6-3 5 3-6 4zM38 38l6-3 5 3-6 4z" fill="#d9dce0" opacity=".85"/></g>`;
+  }
   if (/(ice box|cooler)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="ice-box"><path d="M12 25h40v26H12z" fill="#b9e7f2" stroke="${p.deep}" stroke-width="1.5"/><path d="M10 18h44v10H10z" rx="2" fill="#e8fbff" stroke="${p.deep}" stroke-width="1.5"/><path d="M18 19h28" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity=".85"/><path d="M18 34h28M18 41h18" stroke="#65b8d0" stroke-width="1.5" stroke-linecap="round"/><path d="M22 28v-6M42 28v-6" stroke="#4d9ab6" stroke-width="1.5"/></g>`;
   }
