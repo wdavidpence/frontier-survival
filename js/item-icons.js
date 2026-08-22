@@ -124,6 +124,9 @@ function shapeForItemVariant(itemId, name, p) {
   if (/(cooked tropical fish)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="tropical-fish"><path d="M11 34c8-12 23-15 38-7l9-5-3 12 3 11-9-6c-15 8-30 6-38 0z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M18 33h34" stroke="#ffd55c" stroke-width="3" stroke-linecap="round"/><path d="M25 25v18M33 23v20M41 26v15" stroke="#f06b45" stroke-width="2" opacity=".9"/><circle cx="19" cy="31" r="2" fill="#fff7d6" stroke="${p.deep}" stroke-width=".8"/><path d="M46 27l7 7-7 7" fill="none" stroke="${p.glint}" stroke-width="1.5"/></g>`;
   }
+  if (/(fresh cooked fish)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="fresh-cooked-fish"><path d="M12 35c8-12 24-14 39-5l7-5-2 10 2 10-7-5c-15 9-31 7-39-5z" fill="#d99452" stroke="${p.deep}" stroke-width="1.5"/><path d="M19 33c9-4 18-4 28 0" fill="none" stroke="#ffe3a1" stroke-width="3" stroke-linecap="round"/><path d="M27 27c3 3 4 9 1 13M36 27c3 3 4 8 1 12" fill="none" stroke="#8d4d35" stroke-width="1.4"/><circle cx="19" cy="32" r="2" fill="#fff7d6" stroke="${p.deep}" stroke-width=".8"/><path d="M28 18c-2-4 0-6 2-8M35 18c-1-4 1-6 3-8M42 20c0-3 2-5 4-6" fill="none" stroke="#fff0b1" stroke-width="1.4" stroke-linecap="round" opacity=".88"/></g>`;
+  }
   if (/(cooked fish)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="cooked-fish"><path d="M12 35c8-12 24-14 39-5l7-5-2 10 2 10-7-5c-15 9-31 7-39-5z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M19 33c9-4 18-4 28 0" fill="none" stroke="#ffd27a" stroke-width="3" stroke-linecap="round"/><path d="M27 27c3 3 4 9 1 13M36 27c3 3 4 8 1 12" fill="none" stroke="${p.dark}" stroke-width="1.4"/><circle cx="19" cy="32" r="2" fill="#fff7d6" stroke="${p.deep}" stroke-width=".8"/></g>`;
   }
@@ -157,6 +160,9 @@ function shapeForItemVariant(itemId, name, p) {
   if (/(cloth)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="folded-cloth"><path d="M13 25 27 14l25 9-14 27-25-9z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M27 14l11 9-14 27M38 23l14 0-14 27" fill="none" stroke="${p.light}" stroke-width="1.7"/><path d="M19 29l20 7M17 36l19 7" stroke="${p.glint}" stroke-width="1.1" stroke-linecap="round" opacity=".7"/></g>`;
   }
+  if (/(warm soup|steaming soup)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="warm-soup"><path d="M13 26h38c-2 15-9 23-19 23S15 41 13 26z" fill="#b95b2b" stroke="${p.deep}" stroke-width="1.5"/><ellipse cx="32" cy="26" rx="19" ry="7" fill="#f0a13d" stroke="${p.deep}" stroke-width="1.4"/><ellipse cx="32" cy="25" rx="14" ry="4" fill="#ffe08a"/><path d="M23 22c4-3 10-3 15 0" fill="none" stroke="#fff5c4" stroke-width="1.5"/><path d="M25 18c-2-4 0-6 2-8M33 18c-1-4 1-6 3-8M40 19c0-3 2-5 4-7" fill="none" stroke="#fff0b1" stroke-width="1.4" stroke-linecap="round" opacity=".9"/><circle cx="39" cy="27" r="1.4" fill="#e57b35"/></g>`;
+  }
   if (/(pumpkin soup|soup)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="pumpkin-soup"><path d="M13 26h38c-2 15-9 23-19 23S15 41 13 26z" fill="#d8762d" stroke="${p.deep}" stroke-width="1.5"/><ellipse cx="32" cy="26" rx="19" ry="7" fill="#f5a33d" stroke="${p.deep}" stroke-width="1.4"/><ellipse cx="32" cy="25" rx="14" ry="4" fill="#ffc967"/><path d="M23 22c4-3 10-3 15 0M27 19c-2-3-1-5 1-7M34 19c-1-3 0-5 2-7" fill="none" stroke="#ffe7a0" stroke-width="1.4" stroke-linecap="round" opacity=".82"/></g>`;
   }
@@ -181,8 +187,14 @@ function shapeForItemVariant(itemId, name, p) {
   if (/(fur hat|hat)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="fur-hat"><path d="M14 32c1-13 8-22 18-22s17 9 18 22z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M10 31h44v9H10z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.4"/><path d="M20 25c4-5 13-7 23-3" fill="none" stroke="${p.light}" stroke-width="2" stroke-linecap="round"/><path d="M16 35h32" stroke="${p.glint}" stroke-width="1.6" stroke-linecap="round"/><circle cx="32" cy="20" r="1.6" fill="${p.glint}"/></g>`;
   }
+  if (/(worn fur boots|scuffed boots)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="worn-fur-boots"><path d="M15 13h15v25l7 5c4 3 3 9-2 10H13c-5 0-7-5-4-9l6-7z" fill="#8b5b37" stroke="${p.deep}" stroke-width="1.5"/><path d="M34 13h15v25l7 5c4 3 3 9-2 10H32c-5 0-7-5-4-9l6-7z" fill="#65432e" stroke="${p.deep}" stroke-width="1.5"/><path d="M16 22h13M35 22h13" stroke="#e9b66b" stroke-width="2" stroke-linecap="round"/><path d="M12 46h20M34 46h20" stroke="#c78b54" stroke-width="1.5" stroke-linecap="round"/><path d="M18 29l5 3M39 30l5 3M20 40l4-2M40 40l4-2" stroke="#3f2c24" stroke-width="1.4" stroke-linecap="round"/></g>`;
+  }
   if (/(fur boots|boots)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="fur-boots"><path d="M15 13h15v25l7 5c4 3 3 9-2 10H13c-5 0-7-5-4-9l6-7z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M34 13h15v25l7 5c4 3 3 9-2 10H32c-5 0-7-5-4-9l6-7z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.5"/><path d="M16 22h13M35 22h13" stroke="${p.glint}" stroke-width="2" stroke-linecap="round"/><path d="M12 46h20M34 46h20" stroke="${p.light}" stroke-width="1.5" stroke-linecap="round"/></g>`;
+  }
+  if (/(equipped leather vest|reinforced vest)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="equipped-leather-vest"><path d="M22 12l10 7 10-7 10 12-7 7v21H19V31l-7-7z" fill="#9a6035" stroke="${p.deep}" stroke-width="1.5" stroke-linejoin="round"/><path d="M22 13l10 17 10-17M32 30v22" fill="none" stroke="#e1a364" stroke-width="2"/><path d="M24 37h16M24 43h16" stroke="#f2c47b" stroke-width="1.2" stroke-linecap="round"/><circle cx="32" cy="35" r="2" fill="#f5d47d" stroke="#70452e" stroke-width="1"/><circle cx="32" cy="42" r="2" fill="#f5d47d" stroke="#70452e" stroke-width="1"/><path d="M18 25h8M38 25h8" stroke="#6f9f9f" stroke-width="2" stroke-linecap="round"/></g>`;
   }
   if (/(leather vest|vest)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="leather-vest"><path d="M22 12l10 7 10-7 10 12-7 7v21H19V31l-7-7z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5" stroke-linejoin="round"/><path d="M22 13l10 17 10-17M32 30v22" fill="none" stroke="${p.light}" stroke-width="2"/><path d="M24 37h16M24 43h16" stroke="${p.glint}" stroke-width="1.2" stroke-linecap="round" opacity=".72"/><circle cx="32" cy="35" r="1.4" fill="${p.glint}"/><circle cx="32" cy="42" r="1.4" fill="${p.glint}"/></g>`;
