@@ -49,6 +49,17 @@ for (const [id, name, rarity] of rarityCases) {
   if (rarity === 'common') assert.doesNotMatch(raritySvg, /data-rarity-accent=/);
   else assert.match(raritySvg, new RegExp(`data-rarity-accent="${rarity}"`));
 }
+const textureCases = [
+  [102, 'Wood Pick', 'tool-wrap'],
+  [119, 'Iron Ingot', 'ore-inclusions'],
+  [57, 'Diamond Ore', 'gem-facets'],
+  [22, 'Chest', 'container-bands'],
+  [32, 'Furnace', 'furnace-vents'],
+  [101, 'Dried Ration', 'food-detail'],
+];
+for (const [id, name, texture] of textureCases) {
+  assert.match(iconSvgForItem(id, name, '#6aa4d8'), new RegExp(`data-item-texture="${texture}"`), `texture for ${name}`);
+}
 const variantCases = [
   [101, 'Dried Ration', 'ration-bowl'],
   [14, 'Torch', 'torch-flame'],

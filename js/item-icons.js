@@ -182,6 +182,29 @@ function materialOverlay(kind, p) {
   }
 }
 
+function itemTextureOverlay(itemId, name, p) {
+  const text = normalizedParts(itemId, name);
+  if (/(pick|pickaxe|axe|hatchet|sword|mace|spear|hammer)/.test(text)) {
+    return `<g data-item-texture="tool-wrap" fill="none" stroke-linecap="round"><path d="M29 35h8M29 40h8M30 45h8" stroke="${p.glint}" stroke-width="1.2" opacity=".72"/><circle cx="33" cy="28" r="1.5" fill="${p.glint}" stroke="${p.deep}" stroke-width=".7"/><path d="M42 18h6M43 22h6" stroke="#f7fbff" stroke-width="1" opacity=".55"/></g>`;
+  }
+  if (/(diamond|gem)/.test(text)) {
+    return `<g data-item-texture="gem-facets" fill="none" stroke="${p.glint}" stroke-linecap="round" opacity=".9"><path d="M24 13 28 25M40 13 36 25M18 27l10 1M46 27l-10 1M27 29l-4 13M37 29l4 13" stroke-width="1.25"/><path d="M29 16 32 22l3-6" stroke="#ffffff" stroke-width="1" opacity=".72"/></g>`;
+  }
+  if (/(iron ore|iron ingot|copper ore|copper ingot|coal|charcoal|ore)/.test(text)) {
+    return `<g data-item-texture="ore-inclusions"><path d="M18 31l4-2 3 2-4 3zM38 17l4-2 3 3-5 2zM38 43l4-2 3 2-4 3z" fill="${p.glint}" opacity=".82"/><path d="M20 38l4-2M43 31l4-2M29 20l4-2" stroke="#f4f8ff" stroke-width="1.1" stroke-linecap="round" opacity=".58"/></g>`;
+  }
+  if (/(chest|barrel|crate|ice box)/.test(text)) {
+    return `<g data-item-texture="container-bands" fill="none" stroke-linecap="round"><path d="M17 31h30M17 39h30" stroke="${p.dark}" stroke-width="1.4" opacity=".72"/><path d="M22 28v18M42 28v18" stroke="${p.glint}" stroke-width="1.1" opacity=".58"/><circle cx="32.5" cy="32" r="1.2" fill="${p.glint}"/></g>`;
+  }
+  if (/(furnace|kiln|smelter)/.test(text)) {
+    return `<g data-item-texture="furnace-vents" fill="${p.glint}" opacity=".74"><circle cx="22" cy="23" r="1.2"/><circle cx="27" cy="25" r="1.2"/><circle cx="37" cy="25" r="1.2"/><circle cx="42" cy="23" r="1.2"/><path d="M21 48h22" stroke="${p.dark}" stroke-width="1.5" stroke-linecap="round"/></g>`;
+  }
+  if (/(ration|soup|stew|bowl|food|meat|fish|bread|berry|berries)/.test(text)) {
+    return `<g data-item-texture="food-detail" fill="none" stroke="#fff1bf" stroke-linecap="round" opacity=".62"><path d="M26 18c-2-3-1-5 1-7M32 18c-1-3 0-5 2-7M38 18c-1-2 0-4 2-5" stroke-width="1.1"/></g>`;
+  }
+  return '';
+}
+
 function rarityForItem(itemId, name) {
   const text = normalizedParts(itemId, name);
   if (/(diamond|gem|legendary)/.test(text)) return { name: 'legendary', color: '#8fe8ff', dark: '#2d73b4' };
@@ -208,9 +231,10 @@ export function iconSvgForItem(itemId, name, color) {
   const title = escapeXml(String(name ?? `Item icon (${kind})`));
   const shadowMode = kind === 'food' || kind === 'plant' || kind === 'map' ? 'soft' : kind === 'container' ? 'grounded' : 'hard';
   const rarity = rarityForItem(itemId, name);
+  const itemTexture = itemTextureOverlay(itemId, name, p);
   const groundShadow = `<ellipse data-ground-shadow="${shadowMode}" cx="32" cy="55" rx="19" ry="3.2" fill="#07101d" opacity="${shadowMode === 'soft' ? '.28' : '.42'}"/>`;
   const itemShape = shapeForItemVariant(itemId, name, p) || shapeForKind(kind, p);
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="${title}" data-rarity="${rarity.name}" preserveAspectRatio="xMidYMid meet"><defs><linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${escapeXml(p.light)}"/><stop offset=".48" stop-color="${escapeXml(p.base)}"/><stop offset="1" stop-color="${escapeXml(p.dark)}"/></linearGradient><filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="2.6" stdDeviation="${shadowMode === 'soft' ? '1.8' : '1.2'}" flood-color="#000000" flood-opacity=".54"/></filter></defs>${groundShadow}${rarityOverlay(rarity)}${itemShape}${materialOverlay(kind, p)}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="${title}" data-rarity="${rarity.name}" preserveAspectRatio="xMidYMid meet"><defs><linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${escapeXml(p.light)}"/><stop offset=".48" stop-color="${escapeXml(p.base)}"/><stop offset="1" stop-color="${escapeXml(p.dark)}"/></linearGradient><filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="2.6" stdDeviation="${shadowMode === 'soft' ? '1.8' : '1.2'}" flood-color="#000000" flood-opacity=".54"/></filter></defs>${groundShadow}${rarityOverlay(rarity)}${itemShape}${itemTexture}${materialOverlay(kind, p)}</svg>`;
 }
 
 /** Return a URL-safe data URI for the same deterministic SVG icon. */
