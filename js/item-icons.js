@@ -103,7 +103,19 @@ function shapeForItemVariant(itemId, name, p) {
   if (/(iron ore|iron ingot|copper ore|copper ingot|coal|charcoal|ore)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="faceted-ore"><path d="M11 28 22 14l18-3 14 14-8 25-20 5-17-13z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.5"/><path d="M11 28 22 14l10 11-7 18z" fill="${p.light}"/><path d="M32 25 40 11l14 14-12 10z" fill="${p.base}"/><path d="M25 43 32 25l10 10-4 20z" fill="${p.mid}"/><path d="M17 28 25 25M42 20l7 5M29 47l6 2" stroke="${p.glint}" stroke-width="2" stroke-linecap="round" opacity=".9"/></g>`;
   }
-  if (/(chest)/.test(text)) {
+  if (/(open chest)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="open-chest"><path d="M12 32h40v20H12z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.5"/><path d="M12 32c3-12 12-18 20-18s17 6 20 18z" fill="${p.light}" stroke="${p.deep}" stroke-width="1.5"/><path d="M16 34h32v14H16z" fill="url(#body)"/><path d="M21 33v16M43 33v16" stroke="${p.glint}" stroke-width="1.5" opacity=".8"/><rect x="29" y="36" width="7" height="8" rx="1" fill="${p.glint}" stroke="${p.deep}" stroke-width="1.1"/><path d="M19 28c7-4 19-4 26 0" fill="none" stroke="#f6d28a" stroke-width="1.4" opacity=".8"/></g>`;
+  }
+  if (/(lit furnace|active kiln|heated smelter)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="lit-furnace"><path d="M12 17 32 10l20 7v32l-20 7-20-7z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.5"/><path d="M12 17l20 8 20-8-20-7z" fill="${p.light}"/><path d="M18 28h28v19H18z" fill="#202531" stroke="${p.glint}" stroke-width="1.2"/><path d="M23 33h18v10H23z" fill="#5e2e27" stroke="#d66b3f" stroke-width="1.2"/><path d="M28 40c1-7 6-7 8 0-2 4-6 4-8 0z" fill="#ffd15c"/><path d="M21 21 32 25l11-4" fill="none" stroke="#fff0a5" stroke-width="1.5" opacity=".9"/><circle cx="47" cy="22" r="2" fill="#ff9a46"/></g>`;
+  }
+  if (/(powered generator|active generator)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="powered-generator"><path d="M13 17 32 10l19 7v34l-19 7-19-7z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.6"/><path d="M13 17l19 8 19-8-19-7z" fill="${p.light}"/><circle cx="32" cy="34" r="10" fill="#17232c" stroke="#8fe8ff" stroke-width="1.8"/><circle cx="32" cy="34" r="6" fill="#56c8e8" opacity=".9"/><path d="M32 34l5-4" stroke="#fff2a0" stroke-width="1.8" stroke-linecap="round"/><path d="M20 22h6M38 22h6M21 48h22" stroke="#8fe8ff" stroke-width="1.5" stroke-linecap="round"/><circle cx="46" cy="19" r="2.3" fill="#9dff9a"/></g>`;
+  }
+  if (/(open ice box|open cooler)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="open-ice-box"><path d="M12 29h40v22H12z" fill="#a4d7e6" stroke="${p.deep}" stroke-width="1.5"/><path d="M10 17h44v10H10z" fill="#e8fbff" stroke="${p.deep}" stroke-width="1.5" transform="rotate(-8 32 22)"/><path d="M18 34h28M18 42h20" stroke="#65b8d0" stroke-width="1.5" stroke-linecap="round"/><path d="M20 28v-5M44 25v-5" stroke="#4d9ab6" stroke-width="1.5"/><path d="M24 31c2-4 5-4 7 0M34 31c2-4 5-4 7 0" fill="none" stroke="#ffffff" stroke-width="1.4" opacity=".9"/></g>`;
+  }
+  if (/(open chest|chest)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="hero-chest"><path d="M12 25h40v25H12z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.5"/><path d="M12 25c2-10 10-15 20-15s18 5 20 15z" fill="${p.light}" stroke="${p.deep}" stroke-width="1.5"/><path d="M16 27h32v18H16z" fill="url(#body)"/><path d="M21 25v21M43 25v21" stroke="${p.glint}" stroke-width="1.6" opacity=".8"/><rect x="29" y="28" width="7" height="9" rx="1.5" fill="${p.glint}" stroke="${p.deep}" stroke-width="1.2"/><path d="M16 43h32" stroke="${p.dark}" stroke-width="2"/></g>`;
   }
   if (/(furnace|kiln|smelter)/.test(text)) {
