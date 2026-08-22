@@ -130,14 +130,29 @@ function shapeForItemVariant(itemId, name, p) {
   if (/(raw meat|rotten meat|meat)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="meat-cut"><path d="M18 18c6-5 15-4 19 2 3 4 8 4 11 8 5 7 1 18-7 22-8 4-20 1-25-7-5-8-5-19 2-25z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M25 23c4 1 5 5 3 8M39 32c4 1 5 5 3 8M29 41c3-2 7-2 10 1" fill="none" stroke="${p.light}" stroke-width="1.7" stroke-linecap="round"/><circle cx="42" cy="23" r="2" fill="${p.glint}" opacity=".8"/><path d="M20 48h25" stroke="${p.dark}" stroke-width="1.8" stroke-linecap="round"/></g>`;
   }
+  if (/(pumpkin soup|soup)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="pumpkin-soup"><path d="M13 26h38c-2 15-9 23-19 23S15 41 13 26z" fill="#d8762d" stroke="${p.deep}" stroke-width="1.5"/><ellipse cx="32" cy="26" rx="19" ry="7" fill="#f5a33d" stroke="${p.deep}" stroke-width="1.4"/><ellipse cx="32" cy="25" rx="14" ry="4" fill="#ffc967"/><path d="M23 22c4-3 10-3 15 0M27 19c-2-3-1-5 1-7M34 19c-1-3 0-5 2-7" fill="none" stroke="#ffe7a0" stroke-width="1.4" stroke-linecap="round" opacity=".82"/></g>`;
+  }
+  if (/(egg)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="egg"><path d="M32 10c-9 0-16 12-16 24 0 12 7 19 16 19s16-7 16-19c0-12-7-24-16-24z" fill="#f8f0d5" stroke="${p.deep}" stroke-width="1.5"/><path d="M23 25c3-5 8-7 13-6" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity=".8"/><ellipse cx="38" cy="39" rx="3" ry="5" fill="#e4c98e" opacity=".7"/></g>`;
+  }
   if (/(apple|coconut)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="fruit"><path d="M32 19c-13-5-22 5-20 17 2 13 10 20 20 20s18-7 20-20c2-12-7-22-20-17z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M32 19c0-5 4-9 9-10" fill="none" stroke="${p.dark}" stroke-width="2.5" stroke-linecap="round"/><path d="M37 11c5-4 9-3 12 0-5 4-9 4-12 0z" fill="#75b85c" stroke="#386b3b" stroke-width="1"/><path d="M22 27c4-4 9-5 14-4" fill="none" stroke="${p.glint}" stroke-width="2" stroke-linecap="round"/></g>`;
+  }
+  if (/(wheat)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="wheat-sheaf"><path d="M31 52V22M31 38 20 24M31 33l12-15M31 44l-10-8M31 28l11-8" fill="none" stroke="${p.deep}" stroke-width="2.5" stroke-linecap="round"/><path d="M20 24c-5-5-9-6-13-5 3 6 7 8 13 8zM43 18c4-6 8-8 12-7-2 7-6 10-12 10zM21 36c-5-5-10-6-14-4 3 6 8 8 14 7zM42 27c5-5 10-6 14-4-3 6-8 8-14 7z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.2"/><path d="M31 27 18 24M32 31 45 20M31 39 18 35M33 28 45 27" stroke="${p.glint}" stroke-width="1" stroke-linecap="round" opacity=".8"/></g>`;
+  }
+  if (/(mushroom)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="mushroom-cap"><path d="M28 29h8v20h-8z" fill="#f6e7bd" stroke="${p.deep}" stroke-width="1.3"/><path d="M13 29c1-12 10-19 19-19s18 7 19 19z" fill="#c74a43" stroke="${p.deep}" stroke-width="1.5"/><circle cx="24" cy="20" r="2" fill="#fff0c5"/><circle cx="36" cy="16" r="2.4" fill="#fff0c5"/><circle cx="43" cy="23" r="1.8" fill="#fff0c5"/><path d="M25 49h14" stroke="#e2c98f" stroke-width="1.5" stroke-linecap="round"/></g>`;
   }
   if (/(palm frond)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="palm-frond"><path d="M31 52c1-12 3-24 7-34" fill="none" stroke="${p.deep}" stroke-width="3" stroke-linecap="round"/><path d="M34 27C23 23 14 16 11 8c12 1 20 7 24 16zM36 24c2-11 8-19 18-23-1 12-7 20-18 23zM37 31c10-5 19-5 27-1-8 8-17 9-27 5zM31 35c-10-1-18 2-24 9 10 3 18 0 24-6z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.25"/><path d="M34 28 17 12M37 25 50 8M38 34 57 31M31 37 13 43" stroke="${p.glint}" stroke-width="1.2" stroke-linecap="round" opacity=".82"/></g>`;
   }
   if (/(seed|seeds|mushroom|flower|plant|leaf|leaves)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="seedling"><path d="M31 51V27" stroke="${p.deep}" stroke-width="3" stroke-linecap="round"/><path d="M31 35c-10 1-16-4-16-11 10-2 16 3 16 11zM32 31c2-10 9-15 17-13-1 9-7 14-17 13z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.4"/><path d="M31 44c-7-2-12-1-15 4 6 4 12 2 15-4z" fill="${p.light}" stroke="${p.deep}" stroke-width="1.2"/><path d="M31 34l-10-7M32 31l11-10" stroke="${p.glint}" stroke-width="1.2" stroke-linecap="round" opacity=".8"/></g>`;
+  }
+  if (/(fur hat|hat)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="fur-hat"><path d="M14 32c1-13 8-22 18-22s17 9 18 22z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M10 31h44v9H10z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.4"/><path d="M20 25c4-5 13-7 23-3" fill="none" stroke="${p.light}" stroke-width="2" stroke-linecap="round"/><path d="M16 35h32" stroke="${p.glint}" stroke-width="1.6" stroke-linecap="round"/><circle cx="32" cy="20" r="1.6" fill="${p.glint}"/></g>`;
   }
   if (/(fur boots|boots)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="fur-boots"><path d="M15 13h15v25l7 5c4 3 3 9-2 10H13c-5 0-7-5-4-9l6-7z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M34 13h15v25l7 5c4 3 3 9-2 10H32c-5 0-7-5-4-9l6-7z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.5"/><path d="M16 22h13M35 22h13" stroke="${p.glint}" stroke-width="2" stroke-linecap="round"/><path d="M12 46h20M34 46h20" stroke="${p.light}" stroke-width="1.5" stroke-linecap="round"/></g>`;
