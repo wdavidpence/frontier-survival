@@ -21,7 +21,7 @@ import {
   mineMultiplier,
   dropForBlock,
 } from './items.js?v=248';
-import { iconDataUriForItem } from './item-icons.js?v=13';
+import { iconDataUriForItem } from './item-icons.js?v=14';
 import { resolveBlockDrop, harvestDurationForBlock, workDurationForBlock } from './mine-tier.js?v=223';
 import {
   FURNACE,
@@ -2293,6 +2293,7 @@ export class Game {
     slots.forEach((s, i) => {
       const el = document.createElement('div');
       el.className = 'inv-slot';
+      el.tabIndex = 0;
       el.dataset.chest = String(i);
       el.dataset.slot = String(i);
       el.draggable = Boolean(s.id != null && s.count > 0);
@@ -4549,6 +4550,7 @@ export class Game {
         const el = document.createElement('div');
         el.className = 'inv-slot' + (i === pl.hotbarIndex && i < HOTBAR_SIZE ? ' active' : '') +
           (this._inventoryAssign?.owner === this._invOwner && this._inventoryAssign.slot === i ? ' assign-armed' : '');
+        el.tabIndex = 0;
         el.dataset.slot = String(i);
         if (i < HOTBAR_SIZE) {
           el.dataset.hot = String(i + 1);
