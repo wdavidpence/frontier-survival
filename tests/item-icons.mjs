@@ -55,6 +55,8 @@ const textureCases = [
   [57, 'Diamond Ore', 'gem-facets'],
   [22, 'Chest', 'container-bands'],
   [32, 'Furnace', 'furnace-vents'],
+  [116, 'Seeds', 'leaf-veins'],
+  [111, 'Wool Coat', 'cloth-stitch'],
   [101, 'Dried Ration', 'food-detail'],
 ];
 for (const [id, name, texture] of textureCases) {

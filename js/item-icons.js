@@ -199,6 +199,12 @@ function itemTextureOverlay(itemId, name, p) {
   if (/(furnace|kiln|smelter)/.test(text)) {
     return `<g data-item-texture="furnace-vents" fill="${p.glint}" opacity=".74"><circle cx="22" cy="23" r="1.2"/><circle cx="27" cy="25" r="1.2"/><circle cx="37" cy="25" r="1.2"/><circle cx="42" cy="23" r="1.2"/><path d="M21 48h22" stroke="${p.dark}" stroke-width="1.5" stroke-linecap="round"/></g>`;
   }
+  if (/(seed|plant|leaf|leaves|kelp|seagrass|mushroom|flower|root|bush)/.test(text)) {
+    return `<g data-item-texture="leaf-veins" fill="none" stroke="#d6f29b" stroke-linecap="round" opacity=".72"><path d="M31 47V27M31 34l-10-7M31 31l10-9M31 40l-9-3M31 39l10-5" stroke-width="1.25"/><path d="M25 24c-4-4-8-4-11-2 3 4 7 5 11 2zM37 24c3-5 7-7 11-6-1 5-5 8-11 6z" stroke="#9ed66e" stroke-width="1"/></g>`;
+  }
+  if (/(hat|coat|boots|vest|clothing|cloth|fur|wool|leather|hide)/.test(text)) {
+    return `<g data-item-texture="cloth-stitch" fill="none" stroke-linecap="round"><path d="M22 30h18M22 35h18M25 40h13" stroke="${p.glint}" stroke-width="1.1" opacity=".72"/><path d="M31 24v21M21 28l-5 3M41 28l5 3" stroke="${p.dark}" stroke-width="1.15" opacity=".76"/><circle cx="31" cy="29" r="1" fill="${p.glint}"/></g>`;
+  }
   if (/(ration|soup|stew|bowl|food|meat|fish|bread|berry|berries)/.test(text)) {
     return `<g data-item-texture="food-detail" fill="none" stroke="#fff1bf" stroke-linecap="round" opacity=".62"><path d="M26 18c-2-3-1-5 1-7M32 18c-1-3 0-5 2-7M38 18c-1-2 0-4 2-5" stroke-width="1.1"/></g>`;
   }
