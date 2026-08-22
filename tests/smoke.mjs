@@ -4995,7 +4995,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.18.12'), 'HTML must expose v1.18.12');
+  assert.ok(html.includes('v1.18.13'), 'HTML must expose v1.18.13');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5126,7 +5126,7 @@ test('procedural item icons reach hotbars, inventory, and chest without dropping
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(game.includes("from './item-icons.js?v=12'"));
+  assert.ok(game.includes("from './item-icons.js?v=13'"));
   assert.match(game, /setItemIcon\(el, stack\.id, name, col, ['"]hb-glyph['"]\)/);
   assert.match(game, /setItemIcon\(el, s\.id, name, col, ['"]inv-icon['"]\)/);
   assert.match(game, /_paintChest\(\)[\s\S]*?setItemIcon\(el, s\.id, name, col, ['"]inv-icon['"]\)/);

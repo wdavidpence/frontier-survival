@@ -130,6 +130,21 @@ function shapeForItemVariant(itemId, name, p) {
   if (/(raw meat|rotten meat|meat)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="meat-cut"><path d="M18 18c6-5 15-4 19 2 3 4 8 4 11 8 5 7 1 18-7 22-8 4-20 1-25-7-5-8-5-19 2-25z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M25 23c4 1 5 5 3 8M39 32c4 1 5 5 3 8M29 41c3-2 7-2 10 1" fill="none" stroke="${p.light}" stroke-width="1.7" stroke-linecap="round"/><circle cx="42" cy="23" r="2" fill="${p.glint}" opacity=".8"/><path d="M20 48h25" stroke="${p.dark}" stroke-width="1.8" stroke-linecap="round"/></g>`;
   }
+  if (/(healing salve|salve)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="salve-jar"><path d="M21 22h22l-2 28H23z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><rect x="22" y="16" width="20" height="8" rx="2" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.4"/><path d="M25 13h14v5H25z" fill="#d8b16f" stroke="${p.deep}" stroke-width="1.2"/><path d="M25 29h14v12H25z" fill="#b7dc76" opacity=".92"/><path d="M25 29h14" stroke="#f0ffbd" stroke-width="1.6" opacity=".85"/><path d="M28 45h8" stroke="${p.glint}" stroke-width="1.5" stroke-linecap="round"/></g>`;
+  }
+  if (/(bandage)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="bandage-roll"><path d="M16 25c0-7 5-12 12-12h9c7 0 12 5 12 12v14c0 7-5 12-12 12h-9c-7 0-12-5-12-12z" fill="#e9e2d4" stroke="${p.deep}" stroke-width="1.5"/><path d="M17 27h32M17 34h32M17 41h32" stroke="#c2b7a3" stroke-width="1.3" opacity=".8"/><circle cx="32" cy="32" r="7" fill="#f6f0e3" stroke="#b9ad99" stroke-width="1.2"/><path d="M28 32h8M32 28v8" stroke="#d46a62" stroke-width="1.7" stroke-linecap="round"/></g>`;
+  }
+  if (/(feather)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="feather"><path d="M18 49c9-13 17-25 33-38 2 16-5 30-25 39z" fill="#f3f0e6" stroke="${p.deep}" stroke-width="1.4"/><path d="M18 49 48 16M26 40l-4-7M31 35l-3-9M37 29l-2-9M42 24l-1-8" fill="none" stroke="#b9c9d1" stroke-width="1.4" stroke-linecap="round"/><path d="M48 16c-4 11-10 20-19 28" fill="none" stroke="#ffffff" stroke-width="1.5" opacity=".8"/></g>`;
+  }
+  if (/(hide)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="hide-pelt"><path d="M14 17c8-6 16-5 20 2 4-7 12-8 20-2l-4 34H18z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M21 22c4 4 7 9 8 16M43 22c-4 4-7 9-8 16" fill="none" stroke="${p.light}" stroke-width="2" stroke-linecap="round"/><path d="M23 46h18" stroke="${p.glint}" stroke-width="1.4" stroke-linecap="round"/></g>`;
+  }
+  if (/(cloth)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="folded-cloth"><path d="M13 25 27 14l25 9-14 27-25-9z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M27 14l11 9-14 27M38 23l14 0-14 27" fill="none" stroke="${p.light}" stroke-width="1.7"/><path d="M19 29l20 7M17 36l19 7" stroke="${p.glint}" stroke-width="1.1" stroke-linecap="round" opacity=".7"/></g>`;
+  }
   if (/(pumpkin soup|soup)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="pumpkin-soup"><path d="M13 26h38c-2 15-9 23-19 23S15 41 13 26z" fill="#d8762d" stroke="${p.deep}" stroke-width="1.5"/><ellipse cx="32" cy="26" rx="19" ry="7" fill="#f5a33d" stroke="${p.deep}" stroke-width="1.4"/><ellipse cx="32" cy="25" rx="14" ry="4" fill="#ffc967"/><path d="M23 22c4-3 10-3 15 0M27 19c-2-3-1-5 1-7M34 19c-1-3 0-5 2-7" fill="none" stroke="#ffe7a0" stroke-width="1.4" stroke-linecap="round" opacity=".82"/></g>`;
   }

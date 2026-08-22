@@ -21,7 +21,7 @@ import {
   mineMultiplier,
   dropForBlock,
 } from './items.js?v=248';
-import { iconDataUriForItem } from './item-icons.js?v=12';
+import { iconDataUriForItem } from './item-icons.js?v=13';
 import { resolveBlockDrop, harvestDurationForBlock, workDurationForBlock } from './mine-tier.js?v=223';
 import {
   FURNACE,
