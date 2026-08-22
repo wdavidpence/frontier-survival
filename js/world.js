@@ -33,6 +33,21 @@ function mangroveMarkerAt(x, z, biome, height) {
 function mangroveSightlinePocket(x, z, biome) {
   return biome === BIOME.MANGROVE && x >= 48 && x <= 61 && z >= 53 && z <= 65;
 }
+function mangroveApproachWaterPocket(x, z, biome) {
+  return biome === BIOME.MANGROVE && x >= 55 && x <= 61 && z >= 55 && z <= 57;
+}
+function mangroveApproachBankCut(x, z, biome) {
+  return (biome === BIOME.MANGROVE || biome === BIOME.TROPICAL)
+    && ((x >= 55 && x <= 61 && z >= 59 && z <= 60) || (x >= 58 && x <= 61 && z === 58));
+}
+function mangroveApproachSightlinePocket(x, z, biome) {
+  return (biome === BIOME.MANGROVE || biome === BIOME.TROPICAL)
+    && x >= 55 && x <= 64 && z >= 53 && z <= 60;
+}
+function mangroveApproachPlantClearance(x, z, biome) {
+  return (biome === BIOME.OCEAN || biome === BIOME.MANGROVE || biome === BIOME.TROPICAL || biome === BIOME.SHORE)
+    && x >= 48 && x <= 61 && z >= 54 && z <= 58;
+}
 
 // ── Procedural plantlife ────────────────────────────────────────────────────
 // Generation already scatters plant blocks over the surface (berry bushes on
@@ -356,6 +371,30 @@ function appendGeometryPart(arrays, part) {
   for (const index of part.indices) arrays.indices.push(index + vertexOffset);
 }
 
+/**
+ * Pick a readable first-person direction from a spawn candidate. Prefer the
+ * lowest nearby terrain profile so a fresh world opens onto a shore, valley,
+ * or island silhouette instead of a close hillside wall.
+ */
+function spawnViewYaw(x, z, seed) {
+  const directions = [
+    [0, -1], [1, -1], [1, 0], [1, 1],
+    [0, 1], [-1, 1], [-1, 0], [-1, -1],
+  ];
+  let best = { score: Infinity, yaw: Math.PI };
+  for (const [dx, dz] of directions) {
+    const near = heightAt(x + dx * 6, z + dz * 6, seed);
+    const far = heightAt(x + dx * 14, z + dz * 14, seed);
+    // Lower distant terrain reads as open water/shore or a navigable valley.
+    // Penalize a sudden near rise so the first frame does not face a wall.
+    const score = Math.max(0, near - SEA_LEVEL) * 0.8
+      + Math.max(0, far - SEA_LEVEL) * 1.5
+      + Math.max(0, near - far) * 1.4;
+    if (score < best.score) best = { score, yaw: Math.atan2(-dx, -dz) };
+  }
+  return best.yaw;
+}
+
 export class World {
   /**
    * @param {object} opts
@@ -417,7 +456,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=296';
+    const workerUrl = './js/chunk-worker.js?v=307';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -476,8 +515,9 @@ export class World {
       for (let lx = 0; lx < CHUNK_SIZE; lx++) {
         const x = baseX + lx;
         const z = baseZ + lz;
-        const h = heightAt(x, z, this.seed);
         const biome = biomeAt(x, z, this.seed);
+        const h = (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+          ? SEA_LEVEL - 1 : heightAt(x, z, this.seed);
         const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
@@ -528,12 +568,13 @@ export class World {
           const forestLandmark = forestMarkerAt(x, z, biome, h);
           const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
         if (mangroveLandmark) {
-          this._placeMangroveBridge(data, lx, h + 1, lz);
+          this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
         } else if (ruinLandmark) {
           this._placeRuin(data, lx, h + 1, lz);
         } else if (forestLandmark) {
           this._placeForestMarker(data, lx, h + 1, lz);
-        } else if (!forestPocket && !mangroveSightlinePocket(x, z, biome) && th > 1 - treeChance) {
+        } else if (!forestPocket && !mangroveSightlinePocket(x, z, biome)
+          && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
             const spruceRoll = hash2(x * 5 + 17, z * 3 + (this.seed | 0));
@@ -975,8 +1016,9 @@ export class World {
       for (let lx = 0; lx < CHUNK_SIZE; lx++) {
         const x = baseX + lx;
         const z = baseZ + lz;
-        const h = heightAt(x, z, this.seed);
         const biome = biomeAt(x, z, this.seed);
+        const h = (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+          ? SEA_LEVEL - 1 : heightAt(x, z, this.seed);
         const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
@@ -1034,12 +1076,13 @@ export class World {
           const forestLandmark = forestMarkerAt(x, z, biome, h);
           const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
         if (mangroveLandmark) {
-          this._placeMangroveBridge(data, lx, h + 1, lz);
+          this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
         } else if (ruinLandmark) {
           this._placeRuin(data, lx, h + 1, lz);
         } else if (forestLandmark) {
           this._placeForestMarker(data, lx, h + 1, lz);
-        } else if (!forestPocket && !mangroveSightlinePocket(x, z, biome) && th > 1 - treeChance) {
+        } else if (!forestPocket && !mangroveSightlinePocket(x, z, biome)
+          && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
             const spruceRoll = hash2(x * 5 + 17, z * 3 + (this.seed | 0));
@@ -1165,6 +1208,7 @@ export class World {
   /** Flood low mangrove pockets with sparse tidal channels and aquatic accents. */
   _populateMangroveColumn(data, lx, h, lz, x, z, biome) {
     if (biome !== BIOME.MANGROVE || h > SEA_LEVEL + 2) return;
+    if (mangroveApproachPlantClearance(x, z, biome)) return;
     const channel = hash2(x * 19 + this.seed * 3, z * 23 + this.seed * 5);
     if (channel < 0.72) return;
     data[this._idx(lx, h, lz)] = BLOCK.WATER;
@@ -1174,6 +1218,7 @@ export class World {
   /** Populate shallow ocean shelves with deterministic reefs and underwater plants. */
   _populateOceanColumn(data, lx, h, lz, x, z, biome) {
     if (h >= SEA_LEVEL || (biome !== BIOME.OCEAN && biome !== BIOME.SHORE && biome !== BIOME.TROPICAL)) return;
+    if (mangroveApproachPlantClearance(x, z, biome)) return;
     const floor = data[this._idx(lx, h, lz)];
     if (floor !== BLOCK.SAND && floor !== BLOCK.DIRT) return;
     const waterY = h + 1;
@@ -1305,22 +1350,34 @@ export class World {
   }
 
   /** Place the authored Lantern Rootwalk destination in the wetland. */
-  _placeMangroveBridge(data, lx, y, lz) {
+  _placeMangroveBridge(data, lx, y, lz, clearApproachPlants = false) {
     const set = (x, yy, z, id) => {
       if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
       const i = this._idx(x, yy, z);
       if (data[i] === BLOCK.AIR) data[i] = id;
     };
-    for (let dx = -4; dx <= 2; dx++) {
-      const stepY = dx < -1 ? y + dx + 1 : y;
+    const rampBase = SEA_LEVEL + 1;
+    for (let dx = -6; dx <= 2; dx++) {
+      const rampRise = Math.max(0, Math.min(y - rampBase, dx + 6));
+      const stepY = dx < 2 ? rampBase + rampRise : y;
       set(lx + dx, stepY, lz, BLOCK.PLANKS);
-      if (dx === -4) {
+      if (dx === -6) {
         set(lx + dx, stepY - 1, lz, BLOCK.ROOTS);
         set(lx + dx, stepY + 1, lz, BLOCK.TORCH);
       }
     }
-    for (const dx of [-4, 2]) {
-      const postY = dx === -4 ? y - 2 : y;
+    // Sparse mangrove-log ribs give the crossing a believable wetland bearing
+    // structure without narrowing the one-block walking line.
+    for (const dx of [-3, 0]) {
+      const rampRise = Math.max(0, Math.min(y - rampBase, dx + 6));
+      const stepY = dx < 2 ? rampBase + rampRise : y;
+      for (let yy = SEA_LEVEL - 1; yy < stepY; yy++) {
+        const i = this._idx(lx + dx, yy, lz + 1);
+        if (data[i] === BLOCK.AIR || data[i] === BLOCK.WATER) data[i] = BLOCK.MANGROVE_LOG;
+      }
+    }
+    for (const dx of [-6, 2]) {
+      const postY = dx === -6 ? rampBase - 1 : y;
       set(lx + dx, postY + 1, lz, BLOCK.MANGROVE_LOG);
       set(lx + dx, postY + 2, lz, BLOCK.MANGROVE_LOG);
       set(lx + dx, postY + 3, lz, BLOCK.MANGROVE_LEAVES);
@@ -1337,6 +1394,7 @@ export class World {
       if (data[i] === BLOCK.WATER) data[i] = id;
     };
     for (const [dx, dz, h] of [[-5, -2, 2], [-6, 1, 3], [-5, 2, 2], [-3, -3, 1]]) {
+      if (clearApproachPlants && ((dx === -5 && dz === -2) || (dx === -3 && dz === -3))) continue;
       for (let i = 0; i < h; i++) plant(lx + dx, SEA_LEVEL - 1 - i, lz + dz, i === h - 1 ? BLOCK.SEAGRASS : BLOCK.KELP);
       const tip = this._idx(lx + dx, SEA_LEVEL + 1, lz + dz);
       if (data[tip] === BLOCK.AIR) data[tip] = BLOCK.SEAGRASS;
@@ -1727,11 +1785,13 @@ export class World {
       const candidate = { x: x + 0.5, y: h + 1.01, z: z + 0.5, h };
       const biome = biomeAt(x, z, this.seed);
       const warmSurface = surface === BLOCK.SAND && (biome === BIOME.TROPICAL || biome === BIOME.SHORE);
-      // Warm sand wins; retain a high-land fallback if a seed has sparse coast.
+      // Preserve the authored starter-route location score; only the facing
+      // direction is being upgraded in this slice.
       const score = (warmSurface ? 220 : 0) + h * 2 - Math.hypot(x, z) * 0.15;
+      candidate.yaw = spawnViewYaw(x, z, this.seed);
       if (!best || score > best.score) best = { ...candidate, score };
     }
-    if (best) return { x: best.x, y: best.y, z: best.z };
+    if (best) return { x: best.x, y: best.y, z: best.z, yaw: best.yaw };
     return { x: 0.5, y: SEA_LEVEL + 12, z: 0.5 };
   }
 }

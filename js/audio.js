@@ -15,6 +15,8 @@ export function ambientMix({
   mangroveLateral = 0,
   dayPhase = 0.25,
   dead = false,
+  health = 100,
+  maxHealth = 100,
 } = {}) {
   if (dead) {
     return { master: 0, wind: 0, night: 0, rain: 0, fire: 0, water: 0, birds: 0, howl: 0, frog: 0 };
@@ -60,6 +62,9 @@ export class AudioBus {
     this._howlTimer = 0;
     this._frogTimer = 0;
     this._crackleTimer = 0;
+    this._heartbeatTimer = 0;
+    this._strainTimer = 0;
+    this._breathTimer = 0;
     this._lastMix = ambientMix();
     this._voices = [];
   }
@@ -129,6 +134,16 @@ export class AudioBus {
       gain: 0.0001,
       lfoRate: 0.15,
       lfoDepth: 0.25,
+    });
+
+    // Mounted skiff: low filtered hull rush, gain follows actual boat speed.
+    this._layers.skiff = this._makeNoisePad({
+      type: 'skiff',
+      filterFreq: 280,
+      filterQ: 0.85,
+      gain: 0.0001,
+      lfoRate: 0.45,
+      lfoDepth: 0.22,
     });
   }
 
@@ -222,6 +237,55 @@ export class AudioBus {
     this._setLayerGain(this._layers.rain, mix.rain * 0.05, ramp);
     this._setLayerGain(this._layers.fire, mix.fire * 0.04, ramp);
     this._setLayerGain(this._layers.water, mix.water * 0.035, ramp);
+    const boatSpeed = Number(env.boatSpeed) || 0;
+    const skiffRatio = env.boatMounted ? Math.max(0, Math.min(1, boatSpeed / 5.8)) : 0;
+    this._setLayerGain(this._layers.skiff, 0.0001 + skiffRatio * 0.045, 0.25);
+    if (this._layers.skiff?.filter) {
+      const now = this.ctx.currentTime;
+      const filter = this._layers.skiff.filter.frequency;
+      filter.cancelScheduledValues(now);
+      filter.setValueAtTime(filter.value, now);
+      filter.linearRampToValueAtTime(280 + skiffRatio * 520, now + 0.25);
+    }
+
+    // Critical-health heartbeat: sparse, low-frequency double pulse.
+    const healthRatio = Number(env.health) / Math.max(1, Number(env.maxHealth) || 100);
+    if (Number.isFinite(healthRatio) && healthRatio > 0 && healthRatio <= 0.28) {
+      this._heartbeatTimer -= dt;
+      if (this._heartbeatTimer <= 0) {
+        const urgency = Math.max(0, Math.min(1, (0.28 - healthRatio) / 0.28));
+        this._heartbeatTimer = 0.78 - urgency * 0.24;
+        this.heartbeat(0.035 + urgency * 0.025);
+      }
+    } else {
+      this._heartbeatTimer = Math.min(this._heartbeatTimer, 0.35);
+    }
+
+    // Sprint strain: restrained breath-like pulse when effort is nearly spent.
+    const staminaRatio = Number(env.stamina) / Math.max(1, Number(env.maxStamina) || 100);
+    if (env.sprinting && Number.isFinite(staminaRatio) && staminaRatio > 0 && staminaRatio <= 0.22) {
+      this._strainTimer -= dt;
+      if (this._strainTimer <= 0) {
+        const urgency = Math.max(0, Math.min(1, (0.22 - staminaRatio) / 0.22));
+        this._strainTimer = 0.48 - urgency * 0.12;
+        this.strain(0.025 + urgency * 0.018);
+      }
+    } else {
+      this._strainTimer = Math.min(this._strainTimer, 0.18);
+    }
+
+    // Underwater breath warning: sparse, low muted pulse before breath reaches zero.
+    const breathRatio = Number(env.breath) / Math.max(1, Number(env.maxBreath) || 30);
+    if (env.inWater && Number.isFinite(breathRatio) && breathRatio > 0 && breathRatio <= 0.3) {
+      this._breathTimer -= dt;
+      if (this._breathTimer <= 0) {
+        const urgency = Math.max(0, Math.min(1, (0.3 - breathRatio) / 0.3));
+        this._breathTimer = 0.62 - urgency * 0.18;
+        this.breathWarn(0.028 + urgency * 0.018);
+      }
+    } else {
+      this._breathTimer = Math.min(this._breathTimer, 0.24);
+    }
 
     // Fire crackle pops
     if (mix.fire > 0.05) {
@@ -395,10 +459,63 @@ export class AudioBus {
     else if (surface === 'grass') base = 55;
     this.beep(base + Math.random() * 20, 0.03, 'triangle', 0.05);
   }
+  chestOpen() {
+    this.beep(260, 0.07, 'triangle', 0.06);
+    this.beep(390, 0.09, 'sine', 0.045);
+  }
+  chestClose() {
+    this.beep(240, 0.07, 'triangle', 0.055);
+    this.beep(150, 0.09, 'sine', 0.04);
+  }
+  landfall() {
+    this.beep(360, 0.07, 'triangle', 0.07);
+    this.beep(540, 0.09, 'sine', 0.055);
+    this.beep(720, 0.12, 'sine', 0.04);
+  }
+  craftComplete() {
+    this.beep(300, 0.06, 'triangle', 0.07);
+    this.beep(450, 0.08, 'sine', 0.06);
+    this.beep(600, 0.1, 'sine', 0.04);
+  }
+  catchSuccess() {
+    this.beep(520, 0.06, 'sine', 0.08);
+    this.beep(780, 0.08, 'triangle', 0.065);
+    this.beep(1040, 0.12, 'sine', 0.045);
+  }
+  board() {
+    this.beep(220, 0.08, 'triangle', 0.07);
+    this.beep(330, 0.1, 'sine', 0.055);
+  }
+  dismount() {
+    this.beep(180, 0.08, 'triangle', 0.065);
+    this.beep(120, 0.1, 'sine', 0.05);
+  }
   splash() {
     this.beep(180, 0.06, 'sine', 0.1);
     this.beep(90, 0.1, 'triangle', 0.08);
     this.beep(240 + Math.random() * 40, 0.04, 'sine', 0.05);
+  }
+  recover() {
+    this.beep(360, 0.07, 'sine', 0.08);
+    this.beep(540, 0.1, 'sine', 0.065);
+    this.beep(720, 0.13, 'triangle', 0.045);
+  }
+  breathWarn(gain = 0.03) {
+    this.beep(210, 0.08, 'sine', gain);
+    this.beep(92, 0.14, 'triangle', gain * 0.7);
+  }
+  strain(gain = 0.03) {
+    this.beep(118, 0.12, 'sine', gain);
+    this.beep(78, 0.16, 'triangle', gain * 0.72);
+  }
+  heartbeat(gain = 0.04) {
+    this.beep(58, 0.09, 'sine', gain);
+    this.beep(46, 0.12, 'triangle', gain * 0.72);
+  }
+  reel() {
+    this.beep(260, 0.055, 'triangle', 0.075);
+    this.beep(520, 0.07, 'sine', 0.065);
+    this.beep(780, 0.10, 'sine', 0.05);
   }
   shoot() {
     this.beep(500, 0.04, 'triangle', 0.1);
@@ -407,6 +524,11 @@ export class AudioBus {
   toast() {
     this.beep(720, 0.05, 'sine', 0.09);
     this.beep(960, 0.08, 'sine', 0.07);
+  }
+  lantern() {
+    this.beep(360, 0.08, 'sine', 0.08);
+    this.beep(540, 0.10, 'triangle', 0.07);
+    this.beep(720, 0.14, 'sine', 0.06);
   }
   ui() {
     this.beep(660, 0.04, 'sine', 0.08);

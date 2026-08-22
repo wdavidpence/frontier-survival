@@ -228,6 +228,21 @@ function mangroveMarkerAt(x, z, biome, height) {
 function mangroveSightlinePocket(x, z, biome) {
   return biome === 'mangrove' && x >= 48 && x <= 61 && z >= 53 && z <= 65;
 }
+function mangroveApproachWaterPocket(x, z, biome) {
+  return biome === 'mangrove' && x >= 55 && x <= 61 && z >= 55 && z <= 57;
+}
+function mangroveApproachBankCut(x, z, biome) {
+  return (biome === 'mangrove' || biome === 'tropical')
+    && ((x >= 55 && x <= 61 && z >= 59 && z <= 60) || (x >= 58 && x <= 61 && z === 58));
+}
+function mangroveApproachSightlinePocket(x, z, biome) {
+  return (biome === 'mangrove' || biome === 'tropical')
+    && x >= 55 && x <= 64 && z >= 53 && z <= 60;
+}
+function mangroveApproachPlantClearance(x, z, biome) {
+  return (biome === 'ocean' || biome === 'mangrove' || biome === 'tropical' || biome === 'shore')
+    && x >= 48 && x <= 61 && z >= 54 && z <= 58;
+}
 
 // ── Chunk generation (mirrors World._generateChunk) ─────────────────────────
 
@@ -245,8 +260,9 @@ function generateChunkData(cx, cz, seed) {
     for (let lx = 0; lx < CHUNK_SIZE; lx++) {
       const x = baseX + lx;
       const z = baseZ + lz;
-      const h = heightAt(x, z, seed);
       const biome = biomeAt(x, z, seed);
+      const h = (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+        ? SEA_LEVEL - 1 : heightAt(x, z, seed);
       const cliff = biome === 'tropical' && tropicalCliffAt(x, z, seed);
 
       for (let y = 0; y < WORLD_HEIGHT; y++) {
@@ -297,12 +313,13 @@ function generateChunkData(cx, cz, seed) {
       const forestLandmark = forestMarkerAt(x, z, biome, h);
       const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
       if (mangroveLandmark) {
-        _placeMangroveBridge(data, idx, lx, h + 1, lz);
+        _placeMangroveBridge(data, idx, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
       } else if (ruinLandmark) {
         _placeRuin(data, idx, lx, h + 1, lz);
       } else if (forestLandmark) {
         _placeForestMarker(data, idx, lx, h + 1, lz);
-      } else if (!forestPocket && !mangroveSightlinePocket(x, z, biome) && th > 1 - treeChance) {
+      } else if (!forestPocket && !mangroveSightlinePocket(x, z, biome)
+        && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
           if (biome === 'mangrove') _placeMangrove(data, idx, lx, h + 1, lz);
           else if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);
           else _placeTree(data, idx, lx, h + 1, lz);
@@ -398,22 +415,32 @@ function _placePalm(data, idx, lx, y, lz) {
   }
 }
 
-function _placeMangroveBridge(data, idx, lx, y, lz) {
+function _placeMangroveBridge(data, idx, lx, y, lz, clearApproachPlants = false) {
   const set = (x, yy, z, id) => {
     if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
     const i = idx(x, yy, z);
     if (data[i] === BLOCK.AIR) data[i] = id;
   };
-  for (let dx = -4; dx <= 2; dx++) {
-    const stepY = dx < -1 ? y + dx + 1 : y;
+  const rampBase = SEA_LEVEL + 1;
+  for (let dx = -6; dx <= 2; dx++) {
+    const rampRise = Math.max(0, Math.min(y - rampBase, dx + 6));
+    const stepY = dx < 2 ? rampBase + rampRise : y;
     set(lx + dx, stepY, lz, BLOCK.PLANKS);
-    if (dx === -4) {
+    if (dx === -6) {
       set(lx + dx, stepY - 1, lz, BLOCK.ROOTS);
       set(lx + dx, stepY + 1, lz, BLOCK.TORCH);
     }
   }
-  for (const dx of [-4, 2]) {
-    const postY = dx === -4 ? y - 2 : y;
+  for (const dx of [-3, 0]) {
+    const rampRise = Math.max(0, Math.min(y - rampBase, dx + 6));
+    const stepY = dx < 2 ? rampBase + rampRise : y;
+    for (let yy = SEA_LEVEL - 1; yy < stepY; yy++) {
+      const i = idx(lx + dx, yy, lz + 1);
+      if (data[i] === BLOCK.AIR || data[i] === BLOCK.WATER) data[i] = BLOCK.MANGROVE_LOG;
+    }
+  }
+  for (const dx of [-6, 2]) {
+    const postY = dx === -6 ? rampBase - 1 : y;
     set(lx + dx, postY + 1, lz, BLOCK.MANGROVE_LOG);
     set(lx + dx, postY + 2, lz, BLOCK.MANGROVE_LOG);
     set(lx + dx, postY + 3, lz, BLOCK.MANGROVE_LEAVES);
@@ -430,6 +457,7 @@ function _placeMangroveBridge(data, idx, lx, y, lz) {
     if (data[i] === BLOCK.WATER) data[i] = id;
   };
   for (const [dx, dz, h] of [[-5, -2, 2], [-6, 1, 3], [-5, 2, 2], [-3, -3, 1]]) {
+    if (clearApproachPlants && ((dx === -5 && dz === -2) || (dx === -3 && dz === -3))) continue;
     for (let i = 0; i < h; i++) plant(lx + dx, SEA_LEVEL - 1 - i, lz + dz, i === h - 1 ? BLOCK.SEAGRASS : BLOCK.KELP);
     const tip = idx(lx + dx, SEA_LEVEL + 1, lz + dz);
     if (data[tip] === BLOCK.AIR) data[tip] = BLOCK.SEAGRASS;
@@ -502,6 +530,7 @@ function _placeTree(data, idx, lx, y, lz) {
 
 function populateMangroveColumn(data, idx, lx, h, lz, x, z, biome, seed) {
   if (biome !== 'mangrove' || h > SEA_LEVEL + 2) return;
+  if (mangroveApproachPlantClearance(x, z, biome)) return;
   const channel = hash2(x * 19 + seed * 3, z * 23 + seed * 5);
   if (channel < 0.72) return;
   data[idx(lx, h, lz)] = BLOCK.WATER;
@@ -510,6 +539,7 @@ function populateMangroveColumn(data, idx, lx, h, lz, x, z, biome, seed) {
 
 function populateOceanColumn(data, idx, lx, h, lz, x, z, biome, seed) {
   if (h >= SEA_LEVEL || (biome !== 'ocean' && biome !== 'shore' && biome !== 'tropical')) return;
+  if (mangroveApproachPlantClearance(x, z, biome)) return;
   const floor = data[idx(lx, h, lz)];
   if (floor !== BLOCK.SAND && floor !== BLOCK.DIRT) return;
   const waterY = h + 1;

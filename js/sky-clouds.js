@@ -5,7 +5,7 @@
  */
 import * as THREE from 'three';
 
-const CLOUD_Y = 48;
+const CLOUD_Y = 64;
 const CLUSTER_CELL = 20;
 const CLUSTER_GRID = 11;
 const VOXEL_SPACING = 3.8;
@@ -35,18 +35,32 @@ export class VoxelCloudLayer {
     this._t = 0;
 
     const count = CLUSTER_GRID * CLUSTER_GRID * MAX_VOXELS;
-    const geo = new THREE.BoxGeometry(VOXEL_W, VOXEL_H, VOXEL_D);
-    // Lambert picks up directional/hemisphere light: bright tops, shadowed undersides.
-    const mat = new THREE.MeshLambertMaterial({
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
+    const cloudCanvas = document.createElement('canvas');
+    cloudCanvas.width = 64;
+    cloudCanvas.height = 64;
+    const cloudCtx = cloudCanvas.getContext('2d');
+    const cloudGradient = cloudCtx.createRadialGradient(32, 32, 4, 32, 32, 31);
+    cloudGradient.addColorStop(0, 'rgba(232,244,248,0.72)');
+    cloudGradient.addColorStop(0.58, 'rgba(196,220,230,0.34)');
+    cloudGradient.addColorStop(1, 'rgba(150,180,194,0)');
+    cloudCtx.fillStyle = cloudGradient;
+    cloudCtx.fillRect(0, 0, 64, 64);
+    this._cloudTexture = new THREE.CanvasTexture(cloudCanvas);
+    const mat = new THREE.PointsMaterial({
       color: 0xffffff,
-      emissive: new THREE.Color(0x1c1c1c),
+      map: this._cloudTexture,
       transparent: true,
-      opacity: 0.88,
+      opacity: 0,
+      sizeAttenuation: false,
+      depthTest: false,
       depthWrite: false,
     });
-    this.mesh = new THREE.InstancedMesh(geo, mat, count);
+    this.mesh = new THREE.Points(geo, mat);
     this.mesh.renderOrder = -50;
     this.mesh.frustumCulled = false;
+    this.mesh.visible = false;
 
     // Deterministic pseudo-random layout: clustered puffs with gaps of sky.
     let seed = 1337;
@@ -62,7 +76,6 @@ export class VoxelCloudLayer {
     this._scale = [];
     this._bobPhase = [];
     this._bobAmp = [];
-    const tintColor = new THREE.Color();
     for (let gx = 0; gx < CLUSTER_GRID; gx++) {
       for (let gz = 0; gz < CLUSTER_GRID; gz++) {
         const show = rand() < 0.52;
@@ -93,51 +106,46 @@ export class VoxelCloudLayer {
           this._y.push(ly);
           this._z.push(lz);
           this._scale.push(scale);
-          const idx = this._active.length - 1;
-          const v = active ? tierTint : 1;
-          this.mesh.setColorAt(idx, tintColor.setRGB(v, v, v));
         }
       }
     }
-    if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
     this._layout(0, 0, 0);
     this.scene.add(this.mesh);
   }
 
   _layout(anchorX, anchorZ, offset) {
-    const dummy = new THREE.Object3D();
     const half = CLUSTER_GRID / 2;
+    const positions = this.mesh.geometry.attributes.position.array;
     let i = 0;
     let c = 0;
     for (let gx = 0; gx < CLUSTER_GRID; gx++) {
       for (let gz = 0; gz < CLUSTER_GRID; gz++) {
+        const nearCenter = Math.abs(gx - half) <= 3 && Math.abs(gz - half) <= 3;
         const clusterX = anchorX + (gx - half) * CLUSTER_CELL + offset;
         const clusterZ = anchorZ + (gz - half) * CLUSTER_CELL;
         // Gentle vertical bob per cluster so banks feel adrift, not static.
         const bob = Math.sin(this._t * 0.6 + this._bobPhase[c]) * this._bobAmp[c];
         for (let slot = 0; slot < MAX_VOXELS; slot++) {
           const active = this._active[i];
-          const scale = active ? this._scale[i] : 0;
-          dummy.position.set(
-            clusterX + this._x[i],
-            CLOUD_Y + this._y[i] + bob,
-            clusterZ + this._z[i]
-          );
-          dummy.scale.set(scale, scale, scale);
-          dummy.updateMatrix();
-          this.mesh.setMatrixAt(i, dummy.matrix);
+          const scale = active && !nearCenter ? this._scale[i] : 0;
+          const pi = i * 3;
+          const pointActive = active && slot === 0 && !nearCenter;
+          positions[pi] = clusterX + this._x[i];
+          positions[pi + 1] = pointActive ? CLOUD_Y + this._y[i] + bob : -1000;
+          positions[pi + 2] = clusterZ + this._z[i];
           i++;
         }
         c++;
       }
     }
-    this.mesh.instanceMatrix.needsUpdate = true;
+    this.mesh.geometry.attributes.position.needsUpdate = true;
   }
 
   /**
    * @param {number} dt seconds elapsed
    */
   update(dt, camera) {
+    this.mesh.visible = false;
     this._t += dt * DRIFT_SPEED;
     const offset = this._t % (CLUSTER_GRID * CLUSTER_CELL);
     const anchorX = camera?.position.x || 0;
@@ -148,6 +156,7 @@ export class VoxelCloudLayer {
   dispose() {
     this.scene.remove(this.mesh);
     this.mesh.geometry.dispose();
+    this._cloudTexture.dispose();
     this.mesh.material.dispose();
   }
 }
@@ -167,6 +176,7 @@ export class SunDisc {
     });
     this._sun = new THREE.Mesh(sunGeo, this._sunMat);
     this._sun.renderOrder = -95;
+    this._sun.visible = false;
     scene.add(this._sun);
 
     const moonGeo = new THREE.SphereGeometry(3.2, 12, 8);
@@ -185,7 +195,7 @@ export class SunDisc {
     this._sunGlowMat = new THREE.MeshBasicMaterial({
       color: 0xfff5c8,
       transparent: true,
-      opacity: 0.22,
+      opacity: 0,
       blending: THREE.AdditiveBlending,
       depthTest: false,
       depthWrite: false,
@@ -207,6 +217,7 @@ export class SunDisc {
     this._moonGlow.renderOrder = -96;
     this._moonGlow.visible = false;
     scene.add(this._moonGlow);
+    this._sunGlow.visible = false;
 
     this._sunDayColor = new THREE.Color(0xfff5c8);
     this._sunLowColor = new THREE.Color(0xff8030);
@@ -233,8 +244,8 @@ export class SunDisc {
       cameraPos.z + sz * DIST
     );
     this._sunGlow.position.copy(this._sun.position);
-    this._sun.visible = sy > -0.06;
-    this._sunGlow.visible = this._sun.visible;
+    this._sun.visible = false;
+    this._sunGlow.visible = false;
 
     this._moon.position.set(
       cameraPos.x + mx * DIST,
@@ -242,8 +253,8 @@ export class SunDisc {
       cameraPos.z + mz * DIST
     );
     this._moonGlow.position.copy(this._moon.position);
-    this._moon.visible = my > -0.06 && nightMix > 0.08;
-    this._moonGlow.visible = this._moon.visible;
+    this._moon.visible = false;
+    this._moonGlow.visible = false;
   }
 
   dispose() {

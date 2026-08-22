@@ -17,11 +17,11 @@ function addShaft(THREE, group, wood) {
 }
 
 function addPick(THREE, group, headColor) {
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.11, 0.12), material(THREE, headColor, 0.62));
+  const head = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.72, 8), material(THREE, headColor, 0.62));
   head.position.set(0, 0.57, 0);
-  head.rotation.z = -0.18;
+  head.rotation.z = Math.PI / 2 - 0.18;
   group.add(head);
-  const point = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.42, 6), material(THREE, headColor, 0.62));
+  const point = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.02, 0.42, 6), material(THREE, headColor, 0.62));
   point.rotation.z = -Math.PI / 2;
   point.position.set(0.42, 0.54, 0);
   group.add(point);
@@ -54,12 +54,31 @@ function addBow(THREE, group, wood) {
   group.add(grip);
 }
 
+function addHandAnchor(THREE, group) {
+  const skin = new THREE.MeshBasicMaterial({ color: rgb(THREE, [0.58, 0.3, 0.14]) });
+  const cuffMat = new THREE.MeshBasicMaterial({ color: rgb(THREE, [0.1, 0.32, 0.3]) });
+  const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.16, 8), cuffMat);
+  cuff.position.set(0.04, -0.08, -0.16);
+  cuff.rotation.z = -0.12;
+  cuff.material.depthTest = false;
+  cuff.renderOrder = 10;
+  group.add(cuff);
+  const palm = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), skin);
+  palm.position.set(0.04, 0.12, -0.18);
+  palm.scale.set(0.78, 0.92, 0.72);
+  palm.material.depthTest = false;
+  palm.renderOrder = 10;
+  group.add(palm);
+  return { cuff, palm };
+}
+
 /** Return a fresh readable first-person group for a tool family. */
 export function buildHeldItemGeometry(THREE, family, color = [0.62, 0.46, 0.25]) {
   const group = new THREE.Group();
   group.name = `held-${family}`;
   const wood = [0.55, 0.31, 0.14];
   const head = color;
+  addHandAnchor(THREE, group);
   if (family === 'bow') {
     addBow(THREE, group, wood);
   } else {

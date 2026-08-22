@@ -500,7 +500,7 @@ export class MangroveWaterFX {
     this.crabPulseX = 53;
     this.crabPulseZ = 58.8;
     this.reflection = new THREE.Mesh(
-      new THREE.RingGeometry(0.34, 0.68, 18),
+      new THREE.RingGeometry(0.38, 0.76, 18),
       new THREE.MeshBasicMaterial({
         color: 0xffc36a,
         transparent: true,
@@ -535,9 +535,56 @@ export class MangroveWaterFX {
         side: THREE.DoubleSide,
       }),
     );
+    // A small floating lantern marks the water approach before the bridge is
+    // close enough to read. It is visual-only and never enters world data.
+    this.approachBeacon = new THREE.Group();
+    this.approachBeacon.position.set(50, 17.04, 60);
+    const beaconPost = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.06, 0.82, 6),
+      new THREE.MeshStandardMaterial({ color: 0x5b3a23, roughness: 0.9 }),
+    );
+    beaconPost.position.y = 0.4;
+    const beaconLantern = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.13, 0),
+      new THREE.MeshBasicMaterial({ color: 0xffd77d, transparent: true, opacity: 0.9 }),
+    );
+    beaconLantern.position.y = 0.92;
+    const beaconHalo = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28, 8, 6),
+      new THREE.MeshBasicMaterial({
+        color: 0xffb55c,
+        transparent: true,
+        opacity: 0,
+        depthTest: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    beaconHalo.position.y = 0.92;
+    const beaconRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.18, 0.26, 16),
+      new THREE.MeshBasicMaterial({
+        color: 0xffd18a,
+        transparent: true,
+        opacity: 0,
+        depthTest: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      }),
+    );
+    beaconRing.rotation.x = -Math.PI / 2;
+    beaconRing.position.y = 0.02;
+    this.approachBeacon.add(beaconPost, beaconLantern, beaconHalo, beaconRing);
+    this._beaconLantern = beaconLantern;
+    this._beaconHalo = beaconHalo;
+    this._beaconRing = beaconRing;
+    this._lanternInspectPulse = 0;
+    this.approachBeacon.visible = false;
+    scene?.add(this.approachBeacon);
     for (const mesh of [this.reflection, this.foam, this.crabRipple]) {
       mesh.rotation.x = -Math.PI / 2;
-      mesh.position.set(54, 17.12, 58);
+      mesh.position.set(50, 17.12, 60);
       mesh.visible = false;
       scene?.add(mesh);
     }
@@ -550,10 +597,17 @@ export class MangroveWaterFX {
     this.crabPulseZ = z;
   }
 
+  lanternInspectPulse(strength = 1) {
+    this._lanternInspectPulse = Math.max(this._lanternInspectPulse, strength);
+  }
+
   tick(dt, active, nightMix = 0, center = null) {
     this.elapsed += dt;
+    this._lanternInspectPulse = Math.max(0, this._lanternInspectPulse - dt * 1.35);
     const show = Boolean(active);
-    this.reflection.visible = show && nightMix > 0.05;
+    const beaconDistance = center ? Math.hypot(center.x - 50, center.z - 60) : Infinity;
+    const beaconNear = Math.max(0, 1 - beaconDistance / 14);
+    this.reflection.visible = show && (nightMix > 0.05 || beaconNear > 0);
     this.foam.visible = show;
     this.crabRipple.visible = show && nightMix > 0.1 && this.crabPulse > 0.62;
     this.crabRipple.position.x = this.crabPulseX;
@@ -562,15 +616,40 @@ export class MangroveWaterFX {
     this.crabRipple.scale.setScalar(0.85 + Math.max(0, this.crabPulse - 0.62) * 0.9);
     this.crabPulse = 0;
     if (!show) return;
+    const beaconVisible = beaconDistance <= 42;
+    this.approachBeacon.visible = beaconVisible;
+    if (beaconVisible) {
+      const beaconPulse = 0.5 + 0.5 * Math.sin(this.elapsed * 2.2);
+      const inspectPulse = this._lanternInspectPulse;
+      this._beaconLantern.rotation.y += dt * 0.8;
+      this._beaconLantern.position.y = 0.9 + Math.sin(this.elapsed * 1.8) * 0.025 + inspectPulse * 0.06;
+      this._beaconLantern.material.opacity = 0.88 + nightMix * 0.1;
+      this._beaconHalo.position.y = this._beaconLantern.position.y;
+      this._beaconHalo.material.opacity = 0.035 + nightMix * 0.24 + beaconPulse * 0.025 + inspectPulse * 0.28;
+      this._beaconRing.material.opacity = 0.04 + nightMix * 0.18 + beaconPulse * 0.02 + inspectPulse * 0.2;
+      this._beaconRing.scale.setScalar(0.9 + beaconPulse * 0.12 + nightMix * 0.08 + inspectPulse * 0.5);
+    }
     const pulse = 0.5 + 0.5 * Math.sin(this.elapsed * 2.4);
     const approach = center ? Math.max(0, 1 - Math.hypot(center.x - 54, center.z - 58) / 12) : 0;
-    this.reflection.material.opacity = this.reflection.visible ? 0.12 + nightMix * 0.30 + approach * 0.05 : 0;
+    this.reflection.material.opacity = this.reflection.visible
+      ? 0.04 + nightMix * 0.22 + approach * 0.05
+        + beaconNear * (0.08 + this._lanternInspectPulse * 0.26)
+      : 0;
     this.foam.material.opacity = 0.045 + pulse * 0.02 + nightMix * 0.055 + approach * 0.025;
-    this.reflection.scale.set(1.55 + pulse * 0.1 + approach * 0.08, 1, 0.78 + pulse * 0.06 + approach * 0.04);
+    this.reflection.scale.set(
+      1.55 + pulse * 0.1 + approach * 0.08 + beaconNear * 0.18 + this._lanternInspectPulse * 0.35,
+      1,
+      0.78 + pulse * 0.06 + approach * 0.04 + beaconNear * 0.10,
+    );
     this.foam.scale.set(1.12 + pulse * 0.05 + approach * 0.04, 1, 0.7 + pulse * 0.04 + approach * 0.03);
   }
 
   dispose() {
+    this.scene?.remove(this.approachBeacon);
+    this.approachBeacon.traverse((child) => {
+      child.geometry?.dispose();
+      child.material?.dispose?.();
+    });
     for (const mesh of [this.reflection, this.foam, this.crabRipple]) {
       this.scene?.remove(mesh);
       mesh.geometry.dispose();
@@ -985,9 +1064,10 @@ export class MangroveEgretFX {
     this.perchPulse = 0;
     this.bird = new THREE.Group();
     this._spot = [55.0, 17.72, 60.6];
-    const bodyMat = new THREE.MeshBasicMaterial({ color: 0xdfe8dd, transparent: true, opacity: 0.9, depthTest: false, depthWrite: false });
-    const wingMat = new THREE.MeshBasicMaterial({ color: 0x41545a, transparent: true, opacity: 0.88, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
-    const beakMat = new THREE.MeshBasicMaterial({ color: 0xd4a34a, transparent: true, opacity: 0.95, depthTest: false, depthWrite: false });
+
+    const bodyMat = new THREE.MeshBasicMaterial({ color: 0xdfe8dd, transparent: true, opacity: 0.9, depthTest: true, depthWrite: false });
+    const wingMat = new THREE.MeshBasicMaterial({ color: 0x41545a, transparent: true, opacity: 0.88, depthTest: true, depthWrite: false, side: THREE.DoubleSide });
+    const beakMat = new THREE.MeshBasicMaterial({ color: 0xd4a34a, transparent: true, opacity: 0.95, depthTest: true, depthWrite: false });
     const body = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.32, 0.18), bodyMat);
     body.position.y = 0.25;
     const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, 0.34, 6), bodyMat);
@@ -1019,6 +1099,7 @@ export class MangroveEgretFX {
     this._bodyMat = bodyMat;
     this._wingMat = wingMat;
     this._beakMat = beakMat;
+
   }
 
   tick(dt, active, center, nightMix = 0) {
@@ -1038,6 +1119,7 @@ export class MangroveEgretFX {
     this.bird.position.x = this._spot[0] + scatter * 0.45 + Math.sin(this.elapsed * 0.8) * 0.05;
     this.bird.position.y = this._spot[1] + scatter * 0.42 + Math.sin(this.elapsed * 2.2) * 0.03;
     this.bird.position.z = this._spot[2] + Math.cos(this.elapsed * 0.7) * 0.06;
+
     this.bird.rotation.z = scatter * 0.32;
     this.bird.rotation.x = scatter * -0.18;
     return this.scatterPulse;

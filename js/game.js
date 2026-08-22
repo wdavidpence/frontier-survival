@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=436';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=448';
 import { Player } from './player.js?v=239';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
-import { AudioBus } from './audio.js?v=226';
+import { AudioBus } from './audio.js?v=238';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
@@ -67,13 +67,13 @@ import {
 } from './crafting.js?v=417';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=252';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
-import { createBlockAtlas } from './atlas.js?v=300';
-import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=274';
+import { createBlockAtlas } from './atlas.js?v=303';
+import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=288';
 import { underwaterFogStyle } from './underwater-fog.js?v=244';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
-import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=2';
+import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=8';
 import { heightAt } from './gen.js?v=288';
-import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=11';
+import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=29';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -108,7 +108,7 @@ import {
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=220';
+} from './achievements.js?v=221';
 import { tickSpoilage } from './spoilage.js?v=221';
 import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=220';
 import { wearTool, durabilityRatio } from './durability.js?v=222';
@@ -125,7 +125,7 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=220';
+} from './chests.js?v=221';
 import { checkTooltip, show as showTooltip } from './tooltips.js?v=220';
 import { splitViewport } from './viewport-split.js?v=220';
 import { readGamepad } from './input-coop.js?v=261';
@@ -133,6 +133,7 @@ import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=220';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=220';
 import { palmLeafDrop } from './palm-drops.js?v=2';
 import { createBoat, mountBoat, dismountBoat, stepBoat, buoyancyY, riderPosition, BOAT_CONFIG } from './boat-entity.js?v=1';
+import { boatAttachChest, createBoatChest } from './boat-chest.js?v=1';
 import { FISH_SCHOOL_COUNT, schoolFishPose, schoolVisibility } from './fish-school.js?v=2';
 import {
   FISHING_CAST_SECONDS,
@@ -219,7 +220,7 @@ export class Game {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.setClearColor(0x87b5ff, 1);
+    this.renderer.setClearColor(0x87b5ff, 0);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -229,9 +230,10 @@ export class Game {
     this.renderer.toneMappingExposure = 1.22;
 
     this.scene = new THREE.Scene();
+    this._skyBackdrop = document.getElementById('sky-backdrop');
     this.skyDome = new THREE.Mesh(
       // Keep the dome inside camera.far so the layered shader actually renders.
-      new THREE.SphereGeometry(180, 32, 16),
+      new THREE.SphereGeometry(180, 64, 32),
       new THREE.ShaderMaterial({
         side: THREE.BackSide,
         depthWrite: false,
@@ -242,16 +244,17 @@ export class Game {
           horizonColor: { value: new THREE.Color(0xffca92) },
           groundColor: { value: new THREE.Color(0x657681) },
           sunGlowColor: { value: new THREE.Color(0xffd7a2) },
-          sunGlowStrength: { value: 0.22 },
+          sunGlowStrength: { value: 0 },
           sunDir: { value: new THREE.Vector3(0.4, 0.8, 0.4).normalize() },
         },
         vertexShader: 'varying vec3 vLocal; void main(){ vLocal=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-        fragmentShader: 'uniform vec3 topColor; uniform vec3 midColor; uniform vec3 horizonColor; uniform vec3 groundColor; uniform vec3 sunGlowColor; uniform float sunGlowStrength; uniform vec3 sunDir; varying vec3 vLocal; void main(){ vec3 dir=normalize(vLocal); float h=dir.y; float above=smoothstep(-0.08,0.38,h); vec3 sky=mix(horizonColor,midColor,above); sky=mix(sky,topColor,smoothstep(0.30,0.92,h)); float horizHaze=pow(max(0.0,1.0-abs(h)*3.2),2.0)*0.30; sky=mix(sky,horizonColor,clamp(horizHaze,0.0,1.0)); float sd=dot(dir,sunDir); float halo=pow(max(0.0,sd),4.0)*sunGlowStrength*3.8; float corona=pow(max(0.0,sd),28.0)*sunGlowStrength*4.8; sky=mix(sky,sunGlowColor,clamp(halo,0.0,0.84)); sky+=sunGlowColor*corona; sky=mix(groundColor,sky,smoothstep(-0.38,0.02,h)); gl_FragColor=vec4(sky,1.0); }',
+        fragmentShader: 'uniform vec3 topColor; uniform vec3 midColor; uniform vec3 horizonColor; uniform vec3 groundColor; uniform vec3 sunGlowColor; uniform float sunGlowStrength; uniform vec3 sunDir; varying vec3 vLocal; void main(){ vec3 dir=normalize(vLocal); float h=dir.y; float above=smoothstep(-0.08,0.38,h); vec3 sky=mix(horizonColor,midColor,above); sky=mix(sky,topColor,smoothstep(0.30,0.92,h)); float horizHaze=pow(max(0.0,1.0-abs(h)*3.2),2.0)*0.30; sky=mix(sky,horizonColor,clamp(horizHaze,0.0,1.0)); sky=mix(groundColor,sky,smoothstep(-0.38,0.02,h)); gl_FragColor=vec4(sky,1.0); }',
       }),
     );
     this.skyDome.renderOrder = -100;
+    this.skyDome.visible = false;
     this.scene.add(this.skyDome);
-    this.scene.background = new THREE.Color(0x87b5ff);
+    this.scene.background = null;
     this.scene.fog = new THREE.Fog(0x87b5ff, 40, 120);
     // Reused palette colors keep the per-frame sky transition allocation-free.
     this._skyPalette = {
@@ -314,6 +317,8 @@ export class Game {
     this.input = new Input(canvas);
     this.input.sensitivity = this.settings.sensitivity ?? DEFAULT_SETTINGS.sensitivity;
     this._meleeCd = 0;
+    this._heldMotionT = 0;
+    this._heldSwingT = 0;
     this._lastHeat = 0;
     this.atlas = createBlockAtlas();
     this.fx = new BreakFX(this.scene, this.atlas);
@@ -337,6 +342,13 @@ export class Game {
     this._helpVisible = this.settings.helpVisible !== false;
     this._helpFadeAcc = 0;
     this._crossHitT = 0;
+    this._recoverT = 0;
+    this._nourishT = 0;
+    this._restT = 0;
+    this._warmthT = 0;
+    this._equipT = 0;
+    this._cookT = 0;
+    this._placeT = 0;
     this._actionCueT = 0;
     this._actionCueText = '';
     this._deathHandled = false;
@@ -355,6 +367,18 @@ export class Game {
     this._fpsFrames = 0;
     this._wasInWater = false;
     this._cameraInWater = false;
+    this._cameraMotionT = 0;
+    this._cameraBob = 0;
+    this._cameraLandKick = 0;
+    this._cameraFov = 75;
+    this._boatCameraLean = 0;
+    this._boatCameraSurge = 0;
+    this._boatTransitionT = 0;
+    this._boatTransitionKind = '';
+    this._landfallNoticeT = 0;
+    this._damageFlashT = 0;
+    this._damageDirectionT = 0;
+    this._damageDirectionAngle = 0;
     this.weatherFx = null;
     this._bowCd = 0;
     this._chests = new Map();
@@ -366,6 +390,9 @@ export class Game {
     this._fishContext = null;
     this._fishCastOrigin = null;
     this._fishClock = 0;
+    this._fishSplashT = 0;
+    this._fishReelT = 0;
+    this._fishCatchT = 0;
     this._fishBobber = null;
     this._fishLine = null;
     this._fishRipple = null;
@@ -405,6 +432,7 @@ export class Game {
     this._poweredLamps = new Set();
     this._logicAcc = 0;
     this._biomeNotifyAcc = 0; // accumulator for periodic biome name display
+    this._mangroveCueT = 0; // cooldown for player-facing Rootwalk ecology cues
     this._tooltipQueue = []; // pending tooltip ids to show
     this._tooltipShownAcc = 0; // cooldown between tooltips (min 8s)
     this._firstLogSeen = false;
@@ -481,14 +509,14 @@ export class Game {
     document.getElementById('btn-close-chest')?.addEventListener('click', () => this._closeChest());
     document.getElementById('btn-chest-deposit')?.addEventListener('click', () => {
       if (!this._chestOpenKey || !this.player) return;
-      const slots = getChestSlots(this._chests, this._chestOpenKey);
+      const slots = getChestSlots(this._chests, this._chestOpenKey, this._activeChestCapacity());
       const res = depositOne(this.player.slots, this.player.hotbarIndex, slots);
       if (!res.ok) {
         this.player.notify(res.error === 'chest full' ? 'Chest full.' : 'Nothing in selected slot.');
         return;
       }
       this.player.slots = res.playerSlots;
-      setChestSlots(this._chests, this._chestOpenKey, res.chestSlots);
+      setChestSlots(this._chests, this._chestOpenKey, res.chestSlots, this._activeChestCapacity());
       this._paintChest();
       this.audio.ui();
     });
@@ -496,14 +524,14 @@ export class Game {
       const c = e.target.closest('[data-chest]');
       if (!c || !this._chestOpenKey) return;
       const idx = Number(c.getAttribute('data-chest'));
-      const slots = getChestSlots(this._chests, this._chestOpenKey);
+      const slots = getChestSlots(this._chests, this._chestOpenKey, this._activeChestCapacity());
       const res = withdrawOne(this.player.slots, slots, idx);
       if (!res.ok) {
         this.player.notify(res.error === 'inventory full' ? 'Inventory full.' : 'Empty.');
         return;
       }
       this.player.slots = res.playerSlots;
-      setChestSlots(this._chests, this._chestOpenKey, res.chestSlots);
+      setChestSlots(this._chests, this._chestOpenKey, res.chestSlots, this._activeChestCapacity());
       this._paintChest();
       this.audio.ui();
     });
@@ -513,14 +541,14 @@ export class Game {
         const slotEl = e.target.closest('[data-slot]');
         if (slotEl) {
           const idx = Number(slotEl.getAttribute('data-slot'));
-          const slots = getChestSlots(this._chests, this._chestOpenKey);
+          const slots = getChestSlots(this._chests, this._chestOpenKey, this._activeChestCapacity());
           const res = depositOne(this.player.slots, idx, slots);
           if (!res.ok) {
             this.player.notify(res.error === 'chest full' ? 'Chest full.' : 'Nothing.');
             return;
           }
           this.player.slots = res.playerSlots;
-          setChestSlots(this._chests, this._chestOpenKey, res.chestSlots);
+          setChestSlots(this._chests, this._chestOpenKey, res.chestSlots, this._activeChestCapacity());
           this._paintChest();
           this._paintInventory();
           this.audio.ui();
@@ -967,9 +995,9 @@ export class Game {
       const spawn = this.world.findSpawn();
       this._spawnPos = { x: spawn.x, y: spawn.y, z: spawn.z };
       this.player = new Player(spawn, { starterRations: this.modeDef().starterRations });
-      // Fresh spawns face the island interior so the first playable frame
-      // presents terrain and forest rather than an empty water horizon.
-      this.player.yaw = Math.PI;
+      // Fresh spawns use the world's open-view direction so the first frame
+      // presents a readable destination instead of a close terrain wall.
+      this.player.yaw = Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI;
       this.input.lookX = this.player.yaw;
       this.survival = { ...DEFAULT_SURVIVAL };
       this.time = new GameTime({ dayLengthSec: DEFAULT_DAY_LENGTH_SEC });
@@ -1242,6 +1270,24 @@ export class Game {
     const nearLandmark = !!hit
       && Math.hypot(pl.position.x - destination.x, pl.position.z - destination.z) <= 5
       && Math.hypot(hit.x - destination.x, hit.z - destination.z) <= 2;
+    const rootwalkDistance = Math.hypot(pl.position.x - 55.5, pl.position.z - 58.5);
+    const lanternHit = !!hit && hit.id === BLOCK.TORCH
+      // Accept both the high bridge lantern and the lower water-side ramp torch.
+      && Math.hypot(hit.x - 55, hit.z - 58) <= 7;
+    if (rootwalkDistance <= 8 && lanternHit && !this._achievements?.unlocked?.first_mangrove_lantern) {
+      const added = addItems(pl.slots, ITEM.FISH_BAIT, 2);
+      if (!added.ok) {
+        pl.notify('Inventory full — make room to inspect the Rootwalk lantern.', 3.2);
+        return true;
+      }
+      pl.slots = added.slots;
+      this._unlock('first_mangrove_lantern');
+      this.waterFx?.lanternInspectPulse?.(1);
+      pl.notify('Lantern inspected · 2 Fish Bait added.', 3.2);
+      this.audio.lantern?.();
+      this.saveGame({ quiet: true });
+      return true;
+    }
 
     if (campfire && state.phase === 'unprepared') {
       // Let fuel/cooking retain their old F behavior when the expedition gate is not used.
@@ -1378,7 +1424,18 @@ export class Game {
   _tickMangroveFX(dt) {
     const p = this.player?.position;
     const nearRootwalk = p && Math.hypot(p.x - 55.5, p.z - 58.5) < 22;
-    const active = this.started && !this.survival.dead && nearRootwalk;
+    const bx = p ? Math.floor(p.x) : 0;
+    const bz = p ? Math.floor(p.z) : 0;
+    const feetId = this.world?.getBlock(bx, Math.floor((p?.y || 0) - 0.2), bz);
+    const headId = this.world?.getBlock(bx, Math.floor((p?.y || 0) + 1.2), bz);
+    const waterline = feetId === BLOCK.WATER
+      || feetId === BLOCK.KELP
+      || feetId === BLOCK.SEAGRASS
+      || feetId === BLOCK.CORAL;
+    const validApproach = waterline
+      || (isSolid(feetId) && (headId === BLOCK.AIR || headId === BLOCK.WATER));
+    const active = this.started && !this.survival.dead && nearRootwalk && validApproach;
+    this._mangroveCueT = Math.max(0, this._mangroveCueT - dt);
     const phase = this.time?.dayPhase ?? 0;
     const nightMix = phase < 0.5 ? 0 : Math.min(1, (phase - 0.5) / 0.12);
     this.fireflyFx.tick(dt, active, p, nightMix);
@@ -1388,6 +1445,21 @@ export class Game {
     this.mudskipperFx.tick(dt, active, p, nightMix);
     this.dragonflyFx.tick(dt, active, p, nightMix, this.mudskipperFx.feedingPulse);
     this.egretFx.tick(dt, active, p, nightMix);
+    if (active && !this._achievements?.unlocked?.first_mangrove) {
+      this._unlock('first_mangrove');
+      this.player.notify('Wetland discovery logged · Lantern Rootwalk.', 3.5);
+      this.saveGame({ quiet: true });
+    }
+    if (active && this._mangroveCueT <= 0) {
+      let cue = '';
+      if (this.egretFx.scatterPulse > 0.28) cue = 'Egret lifts from the shallows.';
+      else if (this.dragonflyFx.scatterPulse > 0.28) cue = 'Dragonflies hover above the channel.';
+      else if (this.mudskipperFx.alertPulse > 0.5) cue = 'Mudskippers dart through the shallows.';
+      if (cue) {
+        this.player.notify(`Wetland life · ${cue}`, 2.6);
+        this._mangroveCueT = 4.5;
+      }
+    }
     if (this.mudskipperFx.alertPulse > 0.65 && this.mudskipperFx.audioCooldown <= 0 && p) {
       const pan = Math.max(-1, Math.min(1, (55.5 - p.x) / 12));
       this.audio._mudskipperSplash(this.mudskipperFx.alertPulse, pan);
@@ -1655,6 +1727,20 @@ export class Game {
       this._heldItemKey = key;
     }
     this._heldItemView.visible = true;
+    const swayX = Math.sin(this._heldMotionT * 1.7) * 0.008;
+    const swayY = Math.cos(this._heldMotionT * 1.35) * 0.006;
+    const swingProgress = this._heldSwingT > 0 ? 1 - Math.min(1, this._heldSwingT / 0.26) : 0;
+    const swing = Math.sin(swingProgress * Math.PI);
+    this._heldItemView.position.set(
+      0.5 + swayX + swing * 0.035,
+      -0.5 + swayY - swing * 0.08,
+      -0.82 + swing * 0.08,
+    );
+    this._heldItemView.rotation.set(
+      -0.3 - swing * 0.55,
+      0.14 + swayX * 1.5,
+      -0.34 + swayY * 2.4,
+    );
   }
 
   _initFishSchoolVisuals() {
@@ -1728,6 +1814,7 @@ export class Game {
     const boat = createBoat(saved.x, saved.y, saved.z, saved.yaw);
     boat.vx = saved.vx;
     boat.vz = saved.vz;
+    boat.chest = saved.hasChest ? createBoatChest(true) : createBoatChest(false);
     if (saved.mounted && saved.rider === 'p1' && mountBoat(boat, 'p1').ok) {
       this.player.position.copy(riderPosition(boat));
       this.player.yaw = boat.yaw;
@@ -1760,6 +1847,8 @@ export class Game {
     this._fishTarget = null;
     this._fishContext = null;
     this._fishCastOrigin = null;
+    this._fishSplashT = 0;
+    this._fishReelT = 0;
     if (this._fishBobber) this._fishBobber.visible = false;
     if (this._fishLine) this._fishLine.visible = false;
     if (this._fishRipple) this._fishRipple.visible = false;
@@ -1789,7 +1878,11 @@ export class Game {
       if (d <= 3.2) {
         const mounted = mountBoat(this._boat, 'p1');
         if (mounted.ok) {
+          this._boat.chest ||= boatAttachChest(createBoatChest(false));
           this.player.position.copy(riderPosition(this._boat));
+          this._boatTransitionT = 0.5;
+          this._boatTransitionKind = 'board';
+          this.audio.board?.() || this.audio.ui();
           this.player.notify('Aboard the skiff. WASD steers · F disembarks.', 3);
           this._syncBoatVisual();
           return true;
@@ -1804,6 +1897,7 @@ export class Game {
       return true;
     }
     const boat = createBoat(target.x, target.y, target.z, this.player.yaw);
+    boat.chest = boatAttachChest(createBoatChest(false));
     const mounted = mountBoat(boat, 'p1');
     if (!mounted.ok) return true;
     const consumed = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
@@ -1811,6 +1905,8 @@ export class Game {
     this.player.slots = consumed.slots;
     this._boat = boat;
     this.player.position.copy(riderPosition(boat));
+    this._boatTransitionT = 0.6;
+    this._boatTransitionKind = 'launch';
     this._syncBoatVisual();
     this._unlock('first_boat');
     this.audio.splash?.() || this.audio.placeBlock();
@@ -1823,7 +1919,33 @@ export class Game {
     const result = dismountBoat(this._boat);
     if (!result.ok) return false;
     this.player.position.set(result.position.x, result.position.y, result.position.z);
-    this.player.notify('Back on shore. Hold the boat and press F near it to board.', 2.5);
+    const destination = this._destinationState?.destination;
+    const destinationState = this._destinationState;
+    const landfallDistance = destination ? Math.hypot(this._boat.x - destination.x, this._boat.z - destination.z) : Infinity;
+    const landfall = landfallDistance <= 25;
+    const arrivedAtDestination = landfallDistance <= 5 && destinationState?.phase === 'en_route';
+    this._boatTransitionT = 0.5;
+    this._boatTransitionKind = 'dismount';
+    if (landfall) {
+      if (this.audio.landfall) this.audio.landfall();
+      else if (this.audio.dismount) this.audio.dismount();
+      else this.audio.ui();
+      this._landfallNoticeT = 3;
+      if (arrivedAtDestination) {
+        this._destinationState = arriveDestination(destinationState);
+        this._pressureState = triggerPressure(this._pressureState, {
+          isNight: this.time.isNight(),
+          weather: this.time.weather,
+        });
+        this.player.notify('Iron Ravine reached. Night Stalkers threaten — bring 1 Torch and 1 Ration.', 3.8);
+        this.saveGame({ quiet: true });
+      } else {
+        this.player.notify('Landfall reached. Follow the route inland.', 3);
+      }
+    } else {
+      this.audio.dismount?.() || this.audio.ui();
+      this.player.notify('Back on shore. Hold the boat and press F near it to board.', 2.5);
+    }
     this._syncBoatVisual();
     return true;
   }
@@ -1832,13 +1954,18 @@ export class Game {
     if (!this._boat) return;
     this._boatClock += Math.max(0, Number(dt) || 0);
     if (this._boat.mounted) {
+      const previousSpeed = Math.hypot(this._boat.vx || 0, this._boat.vz || 0);
       const forward = this.input.wantsForward() ? 1 : this.input.wantsBack() ? -1 : 0;
       const turn = this.input.wantsLeft() ? -1 : this.input.wantsRight() ? 1 : 0;
       stepBoat(this._boat, { forward, turn }, dt);
+      const nextSpeed = Math.hypot(this._boat.vx || 0, this._boat.vz || 0);
+      this._boatCameraSurge = Math.max(-1, Math.min(1, (nextSpeed - previousSpeed) / Math.max(0.016, dt) / 8));
       const waterY = Math.floor(this._boat.y - 0.05);
       this._boat.y = buoyancyY(waterY, this._boat.y, dt);
       this.player.position.copy(riderPosition(this._boat));
       this.player.yaw = this._boat.yaw;
+    } else {
+      this._boatCameraSurge = 0;
     }
     this._syncBoatVisual();
   }
@@ -1847,9 +1974,15 @@ export class Game {
     if (!this.world || !this.player) return null;
     const p = this.player.position;
     const eye = this.player.eyePosition();
+    const look = this.player.lookDir();
     const maxRadius = 10;
     let nearest = null;
     let nearestDistance = Infinity;
+    let forwardTarget = null;
+    let forwardScore = Infinity;
+    let readableTarget = null;
+    let readableScore = Infinity;
+    const screenPoint = new THREE.Vector3();
     const clearCast = (target) => {
       const dx = target.x - eye.x;
       const dy = target.y - eye.y;
@@ -1877,39 +2010,78 @@ export class Game {
         const topY = Math.min(WORLD_HEIGHT - 2, Math.max(SEA_LEVEL, Math.floor(p.y) + 1));
         for (let y = topY; y >= 1; y--) {
           if (this.world.getBlock(x, y, z) !== BLOCK.WATER || this.world.getBlock(x, y + 1, z) !== BLOCK.AIR) continue;
-          const target = { x, y: y + 0.08, z };
-          if (horizontalDistance >= nearestDistance || !clearCast(target)) continue;
-          nearestDistance = horizontalDistance;
-          nearest = {
-            ...target,
-            biome: biomeAt(x, z, this.seed),
-            depth: Math.max(0, WORLD_HEIGHT - y),
-          };
-          break;
+          const target = { x, y: y + 1.08, z };
+          if (!clearCast(target)) continue;
+          if (horizontalDistance < nearestDistance) {
+            nearestDistance = horizontalDistance;
+            nearest = {
+              ...target,
+              biome: biomeAt(x, z, this.seed),
+              depth: Math.max(0, WORLD_HEIGHT - y),
+            };
+          }
+          const toTargetX = target.x - eye.x;
+          const toTargetZ = target.z - eye.z;
+          const targetDistance = Math.hypot(toTargetX, toTargetZ) || 1;
+          const facing = (toTargetX * look.x + toTargetZ * look.z) / targetDistance;
+          if (facing < 0.18) continue;
+          const score = horizontalDistance + (1 - facing) * 2.4;
+          if (score < forwardScore) {
+            forwardScore = score;
+            forwardTarget = {
+              ...target,
+              biome: biomeAt(x, z, this.seed),
+              depth: Math.max(0, WORLD_HEIGHT - y),
+            };
+          }
+          screenPoint.set(target.x, target.y, target.z).project(this.camera);
+          const readable = screenPoint.z > 0 && screenPoint.z < 1
+            && Math.abs(screenPoint.x) < 0.82 && Math.abs(screenPoint.y) < 0.38;
+          if (readable) {
+            const viewScore = horizontalDistance
+              + Math.abs(screenPoint.x) * 1.8
+              + Math.abs(screenPoint.y) * 1.4;
+            if (viewScore < readableScore) {
+              readableScore = viewScore;
+              readableTarget = {
+                ...target,
+                biome: biomeAt(x, z, this.seed),
+                depth: Math.max(0, WORLD_HEIGHT - y),
+              };
+            }
+          }
         }
       }
     }
-    return nearest;
+    return readableTarget || forwardTarget || nearest;
   }
 
   _updateFishingRodView() {
     if (!this._fishRodView) return;
     const heldRod = propsOf(this.player?.heldId())?.tool === 'rod';
-    const active = this.started && !this.player?.inventoryOpen && (heldRod || this._fishState?.phase !== 'ready');
+    const active = this.started && !this.player?.inventoryOpen
+      && (heldRod || this._fishState?.phase !== 'ready' || this._fishReelT > 0);
     this._fishRodView.visible = !!active;
     if (!active) return;
     const phase = this._fishState?.phase;
     const casting = phase === 'casting';
     const bite = phase === 'bite';
     const tension = casting ? 1 : bite ? 0.55 : 0;
-    this._fishRodView.position.x = 0.58 + Math.sin(this._fishClock * 5) * 0.012 * tension;
-    this._fishRodView.position.y = -0.52 + (casting ? 0.08 : 0) + (bite ? -0.025 : 0);
-    this._fishRodView.rotation.z = -0.16 - tension * 0.18;
-    this._fishRodView.rotation.x = -0.12 + tension * 0.16;
+    const bitePulse = bite ? Math.max(0, Math.sin(this._fishClock * FISHING_BITE_FLASH_HZ)) : 0;
+    const reel = Math.max(0, Math.min(1, this._fishReelT / 0.34));
+    this._fishRodView.position.x = 0.58 + Math.sin(this._fishClock * 5) * 0.012 * tension - bitePulse * 0.018;
+    this._fishRodView.position.y = -0.52 + (casting ? 0.08 : 0) + (bite ? -0.025 : 0) + reel * 0.1 - bitePulse * 0.018;
+    this._fishRodView.rotation.z = -0.16 - tension * 0.18 + reel * 0.2 - bitePulse * 0.05;
+    this._fishRodView.rotation.x = -0.12 + tension * 0.16 - reel * 0.12 + bitePulse * 0.035;
   }
 
   _updateFishingVisual(dt = 0) {
     this._fishClock += Math.max(0, Number(dt) || 0);
+    this._fishSplashT = Math.max(0, this._fishSplashT - Math.max(0, Number(dt) || 0));
+    this._fishReelT = Math.max(0, this._fishReelT - Math.max(0, Number(dt) || 0));
+    this._fishCatchT = Math.max(0, this._fishCatchT - Math.max(0, Number(dt) || 0));
+    this._heldMotionT += Math.max(0, Number(dt) || 0);
+    this._heldSwingT = Math.max(0, this._heldSwingT - Math.max(0, Number(dt) || 0));
     this._updateHeldItemView();
     this._updateFishingRodView();
     this._updateFishSchoolVisual();
@@ -1924,6 +2096,7 @@ export class Game {
     const target = this._fishTarget;
     const casting = this._fishState.phase === 'casting';
     const bite = this._fishState.phase === 'bite';
+    const bitePulse = bite ? Math.max(0, Math.sin(this._fishClock * FISHING_BITE_FLASH_HZ)) : 0;
     const eye = this.player.eyePosition();
     if (casting) {
       const progress = Math.max(0, Math.min(1, 1 - this._fishState.timer / FISHING_CAST_TRAVEL_SECONDS));
@@ -1944,31 +2117,54 @@ export class Game {
       ? 1.15 + Math.max(0, Math.sin(this._fishClock * FISHING_BITE_FLASH_HZ)) * 0.35
       : 1);
 
-    this._fishLine.geometry.setFromPoints([eye, this._fishBobber.position]);
+    const lineEnd = this._fishBobber.position;
+    const lineDelta = new THREE.Vector3().subVectors(lineEnd, eye);
+    const lineLength = lineDelta.length();
+    const sag = casting ? Math.min(0.14, lineLength * 0.015) : bite ? Math.max(0.035, 0.08 - bitePulse * 0.045) : Math.min(0.34, 0.08 + lineLength * 0.035);
+    const linePoints = [
+      eye.clone(),
+      new THREE.Vector3().lerpVectors(eye, lineEnd, 0.25),
+      new THREE.Vector3().lerpVectors(eye, lineEnd, 0.5),
+      new THREE.Vector3().lerpVectors(eye, lineEnd, 0.75),
+      lineEnd.clone(),
+    ];
+    for (let i = 1; i < linePoints.length - 1; i++) {
+      const t = i / (linePoints.length - 1);
+      linePoints[i].y -= Math.sin(Math.PI * t) * sag;
+    }
+    this._fishLine.geometry.setFromPoints(linePoints);
     this._fishLine.material.color.setHex(bite ? 0xfff3a1 : 0xf4dfb1);
     this._fishLine.material.opacity = bite ? 1 : 0.82;
     this._fishLine.visible = true;
     this._fishRipple.position.set(target.x, target.y - 0.04, target.z);
-    const rippleScale = 0.85 + Math.sin(this._fishClock * 3) * 0.18
+    const splashPulse = this._fishSplashT > 0
+      ? 0.75 + (1 - this._fishSplashT / 0.42) * 0.65
+      : 0;
+    const rippleScale = 0.85 + Math.sin(this._fishClock * 3) * 0.18 + splashPulse
       + (bite ? 0.5 + Math.max(0, Math.sin(this._fishClock * FISHING_BITE_FLASH_HZ)) * 0.35 : 0);
     this._fishRipple.scale.setScalar(rippleScale);
-    this._fishRipple.material.opacity = bite ? 0.9 : 0.55;
+    this._fishRipple.material.opacity = bite ? 0.9 : this._fishSplashT > 0 ? 0.78 : 0.55;
     this._fishRipple.visible = !casting;
   }
 
   _reelFishing() {
     if (this._fishState.phase !== 'bite') return false;
+    this._fishReelT = 0.34;
     const outcome = rollFishingCatch(Math.random, this._fishContext || {});
     this._fishState = createFishingState();
     this._fishCd = 0.45;
     this._fishTarget = null;
     this._fishContext = null;
     this._fishCastOrigin = null;
+    this.audio.reel?.() || this.audio.ui();
     if (outcome.id != null && outcome.count > 0) {
       const add = addItems(this.player.slots, outcome.id, outcome.count);
       this.player.slots = add.slots;
-      this.audio.splash?.() || this.audio.ui();
       const stored = add.ok;
+      if (stored) {
+        this._fishCatchT = 0.55;
+        this.audio.catchSuccess?.() || this.audio.reel?.() || this.audio.ui();
+      }
       this.player.notify(
         stored
           ? `Caught ${outcome.label} ×${outcome.count}. Catch! Cook it at a fire.`
@@ -1977,7 +2173,6 @@ export class Game {
       );
       this._unlock('first_fish');
     } else {
-      this.audio.ui();
       this.player.notify('Miss — the line went slack; nothing caught.', 2.2);
     }
     this._updateFishingVisual(0);
@@ -1989,8 +2184,13 @@ export class Game {
       this._updateFishingVisual(dt);
       return;
     }
+    const wasCasting = this._fishState.phase === 'casting';
     const stepped = tickFishing(this._fishState, dt);
     this._fishState = stepped.state;
+    if (wasCasting && stepped.state.phase === 'waiting') {
+      this._fishSplashT = 0.42;
+      this.audio.splash?.() || this.audio.ui();
+    }
     if (stepped.bite) {
       this.player?.notify(`Bite! Press F to reel in (${FISHING_BITE_SECONDS.toFixed(1)}s).`, FISHING_BITE_SECONDS);
       this.audio.ui();
@@ -2043,30 +2243,52 @@ export class Game {
     this._updateFishingVisual(0);
   }
 
+  _activeChestCapacity() {
+    return String(this._chestOpenKey || '').startsWith('boat:') ? 27 : CHEST_SIZE;
+  }
+
   _openChest(key) {
+    const capacity = String(key).startsWith('boat:') ? 27 : CHEST_SIZE;
     this._chestOpenKey = key;
-    if (!this._chests.has(key)) this._chests.set(key, emptyChestSlots());
+    if (!this._chests.has(key)) this._chests.set(key, emptyChestSlots(capacity));
     this.setInventoryOpen(false);
     const panel = document.getElementById('chest-screen');
     panel?.classList.remove('hidden');
+    const boatStorage = String(key).startsWith('boat:');
+    const title = panel?.querySelector('h2');
+    const subtitle = panel?.querySelector('.inv-sub');
+    if (title) title.textContent = boatStorage ? 'Skiff Storage' : 'Chest';
+    if (subtitle) subtitle.textContent = boatStorage
+      ? 'Onboard storage · click a slot to take items. Open inventory (E) to deposit. Close when done.'
+      : 'Click a chest slot to take items. Open inventory (E) and click your items to deposit. Close when done.';
     this.input.uiMode = true;
     if (document.pointerLockElement) document.exitPointerLock();
     this._paintChest();
-    this.audio.ui();
+    this.audio.chestOpen?.() || this.audio.ui();
+  }
+
+  _openBoatChest() {
+    if (!this._boat?.mounted || !this._boat.chest?.hasChest) return false;
+    this._openChest(`boat:${this.seed}`);
+    return true;
   }
 
   _closeChest() {
     if (!this._chestOpenKey) return;
     this._chestOpenKey = null;
     document.getElementById('chest-screen')?.classList.add('hidden');
+    const chestPanel = document.getElementById('chest-screen');
+    chestPanel?.querySelector('h2') && (chestPanel.querySelector('h2').textContent = 'Chest');
+    chestPanel?.querySelector('.inv-sub') && (chestPanel.querySelector('.inv-sub').textContent = 'Click a chest slot to take items. Open inventory (E) and click your items to deposit. Close when done.');
     if (!this.player?.inventoryOpen && !this.paused) this.input.uiMode = false;
+    this.audio.chestClose?.() || this.audio.ui();
     this.saveGame({ quiet: true });
   }
 
   _paintChest() {
     const bag = document.getElementById('chest-slots');
     if (!bag || !this._chestOpenKey) return;
-    const slots = getChestSlots(this._chests, this._chestOpenKey);
+    const slots = getChestSlots(this._chests, this._chestOpenKey, this._activeChestCapacity());
     bag.innerHTML = '';
     slots.forEach((s, i) => {
       const el = document.createElement('div');
@@ -2165,6 +2387,7 @@ export class Game {
             vz: this._boat.vz,
             rider: this._boat.rider,
             mounted: this._boat.mounted,
+            hasChest: !!this._boat.chest?.hasChest,
           }
         : null,
       edits: this.world.exportEdits(),
@@ -2471,8 +2694,8 @@ export class Game {
       return;
     }
     bag.slots = res.slots;
-    this.audio.placeBlock();
-    bag.notify(`Crafted: ${recipeId.replace(/_/g, ' ')}`);
+    this.audio.craftComplete?.() || this.audio.placeBlock();
+    bag.notify(`Crafted: ${recipeId.replace(/_/g, ' ')}`, 2.4);
     if (recipeId === 'bow') this._unlock('first_bow');
     if (recipeId === 'smelt_iron') this._unlock('first_iron');
     if (recipeId === 'bread') this._unlock('first_bread');
@@ -2491,6 +2714,7 @@ export class Game {
 
     if (this.input.consumeInventory()) {
       if (this._chestOpenKey) this._closeChest();
+      else if (this._boat?.mounted && this._boat.chest?.hasChest) this._openBoatChest();
       else this.setInventoryOpen(!this.player.inventoryOpen, 'p1');
     }
     if (this.coopMode && this.input2?.consumeInventory?.()) {
@@ -2505,10 +2729,20 @@ export class Game {
     const climateBiome = biomeAt(this.player.position.x, this.player.position.z, this.seed);
     this.time.tick(dt, { biome: climateBiome, altitude: this.player.position.y });
     this._crossHitT = Math.max(0, this._crossHitT - dt);
+    this._recoverT = Math.max(0, this._recoverT - dt);
+    this._nourishT = Math.max(0, this._nourishT - dt);
+    this._restT = Math.max(0, this._restT - dt);
+    this._warmthT = Math.max(0, this._warmthT - dt);
+    this._equipT = Math.max(0, this._equipT - dt);
+    this._cookT = Math.max(0, this._cookT - dt);
+    this._placeT = Math.max(0, this._placeT - dt);
+    this._damageFlashT = Math.max(0, this._damageFlashT - dt);
+    this._damageDirectionT = Math.max(0, this._damageDirectionT - dt);
     this._actionCueT = Math.max(0, this._actionCueT - dt);
     this._bowCd = Math.max(0, this._bowCd - dt);
     this._bowCd2 = Math.max(0, (this._bowCd2 || 0) - dt);
     this._fishCd = Math.max(0, this._fishCd - dt);
+    this._landfallNoticeT = Math.max(0, this._landfallNoticeT - dt);
     this._tickFishing(dt);
     this._fpsFrames++;
     this._fpsAcc += dt;
@@ -2560,8 +2794,8 @@ export class Game {
       this.camera.rotation.order = 'YXZ';
       this.camera.rotation.y = this.player.yaw;
       this.camera.rotation.x = -this.player.pitch;
+      this._applyTraversalCameraResponse(move, dt);
       if (this.coopMode && this.player2 && this.input2) {
-        // P2 uses pad1 when P1 holds pad0; else pad0 if P1 is KBM-only
         const p2PadIndex = this.input?._gpConnected ? 1 : 0;
         const gp2 = getConnectedPad(p2PadIndex);
         this.input2.poll(gp2, dt, {
@@ -2618,6 +2852,7 @@ export class Game {
 
       if (this.player.pendingFallDamage > 0) {
         const dmg = this.player.pendingFallDamage;
+        this._cameraLandKick = Math.min(1, this._cameraLandKick + dmg / 24);
         this.player.pendingFallDamage = 0;
         this.survival = applyDamage(this.survival, dmg, 'fall');
         this.audio.hurt();
@@ -2717,6 +2952,16 @@ export class Game {
       mangrove: Math.hypot(this.player.position.x - 55.5, this.player.position.z - 58.5) < 22,
       dayPhase: this.time.dayPhase,
       dead: this.survival.dead,
+      health: this.survival.health,
+      maxHealth: this.survival.maxHealth,
+      stamina: this.survival.stamina,
+      maxStamina: this.survival.maxStamina,
+      sprinting: move.sprinting,
+      breath: this.survival.breath,
+      maxBreath: this.survival.maxBreath,
+      inWater: move.inWater,
+      boatMounted: !!this._boat?.mounted,
+      boatSpeed: this._boat?.mounted ? Math.hypot(this._boat.vx || 0, this._boat.vz || 0) : 0,
       biome: this._lastBiome,
     });
 
@@ -2743,7 +2988,7 @@ export class Game {
     // Notify on biome change
     if (currentBiome !== this._lastBiome) {
       const labels = { ocean: 'Ocean', tropical: 'Tropical Isle', shore: 'Shore', forest: 'Forest', desert: 'Desert', tundra: 'Tundra', mangrove: 'Mangrove Lantern Rootwalk' };
-      this.player.notify(`Entered ${labels[currentBiome] || currentBiome}`, 4);
+      if (this._landfallNoticeT <= 0) this.player.notify(`Entered ${labels[currentBiome] || currentBiome}`, 4);
       if (currentBiome === 'desert' || currentBiome === BIOME.DESERT) this._unlock('first_desert');
       this._lastBiome = currentBiome;
     }
@@ -2893,6 +3138,17 @@ export class Game {
         },
       );
       if (fa.playerDamage > 0) {
+        const attacker = this.fauna.living().filter(a => !a.tamed).sort((a, b) => Math.hypot(a.x - this.player.position.x, a.z - this.player.position.z) - Math.hypot(b.x - this.player.position.x, b.z - this.player.position.z))[0];
+        if (attacker) {
+          const dx = attacker.x - this.player.position.x;
+          const dz = attacker.z - this.player.position.z;
+          const forwardX = -Math.sin(this.player.yaw);
+          const forwardZ = -Math.cos(this.player.yaw);
+          const rightX = Math.cos(this.player.yaw);
+          const rightZ = -Math.sin(this.player.yaw);
+          this._damageDirectionAngle = `${(Math.atan2(dx * rightX + dz * rightZ, dx * forwardX + dz * forwardZ) * 180 / Math.PI).toFixed(1)}deg`;
+          this._damageDirectionT = 0.72;
+        }
         let dmg = fa.playerDamage;
         const held = propsOf(this.player.heldId());
         if (held?.tool === 'shield') {
@@ -2950,7 +3206,11 @@ export class Game {
       this._wildlifeWasNear = nearBand;
     }
 
-    if (this.survival.health < this.prevHealth - 0.5) this.audio.hurt();
+    if (this.survival.health < this.prevHealth - 0.5) {
+      const loss = this.prevHealth - this.survival.health;
+      this._damageFlashT = Math.max(this._damageFlashT, Math.min(0.5, 0.18 + loss / 40));
+      this.audio.hurt();
+    }
     this.prevHealth = this.survival.health;
 
     const p1Dead = !!this.survival.dead;
@@ -3282,6 +3542,21 @@ export class Game {
     if (!text && p?.tool === 'rod') text = 'F near water — Fish';
     if (!text && p?.tool === 'shield') text = 'Hold to block wolf bites';
     if (!text && held?.id === ITEM.FERTILIZER) text = 'F on crop — Fertilize';
+    if (!text && this._boat?.mounted) {
+      text = this._boat.chest?.hasChest
+        ? 'E — Open skiff storage · F — Disembark'
+        : 'F — Disembark skiff';
+    }
+    if (!text && this._boat && !this._boat.mounted) {
+      const boatDistance = Math.hypot(
+        this.player.position.x - this._boat.x,
+        this.player.position.z - this._boat.z,
+      );
+      if (boatDistance <= 3.2) text = 'F — Board skiff · WASD steer';
+    }
+    if (!text && held?.id === ITEM.BOAT && this._findBoatWaterTarget()) {
+      text = 'F — Launch skiff into clear water';
+    }
     if (hit && hit.id === BLOCK.CHEST) {
       const cn = BLOCK_PROPS[hit.id]?.name || '';
       text = `F — Open chest [${cn}]`;
@@ -3312,6 +3587,68 @@ export class Game {
     }
 
     if (prompt) prompt.textContent = this.player.inventoryOpen ? '' : text;
+  }
+
+  _applyTraversalCameraResponse(move, dt) {
+    const activeFootsteps = !!move?.moved && !move.inWater && !this._boat?.mounted && !this.player.inventoryOpen;
+    const cadence = move?.sprinting ? 10.5 : 7.2;
+    this._cameraMotionT += Math.max(0, Number(dt) || 0) * (activeFootsteps ? cadence : 2.2);
+    const targetBob = activeFootsteps ? (move.sprinting ? 0.028 : 0.014) : 0;
+    this._cameraBob += (targetBob - this._cameraBob) * Math.min(1, Math.max(0, dt) * 12);
+    if ((this.player.pendingFallDamage || 0) > 0) {
+      this._cameraLandKick = Math.min(1, this._cameraLandKick + this.player.pendingFallDamage / 24);
+    }
+    this._cameraLandKick *= Math.max(0, 1 - Math.max(0, dt) * 9);
+    const bob = Math.sin(this._cameraMotionT) * this._cameraBob;
+    const sway = Math.cos(this._cameraMotionT * 0.5) * this._cameraBob * 0.35;
+    this.camera.position.x += sway;
+    this.camera.position.y += bob - this._cameraLandKick * 0.018;
+    this.camera.rotation.z = -sway * 0.55;
+    this.camera.rotation.x += this._cameraLandKick * 0.025;
+    const coldRatio = Math.max(0, Math.min(1, (34 - (this.survival?.bodyTemp ?? 37)) / 2.5));
+    const shiver = coldRatio * Math.sin(this._cameraMotionT * 24) * 0.0035;
+    this.camera.position.x += shiver;
+    this.camera.position.y += Math.cos(this._cameraMotionT * 19) * shiver * 0.7;
+    this.camera.rotation.z += shiver * 0.8;
+    const swingProgress = this._heldSwingT > 0 ? 1 - Math.min(1, this._heldSwingT / 0.26) : 0;
+    const impactPulse = Math.sin(Math.PI * swingProgress);
+    const lookX = -Math.sin(this.player.yaw);
+    const lookZ = -Math.cos(this.player.yaw);
+    this.camera.position.x += lookX * impactPulse * 0.012;
+    this.camera.position.z += lookZ * impactPulse * 0.012;
+    this.camera.position.y -= impactPulse * 0.008;
+    this.camera.rotation.x += impactPulse * 0.018;
+    this.camera.rotation.z -= impactPulse * 0.012;
+    const boatBobActive = !!this._boat?.mounted;
+    const boatBob = boatBobActive ? Math.sin(this._boatClock * 1.7) * 0.009 : 0;
+    const boatRoll = boatBobActive ? Math.cos(this._boatClock * 1.7) * 0.004 : 0;
+    this.camera.position.y += boatBob;
+    this.camera.rotation.z += boatRoll;
+    const boatSurge = boatBobActive ? this._boatCameraSurge : 0;
+    this.camera.rotation.x += boatSurge * 0.012;
+    this._boatCameraSurge *= Math.max(0, 1 - Math.max(0, dt) * 10);
+    const boatSpeed = this._boat?.mounted ? Math.hypot(this._boat.vx || 0, this._boat.vz || 0) : 0;
+    const boatRightVelocity = this._boat?.mounted
+      ? (this._boat.vx || 0) * Math.cos(this._boat.yaw || 0) - (this._boat.vz || 0) * Math.sin(this._boat.yaw || 0)
+      : 0;
+    const targetBoatLean = Math.max(-0.065, Math.min(0.065, boatRightVelocity * 0.018));
+    this._boatCameraLean += (targetBoatLean - this._boatCameraLean) * Math.min(1, Math.max(0, dt) * 8);
+    this._boatTransitionT = Math.max(0, this._boatTransitionT - Math.max(0, Number(dt) || 0));
+    const transitionDuration = this._boatTransitionKind === 'launch' ? 0.6 : 0.5;
+    const transitionPulse = this._boatTransitionT > 0
+      ? Math.sin(Math.PI * (this._boatTransitionT / transitionDuration))
+      : 0;
+    const transitionSign = this._boatTransitionKind === 'dismount' ? -1 : 1;
+    const transitionScale = this._boatTransitionKind === 'launch' ? 1.25 : 1;
+    this.camera.position.y += transitionSign * transitionPulse * 0.012 * transitionScale;
+    this.camera.rotation.x -= transitionSign * transitionPulse * 0.008 * transitionScale;
+    this.camera.rotation.z += this._boatCameraLean;
+    const targetFov = 75 + (move?.sprinting ? 4 : Math.min(3, boatSpeed * 0.5));
+    this._cameraFov += (targetFov - this._cameraFov) * Math.min(1, Math.max(0, dt) * 7);
+    if (Math.abs(this.camera.fov - this._cameraFov) > 0.01) {
+      this.camera.fov = this._cameraFov;
+      this.camera.updateProjectionMatrix();
+    }
   }
 
   /**
@@ -3438,6 +3775,8 @@ export class Game {
   _handleMining(dt) {
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
+    const heldTool = propsOf(this.player.heldId())?.tool;
+    if (this.input.breakHeld && heldTool && this._heldSwingT <= 0) this._heldSwingT = 0.26;
 
     // Friendly-fire off: ignore teammate as melee target
     if (this.input.breakHeld && this.coopMode && !this._friendlyFireOn()) {
@@ -3465,6 +3804,7 @@ export class Game {
           dmg = maceSmashDamage(fallDist, dmg);
         }
         const res = this.fauna.damageAnimal(ah.animal, dmg);
+        this.fx.burst(ah.animal.x, ah.animal.y + 0.45, ah.animal.z, [0.95, 0.55, 0.25], res?.killed ? 10 : 6);
         this.audio.breakBlock();
         this._meleeCd = held?.tool === 'weapon' ? 0.42 : 0.35;
         this._crossHitT = 0.22;
@@ -3642,6 +3982,7 @@ export class Game {
       }
       this.world.setBlock(hit.x, hit.y + 1, hit.z, BLOCK.CROP);
       this._crops.set(this._cropKey(hit.x, hit.y + 1, hit.z), 0);
+      this._placeT = 0.38;
       this.audio.placeBlock();
       this._showActionCue('Seeds planted');
       this.player.notify('Seeds planted. Wait for wheat to ripen.', 2.5);
@@ -3661,6 +4002,7 @@ export class Game {
     this.player.slots = cons.slots;
 
     if (this.world.setBlock(px, py, pz, blockId)) {
+      this._placeT = 0.38;
       this.audio.placeBlock();
       this._showActionCue(`Placed ${displayName(blockId)}`);
       if (blockId === BLOCK.FURNACE) {
@@ -3743,7 +4085,8 @@ export class Game {
         ...this.survival,
         health: Math.min(this.survival.maxHealth, this.survival.health + 8),
       };
-      this.audio.eat();
+      this.audio.recover?.() || this.audio.eat();
+      this._recoverT = 0.42;
       this.player.notify('Applied bandage. Bleeding stopped. +8 health.', 2.5);
       return;
     }
@@ -3758,7 +4101,8 @@ export class Game {
         ...this.survival,
         health: Math.min(this.survival.maxHealth, this.survival.health + p.heal),
       };
-      this.audio.eat();
+      this.audio.recover?.() || this.audio.eat();
+      this._recoverT = 0.42;
       if (bleedStop > 0) {
         this.player.notify(`Applied ${p.name}. Bleeding reduced. +${p.heal} health.`, 2.5);
       } else {
@@ -3779,6 +4123,7 @@ export class Game {
         this.player.notify(`Ate ${p.name} — stomach turns. Cook meat next time!`, 3);
       } else {
         this.player.notify(`Ate ${p.name}.`);
+        this._nourishT = 0.34;
       }
       this.audio.eat();
       return;
@@ -3789,6 +4134,7 @@ export class Game {
       if (rem.ok) {
         this.player.slots = rem.slots;
         this.survival = eatFood(this.survival, 38, 2);
+        this._nourishT = 0.34;
         this.audio.eat();
         this.player.notify('Ate cooked meat.');
         return;
@@ -3799,6 +4145,7 @@ export class Game {
       if (rem.ok) {
         this.player.slots = rem.slots;
         this.survival = eatFood(this.survival, 28, 1);
+        this._nourishT = 0.34;
         this.audio.eat();
         const left = countItems(this.player.slots, ITEM.RATION);
         this.player.notify(`Ate ration (${left} left).`);
@@ -3882,6 +4229,7 @@ export class Game {
       // sipping surface water slightly wets you
       this.survival = { ...this.survival, wetness: Math.min(100, (this.survival.wetness || 0) + 8) };
       this._drinkCd = 2;
+      this._nourishT = 0.34;
       this.audio.splash?.() || this.audio.eat();
       this.player.notify('Drank water. Thirst eased.', 2);
       return;
@@ -3953,6 +4301,7 @@ export class Game {
           f += held.id === BLOCK.LOG ? 45 : held.id === ITEM.STICK ? 12 : 28;
           this._campFuel.set(k, Math.min(120, f));
           this.audio.placeBlock();
+          this._warmthT = 0.36;
           this.player.notify('You feed the fire.', 1.8);
           this._scanLights(true);
           return;
@@ -3985,6 +4334,7 @@ export class Game {
       this.player.equipment = eq.equipment;
       this.player.slots = slots;
       this.audio.equip?.() || this.audio.ui();
+      this._equipT = 0.4;
       const w = equipmentWarmth(eq.equipment);
       this.player.notify(`Equipped ${p.name}. Clothing warmth ${w}.`, 3);
       this._unlock('first_clothes');
@@ -4003,6 +4353,7 @@ export class Game {
       if (!cons.ok) return;
       const add = addItems(cons.slots, p.cookable, 1);
       this.player.slots = add.slots;
+      this._cookT = 0.42;
       this.audio.eat();
       this.player.notify(`Cooked → ${displayName(p.cookable)}.`, 2.5);
       this._unlock('first_cook');
@@ -4079,6 +4430,7 @@ export class Game {
       this.player2?.notify('You rest together. Fatigue fades.', 4);
     }
     this.audio.sleep?.() || this.audio.ui();
+    this._restT = 0.5;
     this.player.notify(
       this.coopMode ? 'You both rest. Dawn approaches…' : 'You rest. Fatigue fades. Dawn approaches…',
       4,
@@ -4141,6 +4493,17 @@ export class Game {
       mesh.position.set(a.x, a.y, a.z);
       mesh.rotation.y = a.yaw || 0;
       const spec = SPECIES[a.type] || SPECIES.hare;
+      const dx = a.x - this.camera.position.x;
+      const dz = a.z - this.camera.position.z;
+      const nearGroundShadow = !spec.aquatic && !spec.nocturnal && !['bird', 'parrot', 'bat'].includes(a.type)
+        && dx * dx + dz * dz < 26 * 26;
+      mesh.userData.shadowActive = nearGroundShadow;
+      mesh.traverse((c) => {
+        if (c.isMesh) {
+          c.castShadow = nearGroundShadow;
+          c.receiveShadow = false;
+        }
+      });
       const spd = Math.hypot(a.vx || 0, a.vz || 0);
       const speed01 = Math.max(0, Math.min(1, spd / Math.max(0.1, spec.speed || 1)));
       mesh.userData.phase = (mesh.userData.phase || 0) + 0.016 * (6 + speed01 * 10);
@@ -4521,7 +4884,12 @@ export class Game {
     this.ambient.intensity = (0.20 * nightMix + (0.30 + sunI * 0.56) * dayFactor) + flash * 1.7;
     this.hemi.intensity = (0.30 * nightMix + (0.28 + sunI * 0.44) * dayFactor) + flash * 0.9;
 
-    this.scene.background.copy(palette.mid);
+    if (this._skyBackdrop) {
+      this._skyBackdrop.style.setProperty('--sky-top', `#${palette.top.getHexString()}`);
+      this._skyBackdrop.style.setProperty('--sky-mid', `#${palette.mid.getHexString()}`);
+      this._skyBackdrop.style.setProperty('--sky-horizon', `#${palette.horizon.getHexString()}`);
+      this._skyBackdrop.style.setProperty('--sky-ground', `#${palette.ground.getHexString()}`);
+    }
     // Normalized sun direction for sky shader and disc placement.
     const _sunLen = Math.hypot(sunX, sunY, sunZ) || 1;
     const _sdx = sunX / _sunLen, _sdy = sunY / _sunLen, _sdz = sunZ / _sunLen;
@@ -4536,6 +4904,7 @@ export class Game {
     const _mdx = moonRawX / _moonLen, _mdy = moonRawY / _moonLen, _mdz = moonRawZ / _moonLen;
 
     if (this.skyDome) {
+      this.skyDome.visible = false;
       this.skyDome.position.copy(this.camera.position);
       const uniforms = this.skyDome.material.uniforms;
       uniforms.topColor.value.copy(palette.top);
@@ -4543,7 +4912,7 @@ export class Game {
       uniforms.horizonColor.value.copy(palette.horizon);
       uniforms.groundColor.value.copy(palette.ground);
       uniforms.sunGlowColor.value.copy(palette.glow);
-      uniforms.sunGlowStrength.value = Math.min(0.38, (0.08 + lowSun * 0.28 + sunI * 0.05) * dayFactor);
+      uniforms.sunGlowStrength.value = 0;
       uniforms.sunDir.value.set(_sdx, _sdy, _sdz);
     }
     this.sunDisc?.update(_sdx, _sdy, _sdz, _mdx, _mdy, _mdz, this.camera.position, nightMix);
@@ -4556,7 +4925,6 @@ export class Game {
     this.scene.fog.near = fog.near;
     this.scene.fog.far = fog.far;
     if (flash > 0) {
-      this.scene.background.lerp(palette.flash, flash * 0.6);
       this.scene.fog.color.lerp(palette.flash, flash * 0.45);
     }
 
@@ -4577,6 +4945,14 @@ export class Game {
         0.24 * nightMix + 0.77 * dayFactor,
         0.32 * nightMix + 0.86 * dayFactor,
       );
+      const lanternDistance = this.player
+        ? Math.hypot(this.player.position.x - 50, this.player.position.z - 60)
+        : Infinity;
+      const lanternNear = Math.max(0, 1 - lanternDistance / 42);
+      const lanternPulse = this.waterFx?._lanternInspectPulse || 0;
+      mat.uniforms.lanternPos.value.set(50, 17.96, 60);
+      mat.uniforms.lanternStrength.value = lanternNear
+        * (0.08 + nightMix * 0.28 + lanternPulse * 0.5);
     }
   }
 
@@ -4588,7 +4964,13 @@ export class Game {
     this._cameraInWater = underwater;
     if (!underwater) return;
     const style = underwaterFogStyle({ underwater, depth: Math.max(0, 16 - eye.y) });
-    this.scene.background.setHex(style.color);
+    if (this.scene.background) this.scene.background.setHex(style.color);
+    if (this._skyBackdrop) {
+      const waterColor = new THREE.Color(style.color).getHexString();
+      for (const key of ['--sky-top', '--sky-mid', '--sky-horizon', '--sky-ground']) {
+        this._skyBackdrop.style.setProperty(key, `#${waterColor}`);
+      }
+    }
     this.scene.fog.color.setHex(style.color);
     this.scene.fog.near = style.near;
     this.scene.fog.far = style.far;
@@ -4757,12 +5139,50 @@ export class Game {
     if (!hud || !this.player || !state?.destination) return;
     const destination = state.destination;
     const distance = Math.hypot(this.player.position.x - destination.x, this.player.position.z - destination.z);
-    const relevant = this.started && !this.survival?.dead && (state.phase !== 'unprepared' || distance <= 140);
+    const rootwalkDistance = Math.hypot(this.player.position.x - 55.5, this.player.position.z - 58.5);
+    const nearRootwalk = this.started && !this.survival?.dead && rootwalkDistance <= 42;
+    const ironRelevant = this.started && !this.survival?.dead && (state.phase !== 'unprepared' || distance <= 140);
+    const mountedSkiff = !!this._boat?.mounted;
+    const relevant = nearRootwalk || ironRelevant || mountedSkiff;
     hud.classList.toggle('hidden', !relevant);
     if (!relevant) return;
+    const title = hud.querySelector('strong');
     const status = hud.querySelector('[data-destination-status]');
     const next = hud.querySelector('[data-destination-next]');
-    if (!status || !next) return;
+    if (!title || !status || !next) return;
+    if (mountedSkiff) {
+      const from = { x: this.player.position.x, z: this.player.position.z };
+      const to = { x: destination.x, z: destination.z };
+      const relativeBearing = Math.round((compassNeedleAngle(this.player.yaw, from, to) * 180) / Math.PI);
+      const boatSpeed = Math.hypot(this._boat.vx || 0, this._boat.vz || 0);
+      const underway = boatSpeed > 0.18;
+      const approaching = distance <= 25;
+      title.textContent = approaching ? 'Landfall Approach' : 'Skiff Route';
+      status.textContent = `Iron Ravine · ${Math.round(distance)}m · ${relativeBearing >= 0 ? '+' : ''}${relativeBearing}°`;
+      next.textContent = state.phase === 'claimed'
+        ? 'COMPLETE · Return to shore or continue offshore'
+        : approaching
+          ? underway
+            ? 'APPROACHING · Ease toward shore · E storage · F disembark'
+            : 'LANDING RANGE · Steer toward shore · F disembark'
+          : underway
+            ? `UNDERWAY · ${boatSpeed.toFixed(1)} m/s · Follow route · E storage`
+            : 'DRIFTING · Follow route · E storage · F disembark';
+      return;
+    }
+    if (nearRootwalk) {
+      title.textContent = 'Mangrove Lagoon';
+      status.textContent = `Lantern Rootwalk · ${Math.round(rootwalkDistance)}m away`;
+      if (rootwalkDistance <= 8 && !this._achievements?.unlocked?.first_mangrove_lantern) {
+        next.textContent = 'F · Inspect lantern · Watch the channel for wetland life';
+      } else if (rootwalkDistance <= 8) {
+        next.textContent = 'NEXT · Watch the channel for wetland life';
+      } else {
+        next.textContent = `NEXT · Follow the lantern bridge · ${Math.round(rootwalkDistance)}m`;
+      }
+      return;
+    }
+    title.textContent = 'Iron Ravine';
     const availability = state.phase === 'unprepared'
       ? (countItems(this.player.slots, ITEM.IRON_PICK) > 0 ? 'Ready at campfire' : 'Find an Iron Pick')
       : `${Math.round(distance)}m away`;
@@ -4799,6 +5219,13 @@ export class Game {
       if (tl2) tl2.textContent = `${s2.bodyTemp.toFixed(1)}°C`;
     }
 
+    const bleedTag = document.getElementById('bleed-tag');
+    if (bleedTag) {
+      const bleeding = (s.bleed || 0) > 1;
+      bleedTag.classList.toggle('on', bleeding);
+      bleedTag.classList.toggle('crit-bleed', (s.bleed || 0) > 20);
+      bleedTag.textContent = bleeding ? `Bleeding · ${Math.ceil(s.bleed)}` : '';
+    }
     const tempLabel = document.getElementById('temp-label');
     if (tempLabel) tempLabel.textContent = `${s.bodyTemp.toFixed(1)}°C`;
 
@@ -4811,13 +5238,6 @@ export class Game {
       meters.classList.toggle('crit-cold', s.bodyTemp < 34.2);
       meters.classList.toggle('crit-bleed', (s.bleed || 0) > 20);
     }
-    const bleedTag = document.getElementById('bleed-tag');
-    if (bleedTag) {
-      const bleeding = (s.bleed || 0) > 1;
-      bleedTag.classList.toggle('on', bleeding);
-      bleedTag.classList.toggle('crit-bleed', (s.bleed || 0) > 20);
-    }
-
     this._updateSpawnMarker();
     this._updateDestinationHud();
     this._updateCoopPadPrompt();
@@ -4966,16 +5386,36 @@ export class Game {
       if ((s.bleed || 0) > 1) a = Math.max(a, Math.min(0.5, (s.bleed / 100) * 0.7));
       if (this._crossHitT > 0) a = Math.max(a, Math.min(0.48, (this._crossHitT / 0.25) * 0.48));
       if (s.health < 18 || s.bodyTemp < 32.5) a = Math.min(0.78, a + 0.1);
+      const flash = Math.max(0, Math.min(0.62, (this._damageFlashT / 0.5) * 0.62));
+      a = Math.max(a, flash);
       hurt.style.opacity = String(Math.min(0.78, a));
       hurt.dataset.alert = a > 0.08 ? 'danger' : '';
     }
-
+    const direction = document.getElementById('damage-direction');
+    if (direction) {
+      direction.style.opacity = String(Math.min(0.72, (this._damageDirectionT / 0.72) * 0.72));
+      direction.style.setProperty('--damage-angle', this._damageDirectionAngle);
+    }
     const cross = document.getElementById('crosshair');
     if (cross) {
       const animalAim = this._crossHitT > 0;
       const blockAim = !!(this._target && !this.player.inventoryOpen);
       cross.classList.toggle('hit', blockAim || animalAim);
       cross.classList.toggle('strike', animalAim);
+      cross.classList.toggle('swing', this._heldSwingT > 0);
+      cross.classList.toggle('fish-bite', this._fishState?.phase === 'bite');
+      cross.classList.toggle('fish-reel', this._fishReelT > 0);
+      cross.classList.toggle('fish-catch', this._fishCatchT > 0);
+      cross.classList.toggle('recover', this._recoverT > 0);
+      cross.classList.toggle('nourish', this._nourishT > 0);
+      cross.classList.toggle('rest', this._restT > 0);
+      cross.classList.toggle('warmth', this._warmthT > 0);
+      cross.classList.toggle('equip', this._equipT > 0);
+      cross.classList.toggle('cook', this._cookT > 0);
+      cross.classList.toggle('place', this._placeT > 0);
+      cross.classList.toggle('boat-board', this._boatTransitionT > 0 && this._boatTransitionKind === 'board');
+      cross.classList.toggle('boat-exit', this._boatTransitionT > 0 && this._boatTransitionKind === 'dismount');
+      cross.classList.toggle('boat-launch', this._boatTransitionT > 0 && this._boatTransitionKind === 'launch');
     }
 
     setBar('bar-wet', s.wetness || 0, 100);

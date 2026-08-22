@@ -9,22 +9,25 @@ export function chestKey(x, y, z) {
   return `${x | 0},${y | 0},${z | 0}`;
 }
 
-export function emptyChestSlots() {
-  return emptySlots(CHEST_SIZE);
+export function emptyChestSlots(size = CHEST_SIZE) {
+  return emptySlots(Math.max(CHEST_SIZE, Number(size) || CHEST_SIZE));
 }
 
 /** @param {Map|Record} chests */
-export function getChestSlots(chests, key) {
-  if (!chests) return emptyChestSlots();
+export function getChestSlots(chests, key, size = CHEST_SIZE) {
+  if (!chests) return emptyChestSlots(size);
   const raw = chests instanceof Map ? chests.get(key) : chests[key];
-  if (!raw) return emptyChestSlots();
+  if (!raw) return emptyChestSlots(size);
   const slots = cloneSlots(raw);
-  while (slots.length < CHEST_SIZE) slots.push({ id: null, count: 0 });
-  return slots.slice(0, CHEST_SIZE);
+  const capacity = Math.max(CHEST_SIZE, Number(size) || CHEST_SIZE);
+  while (slots.length < capacity) slots.push({ id: null, count: 0 });
+  return slots.slice(0, capacity);
 }
 
-export function setChestSlots(chests, key, slots) {
-  const clean = cloneSlots(slots).slice(0, CHEST_SIZE);
+export function setChestSlots(chests, key, slots, size = CHEST_SIZE) {
+  const capacity = Math.max(CHEST_SIZE, Number(size) || CHEST_SIZE);
+  const clean = cloneSlots(slots).slice(0, capacity);
+  while (clean.length < capacity) clean.push({ id: null, count: 0 });
   if (chests instanceof Map) {
     chests.set(key, clean);
     return chests;

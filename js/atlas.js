@@ -256,7 +256,9 @@ function scatterFlecks(ctx, x0, y0, opts) {
 // shadows stay saturated rather than going grey, highlights stop short of white.
 const PAL_GRASS = { shadow: [70, 96, 52], base: [94, 128, 64], light: [116, 150, 78] };
 const PAL_DIRT = { shadow: [74, 52, 34], base: [106, 78, 54], light: [138, 104, 76] };
-const PAL_STONE = { shadow: [88, 90, 96], base: [120, 122, 128], light: [156, 158, 164] };
+// Cool slate with a restrained warm lift: cliff faces keep their wetland weight
+// but retain enough separation from black shadow when the Rootwalk bank is close.
+const PAL_STONE = { shadow: [98, 96, 96], base: [132, 130, 132], light: [174, 166, 154] };
 const PAL_SAND = { shadow: [186, 160, 110], base: [214, 186, 128], light: [238, 212, 152] };
 // Muted tropical teal keeps the water readable beside warm sand and foliage;
 // the darker trough also gives the atlas material a natural depth cue.
@@ -356,7 +358,7 @@ function drawStone(ctx, x0, y0) {
   });
   // Quartz glints on the proud faces
   scatterFlecks(ctx, x0, y0, {
-    seed: 9, count: 10, color: 'rgba(190, 194, 202, 0.32)',
+    seed: 9, count: 10, color: 'rgba(224, 211, 188, 0.42)',
     field, want: 1, threshold: 0.6, w: 2, h: 2,
   });
   applyMicroTexture(ctx, x0, y0, 4, 1);
@@ -545,10 +547,23 @@ function drawMangroveLeaves(ctx, x0, y0) {
 }
 
 function drawPlanks(ctx, x0, y0) {
+  // Sun-warmed boards with a restrained tidal stain: the lower edge reads wet
+  // beside the Rootwalk water without turning ordinary wood into black bands.
   fillNoise(ctx, x0, y0, [201, 155, 93], 0.14, 15, 255, 2);
   ctx.fillStyle = 'rgba(110, 75, 35, 0.6)';
   for (let y = 0; y < TILE_PX; y += 8) {
     ctx.fillRect(x0, y0 + y, TILE_PX, 2);
+  }
+  ctx.fillStyle = 'rgba(48, 70, 58, 0.22)';
+  ctx.fillRect(x0, y0 + 26, TILE_PX, 4);
+  ctx.fillStyle = 'rgba(232, 194, 125, 0.28)';
+  ctx.fillRect(x0, y0 + 2, TILE_PX, 2);
+  const r = rnd(151);
+  ctx.fillStyle = 'rgba(72, 104, 78, 0.28)';
+  for (let i = 0; i < 5; i++) {
+    const bx = Math.floor(r() * 14) * 2;
+    const by = 24 + Math.floor(r() * 3) * 2;
+    ctx.fillRect(x0 + bx, y0 + by, 2, 2);
   }
   applyMicroTexture(ctx, x0, y0, 3);
 }
@@ -1189,6 +1204,10 @@ export function createBlockAtlas() {
       ambientColor: { value: new THREE.Color(0.58, 0.58, 0.65) },
       sunColor: { value: new THREE.Color(1.0, 0.96, 0.88) },
       sunDir: { value: new THREE.Vector3(0.4, 1.0, 0.2).normalize() },
+      lanternPos: { value: new THREE.Vector3(50, 17.96, 60) },
+      lanternColor: { value: new THREE.Color(1.0, 0.48, 0.18) },
+      lanternStrength: { value: 0.0 },
+      lanternRadius: { value: 7.5 },
     },
     vertexShader: `
       attribute float tile;
@@ -1196,6 +1215,7 @@ export function createBlockAtlas() {
       varying vec4 vColor;
       varying vec2 vAuvBase;
       varying vec3 vNormal;
+      varying vec3 vWorldPos;
       void main() {
         vUv = uv;
         vColor = color;
@@ -1203,6 +1223,7 @@ export function createBlockAtlas() {
         float ty = floor(tile / ${ATLAS_N}.0);
         vAuvBase = vec2(tx / ${ATLAS_N}.0, 1.0 - (ty + 1.0) / ${ATLAS_N}.0);
         vNormal = normalize(normalMatrix * normal);
+        vWorldPos = position;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
     `,
@@ -1212,10 +1233,15 @@ export function createBlockAtlas() {
       uniform vec3 ambientColor;
       uniform vec3 sunColor;
       uniform vec3 sunDir;
+      uniform vec3 lanternPos;
+      uniform vec3 lanternColor;
+      uniform float lanternStrength;
+      uniform float lanternRadius;
       varying vec2 vUv;
       varying vec4 vColor;
       varying vec2 vAuvBase;
       varying vec3 vNormal;
+      varying vec3 vWorldPos;
       void main() {
         vec2 tUv = fract(vUv);
         tUv = clamp(tUv, 0.02, 0.98);
@@ -1224,6 +1250,9 @@ export function createBlockAtlas() {
         if (tex.a < 0.35) discard;
         float ndl = max(0.0, abs(dot(normalize(vNormal), normalize(sunDir))));
         vec3 light = ambientColor + sunColor * ndl * sunIntensity;
+        float lanternFalloff = max(0.0, 1.0 - distance(vWorldPos, lanternPos) / lanternRadius);
+        lanternFalloff *= lanternFalloff * lanternStrength;
+        light += lanternColor * lanternFalloff;
         vec3 rgb = tex.rgb * max(vColor.rgb, vec3(0.25)) * light;
         gl_FragColor = vec4(rgb, 1.0);
       }
