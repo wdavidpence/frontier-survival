@@ -4995,7 +4995,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.18.0'), 'HTML must expose v1.18.0');
+  assert.ok(html.includes('v1.18.7'), 'HTML must expose v1.18.7');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5126,7 +5126,7 @@ test('procedural item icons reach hotbars, inventory, and chest without dropping
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(game.includes("from './item-icons.js?v=3'"));
+  assert.ok(game.includes("from './item-icons.js?v=7'"));
   assert.match(game, /setItemIcon\(el, stack\.id, name, col, ['"]hb-glyph['"]\)/);
   assert.match(game, /setItemIcon\(el, s\.id, name, col, ['"]inv-icon['"]\)/);
   assert.match(game, /_paintChest\(\)[\s\S]*?setItemIcon\(el, s\.id, name, col, ['"]inv-icon['"]\)/);
@@ -5137,6 +5137,11 @@ test('procedural item icons reach hotbars, inventory, and chest without dropping
   assert.match(html, /\.inv-slot \.inv-icon/);
   assert.match(html, /\.hotbar-slot \.hb-glyph/);
   assert.match(html, /\.inv-slot \.inv-name[\s\S]*?clip: rect\(0, 0, 0, 0\)/);
+  assert.match(html, /\.hotbar-slot:hover:not\(\.empty\) \.slot-icon/);
+  assert.match(html, /\.hotbar-slot\.active \.slot-icon/);
+  assert.match(html, /\.hotbar-slot:active:not\(\.empty\) \.slot-icon/);
+  assert.match(html, /@media \(max-width: 720px\)[\s\S]*?#inventory-screen #inv-slots, #inventory-screen #chest-slots \{ grid-template-columns: repeat\(6, minmax\(0, 1fr\)\); \}/);
+  assert.match(html, /@media \(max-width: 720px\)[\s\S]*?\.inv-slot \.inv-icon \{ width: 84%; height: 84%; \}/);
 });
 
 test('durability adapter cache and mining wear remain reachable', () => {

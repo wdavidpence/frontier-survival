@@ -29,6 +29,43 @@ assert.match(svg, /viewBox="0 0 64 64"/);
 assert.match(svg, /<linearGradient/);
 assert.match(svg, /<filter[^>]*id="shadow"/);
 assert.match(svg, /filter="url\(#shadow\)"/);
+assert.match(svg, /data-ground-shadow="hard"/);
+assert.match(svg, /data-material-pass="forged-edge"/);
+const foodSvg = iconSvgForItem(101, 'Dried Ration', '#b87333');
+assert.match(foodSvg, /data-ground-shadow="soft"/);
+assert.match(foodSvg, /data-material-pass="food-gloss"/);
+const containerSvg = iconSvgForItem(144, 'Water Bucket', '#6aa4d8');
+assert.match(containerSvg, /data-ground-shadow="grounded"/);
+assert.match(containerSvg, /data-material-pass="container-rim"/);
+const rarityCases = [
+  [57, 'Diamond Ore', 'legendary'],
+  [119, 'Iron Ingot', 'rare'],
+  [22, 'Chest', 'uncommon'],
+  [101, 'Dried Ration', 'common'],
+];
+for (const [id, name, rarity] of rarityCases) {
+  const raritySvg = iconSvgForItem(id, name, '#6aa4d8');
+  assert.match(raritySvg, new RegExp(`data-rarity="${rarity}"`), `rarity for ${name}`);
+  if (rarity === 'common') assert.doesNotMatch(raritySvg, /data-rarity-accent=/);
+  else assert.match(raritySvg, new RegExp(`data-rarity-accent="${rarity}"`));
+}
+const variantCases = [
+  [101, 'Dried Ration', 'ration-bowl'],
+  [14, 'Torch', 'torch-flame'],
+  [100, 'Stick', 'stick'],
+  [115, 'Berries', 'berry-cluster'],
+  [144, 'Water Bucket', 'handled-bucket'],
+  [102, 'Wood Pick', 'hero-pickaxe'],
+  [103, 'Stone Axe', 'hero-axe'],
+  [104, 'Iron Sword', 'hero-blade'],
+  [57, 'Diamond', 'diamond-gem'],
+  [93, 'Iron Ore', 'faceted-ore'],
+  [150, 'Chest', 'hero-chest'],
+  [151, 'Furnace', 'hero-furnace'],
+];
+for (const [id, name, variant] of variantCases) {
+  assert.match(iconSvgForItem(id, name, '#6aa4d8'), new RegExp(`data-item-variant="${variant}"`), `variant for ${name}`);
+}
 assert.doesNotMatch(svg, /<script\b|javascript:|on[a-z]+=/i);
 assert.doesNotMatch(svg, />[^<]*[A-Za-z][^<]*</, 'icons do not render word labels');
 assert.match(svg, /<path\b|<rect\b|<ellipse\b|<polygon\b/);

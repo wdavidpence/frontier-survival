@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.18.0</title>
+  <title>Frontier Survival v1.18.7</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -139,7 +139,30 @@
       filter: drop-shadow(0 1px 2px rgba(0,0,0,0.72));
       pointer-events: none;
     }
-    .slot-icon { display: block; user-select: none; }
+    .slot-icon { display: block; user-select: none; transition: transform .16s ease, filter .16s ease; }
+    .hotbar-slot:hover:not(.empty) .slot-icon,
+    .inv-slot:hover:not(.dragging) .slot-icon {
+      transform: translate(-50%, -56%) scale(1.07);
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.78)) brightness(1.08) saturate(1.08);
+    }
+    .hotbar-slot.active .slot-icon,
+    .inv-slot.active .slot-icon,
+    .inv-slot.assign-armed .slot-icon {
+      transform: translate(-50%, -58%) scale(1.1);
+      filter: drop-shadow(0 3px 4px rgba(0,0,0,0.82)) brightness(1.12) saturate(1.12);
+    }
+    .hotbar-slot:active:not(.empty) .slot-icon,
+    .inv-slot:active:not(.dragging) .slot-icon {
+      transform: translate(-50%, -50%) scale(.96);
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.7)) brightness(1.04) saturate(1.04);
+    }
+    @media (max-width: 720px) {
+      #inventory-screen .inv-panel { padding: 16px 14px 20px; }
+      #inventory-screen #inv-slots { gap: 4px; }
+      #inventory-screen #inv-slots, #inventory-screen #chest-slots { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      .inv-slot { min-height: 44px; padding: 2px; }
+      .inv-slot .inv-icon { width: 84%; height: 84%; }
+    }
     .hotbar-slot .hb-count {
       position: absolute; right: 3px; bottom: 2px;
       font-size: 11px; font-weight: 700;
@@ -1480,7 +1503,7 @@
     <div id="message"></div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.18.0</div>
+    <div id="version-badge">v1.18.7</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1568,7 +1591,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.18.0</div>
+      <div class="tag">Browser survival sandbox · v1.18.7</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1692,6 +1715,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=640"></script>
+  <script type="module" src="./js/main.js?v=647"></script>
 </body>
 </html>
