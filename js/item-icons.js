@@ -109,6 +109,24 @@ function shapeForItemVariant(itemId, name, p) {
   if (/(furnace|kiln|smelter)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="hero-furnace"><path d="M12 17 32 10l20 7v32l-20 7-20-7z" fill="${p.dark}" stroke="${p.deep}" stroke-width="1.5"/><path d="M12 17l20 8 20-8-20-7z" fill="${p.light}"/><path d="M19 29h26v16H19z" fill="${p.deep}" stroke="${p.glint}" stroke-width="1.2"/><path d="M25 34h14v8H25z" fill="#1a2330" stroke="${p.dark}" stroke-width="1.2"/><path d="M28 38c2-5 6-5 8 0-2 4-6 4-8 0z" fill="#f47b38"/><path d="M22 21 32 25l10-4" fill="none" stroke="${p.glint}" stroke-width="1.4"/></g>`;
   }
+  if (/(raw fish|cooked fish|tropical fish|fish)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="fish-fillet"><path d="M12 34c8-13 24-15 38-5l7-5-2 10 2 10-7-5c-14 10-30 8-38-5z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5" stroke-linejoin="round"/><path d="M19 34c8-4 17-5 26-2" fill="none" stroke="${p.light}" stroke-width="3" stroke-linecap="round"/><path d="M26 28c4 3 5 9 1 13M33 27c4 4 5 10 1 14" fill="none" stroke="${p.dark}" stroke-width="1.3"/><circle cx="19" cy="32" r="2" fill="#f5fbff"/><circle cx="19" cy="32" r=".8" fill="${p.deep}"/><path d="M44 28l7 6-7 6" fill="none" stroke="${p.glint}" stroke-width="1.4"/></g>`;
+  }
+  if (/(bread|loaf)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="bread-loaf"><path d="M13 35c0-11 9-20 21-20s18 7 18 17v14H13z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M14 34c4-7 11-11 20-11 8 0 14 4 17 10" fill="${p.light}" stroke="${p.deep}" stroke-width="1.3"/><path d="M25 25l4 6M34 23l3 7M42 26l2 6" stroke="#fff0b3" stroke-width="2" stroke-linecap="round" opacity=".85"/><path d="M18 44h29" stroke="${p.dark}" stroke-width="2" stroke-linecap="round"/></g>`;
+  }
+  if (/(raw meat|cooked meat|rotten meat|meat)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="meat-cut"><path d="M18 18c6-5 15-4 19 2 3 4 8 4 11 8 5 7 1 18-7 22-8 4-20 1-25-7-5-8-5-19 2-25z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M25 23c4 1 5 5 3 8M39 32c4 1 5 5 3 8M29 41c3-2 7-2 10 1" fill="none" stroke="${p.light}" stroke-width="1.7" stroke-linecap="round"/><circle cx="42" cy="23" r="2" fill="${p.glint}" opacity=".8"/><path d="M20 48h25" stroke="${p.dark}" stroke-width="1.8" stroke-linecap="round"/></g>`;
+  }
+  if (/(apple|coconut)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="fruit"><path d="M32 19c-13-5-22 5-20 17 2 13 10 20 20 20s18-7 20-20c2-12-7-22-20-17z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M32 19c0-5 4-9 9-10" fill="none" stroke="${p.dark}" stroke-width="2.5" stroke-linecap="round"/><path d="M37 11c5-4 9-3 12 0-5 4-9 4-12 0z" fill="#75b85c" stroke="#386b3b" stroke-width="1"/><path d="M22 27c4-4 9-5 14-4" fill="none" stroke="${p.glint}" stroke-width="2" stroke-linecap="round"/></g>`;
+  }
+  if (/(seed|seeds|mushroom|flower|plant|palm frond|leaf|leaves)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="seedling"><path d="M31 51V27" stroke="${p.deep}" stroke-width="3" stroke-linecap="round"/><path d="M31 35c-10 1-16-4-16-11 10-2 16 3 16 11zM32 31c2-10 9-15 17-13-1 9-7 14-17 13z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.4"/><path d="M31 44c-7-2-12-1-15 4 6 4 12 2 15-4z" fill="${p.light}" stroke="${p.deep}" stroke-width="1.2"/><path d="M31 34l-10-7M32 31l11-10" stroke="${p.glint}" stroke-width="1.2" stroke-linecap="round" opacity=".8"/></g>`;
+  }
+  if (/(wool coat|fur boots|leather vest|coat|boots|vest|clothing|cloth|fur|wool|leather|hide)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="tailored-clothing"><path d="M21 15l11 6 11-6 8 11-6 7-4-4v22H20V29l-4 4-6-7z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5" stroke-linejoin="round"/><path d="M26 17l6 10 6-10" fill="none" stroke="${p.light}" stroke-width="2"/><path d="M25 33h14M25 39h14M27 45h10" stroke="${p.glint}" stroke-width="1.2" stroke-linecap="round" opacity=".8"/><circle cx="32" cy="34" r="1.2" fill="${p.glint}"/><path d="M20 48h24" stroke="${p.dark}" stroke-width="2" stroke-linecap="round"/></g>`;
+  }
   if (/(ration|soup|stew|bowl)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="ration-bowl"><path d="M13 25h38c-2 15-9 24-19 24S15 40 13 25z" fill="${p.deep}" stroke="${p.deep}" stroke-width="1.4"/><path d="M17 26h30c-2 10-7 17-15 17S19 36 17 26z" fill="url(#body)" stroke="${p.dark}" stroke-width="1.2"/><ellipse cx="32" cy="25" rx="19" ry="7" fill="${p.light}" stroke="${p.deep}" stroke-width="1.4"/><ellipse cx="32" cy="24" rx="14" ry="4" fill="${p.base}"/><path d="M23 21c4-2 9-2 14 0" stroke="#fff1bf" stroke-width="1.6" stroke-linecap="round" opacity=".8"/></g>`;
   }

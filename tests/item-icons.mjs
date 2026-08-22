@@ -75,6 +75,12 @@ const variantCases = [
   [93, 'Iron Ore', 'faceted-ore'],
   [150, 'Chest', 'hero-chest'],
   [151, 'Furnace', 'hero-furnace'],
+  [205, 'Raw Fish', 'fish-fillet'],
+  [158, 'Bread', 'bread-loaf'],
+  [100, 'Raw Meat', 'meat-cut'],
+  [214, 'Apple', 'fruit'],
+  [116, 'Seeds', 'seedling'],
+  [123, 'Wool Coat', 'tailored-clothing'],
 ];
 for (const [id, name, variant] of variantCases) {
   assert.match(iconSvgForItem(id, name, '#6aa4d8'), new RegExp(`data-item-variant="${variant}"`), `variant for ${name}`);
