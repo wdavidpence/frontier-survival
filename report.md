@@ -14,36 +14,36 @@ This is the authoritative v1.18 icon-release worktree used for the incremental i
 
 ## Latest checkpoint
 
-### v1.18.22 — Survival Materials and Trail States
+### v1.18.23 — Offshore Tropical Material States
 
 Commit pushed to `origin/main`:
 
-`79d5201d236ac9cf6401f01bbd9b068403b58587`
+Pending commit at report-edit time; update this field with the final v1.18.23 commit after commit.
 
 Commit title:
 
-`feat: publish v1.18.22 survival materials`
+`feat: publish v1.18.23 offshore tropical materials`
 
 The latest local candidate includes:
 
-- Packed Ration: `packed-ration`
-- Dried Tropical Fish: `dried-tropical-fish`
-- Trail Boots: `trail-boots`
-- Weathered Map: `weathered-map`
-- Existing Signal Torch and Fish Bait preservation
+- Lush Palm Frond: `lush-palm-frond`
+- Tied Fish Bait: `tied-fish-bait`
+- Striped Reef Fish: `striped-reef-fish`
+- Weathered Coconut: `weathered-coconut`
+- Existing Signal Torch and Map preservation
 
 Cache chain:
 
-- `item-icons.js?v=22`
-- `game.js?v=646`
-- `main.js?v=662`
-- HTML version `v1.18.22`
+- `item-icons.js?v=23`
+- `game.js?v=647`
+- `main.js?v=663`
+- HTML version `v1.18.23`
 
 Review document:
 
-`docs/reviews/visual-release-v1.18.22-survival-materials.md`
+`docs/reviews/visual-release-v1.18.23-offshore-tropical.md`
 
-## v1.18.22 verification status
+## v1.18.23 verification status
 
 Completed before the pause:
 
@@ -52,16 +52,16 @@ Completed before the pause:
 - JavaScript syntax checks: PASS
 - `git diff --check`: PASS
 - Root/public HTML parity: PASS
-- Local candidate served with correct v1.18.22 markers: PASS
+- Local candidate served with correct v1.18.23 markers: PASS
 - Real New World boot: PASS
 - Real inventory overlay opened: PASS
 - Six-item inventory fixture: PASS
-- Exact shipped `item-icons.js?v=22` state-marker verification: PASS
+- Exact shipped `item-icons.js?v=23` state-marker verification: PASS
 - State markers verified:
-  - `packed-ration`
-  - `dried-tropical-fish`
-  - `trail-boots`
-  - `weathered-map`
+  - `lush-palm-frond`
+  - `tied-fish-bait`
+  - `striped-reef-fish`
+  - `weathered-coconut`
 - Native keyboard focus verification: PASS
 - `:focus-visible` computed cyan outline: PASS
 - Local desktop visual review: PASS
@@ -98,7 +98,7 @@ v1.18.20 was pushed after the v1.18.19 live verification. Live Pages propagation
 - `public/index.html`
 - `tests/item-icons.mjs`
 - `tests/smoke.mjs`
-- `docs/reviews/visual-release-v1.18.22-survival-materials.md`
+- `docs/reviews/visual-release-v1.18.23-offshore-tropical.md`
 - `report.md` (this file)
 
 ## Resume verification completed
@@ -182,16 +182,8 @@ Earlier village/trading work existed on an obsolete line and must not be treated
 
 - BVI Pass 3: pending
 - Clean BVI reef visual proof: pending
-- v1.18.22 live Pages propagation: PASS after one bounded check
-- Live HTML version: v1.18.22
-- Live entry cache: `main.js?v=662`
-- Live game importer: `item-icons.js?v=22`
-- Live survival-material markers present
-- Live Start succeeded
-- Live title hidden after Start
-- Live 390x844 canvas rendered
-- Live page-owned runtime errors: 0
-- Next icon pass after v1.18.22: not started
+- v1.18.23 live Pages propagation: pending after publication
+- Next icon pass after v1.18.23: not started
 - Authoritative v1.18 village/villager trading: unresolved/pending
 
 ## Safe next action
