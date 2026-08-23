@@ -120,6 +120,7 @@ import {
   buildTerrainProxyArrays,
 } from '../js/terrain-visibility.js';
 import { clampWaterLevel, flowOutLevel, isWaterSource, waterFillFraction } from '../js/water-level.js';
+import { waterWaveStrength, WATER_WAVE } from '../js/water-material.js';
 import { createItemFrame, setFrameItem, rotateFrame, frameHasItem } from '../js/item-frame.js';
 import { createLever, toggleLever, leverOutputsPower } from '../js/lever-power.js';
 import { createPressurePlate, updatePressurePlate, pressurePlatePressedEdge } from '../js/pressure-plate.js';
@@ -582,7 +583,20 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /float northSound/);
   assert.match(atlas, /float foamBand/);
   assert.match(atlas, /vTile - 5\.0/);
-  assert.match(game, /atlas\.js\?v=304/);
+  assert.match(game, /atlas\.js\?v=305/);
+});
+
+test('water wave salvage is deterministic and reaches the live material path', () => {
+  const atlas = fsText('js/atlas.js');
+  const game = fsText('js/game.js');
+  const first = waterWaveStrength(2.5, 8, -3);
+  assert.strictEqual(first, waterWaveStrength(2.5, 8, -3));
+  assert.notStrictEqual(first, waterWaveStrength(3.5, 8, -3));
+  assert.ok(WATER_WAVE.speed > 0 && WATER_WAVE.tint.length === 3);
+  assert.match(atlas, /waterTime: \{ value: 0 \}/);
+  assert.match(atlas, /float waterTime/);
+  assert.match(atlas, /float waterSurface = waterFace \* topFace/);
+  assert.match(game, /mat\.uniforms\.waterTime/);
 });
 
 test('BVI White Bay has a deterministic sand landing between shelf and island', () => {
@@ -5284,7 +5298,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.18.35'), 'HTML must expose v1.18.35');
+  assert.ok(html.includes('v1.18.36'), 'HTML must expose v1.18.36');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

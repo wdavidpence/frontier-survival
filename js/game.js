@@ -67,7 +67,7 @@ import {
 } from './crafting.js?v=418';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=267';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
-import { createBlockAtlas } from './atlas.js?v=304';
+import { createBlockAtlas } from './atlas.js?v=305';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=288';
 import { underwaterFogStyle } from './underwater-fog.js?v=245';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
@@ -5030,6 +5030,7 @@ export class Game {
     const mat = this.atlas?.greedyMaterial;
     if (mat?.uniforms) {
       mat.uniforms.sunIntensity.value = 0.32 * nightMix + (0.46 + sunI * 0.58) * dayFactor;
+      if (mat.uniforms.waterTime) mat.uniforms.waterTime.value = this._animClock || 0;
       mat.uniforms.ambientColor.value.set(
         0.22 * nightMix + 0.74 * dayFactor,
         0.24 * nightMix + 0.77 * dayFactor,

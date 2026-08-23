@@ -12,6 +12,7 @@ import {
   crackTileForProgress,
   atlasTileCount,
 } from './atlas-core.js?v=287';
+import { WATER_WAVE } from './water-material.js?v=1';
 
 export {
   TILE,
@@ -1208,6 +1209,7 @@ export function createBlockAtlas() {
       lanternColor: { value: new THREE.Color(1.0, 0.48, 0.18) },
       lanternStrength: { value: 0.0 },
       lanternRadius: { value: 7.5 },
+      waterTime: { value: 0 },
     },
     vertexShader: `
       attribute float tile;
@@ -1239,6 +1241,7 @@ export function createBlockAtlas() {
       uniform vec3 lanternColor;
       uniform float lanternStrength;
       uniform float lanternRadius;
+      uniform float waterTime;
       varying vec2 vUv;
       varying vec4 vColor;
       varying vec2 vAuvBase;
@@ -1269,6 +1272,11 @@ export function createBlockAtlas() {
         float foamBand = smoothstep(0.48, 0.78, cove) * (1.0 - smoothstep(0.78, 0.96, cove));
         float foamBreak = 0.55 + 0.45 * sin(vWorldPos.x * 1.7 + vWorldPos.z * 1.1);
         rgb += vec3(0.16, 0.26, 0.22) * foamBand * topFace * foamBreak * 0.22;
+        float waterSurface = waterFace * topFace;
+        float wave = 0.5 + 0.5 * sin(waterTime * ${WATER_WAVE.speed} + vWorldPos.x * ${WATER_WAVE.xFrequency} + vWorldPos.z * ${WATER_WAVE.zFrequency});
+        float ripple = 0.5 + 0.5 * sin(waterTime * 1.05 + vWorldPos.x * 0.27 - vWorldPos.z * 0.38);
+        rgb += vec3(${WATER_WAVE.tint.join(', ')}) * waterSurface * (0.16 + wave * 0.16);
+        rgb += vec3(0.18, 0.28, 0.26) * waterSurface * ripple * 0.08;
         gl_FragColor = vec4(rgb, 1.0);
       }
     `,
