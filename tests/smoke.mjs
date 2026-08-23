@@ -4,7 +4,7 @@ import { palmLeafDrop } from '../js/palm-drops.js';
 import { createFishingState, startCast, tickFishing, rollFishingCatch, FISHING_CAST_TRAVEL_SECONDS } from '../js/fishing-cast.js';
 import { createBoat, canPlaceBoat, mountBoat, dismountBoat, stepBoat, buoyancyY, riderPosition, boatWaterFootprintClear } from '../js/boat-entity.js';
 import { schoolFishPose, schoolVisibility } from '../js/fish-school.js';
-import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt } from '../js/gen.js';
+import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviLocationAt, BVI_TENTH_SCALE, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
 import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
 import { seaTurtleLayout } from '../js/fauna-parts/turtle-layout.js';
@@ -499,7 +499,7 @@ test('fixed seed tropical field is water-dominant with bounded relief', () => {
     }
   }
   const ratio = water / total;
-  assert.ok(ratio >= 0.80 && ratio <= 0.90, `water ratio ${ratio.toFixed(3)} should read as archipelagic`);
+  assert.ok(ratio >= 0.75 && ratio <= 0.90, `water ratio ${ratio.toFixed(3)} should read as archipelagic`);
   assert.ok(peak >= 38 && peak < 48, `mountain peak ${peak} must be tall but bounded`);
   assert.strictEqual(heightAt(0, 0, seed), 16, 'starter island must stay above water');
   assert.strictEqual(biomeAt(26, 22, seed), BIOME.SHORE, 'authored shore route must remain buildable');
@@ -525,6 +525,37 @@ test('BVI macro chain favors major islands, channels, and sparse cays', () => {
   assert.match(worker, /BVI_MAJOR_LANDFORMS/);
   assert.match(worker, /bviLandformAt/);
   assert.match(worker, /authoredWetland/);
+});
+
+test('BVI one-tenth regional chain adds missing islands and place cues', () => {
+  const seed = 1884808540;
+  assert.equal(BVI_TENTH_SCALE.metersPerCell, 10);
+  assert.match(BVI_TENTH_SCALE.horizontal, /1:10/);
+  for (const [x, z, name] of [
+    [116, -4, 'beef-island'],
+    [170, -4, 'virgin-gorda-east'],
+    [-8, 64, 'norman-island'],
+    [76, 62, 'salt-island'],
+    [140, -28, 'scrub-island'],
+    [260, 44, 'anegada-east'],
+  ]) {
+    const landform = bviLandformAt(x, z);
+    assert.equal(landform.majorName, name);
+    assert.ok(landform.majorInfluence > 0.9, `${name} should have a readable island core`);
+    assert.ok(heightAt(x, z, seed) >= 17, `${name} should rise above the BVI sea`);
+  }
+  assert.ok(heightAt(128, 20, seed) < 16, 'regional channels remain open between islands');
+  assert.equal(bviLocationAt(22, 4).name, 'Road Town · Tortola');
+  assert.equal(bviLocationAt(116, -4).name, 'Beef Island · Trellis Bay');
+  assert.equal(bviLocationAt(170, -4).name, 'Spanish Town · Virgin Gorda');
+  assert.equal(bviLocationAt(140, -28).name, 'Scrub Island');
+  assert.equal(bviLocationAt(260, 44).name, 'Anegada · Salt Pond');
+  assert.equal(bviLocationAt(300, 100), null, 'location cues stay bounded to authored places');
+  const worker = fsText('js/chunk-worker.js');
+  const game = fsText('js/game.js');
+  assert.match(worker, /BVI_TENTH_ISLANDS/);
+  assert.match(worker, /bviRegion = x >= -90 && x <= 330/);
+  assert.match(game, /bviLocationAt/);
 });
 
 test('BVI sheltered coves create named shallow-water approaches', () => {
@@ -5023,7 +5054,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker\.js\?v=331/);
+  assert.match(world, /chunk-worker\.js\?v=332/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
   assert.match(world, /Sparse mangrove-log ribs/);
@@ -5253,7 +5284,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.18.34'), 'HTML must expose v1.18.34');
+  assert.ok(html.includes('v1.18.35'), 'HTML must expose v1.18.35');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

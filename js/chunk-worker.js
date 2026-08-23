@@ -57,6 +57,16 @@ const BVI_SPARSE_CAYS = Object.freeze([
   { name: 'cooper-island', cx: 55, cz: 30, rx: 7, rz: 5, peak: 5 },
   { name: 'great-camanoe', cx: 52, cz: -27, rx: 7, rz: 4, peak: 5 },
 ]);
+const BVI_TENTH_ISLANDS = Object.freeze([
+  { name: 'beef-island', cx: 116, cz: -4, rx: 24, rz: 8, peak: 10 },
+  { name: 'virgin-gorda-east', cx: 170, cz: -4, rx: 42, rz: 12, peak: 20 },
+  { name: 'norman-island', cx: -8, cz: 64, rx: 27, rz: 10, peak: 14 },
+  { name: 'salt-island', cx: 76, cz: 62, rx: 13, rz: 7, peak: 8 },
+  { name: 'scrub-island', cx: 140, cz: -28, rx: 16, rz: 7, peak: 9 },
+  { name: 'anegada-east', cx: 260, cz: 44, rx: 55, rz: 18, peak: 5 },
+  { name: 'ginger-island', cx: 82, cz: 34, rx: 9, rz: 4, peak: 6 },
+  { name: 'marina-cay', cx: 101, cz: -20, rx: 6, rz: 3, peak: 4 },
+]);
 const BVI_SHELTERED_COVES = Object.freeze([
   { name: 'white-bay', cx: -42, cz: 8, rx: 14, rz: 6 },
   { name: 'north-sound', cx: 52, cz: -2, rx: 10, rz: 5 },
@@ -81,6 +91,10 @@ function ellipseInfluence(x, z, landform) {
 function bviLandformAt(x, z) {
   let major = { influence: 0, peak: 0, name: '' };
   for (const landform of BVI_MAJOR_LANDFORMS) {
+    const influence = ellipseInfluence(x, z, landform);
+    if (influence > major.influence) major = { influence, peak: landform.peak, name: landform.name };
+  }
+  for (const landform of BVI_TENTH_ISLANDS) {
     const influence = ellipseInfluence(x, z, landform);
     if (influence > major.influence) major = { influence, peak: landform.peak, name: landform.name };
   }
@@ -260,7 +274,7 @@ function heightAt(x, z, seed = 0) {
   const cove = bviCoveAt(x, z);
   const beachLanding = bviBeachLandingAt(x, z);
   const route = bviRouteCorridorAt(x, z);
-  const bviRegion = x >= -110 && x <= 140 && z >= -100 && z <= 110;
+  const bviRegion = x >= -90 && x <= 330 && z >= -120 && z <= 130;
   const authoredWetland = x >= 46 && x <= 68 && z >= 52 && z <= 72;
   if (bvi.influence > 0) {
     const relief = fbm(x * 0.04 * WORLD_SCALE + seed * 2.1, z * 0.04 * WORLD_SCALE - seed * 1.7, 3);

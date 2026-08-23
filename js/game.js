@@ -72,7 +72,7 @@ import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX,
 import { underwaterFogStyle } from './underwater-fog.js?v=245';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=8';
-import { heightAt, bviRouteCorridorAt } from './gen.js?v=309';
+import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=310';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=29';
 import {
   equipmentWarmth,
@@ -426,6 +426,7 @@ export class Game {
     this._lightningAcc = 0;
     this._sleepFadeT = 0;
     this._lastBiome = null; // biome notification tracker
+    this._lastBviLocation = ''; // authored 1/10-scale island/place cue
     this._ignorePauseT = 0;
     this._spawnProtectT = 0;
     this._spawnPos = null; // {x, y, z} — tracked for starter_map_marker
@@ -1088,6 +1089,11 @@ export class Game {
         this._spawnPos = { x: spawn.x, y: spawn.y, z: spawn.z };
       }
     }
+
+    this._lastBviLocation = bviLocationAt(
+      Math.floor(this.player.position.x),
+      Math.floor(this.player.position.z),
+    )?.name || '';
 
     this._restoreBoat(saveData?.boat);
     if (!freshPlayer) {
@@ -3057,6 +3063,16 @@ export class Game {
     const pz = Math.floor(this.player.position.z);
     const currentBiome = biomeAt(px, pz, this.seed);
     const tempOffset = ambientTempOffset(currentBiome);
+    const currentBviLocation = bviLocationAt(px, pz)?.name || '';
+
+    // The map is large enough that place names are useful navigation feedback,
+    // not just a title-screen claim. Suppress the first spawn cue (already
+    // shown by the fresh-landmark notification above).
+    if (currentBviLocation && currentBviLocation !== this._lastBviLocation && this._landfallNoticeT <= 0) {
+      this.player.notify(`Landfall · ${currentBviLocation}`, 4);
+      this._landfallNoticeT = 3;
+    }
+    this._lastBviLocation = currentBviLocation;
 
     // Notify on biome change
     if (currentBiome !== this._lastBiome) {

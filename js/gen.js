@@ -66,6 +66,40 @@ const BVI_SPARSE_CAYS = Object.freeze([
   { name: 'cooper-island', cx: 55, cz: 30, rx: 7, rz: 5, peak: 5 },
   { name: 'great-camanoe', cx: 52, cz: -27, rx: 7, rz: 4, peak: 5 },
 ]);
+
+// One-tenth-scale regional additions. Horizontal cells represent ~10 m; the
+// existing starter landmarks stay fixed for route/save compatibility. These
+// missing islands complete the real BVI ordering: Norman/Peter/Salt south,
+// Beef/Scrub/Great Camanoe east, and the low Anegada shelf farther northeast.
+export const BVI_TENTH_SCALE = Object.freeze({
+  metersPerCell: 10,
+  horizontal: '1:10 coastline approximation',
+  vertical: 'compressed to the 48-block survival world',
+});
+const BVI_TENTH_ISLANDS = Object.freeze([
+  { name: 'beef-island', cx: 116, cz: -4, rx: 24, rz: 8, peak: 10 },
+  { name: 'virgin-gorda-east', cx: 170, cz: -4, rx: 42, rz: 12, peak: 20 },
+  { name: 'norman-island', cx: -8, cz: 64, rx: 27, rz: 10, peak: 14 },
+  { name: 'salt-island', cx: 76, cz: 62, rx: 13, rz: 7, peak: 8 },
+  { name: 'scrub-island', cx: 140, cz: -28, rx: 16, rz: 7, peak: 9 },
+  { name: 'anegada-east', cx: 260, cz: 44, rx: 55, rz: 18, peak: 5 },
+  { name: 'ginger-island', cx: 82, cz: 34, rx: 9, rz: 4, peak: 6 },
+  { name: 'marina-cay', cx: 101, cz: -20, rx: 6, rz: 3, peak: 4 },
+]);
+
+const BVI_TENTH_LOCATIONS = Object.freeze([
+  { name: 'Road Town · Tortola', x: 22, z: 4, radius: 10 },
+  { name: 'West End · Tortola', x: -55, z: -10, radius: 9 },
+  { name: 'Cane Garden Bay · Tortola', x: -10, z: -34, radius: 8 },
+  { name: 'East End · Tortola', x: 82, z: -8, radius: 10 },
+  { name: 'Spanish Town · Virgin Gorda', x: 170, z: -4, radius: 12 },
+  { name: 'Beef Island · Trellis Bay', x: 116, z: -4, radius: 12 },
+  { name: 'Norman Island', x: -8, z: 64, radius: 12 },
+  { name: 'Salt Island', x: 76, z: 62, radius: 8 },
+  { name: 'Scrub Island', x: 140, z: -28, radius: 9 },
+  { name: 'Anegada · Salt Pond', x: 260, z: 44, radius: 16 },
+]);
+
 const BVI_SHELTERED_COVES = Object.freeze([
   { name: 'white-bay', cx: -42, cz: 8, rx: 14, rz: 6 },
   { name: 'north-sound', cx: 52, cz: -2, rx: 10, rz: 5 },
@@ -96,6 +130,10 @@ export function bviLandformAt(x, z) {
     const influence = ellipseInfluence(x, z, landform);
     if (influence > major.influence) major = { influence, peak: landform.peak, name: landform.name };
   }
+  for (const landform of BVI_TENTH_ISLANDS) {
+    const influence = ellipseInfluence(x, z, landform);
+    if (influence > major.influence) major = { influence, peak: landform.peak, name: landform.name };
+  }
   let cay = { influence: 0, peak: 0, name: '' };
   for (const landform of BVI_SPARSE_CAYS) {
     const influence = ellipseInfluence(x, z, landform);
@@ -110,6 +148,20 @@ export function bviLandformAt(x, z) {
     cayName: cay.name,
     influence: Math.max(major.influence, cay.influence),
   };
+}
+
+/** Player-facing place cue for the authored 1/10-scale BVI region. */
+export function bviLocationAt(x, z) {
+  let nearest = null;
+  let best = Infinity;
+  for (const location of BVI_TENTH_LOCATIONS) {
+    const distance = Math.hypot(x - location.x, z - location.z);
+    if (distance <= location.radius && distance < best) {
+      nearest = { name: location.name, distance };
+      best = distance;
+    }
+  }
+  return nearest;
 }
 
 /** Return named sheltered-water strength only where the cove remains open water. */
@@ -307,7 +359,7 @@ export function heightAt(x, z, seed = 0) {
   const cove = bviCoveAt(x, z);
   const beachLanding = bviBeachLandingAt(x, z);
   const route = bviRouteCorridorAt(x, z);
-  const bviRegion = x >= -110 && x <= 140 && z >= -100 && z <= 110;
+  const bviRegion = x >= -90 && x <= 330 && z >= -120 && z <= 130;
   const authoredWetland = x >= 46 && x <= 68 && z >= 52 && z <= 72;
   if (bvi.influence > 0) {
     const relief = fbm(x * 0.04 * WORLD_SCALE + seed * 2.1, z * 0.04 * WORLD_SCALE - seed * 1.7, 3);
