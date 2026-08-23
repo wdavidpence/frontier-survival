@@ -32,6 +32,16 @@ Accepted from the independent Playwright proof at 1280×720:
 
 The Playwright MCP screenshot helper was separately timing out, so the final visual proof used the independent user-local Playwright Chromium path. The raw WebGL `toDataURL()` fallback is disregarded because the drawing buffer is not preserved.
 
+## Live Pages verification
+
+- Live URL: `https://wdavidpence.github.io/frontier-survival/?release=1.18.36&proof=standalone`;
+- live title/version: `Frontier Survival v1.18.36`;
+- live `started=true`, title hidden, canvas 1280×720;
+- live `waterTime` advanced (`0.064`);
+- live page errors: `[]`;
+- live screenshot: `/tmp/frontier-live-v11836.png`;
+- live visual frame matches local acceptance: readable water, beach, island relief, field note, HUD, and no new black/gray/muddy artifact.
+
 ## Candidate
 
 Worktree: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-salvage`
