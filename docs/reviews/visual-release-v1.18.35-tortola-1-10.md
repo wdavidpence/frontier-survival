@@ -1,6 +1,6 @@
 # Frontier Survival v1.18.35 — Tortola / BVI 1:10 regional biome
 
-Decision: release candidate pending final live verification
+Decision: SHIPPED CHECKPOINT
 
 ## Product slice
 
@@ -50,7 +50,13 @@ Local browser:
 
 Live Pages:
 
-- pending push and post-deploy verification.
+- `https://wdavidpence.github.io/frontier-survival/?release=1.18.35&fresh=1` loaded `Frontier Survival v1.18.35`;
+- live New World reached `window.__FS.started === true`, hid `#title-screen`, and reported `runtimeErrors=[]`;
+- fresh live Cane Garden Bay frame visibly matched local beach/water/tropical relief evidence with the `Cane Garden Bay · Tortola` cue and zero page-owned errors;
+- live controlled outer probe at `(116.5, -4.5)` reported `Beef Island · Trellis Bay` and `Landfall · Beef Island · Trellis Bay`, rendered the new island/channel geometry, and reported zero page-owned errors;
+- live fetched assets exposed `main.js?v=704`, `game.js?v=692`, `gen.js?v=310`, and `chunk-worker.js?v=332`.
+
+The outer-island screenshot is supplemental controlled-probe evidence because teleporting into a generated island can place ordinary voxel foreground geometry near the camera; it is not claimed as ordinary-route traversal proof.
 
 ## Remaining honest limitation
 
