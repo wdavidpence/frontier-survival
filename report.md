@@ -18,7 +18,7 @@ This is the authoritative v1.18 icon-release worktree used for the incremental i
 
 Commit pushed to `origin/main`:
 
-Pending commit at report-edit time; update this field with the final v1.18.22 commit after commit.
+`79d5201d236ac9cf6401f01bbd9b068403b58587`
 
 Commit title:
 
@@ -182,7 +182,15 @@ Earlier village/trading work existed on an obsolete line and must not be treated
 
 - BVI Pass 3: pending
 - Clean BVI reef visual proof: pending
-- v1.18.22 live Pages propagation: pending after publication
+- v1.18.22 live Pages propagation: PASS after one bounded check
+- Live HTML version: v1.18.22
+- Live entry cache: `main.js?v=662`
+- Live game importer: `item-icons.js?v=22`
+- Live survival-material markers present
+- Live Start succeeded
+- Live title hidden after Start
+- Live 390x844 canvas rendered
+- Live page-owned runtime errors: 0
 - Next icon pass after v1.18.22: not started
 - Authoritative v1.18 village/villager trading: unresolved/pending
 
