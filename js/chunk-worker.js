@@ -60,10 +60,12 @@ const BVI_SPARSE_CAYS = Object.freeze([
 const BVI_SHELTERED_COVES = Object.freeze([
   { name: 'white-bay', cx: -42, cz: 8, rx: 14, rz: 6 },
   { name: 'north-sound', cx: 52, cz: -2, rx: 10, rz: 5 },
+  { name: 'cane-garden-bay', cx: -10, cz: -36, rx: 10, rz: 4 },
 ]);
 const BVI_BEACH_LANDINGS = Object.freeze([
   { name: 'white-bay-landing', cx: -42, cz: 9, rx: 12, rz: 1 },
   { name: 'north-sound-landing', cx: 52, cz: -5, rx: 8, rz: 1 },
+  { name: 'cane-garden-bay-landing', cx: -10, cz: -34, rx: 8, rz: 1 },
 ]);
 const BVI_ROUTE_CORRIDORS = Object.freeze([
   { name: 'white-bay-channel', x1: 18, z1: 8, x2: -42, z2: 8, width: 3 },
@@ -141,6 +143,7 @@ function bviDockAt(x, z) {
 const BVI_WET_SAND_EDGES = Object.freeze([
   { name: 'white-bay-landing', cx: -42, cz: 9, rx: 12 },
   { name: 'north-sound-landing', cx: 52, cz: -5, rx: 8 },
+  { name: 'cane-garden-bay-landing', cx: -10, cz: -34, rx: 8 },
 ]);
 function bviWetSandAt(x, z) {
   for (const edge of BVI_WET_SAND_EDGES) {

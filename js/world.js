@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=290';
-import { heightAt, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt } from './gen.js?v=308';
+import { heightAt, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt } from './gen.js?v=309';
 import { biomeAt, BIOME } from './biomes.js?v=270';
 import { tileForBlock } from './atlas-core.js?v=287';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=246';
@@ -456,7 +456,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=330';
+    const workerUrl = './js/chunk-worker.js?v=331';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -1845,6 +1845,7 @@ export class World {
     // the authored launch ramp, driftwood, and channel without a lucky random
     // spawn on a distant cay. The normal clearance checks below still apply.
     const launchCandidates = [
+      [-10, -34, 'Cane Garden Bay · Tortola', Math.PI],
       [26, 15], [25, 15], [27, 15], [24, 15], [28, 15],
       [26, 14], [25, 14], [27, 14],
     ];
@@ -1885,7 +1886,13 @@ export class World {
       }
       if (!clear) continue;
       if (preferred) {
-        return { x: x + 0.5, y: h + 1.01, z: z + 0.5, yaw: spawnViewYaw(x, z, this.seed) };
+        return {
+          x: x + 0.5,
+          y: h + 1.01,
+          z: z + 0.5,
+          yaw: Number.isFinite(preferred[3]) ? preferred[3] : spawnViewYaw(x, z, this.seed),
+          landmark: preferred[2] || '',
+        };
       }
       const candidate = { x: x + 0.5, y: h + 1.01, z: z + 0.5, h };
       const biome = biomeAt(x, z, this.seed);

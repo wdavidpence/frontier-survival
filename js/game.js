@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=477';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=478';
 import { Player } from './player.js?v=240';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
@@ -72,7 +72,7 @@ import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX,
 import { underwaterFogStyle } from './underwater-fog.js?v=245';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=8';
-import { heightAt, bviRouteCorridorAt } from './gen.js?v=308';
+import { heightAt, bviRouteCorridorAt } from './gen.js?v=309';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=29';
 import {
   equipmentWarmth,
@@ -959,6 +959,7 @@ export class Game {
    */
   _bootWorld({ seed, freshPlayer = true, saveData = null, notify = '' }) {
     this.seed = seed;
+    this._spawnLandmark = '';
     document.getElementById('hud')?.classList.remove('hidden');
     this._lastSaveStatus = '';
     this._updatePauseSaveStatus('');
@@ -994,11 +995,18 @@ export class Game {
     if (freshPlayer || !saveData) {
       const spawn = this.world.findSpawn();
       this._spawnPos = { x: spawn.x, y: spawn.y, z: spawn.z };
+      this._spawnLandmark = spawn.landmark || '';
       this.player = new Player(spawn, { starterRations: this.modeDef().starterRations });
       // Fresh spawns use the world's open-view direction so the first frame
       // presents a readable destination instead of a close terrain wall.
       this.player.yaw = Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI;
       this.input.lookX = this.player.yaw;
+      if (spawn.landmark) {
+        this._lastBiome = biomeAt(spawn.x, spawn.z, seed);
+        this._wildlifeQuietT = 0;
+        this._wildlifeCueCd = 8;
+        this._wildlifeWasNear = true;
+      }
       this.survival = { ...DEFAULT_SURVIVAL };
       this.time = new GameTime({ dayLengthSec: DEFAULT_DAY_LENGTH_SEC });
       this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0 };
@@ -1132,6 +1140,7 @@ export class Game {
     } else if (freshPlayer) {
       this.player.notify(`${this.modeDef().name} mode. ${this.modeDef().hostilePolicy === 'off' ? 'Peaceful wildlife.' : this.modeDef().hostilePolicy === 'provoke' ? 'Predators only fight if provoked.' : 'Stay cautious near predators at night.'} Drink at water (F).`, 8);
     }
+    if (freshPlayer && this._spawnLandmark) this.player.notify(this._spawnLandmark, 8);
     if (!this._raf) this._loop();
     this.hud.hideTitle?.();
     document.getElementById("sleep-fade")?.classList.remove("on");

@@ -301,7 +301,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=477/);
+  assert.match(gameSource, /world\.js\?v=478/);
 });
 
 test('BVI fresh spawns prefer the authored launch beach when clear', () => {
@@ -314,7 +314,12 @@ test('BVI fresh spawns prefer the authored launch beach when clear', () => {
   assert.match(source, /\(preferred \? 10000 : 0\)/);
   assert.match(source, /const clearRadius = preferred \? 1 : 4/);
   assert.match(source, /if \(h < SEA_LEVEL \+ \(preferred \? 1 : 2\)/);
-  assert.match(source, /if \(preferred\) \{\s*return \{ x: x \+ 0\.5/);
+  assert.match(source, /if \(preferred\) \{\s*return \{\s*x: x \+ 0\.5/);
+  assert.ok(heightAt(-10, -34, seed) >= 17, 'Cane Garden Bay landing stays above sea level');
+  assert.equal(bviBeachLandingAt(-10, -34).name, 'cane-garden-bay-landing');
+  assert.match(source, /Cane Garden Bay · Tortola/);
+  assert.match(fsText('js/chunk-worker.js'), /cane-garden-bay-landing/);
+  assert.match(source, /Number\.isFinite\(preferred\[3\]\)/);
 });
 
 test('skiff footprint stays in water and refuses shore/dock overlap', () => {
@@ -5018,7 +5023,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker\.js\?v=330/);
+  assert.match(world, /chunk-worker\.js\?v=331/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
   assert.match(world, /Sparse mangrove-log ribs/);
@@ -5248,7 +5253,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.18.33'), 'HTML must expose v1.18.33');
+  assert.ok(html.includes('v1.18.34'), 'HTML must expose v1.18.34');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
