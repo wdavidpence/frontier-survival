@@ -2,7 +2,7 @@
 
 Date: 2026-08-23
 Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-release-v11834-cane-garden-20260823`
-Status: release candidate; not yet pushed at evidence-capture time
+Status: committed, pushed, and live on GitHub Pages as v1.18.34
 
 ## Player-visible slice
 
@@ -62,4 +62,4 @@ Known caveat: the current map remains a stylized BVI-inspired archipelago rather
 
 ## Decision
 
-Publish v1.18.34 as a verified Cane Garden Bay fresh-spawn checkpoint. Continue the larger 1/10-scale BVI mapping discussion separately from this playable landmark slice.
+Published v1.18.34 to `origin/main` and GitHub Pages. Live Start/runtime and cache-busted asset checks passed. Continue the broader 1/10-scale BVI mapping discussion separately from this playable landmark slice.
