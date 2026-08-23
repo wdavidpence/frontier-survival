@@ -1,6 +1,6 @@
 # v1.18.36 water-material salvage candidate
 
-Status: LOCAL REVIEW-BLOCKED — NOT PUBLISHED
+Status: ACCEPTED CHECKPOINT — READY TO PUBLISH
 
 ## Source
 
@@ -20,9 +20,17 @@ Salvaged from the dirty canonical worker tree, but rebuilt against current `orig
 
 ## Visual gate
 
-Blocked. The Playwright screenshot helper timed out repeatedly while waiting for fonts. A canvas `toDataURL()` fallback produced a black image because the WebGL drawing buffer is not preserved. No valid visual acceptance claim is made.
+Accepted from the independent Playwright proof at 1280×720:
 
-Do not push or publish this candidate until a fresh browser screenshot proves that water remains readable and no dark/gray/black regression was introduced.
+- exact baseline capture: `/tmp/frontier-water-baseline.png`;
+- exact candidate capture: `/tmp/frontier-water-candidate.png`;
+- candidate water remains readable beside the beach and island silhouettes;
+- HUD, field note, crosshair, and survival meters remain legible;
+- no new black/gray/muddy renderer artifact or HUD overlap was observed;
+- candidate page errors: `[]`;
+- candidate `waterTime` advanced during the proof (`0.048`).
+
+The Playwright MCP screenshot helper was separately timing out, so the final visual proof used the independent user-local Playwright Chromium path. The raw WebGL `toDataURL()` fallback is disregarded because the drawing buffer is not preserved.
 
 ## Candidate
 
