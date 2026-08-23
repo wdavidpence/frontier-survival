@@ -2,7 +2,7 @@
 
 Date: 2026-08-23
 Candidate: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-v11824-bvi`
-Status: local candidate only; not committed, pushed, or published
+Status: committed, pushed, and live on GitHub Pages as v1.18.33
 
 ## Player-visible slice
 
@@ -60,4 +60,4 @@ Known caveat: the authored landing has a noticeable foreground sand step/trench.
 
 ## Decision
 
-Accept v1.18.33 as a verified local BVI landfall candidate. Keep publication blocked pending explicit user ship authorization and, ideally, a headed/native visual pass over the North Sound dock geometry.
+Published v1.18.33 to `origin/main` and GitHub Pages. The live public Start/runtime gate passed; the broader Minecraft/SurvivalCraft visual target and North Sound dock-step polish remain open for user feedback.
