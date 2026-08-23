@@ -2,9 +2,9 @@ import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
 
 import { palmLeafDrop } from '../js/palm-drops.js';
 import { createFishingState, startCast, tickFishing, rollFishingCatch, FISHING_CAST_TRAVEL_SECONDS } from '../js/fishing-cast.js';
-import { createBoat, canPlaceBoat, mountBoat, dismountBoat, stepBoat, buoyancyY, riderPosition } from '../js/boat-entity.js';
+import { createBoat, canPlaceBoat, mountBoat, dismountBoat, stepBoat, buoyancyY, riderPosition, boatWaterFootprintClear } from '../js/boat-entity.js';
 import { schoolFishPose, schoolVisibility } from '../js/fish-school.js';
-import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE } from '../js/gen.js';
+import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
 import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
 import { seaTurtleLayout } from '../js/fauna-parts/turtle-layout.js';
@@ -301,7 +301,36 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=448/);
+  assert.match(gameSource, /world\.js\?v=477/);
+});
+
+test('BVI fresh spawns prefer the authored launch beach when clear', () => {
+  const source = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
+  const seed = 1884808540;
+  assert.ok(heightAt(26, 15, seed) >= 16, 'launch beach candidate stays above sea level');
+  assert.ok(bviStarterRampAt(26, 13), 'launch beach candidate borders the authored ramp');
+  assert.ok(bviDriftwoodAt(23, 14), 'launch beach retains the west driftwood resource');
+  assert.match(source, /const launchCandidates = \[/);
+  assert.match(source, /\(preferred \? 10000 : 0\)/);
+  assert.match(source, /const clearRadius = preferred \? 1 : 4/);
+  assert.match(source, /if \(h < SEA_LEVEL \+ \(preferred \? 1 : 2\)/);
+  assert.match(source, /if \(preferred\) \{\s*return \{ x: x \+ 0\.5/);
+});
+
+test('skiff footprint stays in water and refuses shore/dock overlap', () => {
+  const water = () => 5;
+  const land = (x, y, z) => (x >= 0 ? 4 : 5);
+  assert.equal(boatWaterFootprintClear(0, 0, water, 16, 5), true);
+  assert.equal(boatWaterFootprintClear(0, 0, land, 16, 5), false);
+  const source = fsText('js/game.js');
+  assert.match(source, /_boatCanOccupyWater\(x, z\)/);
+  assert.match(source, /boatWaterFootprintClear\(/);
+  assert.match(source, /this\._boat\.x = previousX/);
+  assert.match(source, /this\._boat\.z = previousZ/);
+  assert.match(source, /this\.input\.wantsForward\(\)/);
+  assert.match(source, /bviRouteCorridorAt\(x, z\)\.influence/);
+  assert.match(source, /const score = distance \+ \(1 - facing\) \* 1\.8 - routeInfluence \* 4/);
+  assert.match(source, /if \(!boatWaterFootprintClear\(/);
 });
 
 test('terrain visibility plan extends fog and proxy beyond full mesh', () => {
@@ -472,6 +501,230 @@ test('fixed seed tropical field is water-dominant with bounded relief', () => {
   assert.strictEqual(biomeAt(42, 51, seed), BIOME.TROPICAL, 'starter tropical route must remain land');
 });
 
+test('BVI macro chain favors major islands, channels, and sparse cays', () => {
+  const seed = 1884808540;
+  const tortola = bviLandformAt(22, -20);
+  const virginGorda = bviLandformAt(82, -4);
+  const anegada = bviLandformAt(96, 48);
+  const channel = bviLandformAt(52, 8);
+  const peter = bviLandformAt(28, 18);
+  assert.equal(tortola.majorName, 'tortola');
+  assert.ok(tortola.majorInfluence > 0.9 && tortola.majorPeak >= 20);
+  assert.equal(virginGorda.majorName, 'virgin-gorda');
+  assert.equal(anegada.majorName, 'anegada');
+  assert.ok(anegada.majorPeak < tortola.majorPeak, 'Anegada must stay low and flat');
+  assert.equal(channel.influence, 0, 'Drake Channel must remain open between major islands');
+  assert.equal(peter.cayName, 'peter-island');
+  assert.ok(heightAt(52, 8, seed) < 16, 'channel sample must remain water');
+  const worker = fsText('js/chunk-worker.js');
+  assert.match(worker, /BVI_MAJOR_LANDFORMS/);
+  assert.match(worker, /bviLandformAt/);
+  assert.match(worker, /authoredWetland/);
+});
+
+test('BVI sheltered coves create named shallow-water approaches', () => {
+  const whiteBay = bviCoveAt(-42, 8);
+  const northSound = bviCoveAt(52, -2);
+  assert.equal(whiteBay.name, 'white-bay');
+  assert.ok(whiteBay.influence > 0.9);
+  assert.equal(northSound.name, 'north-sound');
+  assert.ok(northSound.influence > 0.9);
+  assert.ok(heightAt(-42, 8, 1884808540) >= 14 && heightAt(-42, 8, 1884808540) < 16);
+  assert.ok(heightAt(52, -2, 1884808540) >= 14 && heightAt(52, -2, 1884808540) < 16);
+  assert.ok(bviReefShelfAt(-42, 8) > 0.7, 'White Bay should carry a readable reef belt');
+  assert.ok(bviReefShelfAt(52, -2) > 0.7, 'North Sound should carry a readable reef belt');
+  const worker = fsText('js/chunk-worker.js');
+  assert.match(worker, /BVI_SHELTERED_COVES/);
+  assert.match(worker, /bviCoveAt/);
+});
+
+test('BVI cove water shader adds shallow tint and foam without changing deep water', () => {
+  const atlas = fsText('js/atlas.js');
+  const game = fsText('js/game.js');
+  assert.match(atlas, /varying float vTile/);
+  assert.match(atlas, /float whiteBay/);
+  assert.match(atlas, /float northSound/);
+  assert.match(atlas, /float foamBand/);
+  assert.match(atlas, /vTile - 5\.0/);
+  assert.match(game, /atlas\.js\?v=304/);
+});
+
+test('BVI White Bay has a deterministic sand landing between shelf and island', () => {
+  const seed = 1884808540;
+  const landing = bviBeachLandingAt(-42, 9);
+  assert.equal(landing.name, 'white-bay-landing');
+  assert.ok(landing.influence > 0.9);
+  assert.equal(bviBeachLandingAt(52, -5).name, 'north-sound-landing');
+  assert.ok(bviBeachLandingAt(52, -5).influence > 0.9);
+  assert.ok(heightAt(-42, 8, seed) >= 14 && heightAt(-42, 8, seed) < 16, 'White Bay water must stay shallow');
+  assert.ok(heightAt(52, -4, seed) >= 14 && heightAt(52, -4, seed) < 16, 'North Sound water must stay shallow');
+  assert.equal(heightAt(-42, 9, seed), 17, 'White Bay landing must be a one-block beach lip');
+  assert.equal(heightAt(52, -5, seed), 17, 'North Sound landing must be a one-block beach lip');
+  assert.equal(biomeAt(-42, 9, seed), BIOME.SHORE, 'White Bay landing must classify as shore');
+  assert.equal(biomeAt(52, -5, seed), BIOME.SHORE, 'North Sound landing must classify as shore');
+  assert.equal(bviBeachLandingAt(52, -7).influence, 0, 'North Sound landing must stay bounded');
+  assert.equal(bviBeachLandingAt(-28, 9).influence, 0, 'White Bay landing must stay bounded');
+  const worker = fsText('js/chunk-worker.js');
+  const world = fsText('js/world.js');
+  assert.match(worker, /BVI_BEACH_LANDINGS/);
+  assert.match(worker, /bviBeachLandingAt/);
+  assert.match(worker, /!beachApproach/);
+  assert.match(world, /bviBeachLandingAt\(x, z\)\.influence/);
+  assert.match(world, /!beachApproach/);
+});
+
+test('BVI White Bay channel is a continuous water-safe route from starter launch to cove', () => {
+  const seed = 1884808540;
+  assert.equal(bviRouteCorridorAt(18, 8).name, 'white-bay-channel');
+  assert.equal(bviRouteCorridorAt(-42, 8).name, 'white-bay-channel');
+  assert.equal(bviRouteCorridorAt(32, 10).name, 'north-sound-channel');
+  assert.equal(bviRouteCorridorAt(52, 0).name, 'north-sound-approach');
+  assert.equal(bviRouteCorridorAt(52, -5).name, 'north-sound-approach');
+  assert.equal(bviRouteCorridorAt(18, 12).influence, 0, 'route must stay bounded');
+  for (let x = 18; x >= -42; x -= 2) {
+    const route = bviRouteCorridorAt(x, 8);
+    assert.ok(route.influence >= 0, `route sample at ${x}`);
+    if (route.influence > 0.9) assert.ok(heightAt(x, 8, seed) <= 15, `water-safe height at ${x}`);
+    else assert.ok(heightAt(x, 8, seed) <= 16, `bounded launch transition at ${x}`);
+  }
+  for (let x = 32; x <= 52; x += 2) {
+    assert.equal(bviRouteCorridorAt(x, 10).name, 'north-sound-channel', `North Sound east channel at ${x}`);
+    assert.ok(heightAt(x, 10, seed) <= 15, `North Sound channel water at ${x}`);
+  }
+  for (let z = 8; z >= -4; z -= 2) {
+    assert.equal(bviRouteCorridorAt(52, z).name, 'north-sound-approach', `North Sound approach at ${z}`);
+    assert.ok(heightAt(52, z, seed) <= 15, `North Sound approach water at ${z}`);
+  }
+  assert.equal(bviRouteCorridorAt(52, 10).influence, 1, 'North Sound route junction remains continuous');
+  assert.equal(heightAt(52, -5, seed), 17, 'North Sound route terminates at the landing');
+  assert.equal(heightAt(-42, 9, seed), 17, 'White Bay route terminates at the landing');
+  assert.ok(bviReefShelfAt(0, 7) > 0, 'route margin gets reef shelf');
+  assert.equal(bviReefShelfAt(0, 8), 0, 'center sailing lane stays clear');
+  assert.equal(bviReefShelfAt(0, 12), 0, 'reef fringe stays bounded');
+  assert.ok(bviChannelBuoyAt(12, 6));
+  assert.equal(bviChannelBuoyAt(12, 6).id, 'green');
+  assert.equal(bviChannelBuoyAt(12, 8), null, 'center sailing lane must stay buoy-free');
+  assert.equal(bviChannelBuoyAt(-28, 10).id, 'red');
+  assert.equal(bviChannelBuoyAt(36, 8).id, 'red');
+  assert.equal(bviChannelBuoyAt(44, 12).id, 'red');
+  assert.equal(bviChannelBuoyAt(50, -2).id, 'green');
+  assert.equal(bviChannelBuoyAt(52, 6), null, 'North Sound approach center must stay buoy-free');
+  assert.equal(bviDockAt(52, -4).name, 'north-sound-dock');
+  assert.equal(bviDockAt(50, -4).post, true);
+  assert.equal(bviDockAt(52, -3), null, 'dock footprint must stay bounded');
+  assert.ok(heightAt(52, -4, seed) <= 15, 'dock sits in shallow water');
+  assert.equal(bviWetSandAt(-51, 9).name, 'white-bay-landing');
+  assert.equal(bviWetSandAt(52, -5), null, 'landing center stays bright sand');
+  assert.equal(bviWetSandAt(58, -5).name, 'north-sound-landing');
+  assert.equal(bviWetSandAt(52, -4), null, 'wet-sand edge stays on land');
+  assert.equal(bviReefHeadAt(-42, 5).name, 'named-cove-reef-head');
+  assert.equal(bviReefHeadAt(50, -3).name, 'named-cove-reef-head');
+  assert.equal(bviReefHeadAt(52, -3), null, 'reef head must not occupy approach center');
+  for (const [x, z] of [[-46, 5], [-42, 5], [-38, 5], [-44, 7], [48, -1], [50, -3], [54, -3], [54, -1]]) {
+    assert.ok(heightAt(x, z, seed) <= 15, `reef head ${x},${z} must stay shallow water`);
+    assert.equal(bviRouteCorridorAt(x, z).influence < 0.9, true, `reef head ${x},${z} stays off center lane`);
+  }
+  assert.equal(bviCayOutcropAt(24, 16).name, 'peter-island-outcrop');
+  assert.equal(bviCayOutcropAt(51, 28).name, 'cooper-island-outcrop');
+  assert.equal(bviCayOutcropAt(50, -29).name, 'great-camanoe-outcrop');
+  assert.equal(bviCayOutcropAt(40, 20), null, 'cay outcrop list stays sparse');
+  for (const [x, z] of [[24, 16], [32, 20], [51, 28], [59, 30], [50, -29], [54, -25]]) {
+    const landform = bviLandformAt(x, z);
+    assert.ok(landform.cayInfluence > 0.2, `outcrop ${x},${z} stays on a named cay`);
+    assert.ok(heightAt(x, z, seed) >= 17, `outcrop ${x},${z} stays above water`);
+    assert.equal(bviRouteCorridorAt(x, z).influence, 0, `outcrop ${x},${z} stays off routes`);
+  }
+  assert.equal(bviSaltPondAt(96, 34).name, 'anegada-salt-pond');
+  assert.equal(bviSaltPondAt(102, 35).name, 'anegada-salt-pond');
+  assert.equal(bviSaltPondAt(104, 34), null, 'salt pond stays bounded');
+  assert.equal(bviLandformAt(96, 34).majorName, 'anegada');
+  assert.ok(heightAt(96, 34, seed) >= 17, 'salt pond starts from low island shelf');
+  assert.equal(bviRouteCorridorAt(96, 34).influence, 0, 'salt pond stays off sailing routes');
+  assert.equal(bviSaltPondScrubAt(94, 32).name, 'anegada-salt-scrub');
+  assert.equal(bviSaltPondScrubAt(88, 34).name, 'anegada-salt-scrub');
+  assert.equal(bviSaltPondScrubAt(96, 34), null, 'scrub stays outside pond water');
+  assert.equal(bviSaltPondScrubAt(86, 32), null, 'scrub rim stays bounded');
+  assert.equal(bviLandingSignAt(55, -5).name, 'north-sound-landing-sign');
+  assert.equal(bviLandingSignAt(56, -5).post, true);
+  assert.equal(bviLandingSignAt(58, -5), null, 'landing sign stays bounded');
+  assert.ok(heightAt(56, -5, seed) >= 17, 'landing sign stays on dry shore');
+  assert.equal(bviRouteCorridorAt(56, -5).influence, 0, 'landing sign stays off route center');
+  assert.equal(bviStarterRampAt(24, 12).name, 'starter-beach-launch-ramp');
+  assert.equal(bviStarterRampAt(28, 13).name, 'starter-beach-launch-ramp');
+  assert.equal(bviStarterRampAt(29, 13), null, 'starter ramp stays five cells wide');
+  assert.ok(heightAt(26, 13, seed) < 16, 'starter ramp occupies shallow water');
+  assert.equal(bviRouteCorridorAt(26, 13).influence, 0, 'starter ramp stays outside sailing route');
+  assert.equal(bviDriftwoodAt(23, 14).name, 'starter-beach-driftwood');
+  assert.equal(bviDriftwoodAt(29, 14).name, 'starter-beach-driftwood');
+  assert.equal(bviDriftwoodAt(24, 14), null, 'driftwood stays sparse');
+  assert.ok(heightAt(23, 14, seed) >= 16 && heightAt(29, 14, seed) >= 16, 'driftwood stays on dry shore');
+  assert.equal(bviRouteCorridorAt(23, 14).influence, 0, 'driftwood stays off route');
+  const worker = fsText('js/chunk-worker.js');
+  const world = fsText('js/world.js');
+  assert.match(worker, /BVI_CHANNEL_BUOYS/);
+  assert.match(worker, /bviRouteCorridorAt/);
+  assert.match(world, /channelBuoy\.id === 'red' \? BLOCK\.CORAL : BLOCK\.BUSH/);
+  assert.match(worker, /channelBuoy\.id === 'red' \? BLOCK\.CORAL : BLOCK\.BUSH/);
+  assert.match(world, /const dock = bviDockAt\(x, z\)/);
+  assert.match(worker, /const dock = bviDockAt\(x, z\)/);
+  assert.match(world, /data\[this\._idx\(lx, SEA_LEVEL, lz\)\] = BLOCK\.PLANKS/);
+  assert.match(worker, /data\[idx\(lx, SEA_LEVEL, lz\)\] = BLOCK\.PLANKS/);
+  assert.match(world, /const wetSand = bviWetSandAt\(x, z\)/);
+  assert.match(worker, /const wetSand = bviWetSandAt\(x, z\)/);
+  assert.match(world, /BLOCK\.DAMP_SOIL/);
+  assert.match(worker, /BLOCK\.DAMP_SOIL/);
+  assert.match(world, /bviReefHeadAt\(x, z\)/);
+  assert.match(worker, /bviReefHeadAt\(x, z\)/);
+  assert.match(world, /data\[this\._idx\(lx, waterY, lz\)\] = BLOCK\.CORAL/);
+  assert.match(worker, /data\[idx\(lx, waterY, lz\)\] = BLOCK\.CORAL/);
+  assert.match(world, /const cayOutcrop = bviCayOutcropAt\(x, z\)/);
+  assert.match(worker, /const cayOutcrop = bviCayOutcropAt\(x, z\)/);
+  assert.match(world, /data\[this\._idx\(lx, h, lz\)\] = BLOCK\.STONE/);
+  assert.match(worker, /data\[idx\(lx, h, lz\)\] = BLOCK\.STONE/);
+  assert.match(world, /const saltPond = bviSaltPondAt\(x, z\)/);
+  assert.match(worker, /const saltPond = bviSaltPondAt\(x, z\)/);
+  assert.match(world, /yy === SEA_LEVEL \? BLOCK\.WATER : BLOCK\.AIR/);
+  assert.match(worker, /yy === SEA_LEVEL \? BLOCK\.WATER : BLOCK\.AIR/);
+  assert.match(world, /!saltPond/);
+  assert.match(worker, /!saltPond/);
+  assert.match(world, /const saltScrub = bviSaltPondScrubAt\(x, z\)/);
+  assert.match(worker, /const saltScrub = bviSaltPondScrubAt\(x, z\)/);
+  assert.match(world, /data\[this\._idx\(lx, h \+ 1, lz\)\] = BLOCK\.BUSH/);
+  assert.match(worker, /data\[idx\(lx, h \+ 1, lz\)\] = BLOCK\.BUSH/);
+  assert.match(world, /const landingSign = bviLandingSignAt\(x, z\)/);
+  assert.match(worker, /const landingSign = bviLandingSignAt\(x, z\)/);
+  assert.match(world, /data\[this\._idx\(lx, h \+ 2, lz\)\] = BLOCK\.PLANKS/);
+  assert.match(worker, /data\[idx\(lx, h \+ 2, lz\)\] = BLOCK\.PLANKS/);
+  assert.match(world, /data\[this\._idx\(lx, SEA_LEVEL, lz\)\] = BLOCK\.PLANKS/);
+  assert.match(worker, /data\[idx\(lx, SEA_LEVEL, lz\)\] = BLOCK\.PLANKS/);
+  assert.match(world, /const starterRamp = bviStarterRampAt\(x, z\)/);
+  assert.match(worker, /const starterRamp = bviStarterRampAt\(x, z\)/);
+  assert.match(world, /const driftwood = bviDriftwoodAt\(x, z\)/);
+  assert.match(worker, /const driftwood = bviDriftwoodAt\(x, z\)/);
+  assert.match(world, /data\[this\._idx\(lx, h \+ 1, lz\)\] = BLOCK\.LOG/);
+  assert.match(worker, /data\[idx\(lx, h \+ 1, lz\)\] = BLOCK\.LOG/);
+});
+
+test('BVI reef shelves stay outside landforms and mirror the worker seam', () => {
+  const candidates = [];
+  for (let z = -60; z <= 60; z++) {
+    for (let x = -80; x <= 120; x++) {
+      const reef = bviReefShelfAt(x, z);
+      if (reef > 0) candidates.push([x, z, reef]);
+    }
+  }
+  assert.ok(candidates.length > 0, 'modeled chain must expose reef-shelf candidates');
+  for (const [x, z, reef] of candidates.slice(0, 12)) {
+    assert.equal(bviLandformAt(x, z).influence, 0, 'reef shelf cannot occupy land');
+    assert.ok(reef > 0 && reef <= 1);
+  }
+  const world = fsText('js/world.js');
+  const worker = fsText('js/chunk-worker.js');
+  assert.match(world, /bviReefShelfAt\(x, z\)/);
+  assert.match(worker, /function bviReefShelfAt/);
+  assert.match(worker, /reefShelf/);
+});
+
 test('exposed mountain ores are deterministic and face-valid', () => {
   const seed = 1884808540;
   const samples = [
@@ -608,7 +861,7 @@ test('starter inventory has rations', () => {
   const slots = createStarterInventory();
   assert.ok(countItems(slots, ITEM.RATION) >= 3);
   assert.ok(countItems(slots, BLOCK.TORCH) >= 1);
-  assert.strictEqual(countItems(slots, BLOCK.LOG), 1);
+  assert.strictEqual(countItems(slots, BLOCK.LOG), 2);
 });
 
 test('fresh starter can reach wood pickaxe from Pack & Craft', () => {
@@ -626,10 +879,10 @@ test('add and remove items', () => {
   let r = addItems(slots, BLOCK.LOG, 5);
   assert.ok(r.ok);
   slots = r.slots;
-  assert.strictEqual(countItems(slots, BLOCK.LOG), 6);
+  assert.strictEqual(countItems(slots, BLOCK.LOG), 7);
   r = removeItems(slots, BLOCK.LOG, 2);
   assert.ok(r.ok);
-  assert.strictEqual(countItems(r.slots, BLOCK.LOG), 4);
+  assert.strictEqual(countItems(r.slots, BLOCK.LOG), 5);
 });
 
 test('inventory swapSlots clones and swaps full stacks across hotbar boundary', () => {
@@ -670,7 +923,7 @@ test('craft planks from log', () => {
   slots = addItems(slots, BLOCK.LOG, 1).slots;
   const res = craftRecipe(slots, 'planks');
   assert.ok(res.ok, res.error);
-  assert.strictEqual(countItems(res.slots, BLOCK.LOG), 1);
+  assert.strictEqual(countItems(res.slots, BLOCK.LOG), 2);
   assert.strictEqual(countItems(res.slots, BLOCK.PLANKS), 4);
 });
 
@@ -2930,9 +3183,9 @@ test('crafting progression metadata is complete and reachable', () => {
 });
 
 test('crafting: ingredientSummary reports have/missing per ingredient', () => {
-  const slots = createStarterInventory(); // 1 LOG, 12 STICK, 8 TORCH, 8 BERRIES, 6 RATION
+  const slots = createStarterInventory(); // 2 LOG, 12 STICK, 8 TORCH, 8 BERRIES, 6 RATION
   const planks = ingredientSummary('planks', slots);
-  assert.deepEqual(planks, [{ id: BLOCK.LOG, need: 1, have: 1, missing: 0, ok: true }]);
+  assert.deepEqual(planks, [{ id: BLOCK.LOG, need: 1, have: 2, missing: 0, ok: true }]);
 
   const bow = ingredientSummary('bow', slots); // 3 Sticks + 2 Hide
   assert.deepEqual(bow, [
@@ -4649,7 +4902,7 @@ test('underwater fog style is neutral above water', () => {
 test('underwater fog style shortens and cools with depth', () => {
   const shallow = underwaterFogStyle({ underwater: true, depth: 0 });
   const deep = underwaterFogStyle({ underwater: true, depth: 12 });
-  assert.strictEqual(shallow.color, 0x0b5368);
+  assert.strictEqual(shallow.color, 0x1b7282);
   assert.ok(shallow.near > deep.near, 'deeper water should bring near fog closer');
   assert.ok(shallow.far > deep.far, 'deeper water should reduce visibility');
   assert.ok(deep.tint > shallow.tint, 'deeper water should increase tint');
@@ -4765,7 +5018,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker\.js\?v=307/);
+  assert.match(world, /chunk-worker\.js\?v=330/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
   assert.match(world, /Sparse mangrove-log ribs/);
@@ -4995,7 +5248,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.18.23'), 'HTML must expose v1.18.23');
+  assert.ok(html.includes('v1.18.33'), 'HTML must expose v1.18.33');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5150,7 +5403,7 @@ test('procedural item icons reach hotbars, inventory, and chest without dropping
 test('durability adapter cache and mining wear remain reachable', () => {
   const game = fsText('js/game.js');
   const durability = fsText('js/durability.js');
-  assert.match(game, /from ['"]\.\/durability\.js\?v=222['"]/);
+  assert.match(game, /from ['"]\.\/durability\.js\?v=223['"]/);
   assert.match(durability, /from ['"]\.\/items\.js\?v=248['"]/);
   assert.match(durability, /from ['"]\.\/tool-tiers\.js\?v=222['"]/);
   assert.match(game.slice(game.indexOf('  _handleMining(dt) {'), game.indexOf('  _handlePlace() {')), /wearTool\(this\.player\.slots, this\.player\.hotbarIndex, 1\)/);

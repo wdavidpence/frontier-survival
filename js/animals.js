@@ -3,8 +3,8 @@
  * Prey flee; predators hunt (worse at night). Meat drops on death.
  */
 import { isSolid, BLOCK } from './blocks.js?v=289';
-import { hash2 } from './gen.js?v=288';
-import { biomeAt, BIOME } from './biomes.js?v=248';
+import { hash2 } from './gen.js?v=308';
+import { biomeAt, BIOME } from './biomes.js?v=270';
 
 export const SPECIES = {
   hare: {

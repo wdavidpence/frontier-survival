@@ -1,5 +1,5 @@
 /** Pure biome classifier — no game.js coupling. */
-import { heightAt, fbm, WORLD_SCALE, starterCoastBlend, ARCHIPELAGO_COAST_THRESHOLD, ARCHIPELAGO_ISLAND_THRESHOLD } from './gen.js?v=288';
+import { heightAt, fbm, WORLD_SCALE, starterCoastBlend, bviLandformAt, ARCHIPELAGO_COAST_THRESHOLD, ARCHIPELAGO_ISLAND_THRESHOLD } from './gen.js?v=308';
 
 export const BIOME = {
   OCEAN: 'ocean',
@@ -52,15 +52,24 @@ export function biomeAt(x, z, seed = 0) {
   if (h < SEA - 1) return BIOME.OCEAN;
 
   // Starter island shelf: warm tropical land + wet beach lip (palms, sand, coast first)
+  const bvi = bviLandformAt(x, z);
   const starter = starterCoastBlend(x, z);
   if (starter > 0.12 && h >= SEA) {
     if (mangroveAt(x, z, seed)) return BIOME.MANGROVE;
-    if (h <= SEA + 1) return BIOME.SHORE;
+    if (h <= SEA + 1 || (bvi.cayInfluence > 0 && h <= SEA + 3)) return BIOME.SHORE;
     return BIOME.TROPICAL;
   }
 
-  // Tropical islands: modest land bumps in wet coastal noise
-  if (h >= SEA && h <= SEA + 24 && coast < ARCHIPELAGO_COAST_THRESHOLD && isle > ARCHIPELAGO_ISLAND_THRESHOLD) {
+  if (bvi.influence > 0 && h >= SEA) {
+    if (mangroveAt(x, z, seed)) return BIOME.MANGROVE;
+    if (h <= SEA + 3) return BIOME.SHORE;
+    if (h <= SEA + 24) return BIOME.TROPICAL;
+  }
+
+  // Distant terrain outside the modeled chain keeps the legacy tropical fallback.
+  if (Math.hypot(x - 30, z + 2) > 170
+    && h >= SEA && h <= SEA + 24
+    && coast < ARCHIPELAGO_COAST_THRESHOLD && isle > ARCHIPELAGO_ISLAND_THRESHOLD) {
     return BIOME.TROPICAL;
   }
 

@@ -72,6 +72,23 @@ export function boatAimDistance(boat, origin, direction, maxDist = 4) {
   return px * px + py * py + pz * pz <= 0.95 * 0.95 ? along : Infinity;
 }
 
+export function boatWaterFootprintClear(x, z, sampleAt, seaLevel = 16, waterId = 5) {
+  if (typeof sampleAt !== 'function') return false;
+  const halfWidth = BOAT_CONFIG.width * 0.48;
+  const halfLength = BOAT_CONFIG.length * 0.48;
+  const samples = [
+    [0, 0],
+    [-halfWidth, 0], [halfWidth, 0],
+    [0, -halfLength], [0, halfLength],
+    [-halfWidth, -halfLength], [-halfWidth, halfLength],
+    [halfWidth, -halfLength], [halfWidth, halfLength],
+  ];
+  for (const [dx, dz] of samples) {
+    if (sampleAt(Math.floor(Number(x) + dx), seaLevel, Math.floor(Number(z) + dz)) !== waterId) return false;
+  }
+  return true;
+}
+
 export function stepBoat(boat, input = {}, dt = 0.016) {
   if (!boat || boat.rider == null) return boat;
   const forward = Number(input.forward) || 0;

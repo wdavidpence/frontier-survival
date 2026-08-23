@@ -4,7 +4,7 @@ import { canSprint, moveSpeedMultiplier, fallDamageFromSpeed } from './survival.
 import { honeyMoveMult, honeyJumpMult } from './honey-slide.js?v=220';
 import { powderSnowSinkVy } from './powder-snow.js?v=220';
 import { scaffoldingClimbVy } from './scaffolding.js?v=220';
-import { createStarterInventory, getHotbarStack } from './inventory.js?v=221';
+import { createStarterInventory, getHotbarStack } from './inventory.js?v=222';
 import { emptyEquipment } from './equipment.js?v=220';
 import { ITEM } from './items.js?v=220';
 

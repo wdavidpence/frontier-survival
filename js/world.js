@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=290';
-import { heightAt, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt } from './gen.js?v=288';
-import { biomeAt, BIOME } from './biomes.js?v=250';
+import { heightAt, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt } from './gen.js?v=308';
+import { biomeAt, BIOME } from './biomes.js?v=270';
 import { tileForBlock } from './atlas-core.js?v=287';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=246';
 import { buildMushroomGeometry } from './mushroom-geometry.js?v=2';
@@ -456,7 +456,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=307';
+    const workerUrl = './js/chunk-worker.js?v=330';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -516,6 +516,7 @@ export class World {
         const x = baseX + lx;
         const z = baseZ + lz;
         const biome = biomeAt(x, z, this.seed);
+        const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
         const h = (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
           ? SEA_LEVEL - 1 : heightAt(x, z, this.seed);
         const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
@@ -552,6 +553,28 @@ export class World {
           }
           data[this._idx(lx, y, lz)] = id;
         }
+        const saltPond = bviSaltPondAt(x, z);
+        const driftwood = bviDriftwoodAt(x, z);
+        if (saltPond && h >= SEA_LEVEL + 1) {
+          for (let yy = SEA_LEVEL; yy <= h; yy++) data[this._idx(lx, yy, lz)] = yy === SEA_LEVEL ? BLOCK.WATER : BLOCK.AIR;
+        }
+        const wetSand = bviWetSandAt(x, z);
+        if (wetSand && h >= SEA_LEVEL) data[this._idx(lx, h, lz)] = BLOCK.DAMP_SOIL;
+        const cayOutcrop = bviCayOutcropAt(x, z);
+        if (cayOutcrop && h >= SEA_LEVEL + 1) {
+          data[this._idx(lx, h, lz)] = BLOCK.STONE;
+          if (h + 1 < WORLD_HEIGHT && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) data[this._idx(lx, h + 1, lz)] = BLOCK.STONE;
+        }
+        const channelBuoy = bviChannelBuoyAt(x, z);
+        if (channelBuoy && h < SEA_LEVEL) {
+          data[this._idx(lx, SEA_LEVEL, lz)] = BLOCK.LOG;
+          data[this._idx(lx, SEA_LEVEL + 1, lz)] = channelBuoy.id === 'red' ? BLOCK.CORAL : BLOCK.BUSH;
+        }
+        const dock = bviDockAt(x, z);
+        if (dock && h < SEA_LEVEL) {
+          data[this._idx(lx, SEA_LEVEL, lz)] = BLOCK.PLANKS;
+          if (dock.post) data[this._idx(lx, SEA_LEVEL + 1, lz)] = BLOCK.LOG;
+        }
         if (h > SEA_LEVEL + 1) {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
           let treeChance = 0;
@@ -573,7 +596,7 @@ export class World {
           this._placeRuin(data, lx, h + 1, lz);
         } else if (forestLandmark) {
           this._placeForestMarker(data, lx, h + 1, lz);
-        } else if (!forestPocket && !mangroveSightlinePocket(x, z, biome)
+        } else if (!forestPocket && !beachApproach && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
           && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -594,6 +617,23 @@ export class World {
               this._placeTree(data, lx, h + 1, lz);
             }
           }
+        }
+        const landingSign = bviLandingSignAt(x, z);
+        if (landingSign && h >= SEA_LEVEL + 1) {
+          if (landingSign.post && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) data[this._idx(lx, h + 1, lz)] = BLOCK.LOG;
+          if (data[this._idx(lx, h + 2, lz)] === BLOCK.AIR) data[this._idx(lx, h + 2, lz)] = BLOCK.PLANKS;
+        }
+        const starterRamp = bviStarterRampAt(x, z);
+        if (starterRamp && h < SEA_LEVEL) {
+          data[this._idx(lx, SEA_LEVEL, lz)] = BLOCK.PLANKS;
+          if (SEA_LEVEL + 1 < WORLD_HEIGHT) data[this._idx(lx, SEA_LEVEL + 1, lz)] = BLOCK.AIR;
+        }
+        if (driftwood && h >= SEA_LEVEL && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) {
+          data[this._idx(lx, h + 1, lz)] = BLOCK.LOG;
+        }
+        const saltScrub = bviSaltPondScrubAt(x, z);
+        if (saltScrub && h >= SEA_LEVEL + 1 && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) {
+          data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
         }
         this._populateOceanColumn(data, lx, h, lz, x, z, biome);
         this._populateMangroveColumn(data, lx, h, lz, x, z, biome);
@@ -1017,6 +1057,7 @@ export class World {
         const x = baseX + lx;
         const z = baseZ + lz;
         const biome = biomeAt(x, z, this.seed);
+        const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
         const h = (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
           ? SEA_LEVEL - 1 : heightAt(x, z, this.seed);
         const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
@@ -1059,6 +1100,28 @@ export class World {
           }
           data[this._idx(lx, y, lz)] = id;
         }
+        const saltPond = bviSaltPondAt(x, z);
+        const driftwood = bviDriftwoodAt(x, z);
+        if (saltPond && h >= SEA_LEVEL + 1) {
+          for (let yy = SEA_LEVEL; yy <= h; yy++) data[this._idx(lx, yy, lz)] = yy === SEA_LEVEL ? BLOCK.WATER : BLOCK.AIR;
+        }
+        const wetSand = bviWetSandAt(x, z);
+        if (wetSand && h >= SEA_LEVEL) data[this._idx(lx, h, lz)] = BLOCK.DAMP_SOIL;
+        const cayOutcrop = bviCayOutcropAt(x, z);
+        if (cayOutcrop && h >= SEA_LEVEL + 1) {
+          data[this._idx(lx, h, lz)] = BLOCK.STONE;
+          if (h + 1 < WORLD_HEIGHT && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) data[this._idx(lx, h + 1, lz)] = BLOCK.STONE;
+        }
+        const channelBuoy = bviChannelBuoyAt(x, z);
+        if (channelBuoy && h < SEA_LEVEL) {
+          data[this._idx(lx, SEA_LEVEL, lz)] = BLOCK.LOG;
+          data[this._idx(lx, SEA_LEVEL + 1, lz)] = channelBuoy.id === 'red' ? BLOCK.CORAL : BLOCK.BUSH;
+        }
+        const dock = bviDockAt(x, z);
+        if (dock && h < SEA_LEVEL) {
+          data[this._idx(lx, SEA_LEVEL, lz)] = BLOCK.PLANKS;
+          if (dock.post) data[this._idx(lx, SEA_LEVEL + 1, lz)] = BLOCK.LOG;
+        }
 
         if (h > SEA_LEVEL + 1) {
           const th = hash2(x * 3 + (this.seed | 0), z * 5 + 19);
@@ -1081,7 +1144,7 @@ export class World {
           this._placeRuin(data, lx, h + 1, lz);
         } else if (forestLandmark) {
           this._placeForestMarker(data, lx, h + 1, lz);
-        } else if (!forestPocket && !mangroveSightlinePocket(x, z, biome)
+        } else if (!forestPocket && !beachApproach && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
           && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -1104,6 +1167,23 @@ export class World {
           }
         }
         // berry bushes on grass surface — forest mainly
+        const landingSign = bviLandingSignAt(x, z);
+        if (landingSign && h >= SEA_LEVEL + 1) {
+          if (landingSign.post && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) data[this._idx(lx, h + 1, lz)] = BLOCK.LOG;
+          if (data[this._idx(lx, h + 2, lz)] === BLOCK.AIR) data[this._idx(lx, h + 2, lz)] = BLOCK.PLANKS;
+        }
+        const starterRamp = bviStarterRampAt(x, z);
+        if (starterRamp && h < SEA_LEVEL) {
+          data[this._idx(lx, SEA_LEVEL, lz)] = BLOCK.PLANKS;
+          if (SEA_LEVEL + 1 < WORLD_HEIGHT) data[this._idx(lx, SEA_LEVEL + 1, lz)] = BLOCK.AIR;
+        }
+        if (driftwood && h >= SEA_LEVEL && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) {
+          data[this._idx(lx, h + 1, lz)] = BLOCK.LOG;
+        }
+        const saltScrub = bviSaltPondScrubAt(x, z);
+        if (saltScrub && h >= SEA_LEVEL + 1 && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) {
+          data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
+        }
         this._populateOceanColumn(data, lx, h, lz, x, z, biome);
         this._populateMangroveColumn(data, lx, h, lz, x, z, biome);
         if (
@@ -1240,7 +1320,10 @@ export class World {
       if (waterY + 1 < SEA_LEVEL && data[this._idx(lx, waterY + 1, lz)] === BLOCK.WATER) data[this._idx(lx, waterY + 1, lz)] = BLOCK.KELP;
     }
 
-    if (shallow && hash2(x * 23 + 17, z * 29 + this.seed * 3) > 0.84) {
+    const reefShelf = bviReefShelfAt(x, z);
+    const reefRoll = hash2(x * 23 + 17, z * 29 + this.seed * 3);
+    const coralThreshold = reefShelf > 0 ? 0.88 : 0.96;
+    if (shallow && reefRoll > coralThreshold) {
       data[this._idx(lx, waterY, lz)] = BLOCK.CORAL;
       const reefY = waterY + 1;
       if (reefY < SEA_LEVEL && data[this._idx(lx, reefY, lz)] === BLOCK.WATER && hash2(x + 41, z * 3 + 7) > 0.45) {
@@ -1252,6 +1335,12 @@ export class World {
         if (data[this._idx(tx, h, lz)] === BLOCK.SAND && data[this._idx(tx, waterY, lz)] === BLOCK.WATER) {
           data[this._idx(tx, waterY, lz)] = BLOCK.CORAL;
         }
+      }
+    }
+    if (bviReefHeadAt(x, z)) {
+      data[this._idx(lx, waterY, lz)] = BLOCK.CORAL;
+      if (waterY + 1 < SEA_LEVEL && data[this._idx(lx, waterY + 1, lz)] === BLOCK.WATER) {
+        data[this._idx(lx, waterY + 1, lz)] = BLOCK.CORAL;
       }
     }
   }
@@ -1752,14 +1841,26 @@ export class World {
   findSpawn() {
     // Prefer warm sand above sea level, near the tropical starter coast.
     let best = null;
+    // BVI candidates get first refusal so a fresh player can actually reach
+    // the authored launch ramp, driftwood, and channel without a lucky random
+    // spawn on a distant cay. The normal clearance checks below still apply.
+    const launchCandidates = [
+      [26, 15], [25, 15], [27, 15], [24, 15], [28, 15],
+      [26, 14], [25, 14], [27, 14],
+    ];
     // Tropical/coastal seeds can have sparse clearings; sample deeply enough
     // to avoid falling back to the origin beach and opening the game on a
     // water-dominant frame.
     for (let i = 0; i < 1600; i++) {
-      const x = Math.floor((hash2(i, this.seed) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.6);
-      const z = Math.floor((hash2(this.seed, i + 9) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.6);
+      const preferred = launchCandidates[i];
+      const x = preferred
+        ? preferred[0]
+        : Math.floor((hash2(i, this.seed) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.6);
+      const z = preferred
+        ? preferred[1]
+        : Math.floor((hash2(this.seed, i + 9) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.6);
       const h = heightAt(x, z, this.seed);
-      if (h < SEA_LEVEL + 2 || h >= WORLD_HEIGHT - 6) continue;
+      if (h < SEA_LEVEL + (preferred ? 1 : 2) || h >= WORLD_HEIGHT - 6) continue;
       const spawnChunk = this.worldToChunk(x, z);
       this.ensureChunk(spawnChunk.cx, spawnChunk.cz);
       // surface must be solid non-water
@@ -1774,20 +1875,25 @@ export class World {
         BLOCK.LOG, BLOCK.LEAVES, BLOCK.SPRUCE_LOG, BLOCK.SPRUCE_LEAVES,
         BLOCK.SEQUOIA_LOG, BLOCK.SEQUOIA_LEAVES, BLOCK.PALM_LEAVES, BLOCK.BUSH,
       ]);
-      for (let dx = -4; dx <= 4 && clear; dx++) {
-        for (let dz = -4; dz <= 4 && clear; dz++) {
+      const clearRadius = preferred ? 1 : 4;
+      for (let dx = -clearRadius; dx <= clearRadius && clear; dx++) {
+        for (let dz = -clearRadius; dz <= clearRadius && clear; dz++) {
           for (let dy = 1; dy <= 6; dy++) {
             if (foliage.has(this.getBlock(x + dx, h + dy, z + dz))) { clear = false; break; }
           }
         }
       }
       if (!clear) continue;
+      if (preferred) {
+        return { x: x + 0.5, y: h + 1.01, z: z + 0.5, yaw: spawnViewYaw(x, z, this.seed) };
+      }
       const candidate = { x: x + 0.5, y: h + 1.01, z: z + 0.5, h };
       const biome = biomeAt(x, z, this.seed);
       const warmSurface = surface === BLOCK.SAND && (biome === BIOME.TROPICAL || biome === BIOME.SHORE);
-      // Preserve the authored starter-route location score; only the facing
-      // direction is being upgraded in this slice.
-      const score = (warmSurface ? 220 : 0) + h * 2 - Math.hypot(x, z) * 0.15;
+      // Preserve the authored starter-route location score, with a strong
+      // preference for a valid BVI launch candidate when one is available.
+      const score = (preferred ? 10000 : 0)
+        + (warmSurface ? 220 : 0) + h * 2 - Math.hypot(x, z) * 0.15;
       candidate.yaw = spawnViewYaw(x, z, this.seed);
       if (!best || score > best.score) best = { ...candidate, score };
     }

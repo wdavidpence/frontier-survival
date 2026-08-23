@@ -54,6 +54,209 @@ export const ARCHIPELAGO_ISLAND_THRESHOLD = 0.68;
 /** Numeric IDs are kept here so the pure seam can be mirrored by the worker. */
 export const EXPOSED_ORE = Object.freeze({ COAL: 13, IRON: 18, COPPER: 56, DIAMOND: 57 });
 
+/** BVI-inspired macro landforms: broad steep islands, a low flat island, and sparse cays. */
+const BVI_MAJOR_LANDFORMS = Object.freeze([
+  { name: 'tortola', cx: 22, cz: -20, rx: 43, rz: 22, peak: 20 },
+  { name: 'virgin-gorda', cx: 82, cz: -4, rx: 28, rz: 16, peak: 16 },
+  { name: 'jost-van-dyke', cx: -42, cz: 20, rx: 22, rz: 12, peak: 13 },
+  { name: 'anegada', cx: 96, cz: 48, rx: 35, rz: 17, peak: 5 },
+]);
+const BVI_SPARSE_CAYS = Object.freeze([
+  { name: 'peter-island', cx: 28, cz: 18, rx: 8, rz: 5, peak: 6 },
+  { name: 'cooper-island', cx: 55, cz: 30, rx: 7, rz: 5, peak: 5 },
+  { name: 'great-camanoe', cx: 52, cz: -27, rx: 7, rz: 4, peak: 5 },
+]);
+const BVI_SHELTERED_COVES = Object.freeze([
+  { name: 'white-bay', cx: -42, cz: 8, rx: 14, rz: 6 },
+  { name: 'north-sound', cx: 52, cz: -2, rx: 10, rz: 5 },
+]);
+const BVI_BEACH_LANDINGS = Object.freeze([
+  { name: 'white-bay-landing', cx: -42, cz: 9, rx: 12, rz: 1 },
+  { name: 'north-sound-landing', cx: 52, cz: -5, rx: 8, rz: 1 },
+]);
+const BVI_ROUTE_CORRIDORS = Object.freeze([
+  { name: 'white-bay-channel', x1: 18, z1: 8, x2: -42, z2: 8, width: 3 },
+  { name: 'north-sound-channel', x1: 32, z1: 10, x2: 52, z2: 10, width: 3 },
+  { name: 'north-sound-approach', x1: 52, z1: 10, x2: 52, z2: -5, width: 3 },
+]);
+
+function ellipseInfluence(x, z, landform) {
+  const distance = Math.hypot((x - landform.cx) / landform.rx, (z - landform.cz) / landform.rz);
+  if (distance >= 1) return 0;
+  const edge = 1 - distance;
+  return edge * edge * (3 - 2 * edge);
+}
+
+/** Return deterministic BVI-style composition data for map tests and biome seams. */
+export function bviLandformAt(x, z) {
+  let major = { influence: 0, peak: 0, name: '' };
+  for (const landform of BVI_MAJOR_LANDFORMS) {
+    const influence = ellipseInfluence(x, z, landform);
+    if (influence > major.influence) major = { influence, peak: landform.peak, name: landform.name };
+  }
+  let cay = { influence: 0, peak: 0, name: '' };
+  for (const landform of BVI_SPARSE_CAYS) {
+    const influence = ellipseInfluence(x, z, landform);
+    if (influence > cay.influence) cay = { influence, peak: landform.peak, name: landform.name };
+  }
+  return {
+    majorInfluence: major.influence,
+    majorPeak: major.peak,
+    majorName: major.name,
+    cayInfluence: cay.influence,
+    cayPeak: cay.peak,
+    cayName: cay.name,
+    influence: Math.max(major.influence, cay.influence),
+  };
+}
+
+/** Return named sheltered-water strength only where the cove remains open water. */
+export function bviCoveAt(x, z) {
+  if (bviLandformAt(x, z).influence > 0) return { influence: 0, name: '' };
+  let cove = { influence: 0, name: '' };
+  for (const candidate of BVI_SHELTERED_COVES) {
+    const influence = ellipseInfluence(x, z, candidate);
+    if (influence > cove.influence) cove = { influence, name: candidate.name };
+  }
+  return cove;
+}
+
+/** Return a deterministic sand landing where a named cove meets its island shore. */
+/** Return a deterministic sand landing where a named cove meets its island shore. */
+export function bviBeachLandingAt(x, z) {
+  let landing = { influence: 0, name: '' };
+  for (const candidate of BVI_BEACH_LANDINGS) {
+    const influence = ellipseInfluence(x, z, candidate);
+    if (influence > landing.influence) landing = { influence, name: candidate.name };
+  }
+  return landing;
+}
+
+const BVI_CHANNEL_BUOYS = Object.freeze([
+  { x: 12, z: 6, id: 'green' },
+  { x: 12, z: 10, id: 'red' },
+  { x: -8, z: 6, id: 'red' },
+  { x: -8, z: 10, id: 'green' },
+  { x: -28, z: 6, id: 'green' },
+  { x: -28, z: 10, id: 'red' },
+  { x: 36, z: 8, id: 'red' },
+  { x: 36, z: 12, id: 'green' },
+  { x: 44, z: 8, id: 'green' },
+  { x: 44, z: 12, id: 'red' },
+  { x: 50, z: 6, id: 'red' },
+  { x: 54, z: 6, id: 'green' },
+  { x: 50, z: -2, id: 'green' },
+  { x: 54, z: -2, id: 'red' },
+]);
+
+export function bviChannelBuoyAt(x, z) {
+  return BVI_CHANNEL_BUOYS.find((buoy) => buoy.x === x && buoy.z === z) || null;
+}
+
+const BVI_DOCK = Object.freeze({ name: 'north-sound-dock', z: -4, xMin: 50, xMax: 54 });
+export function bviDockAt(x, z) {
+  if (z !== BVI_DOCK.z || x < BVI_DOCK.xMin || x > BVI_DOCK.xMax) return null;
+  return { name: BVI_DOCK.name, post: x === BVI_DOCK.xMin || x === BVI_DOCK.xMax };
+}
+
+const BVI_WET_SAND_EDGES = Object.freeze([
+  { name: 'white-bay-landing', cx: -42, cz: 9, rx: 12 },
+  { name: 'north-sound-landing', cx: 52, cz: -5, rx: 8 },
+]);
+export function bviWetSandAt(x, z) {
+  for (const edge of BVI_WET_SAND_EDGES) {
+    const distance = Math.abs(x - edge.cx);
+    if (z === edge.cz && distance >= Math.floor(edge.rx * 0.72) && distance <= edge.rx) {
+      return { name: edge.name };
+    }
+  }
+  return null;
+}
+
+const BVI_REEF_HEADS = Object.freeze([
+  [-46, 5], [-42, 5], [-38, 5], [-44, 7],
+  [48, -1], [50, -3], [54, -3], [54, -1],
+]);
+export function bviReefHeadAt(x, z) {
+  return BVI_REEF_HEADS.some(([hx, hz]) => hx === x && hz === z) ? { name: 'named-cove-reef-head' } : null;
+}
+
+const BVI_CAY_OUTCROPS = Object.freeze([
+  { name: 'peter-island-outcrop', x: 24, z: 16 },
+  { name: 'peter-island-outcrop', x: 32, z: 20 },
+  { name: 'cooper-island-outcrop', x: 51, z: 28 },
+  { name: 'cooper-island-outcrop', x: 59, z: 30 },
+  { name: 'great-camanoe-outcrop', x: 50, z: -29 },
+  { name: 'great-camanoe-outcrop', x: 54, z: -25 },
+]);
+export function bviCayOutcropAt(x, z) {
+  return BVI_CAY_OUTCROPS.find((outcrop) => outcrop.x === x && outcrop.z === z) || null;
+}
+
+const BVI_SALT_POND = Object.freeze({ name: 'anegada-salt-pond', xMin: 90, xMax: 102, zMin: 33, zMax: 35 });
+export function bviSaltPondAt(x, z) {
+  if (x < BVI_SALT_POND.xMin || x > BVI_SALT_POND.xMax || z < BVI_SALT_POND.zMin || z > BVI_SALT_POND.zMax) return null;
+  return { name: BVI_SALT_POND.name };
+}
+export function bviSaltPondScrubAt(x, z) {
+  if (!bviSaltPondAt(x, z) && ((z === 32 || z === 36) && x >= 90 && x <= 102 && x % 4 === 2)) {
+    return { name: 'anegada-salt-scrub' };
+  }
+  if (!bviSaltPondAt(x, z) && (x === 88 || x === 104) && z === 34) return { name: 'anegada-salt-scrub' };
+  return null;
+}
+const BVI_LANDING_SIGN = Object.freeze({ name: 'north-sound-landing-sign', z: -5, xMin: 55, xMax: 57, postX: 56 });
+export function bviLandingSignAt(x, z) {
+  if (z !== BVI_LANDING_SIGN.z || x < BVI_LANDING_SIGN.xMin || x > BVI_LANDING_SIGN.xMax) return null;
+  return { name: BVI_LANDING_SIGN.name, post: x === BVI_LANDING_SIGN.postX, board: true };
+}
+const BVI_STARTER_RAMP = Object.freeze({ name: 'starter-beach-launch-ramp', xMin: 24, xMax: 28, zMin: 12, zMax: 13 });
+export function bviStarterRampAt(x, z) {
+  if (x < BVI_STARTER_RAMP.xMin || x > BVI_STARTER_RAMP.xMax || z < BVI_STARTER_RAMP.zMin || z > BVI_STARTER_RAMP.zMax) return null;
+  return { name: BVI_STARTER_RAMP.name };
+}
+const BVI_DRIFTWOOD = Object.freeze([[23, 14], [29, 14]]);
+export function bviDriftwoodAt(x, z) {
+  return BVI_DRIFTWOOD.some(([dx, dz]) => dx === x && dz === z) ? { name: 'starter-beach-driftwood' } : null;
+}
+
+/** Return a safe water corridor between the starter launch and White Bay. */
+export function bviRouteCorridorAt(x, z) {
+  let route = { influence: 0, name: '' };
+  for (const candidate of BVI_ROUTE_CORRIDORS) {
+    const ax = candidate.x1;
+    const az = candidate.z1;
+    const bx = candidate.x2;
+    const bz = candidate.z2;
+    const dx = bx - ax;
+    const dz = bz - az;
+    const lengthSq = dx * dx + dz * dz;
+    const projection = lengthSq > 0 ? ((x - ax) * dx + (z - az) * dz) / lengthSq : 0;
+    const t = Math.max(0, Math.min(1, projection));
+    const nearestX = ax + dx * t;
+    const nearestZ = az + dz * t;
+    const distance = Math.hypot(x - nearestX, z - nearestZ);
+    const influence = Math.max(0, 1 - distance / candidate.width);
+    if (influence > route.influence) route = { influence, name: candidate.name };
+  }
+  return route;
+}
+
+/** Return reef-belt strength outside a modeled island or cay, never on land. */
+export function bviReefShelfAt(x, z) {
+  const current = bviLandformAt(x, z).influence;
+  if (current > 0) return 0;
+  const cove = bviCoveAt(x, z);
+  if (cove.influence > 0.2) return Math.min(1, cove.influence * 0.9);
+  const route = bviRouteCorridorAt(x, z);
+  if (route.influence > 0.2 && route.influence < 0.9) return Math.min(0.7, route.influence * 0.75);
+  let nearby = 0;
+  for (const [dx, dz] of [[6, 0], [-6, 0], [0, 6], [0, -6], [4, 4], [-4, 4], [4, -4], [-4, -4]]) {
+    nearby = Math.max(nearby, bviLandformAt(x + dx, z + dz).influence);
+  }
+  return nearby > 0.18 ? Math.min(1, nearby * 1.35) : 0;
+}
+
 /** Deterministic forest-floor dressing, kept pure so sync and worker terrain agree. */
 export function forestFloorDetail(x, z, seed, biome, height, surfaceId, aboveId) {
   if (!['forest', 'tropical', 'shore'].includes(biome) || height <= GEN_SEA_LEVEL + 1 || aboveId !== 0) return null;
@@ -97,8 +300,27 @@ export function heightAt(x, z, seed = 0) {
     const shelf = 4 + fbm(x * 0.018 * WORLD_SCALE + 41, z * 0.018 * WORLD_SCALE - 17, 3) * 10;
     y = y * (1 - starterBlend) + shelf * starterBlend;
   }
+  const bvi = bviLandformAt(x, z);
+  const cove = bviCoveAt(x, z);
+  const beachLanding = bviBeachLandingAt(x, z);
+  const route = bviRouteCorridorAt(x, z);
+  const bviRegion = x >= -110 && x <= 140 && z >= -100 && z <= 110;
+  const authoredWetland = x >= 46 && x <= 68 && z >= 52 && z <= 72;
+  if (bvi.influence > 0) {
+    const relief = fbm(x * 0.04 * WORLD_SCALE + seed * 2.1, z * 0.04 * WORLD_SCALE - seed * 1.7, 3);
+    const macroInfluence = bvi.majorInfluence > 0 ? bvi.majorInfluence : bvi.cayInfluence;
+    const macroPeak = bvi.majorInfluence > 0 ? bvi.majorPeak : bvi.cayPeak;
+    y = Math.max(y, GEN_SEA_LEVEL + 1 + macroPeak * macroInfluence + relief * 3 * macroInfluence);
+  } else if (bviRegion && !authoredWetland) {
+    // Keep the Drake Channel and sheltered coves open instead of spawning noise islands.
+    y = Math.min(y, GEN_SEA_LEVEL - 2);
+  }
+  if (cove.influence > 0) y = Math.max(y, Math.min(GEN_SEA_LEVEL - 1, GEN_SEA_LEVEL - 2 + Math.floor(cove.influence)));
+  if (route.influence > 0) y = Math.min(y, GEN_SEA_LEVEL - 1);
+  if (beachLanding.influence > 0) y = Math.max(y, GEN_SEA_LEVEL + 1);
+  if (authoredWetland) y = Math.max(y, GEN_SEA_LEVEL + 2);
   // Safe, buildable starter island and the existing authored shore destination.
-  if (Math.hypot(x, z) < 18) y = Math.max(y, GEN_SEA_LEVEL);
+  if (Math.hypot(x, z) < 18 && route.influence <= 0) y = Math.max(y, GEN_SEA_LEVEL);
   if (Math.hypot(x - 26, z - 22) < 9) y = Math.max(y, GEN_SEA_LEVEL);
   if (Math.hypot(x - 42, z - 51) < 8) y = Math.max(y, GEN_SEA_LEVEL + 2);
   // Keep the first walk on the starter island in the same island mask while
@@ -106,7 +328,8 @@ export function heightAt(x, z, seed = 0) {
   if (
     Math.hypot(x, z) > 18 &&
     coast < ARCHIPELAGO_COAST_THRESHOLD &&
-    isle > ARCHIPELAGO_ISLAND_THRESHOLD
+    isle > ARCHIPELAGO_ISLAND_THRESHOLD &&
+    !bviRegion
   ) {
     const rise = Math.pow((isle - ARCHIPELAGO_ISLAND_THRESHOLD) / (1 - ARCHIPELAGO_ISLAND_THRESHOLD), 0.62);
     y = Math.max(y, GEN_SEA_LEVEL + 1 + rise * 32);

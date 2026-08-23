@@ -3,7 +3,7 @@
  */
 import { propsOf } from './items.js?v=248';
 import { tierForItem, TIER_DURABILITY } from './tool-tiers.js?v=222';
-import { cloneSlots } from './inventory.js?v=216';
+import { cloneSlots } from './inventory.js?v=222';
 
 export function maxDurability(id) {
   const tier = tierForItem(id);

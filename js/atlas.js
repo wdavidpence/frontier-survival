@@ -1216,9 +1216,11 @@ export function createBlockAtlas() {
       varying vec2 vAuvBase;
       varying vec3 vNormal;
       varying vec3 vWorldPos;
+      varying float vTile;
       void main() {
         vUv = uv;
         vColor = color;
+        vTile = tile;
         float tx = mod(tile, ${ATLAS_N}.0);
         float ty = floor(tile / ${ATLAS_N}.0);
         vAuvBase = vec2(tx / ${ATLAS_N}.0, 1.0 - (ty + 1.0) / ${ATLAS_N}.0);
@@ -1242,6 +1244,7 @@ export function createBlockAtlas() {
       varying vec2 vAuvBase;
       varying vec3 vNormal;
       varying vec3 vWorldPos;
+      varying float vTile;
       void main() {
         vec2 tUv = fract(vUv);
         tUv = clamp(tUv, 0.02, 0.98);
@@ -1254,6 +1257,18 @@ export function createBlockAtlas() {
         lanternFalloff *= lanternFalloff * lanternStrength;
         light += lanternColor * lanternFalloff;
         vec3 rgb = tex.rgb * max(vColor.rgb, vec3(0.25)) * light;
+        // Named BVI coves get a restrained shallow-water response: a greener
+        // shelf tint and a broken foam glint on upward-facing water tops. Deep
+        // ocean and all non-water materials keep the existing atlas treatment.
+        float waterFace = 1.0 - smoothstep(0.5, 1.5, abs(vTile - 5.0));
+        float whiteBay = exp(-pow((vWorldPos.x + 42.0) / 14.0, 2.0) - pow((vWorldPos.z - 8.0) / 6.0, 2.0));
+        float northSound = exp(-pow((vWorldPos.x - 52.0) / 10.0, 2.0) - pow((vWorldPos.z + 2.0) / 5.0, 2.0));
+        float cove = max(whiteBay, northSound) * waterFace;
+        rgb = mix(rgb, rgb * vec3(0.78, 1.16, 1.10), clamp(cove * 0.42, 0.0, 0.42));
+        float topFace = smoothstep(0.78, 0.98, vNormal.y);
+        float foamBand = smoothstep(0.48, 0.78, cove) * (1.0 - smoothstep(0.78, 0.96, cove));
+        float foamBreak = 0.55 + 0.45 * sin(vWorldPos.x * 1.7 + vWorldPos.z * 1.1);
+        rgb += vec3(0.16, 0.26, 0.22) * foamBand * topFace * foamBreak * 0.22;
         gl_FragColor = vec4(rgb, 1.0);
       }
     `,

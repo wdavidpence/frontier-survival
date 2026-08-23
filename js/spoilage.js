@@ -3,7 +3,7 @@
  * Optional slot.age seconds for spoilable items.
  */
 import { ITEM } from './items.js?v=248';
-import { cloneSlots } from './inventory.js?v=216';
+import { cloneSlots } from './inventory.js?v=222';
 
 export const SPOIL_SECONDS = 420; // ~one game day default real-time window
 
