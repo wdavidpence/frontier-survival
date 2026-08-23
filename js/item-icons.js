@@ -88,6 +88,9 @@ export function iconKindForItem(itemId, name) {
 
 function shapeForItemVariant(itemId, name, p) {
   const text = normalizedParts(itemId, name);
+  if (/(patched boat|repaired boat|reinforced boat)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="patched-boat"><path d="M9 34h46l-7 14c-3 6-9 8-16 8s-13-2-16-8z" fill="#805238" stroke="${p.deep}" stroke-width="1.6"/><path d="M15 34h34l-6 9H21z" fill="#d28c4b" stroke="#5e3c2c" stroke-width="1.2"/><path d="M32 11v23" stroke="${p.deep}" stroke-width="2"/><path d="M33 13 48 28H33z" fill="#e9d9a5" stroke="${p.deep}" stroke-width="1.2"/><path d="M15 46h34" stroke="#f0bb68" stroke-width="1.5" stroke-linecap="round"/><path d="M19 38h10M36 43h10M25 49h13" stroke="#8fe8ff" stroke-width="2.2" stroke-linecap="round"/><path d="M22 36l4 4M42 36l-4 4" stroke="#f5d28b" stroke-width="1.4" stroke-linecap="round"/></g>`;
+  }
   if (/(anchored boat|moored boat|beached boat)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="anchored-boat"><path d="M9 34h46l-7 14c-3 6-9 8-16 8s-13-2-16-8z" fill="#8f5b37" stroke="${p.deep}" stroke-width="1.6"/><path d="M15 34h34l-6 9H21z" fill="#d59655" stroke="#63432f" stroke-width="1.2"/><path d="M32 11v23" stroke="${p.deep}" stroke-width="2"/><path d="M33 13 48 28H33z" fill="#e9d9a5" stroke="${p.deep}" stroke-width="1.2"/><path d="M15 46h34" stroke="#f2c47b" stroke-width="1.5" stroke-linecap="round"/><path d="M46 45c7 2 7 6 2 9l-5 3" fill="none" stroke="#a8e8ef" stroke-width="1.4"/><path d="M43 55l4 2-3 3-4-2z" fill="#b8c2c8" stroke="#687681" stroke-width="1"/><circle cx="20" cy="42" r="1.6" fill="#ffe6a3"/></g>`;
   }
@@ -133,6 +136,9 @@ function shapeForItemVariant(itemId, name, p) {
   if (/(cooked fish)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="cooked-fish"><path d="M12 35c8-12 24-14 39-5l7-5-2 10 2 10-7-5c-15 9-31 7-39-5z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M19 33c9-4 18-4 28 0" fill="none" stroke="#ffd27a" stroke-width="3" stroke-linecap="round"/><path d="M27 27c3 3 4 9 1 13M36 27c3 3 4 8 1 12" fill="none" stroke="${p.dark}" stroke-width="1.4"/><circle cx="19" cy="32" r="2" fill="#fff7d6" stroke="${p.deep}" stroke-width=".8"/></g>`;
   }
+  if (/(cooked reef crab|island crab|coral crab)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="cooked-reef-crab"><path d="M32 27c-8-9-19-7-22 1-2 6 3 10 10 8l-6 10c-3 5 3 8 7 4l9-10 9 10c4 4 10 1 7-4l-6-10c7 2 12-2 10-8-3-8-14-10-22-1z" fill="#e86a53" stroke="${p.deep}" stroke-width="1.5"/><path d="M20 30c7 4 17 4 24 0M27 27l5 8 5-8" fill="none" stroke="#ffc06f" stroke-width="1.6" stroke-linecap="round"/><path d="M24 39h16M22 44h20" stroke="#a63f42" stroke-width="1.4" stroke-linecap="round"/><circle cx="26" cy="24" r="1.4" fill="#fff0a4"/><circle cx="38" cy="24" r="1.4" fill="#fff0a4"/><path d="M17 28l-4-3M47 28l4-3" stroke="#f6aa63" stroke-width="1.4" stroke-linecap="round"/></g>`;
+  }
   if (/(cooked crab|raw crab)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="crab-claw"><path d="M32 27c-8-9-19-7-22 1-2 6 3 10 10 8l-6 10c-3 5 3 8 7 4l9-10 9 10c4 4 10 1 7-4l-6-10c7 2 12-2 10-8-3-8-14-10-22-1z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M20 30c7 4 17 4 24 0M27 27l5 8 5-8" fill="none" stroke="${p.light}" stroke-width="1.6" stroke-linecap="round"/><circle cx="26" cy="24" r="1.4" fill="${p.glint}"/><circle cx="38" cy="24" r="1.4" fill="${p.glint}"/></g>`;
   }
@@ -175,6 +181,9 @@ function shapeForItemVariant(itemId, name, p) {
   if (/(egg)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="egg"><path d="M32 10c-9 0-16 12-16 24 0 12 7 19 16 19s16-7 16-19c0-12-7-24-16-24z" fill="#f8f0d5" stroke="${p.deep}" stroke-width="1.5"/><path d="M23 25c3-5 8-7 13-6" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity=".8"/><ellipse cx="38" cy="39" rx="3" ry="5" fill="#e4c98e" opacity=".7"/></g>`;
   }
+  if (/(fresh coconut|opened coconut|young coconut)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="fresh-coconut"><path d="M32 17c-10-7-21 1-21 13 0 13 9 23 21 23s21-10 21-23c0-12-11-20-21-13z" fill="#8aa34f" stroke="#405d35" stroke-width="1.5"/><path d="M32 17c0-5 4-9 9-10" fill="none" stroke="#5a7139" stroke-width="2.5" stroke-linecap="round"/><path d="M38 10c5-4 9-3 12 0-5 4-9 4-12 0z" fill="#75b85c" stroke="#386b3b" stroke-width="1"/><path d="M19 27c4-5 9-6 15-4" fill="none" stroke="#c9e889" stroke-width="2" stroke-linecap="round"/><path d="M23 38c6 5 13 6 19 1" fill="none" stroke="#516d36" stroke-width="2" stroke-linecap="round"/><circle cx="28" cy="31" r="2" fill="#f3e0a1"/><circle cx="36" cy="35" r="1.5" fill="#f3e0a1"/></g>`;
+  }
   if (/(apple|coconut)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="fruit"><path d="M32 19c-13-5-22 5-20 17 2 13 10 20 20 20s18-7 20-20c2-12-7-22-20-17z" fill="${p.base}" stroke="${p.deep}" stroke-width="1.5"/><path d="M32 19c0-5 4-9 9-10" fill="none" stroke="${p.dark}" stroke-width="2.5" stroke-linecap="round"/><path d="M37 11c5-4 9-3 12 0-5 4-9 4-12 0z" fill="#75b85c" stroke="#386b3b" stroke-width="1"/><path d="M22 27c4-4 9-5 14-4" fill="none" stroke="${p.glint}" stroke-width="2" stroke-linecap="round"/></g>`;
   }
@@ -210,6 +219,9 @@ function shapeForItemVariant(itemId, name, p) {
   }
   if (/(ration|soup|stew|bowl)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="ration-bowl"><path d="M13 25h38c-2 15-9 24-19 24S15 40 13 25z" fill="${p.deep}" stroke="${p.deep}" stroke-width="1.4"/><path d="M17 26h30c-2 10-7 17-15 17S19 36 17 26z" fill="url(#body)" stroke="${p.dark}" stroke-width="1.2"/><ellipse cx="32" cy="25" rx="19" ry="7" fill="${p.light}" stroke="${p.deep}" stroke-width="1.4"/><ellipse cx="32" cy="24" rx="14" ry="4" fill="${p.base}"/><path d="M23 21c4-2 9-2 14 0" stroke="#fff1bf" stroke-width="1.6" stroke-linecap="round" opacity=".8"/></g>`;
+  }
+  if (/(signal torch|beacon torch|flare torch)/.test(text)) {
+    return `<g filter="url(#shadow)" data-item-variant="signal-torch"><path d="M27 51 30 27h6l4 24z" fill="#4c3a35" stroke="${p.deep}" stroke-width="1.2"/><path d="M30 49 32 28h3l3 21z" fill="#c07b43"/><path d="M32 30c-9-8-4-17 1-23 7 7 13 15 4 23z" fill="#f06a35" stroke="#9b3426" stroke-width="1.1"/><path d="M34 29c-5-5-2-11 0-15 4 5 7 10 2 15z" fill="#ffd266"/><path d="M27 19c-6-5-11-4-15-1 4 5 9 7 15 5M39 18c6-5 11-4 15-1-4 5-9 7-15 5" fill="none" stroke="#ffdf79" stroke-width="1.7" stroke-linecap="round"/><circle cx="14" cy="18" r="1.6" fill="#fff4b0"/><circle cx="50" cy="18" r="1.6" fill="#fff4b0"/><path d="M30 39 36 37" stroke="#ffe89a" stroke-width="1.5" stroke-linecap="round"/></g>`;
   }
   if (/(^| )torch( |$)/.test(text)) {
     return `<g filter="url(#shadow)" data-item-variant="torch-flame"><path d="M27 51 30 27h6l4 24z" fill="${p.deep}" stroke="${p.deep}" stroke-width="1.2"/><path d="M30 49 32 28h3l3 21z" fill="${p.base}"/><path d="M32 30c-9-8-4-17 1-23 7 7 13 15 4 23z" fill="#f06a35" stroke="#9b3426" stroke-width="1.1"/><path d="M34 29c-5-5-2-11 0-15 4 5 7 10 2 15z" fill="#ffd266"/><path d="M30 39 36 37" stroke="${p.glint}" stroke-width="1.5" stroke-linecap="round"/></g>`;
