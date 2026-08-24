@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.18.37</title>
+  <title>Frontier Survival v1.18.38</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -479,6 +479,23 @@
       text-shadow: 0 2px 8px #000;
       min-height: 1.2em;
     }
+    #arrival-card {
+      position: absolute; top: clamp(78px, 13vh, 132px); left: 50%; z-index: 4;
+      width: min(520px, calc(100vw - 28px)); transform: translateX(-50%);
+      padding: 15px 20px 14px; border: 1px solid rgba(244, 213, 159, 0.48);
+      border-radius: 14px; background: linear-gradient(145deg, rgba(22, 28, 34, 0.88), rgba(9, 14, 20, 0.66));
+      box-shadow: 0 16px 42px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.12);
+      backdrop-filter: blur(12px) saturate(1.12); text-align: center; pointer-events: none;
+      transition: opacity .22s ease;
+    }
+    #arrival-card::before { content: ''; display: block; width: 54px; height: 2px; margin: -2px auto 10px; background: linear-gradient(90deg, transparent, #f4d59f, transparent); }
+    #arrival-card .arrival-kicker { color: #f4d59f; font-size: 9px; font-weight: 800; letter-spacing: .28em; text-transform: uppercase; }
+    #arrival-card h2 { margin: 5px 0 3px; color: #fff3d8; font-size: clamp(19px, 3vw, 27px); letter-spacing: .02em; text-shadow: 0 3px 14px rgba(0,0,0,.38); }
+    #arrival-card p { margin: 0; color: #d2dce0; font-size: 12px; line-height: 1.45; }
+    #arrival-objective { margin-top: 8px !important; color: #f0c878 !important; font-size: 10px !important; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+    #arrival-card .arrival-tags { display: flex; justify-content: center; gap: 7px; margin-top: 10px; color: #a5bac2; font-size: 8px; font-weight: 800; letter-spacing: .15em; }
+    #arrival-card .arrival-tags span { padding: 4px 7px; border: 1px solid rgba(165,186,194,.25); border-radius: 999px; background: rgba(124,177,182,.08); }
+    @media (max-width: 620px) { #arrival-card { top: 70px; padding: 12px 13px; } #arrival-card h2 { font-size: 20px; } #arrival-card .arrival-tags { gap: 4px; font-size: 7px; } }
     #help {
       position: absolute; right: 16px; bottom: 18px;
       width: 230px;
@@ -1517,9 +1534,16 @@
     <div id="spawn-marker" class="hidden"><div class="marker-icon"></div><span class="marker-label">SPAWN</span></div>
     <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
+    <div id="arrival-card" class="hidden" role="status" aria-live="polite">
+      <div class="arrival-kicker">Castaway Arrival</div>
+      <h2>The island has you now.</h2>
+      <p>The sea gave you one last chance. Step ashore, recover what remains, and make the first fire before the light goes.</p>
+      <p id="arrival-objective">Salvage the wreckage · find fresh water before nightfall</p>
+      <div class="arrival-tags"><span>RECOVER</span><span>EXPLORE</span><span>ENDURE</span></div>
+    </div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.18.37</div>
+    <div id="version-badge">v1.18.38</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1607,7 +1631,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.18.37</div>
+      <div class="tag">Browser survival sandbox · v1.18.38</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1731,6 +1755,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=707"></script>
+  <script type="module" src="./js/main.js?v=709"></script>
 </body>
 </html>

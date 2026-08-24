@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=480';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=481';
 import { Player } from './player.js?v=240';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
@@ -90,7 +90,7 @@ import {
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=222';
+} from './save.js?v=223';
 import { getMode } from './modes.js?v=243';
 
 const HARVEST_BASE_SECONDS = 4.2;
@@ -192,6 +192,12 @@ function setItemIcon(element, itemId, name, color, className) {
 function clearItemIcon(element) {
   element.querySelector('.slot-icon')?.remove();
 }
+import {
+  CASTAWAY_CONFIG,
+  castawayObjective,
+  createCastawayArrival,
+  restoreCastawayArrival,
+} from './castaway-arrival.js?v=2';
 
 export class Game {
   /**
@@ -430,6 +436,11 @@ export class Game {
     this._ignorePauseT = 0;
     this._spawnProtectT = 0;
     this._spawnPos = null; // {x, y, z} — tracked for starter_map_marker
+    this._castawayArrival = null;
+    this._castawayGroup = null;
+    this._castawayClock = 0;
+    this._castawayCardT = 0;
+    this._castawayCardShown = false;
     this._poweredLamps = new Set();
     this._logicAcc = 0;
     this._biomeNotifyAcc = 0; // accumulator for periodic biome name display
@@ -994,14 +1005,29 @@ export class Game {
     }
 
     if (freshPlayer || !saveData) {
-      const spawn = this.world.findSpawn();
+      const arrival = this.world.findCastawaySpawn?.() || this.world.findSpawn();
+      const spawn = { x: arrival.x, y: arrival.y, z: arrival.z };
       this._spawnPos = { x: spawn.x, y: spawn.y, z: spawn.z };
       this._spawnLandmark = spawn.landmark || '';
+      this._castawayArrival = createCastawayArrival({
+        x: spawn.x,
+        y: spawn.y,
+        z: spawn.z,
+        yaw: arrival.yaw,
+        water: arrival.water,
+      });
+      this._castawayArrival.boatX = Number.isFinite(arrival.boatX) ? arrival.boatX : spawn.x;
+      this._castawayArrival.boatY = Number.isFinite(arrival.boatY) ? arrival.boatY : spawn.y - 0.9;
+      this._castawayArrival.boatZ = Number.isFinite(arrival.boatZ) ? arrival.boatZ : spawn.z + 2.5;
+      this._castawayArrival.waterDirX = Number(arrival.waterDirX) || 0;
+      this._castawayArrival.waterDirZ = Number(arrival.waterDirZ) || 1;
       this.player = new Player(spawn, { starterRations: this.modeDef().starterRations });
-      // Fresh spawns use the world's open-view direction so the first frame
-      // presents a readable destination instead of a close terrain wall.
-      this.player.yaw = Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI;
+      // The first frame is the survivor looking back at the wreckage, with the
+      // island and its readable horizon behind it.
+      this.player.yaw = Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI);
+      this.player.pitch = freshPlayer ? 0.24 : 0;
       this.input.lookX = this.player.yaw;
+      this.input.lookY = this.player.pitch;
       if (spawn.landmark) {
         this._lastBiome = biomeAt(spawn.x, spawn.z, seed);
         this._wildlifeQuietT = 0;
@@ -1088,6 +1114,7 @@ export class Game {
         const spawn = this.world.findSpawn();
         this._spawnPos = { x: spawn.x, y: spawn.y, z: spawn.z };
       }
+      this._castawayArrival = restoreCastawayArrival(saveData.castawayArrival);
     }
 
     this._lastBviLocation = bviLocationAt(
@@ -1121,6 +1148,12 @@ export class Game {
     if (this.fauna && this.player) {
       this.fauna.clearNear(this.player.position.x, this.player.position.z, 16);
       this.fauna.ensureStarterEncounterNear?.(this.player.position.x, this.player.position.z);
+    }
+    this._clearCastawayArrivalVisual();
+    if (this._castawayArrival) {
+      this._buildCastawayArrivalVisual();
+      this._castawayCardT = freshPlayer ? CASTAWAY_CONFIG.cardSeconds : 0;
+      this._castawayCardShown = freshPlayer;
     }
     this.started = true;
     this.paused = false;
@@ -1377,6 +1410,187 @@ export class Game {
       return true;
     }
     return false;
+  }
+  _clearCastawayArrivalVisual() {
+    if (!this._castawayGroup) return;
+    this.scene.remove(this._castawayGroup);
+    this._castawayGroup.traverse((node) => {
+      node.geometry?.dispose?.();
+      if (node.material) {
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        materials.forEach((material) => material.dispose?.());
+      }
+    });
+    this._castawayGroup = null;
+  }
+
+  _buildCastawayArrivalVisual() {
+    const state = this._castawayArrival;
+    if (!state || !this.scene) return;
+    const group = new THREE.Group();
+    group.name = 'castaway-arrival-boat';
+    group.position.set(state.boatX ?? state.x, state.boatY ?? state.y - 0.9, state.boatZ ?? state.z + 2.5);
+    group.rotation.y = state.yaw || 0;
+
+    const wood = new THREE.MeshStandardMaterial({ color: 0x6b3f25, roughness: 0.88, metalness: 0.02 });
+    const woodLight = new THREE.MeshStandardMaterial({ color: 0xa56c3d, roughness: 0.8 });
+    const rope = new THREE.MeshStandardMaterial({ color: 0x9e7b50, roughness: 1 });
+    const sail = new THREE.MeshStandardMaterial({
+      color: 0xd9c49a,
+      roughness: 0.95,
+      transparent: true,
+      opacity: 0.82,
+      side: THREE.DoubleSide,
+    });
+    const metal = new THREE.MeshStandardMaterial({ color: 0x46515a, roughness: 0.55, metalness: 0.65 });
+    const foam = new THREE.MeshBasicMaterial({ color: 0xbde9e5, transparent: true, opacity: 0.42 });
+
+    const box = (name, size, position, material, rotation = null) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
+      mesh.name = name;
+      mesh.position.set(...position);
+      if (rotation) mesh.rotation.set(...rotation);
+      group.add(mesh);
+      return mesh;
+    };
+
+    box('boat-hull', [1.78, 0.42, 3.15], [0, 0.28, 0.05], wood);
+    const bow = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.15, 4), wood);
+    bow.name = 'boat-bow';
+    bow.rotation.x = Math.PI / 2;
+    bow.position.set(0, 0.3, -1.95);
+    group.add(bow);
+    box('boat-rim-left', [0.14, 0.17, 3.55], [-0.86, 0.55, 0.02], woodLight);
+    box('boat-rim-right', [0.14, 0.17, 3.55], [0.86, 0.55, 0.02], woodLight);
+    box('boat-seat', [1.45, 0.13, 0.35], [0, 0.68, 0.45], woodLight);
+    box('boat-keel', [0.32, 0.18, 2.9], [0, 0.02, 0.12], wood);
+
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.085, 2.55, 8), woodLight);
+    mast.name = 'boat-mast';
+    mast.position.set(-0.16, 1.55, 0.18);
+    group.add(mast);
+    const brokenSpar = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.065, 1.35, 8), woodLight);
+    brokenSpar.name = 'boat-broken-spar';
+    brokenSpar.rotation.z = -0.62;
+    brokenSpar.position.set(0.3, 2.12, 0.18);
+    group.add(brokenSpar);
+    const ropeLine = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 2.25, 6), rope);
+    ropeLine.name = 'boat-rope';
+    ropeLine.rotation.z = 0.28;
+    ropeLine.position.set(0.42, 1.42, 0.18);
+    group.add(ropeLine);
+
+    const sailShape = new THREE.Shape();
+    sailShape.moveTo(0, 0);
+    sailShape.lineTo(0, 1.55);
+    sailShape.lineTo(0.82, 1.05);
+    sailShape.lineTo(0.68, 0.56);
+    sailShape.lineTo(0.42, 0.74);
+    sailShape.lineTo(0.18, 0.24);
+    sailShape.closePath();
+    const sailMesh = new THREE.Mesh(new THREE.ShapeGeometry(sailShape), sail);
+    sailMesh.name = 'boat-torn-sail';
+    sailMesh.position.set(-0.12, 1.01, 0.2);
+    group.add(sailMesh);
+
+    const oarA = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.055, 2.75, 8), woodLight);
+    oarA.name = 'boat-oar-a';
+    oarA.rotation.z = Math.PI / 2;
+    oarA.rotation.y = 0.12;
+    oarA.position.set(-1.12, 0.48, 0.6);
+    group.add(oarA);
+    const oarB = oarA.clone();
+    oarB.name = 'boat-oar-b';
+    oarB.rotation.y = -0.18;
+    oarB.position.set(1.12, 0.44, -0.5);
+    group.add(oarB);
+
+    const crate = box('salvage-crate', [0.62, 0.58, 0.62], [0.36, 0.86, 0.92], woodLight);
+    crate.userData.salvage = true;
+    box('crate-band-a', [0.67, 0.06, 0.08], [0.36, 0.87, 0.62], metal);
+    box('crate-band-b', [0.08, 0.06, 0.67], [0.36, 0.87, 0.92], metal);
+    const bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 0.42, 8), new THREE.MeshStandardMaterial({ color: 0x78b9b3, roughness: 0.4, metalness: 0.05 }));
+    bottle.name = 'salvage-bottle';
+    bottle.position.set(-0.34, 0.91, 0.94);
+    group.add(bottle);
+
+    const foamRing = new THREE.Mesh(new THREE.TorusGeometry(1.36, 0.035, 6, 28), foam);
+    foamRing.name = 'boat-foam';
+    foamRing.rotation.x = Math.PI / 2;
+    foamRing.position.y = 0.08;
+    foamRing.visible = !!state.water;
+    group.add(foamRing);
+    box('shore-driftwood', [0.22, 0.18, 1.25], [1.55, 0.17, 1.3], woodLight, [0.12, 0.35, -0.24]);
+    box('shore-driftwood-small', [0.16, 0.14, 0.78], [-1.58, 0.13, -1.02], wood, [-0.08, -0.4, 0.2]);
+
+    this._castawayGroup = group;
+    this._castawayFoam = foamRing;
+    this._castawaySail = sailMesh;
+    this._castawayCrate = crate;
+    if (state.salvaged) {
+      this._castawayCrate.visible = false;
+      bottle.visible = false;
+    }
+    this.scene.add(group);
+  }
+
+  _tickCastawayArrival(dt) {
+    if (!this._castawayArrival || !this._castawayGroup) return;
+    this._castawayClock += dt;
+    const water = !!this._castawayArrival.water;
+    const bob = Math.sin(this._castawayClock * (water ? 2.2 : 1.35)) * (water ? 0.07 : 0.018);
+    this._castawayGroup.position.y = (this._castawayArrival.boatY ?? this._castawayArrival.y - 0.9) + bob;
+    this._castawayGroup.rotation.z = Math.sin(this._castawayClock * 1.6) * (water ? 0.025 : 0.008);
+    if (this._castawayFoam) {
+      const pulse = 1 + Math.sin(this._castawayClock * 1.8) * 0.045;
+      this._castawayFoam.scale.set(pulse, pulse, pulse);
+      this._castawayFoam.material.opacity = 0.34 + Math.sin(this._castawayClock * 1.4) * 0.08;
+    }
+    if (this._castawaySail) {
+      this._castawaySail.rotation.y = Math.sin(this._castawayClock * 1.1) * 0.045;
+    }
+
+    const card = document.getElementById('arrival-card');
+    if (!card || !this._castawayCardShown) return;
+    this._castawayCardT -= dt;
+    const fade = Math.min(1, Math.max(0, this._castawayCardT / 1.5));
+    card.classList.remove('hidden');
+    card.style.opacity = String(fade);
+    const objective = document.getElementById('arrival-objective');
+    if (objective) objective.textContent = castawayObjective(!!this._castawayArrival.salvaged);
+    if (this._castawayCardT <= 0) {
+      this._castawayCardShown = false;
+      card.classList.add('hidden');
+    }
+  }
+
+  _tryCastawaySalvage() {
+    const state = this._castawayArrival;
+    if (!state || state.salvaged || !this.player) return false;
+    const dx = (state.boatX ?? state.x) - this.player.position.x;
+    const dz = (state.boatZ ?? state.z) - this.player.position.z;
+    const distance = Math.hypot(dx, dz);
+    if (distance > CASTAWAY_CONFIG.salvageRadius) return false;
+    const look = this.player.lookDir(new THREE.Vector3());
+    const toward = new THREE.Vector3(dx, 0, dz).normalize();
+    if (look.dot(toward) < 0.15) return false;
+
+    let slots = cloneSlots(this.player.slots);
+    const recovered = [
+      [ITEM.STICK, 4],
+      [ITEM.LOG, 1],
+      [ITEM.RATION, 1],
+    ];
+    for (const [id, count] of recovered) slots = addItems(slots, id, count).slots;
+    this.player.slots = slots;
+    state.salvaged = true;
+    if (this._castawayCrate) this._castawayCrate.visible = false;
+    this._castawayGroup?.getObjectByName('salvage-bottle') && (this._castawayGroup.getObjectByName('salvage-bottle').visible = false);
+    this.player.notify('Salvaged the wreckage · sticks, timber, and one dry ration recovered.', 4.5);
+    this.audio.splash?.() || this.audio.ui();
+    this._castawayCardT = Math.max(this._castawayCardT, 3.8);
+    this._castawayCardShown = true;
+    return true;
   }
 
   _unlock(id) {
@@ -2413,7 +2627,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=222').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=223').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -2448,6 +2662,7 @@ export class Game {
       survival: this.survival,
       survival2: this.survival2 || null,
       spawnPos: this._spawnPos ? { ...this._spawnPos } : null,
+      castawayArrival: this._castawayArrival ? { ...this._castawayArrival } : null,
       time: {
         elapsed: this.time.elapsed,
         weather: this.time.weather,
@@ -2590,6 +2805,7 @@ export class Game {
     this._updateClickToPlay?.();
     // Poll gamepad every frame (DualSense, Xbox, generic)
     this.input.pollGamepad?.();
+    if (this.started) this._tickCastawayArrival(dt);
     if (!this.paused && this.started) this.update(dt);
     // ALWAYS paint the canvas — update() does not render. Missing this freezes the world
     // while DOM HUD (key debug) still updates — looks exactly like "WASD broken".
@@ -4257,6 +4473,7 @@ export class Game {
       this._useBoat();
       return;
     }
+    if (this._tryCastawaySalvage()) return;
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
     const hit = this._raycastInteraction(origin, dir, 5);

@@ -1,4 +1,5 @@
 import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
+import { chooseCastawayCandidate, createCastawayArrival, restoreCastawayArrival, castawayObjective } from '../js/castaway-arrival.js';
 
 import { palmLeafDrop } from '../js/palm-drops.js';
 import { createFishingState, startCast, tickFishing, rollFishingCatch, FISHING_CAST_TRAVEL_SECONDS } from '../js/fishing-cast.js';
@@ -302,7 +303,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=480/);
+  assert.match(gameSource, /world\.js\?v=481/);
 });
 
 test('BVI fresh spawns prefer the authored launch beach when clear', () => {
@@ -2909,6 +2910,7 @@ test('coop save player2 roundtrip v2', () => {
     player: { x: 1, y: 2, z: 3, yaw: 0.1, pitch: 0, hotbarIndex: 0, slots: [{ id: null, count: 0 }], equipment: { head: null, chest: null, feet: null } },
     player2: { x: 4, y: 2, z: 3, yaw: 0.2, pitch: 0, hotbarIndex: 1, slots: [{ id: null, count: 0 }], equipment: { head: null, chest: null, feet: null } },
     edits: [[1,2,3,4]],
+    castawayArrival: { x: 1, y: 2, z: 3, boatX: 5, boatY: 2, boatZ: 3, salvaged: true },
     animals: [],
   });
   assert.strictEqual(payload.v, 2);
@@ -2916,6 +2918,8 @@ test('coop save player2 roundtrip v2', () => {
   assert.ok(payload.player2);
   assert.strictEqual(payload.player2.x, 4);
   assert.strictEqual(payload.survival2.health, 88);
+  assert.equal(payload.castawayArrival.salvaged, true);
+  assert.equal(payload.castawayArrival.boatX, 5);
   const parsed = parseSavePayload(JSON.stringify(payload));
   assert.ok(parsed.ok);
   assert.strictEqual(parsed.data.player2.x, 4);
@@ -5294,11 +5298,31 @@ test('forest understory correction reaches the exact tropical starter route', ()
   assert.match(world, /FOREST_UNDERSTORY_ROLL = 0\.70/);
 });
 
+test('castaway arrival candidate selection is deterministic and legacy-safe', () => {
+  const chosen = chooseCastawayCandidate([
+    { surface: 'sand', biome: 'shore', waterDistance: 3, clearance: 4, horizon: 7, inland: 12, height: 19 },
+    { surface: 'grass', biome: 'forest', waterDistance: 8, clearance: 2, horizon: 1, inland: 3, height: 27 },
+  ]);
+  assert.equal(chosen.surface, 'sand');
+  const created = createCastawayArrival({ x: 4.5, y: 18, z: -2.5, yaw: 1.2, water: true });
+  const restored = restoreCastawayArrival({ ...created, boatX: 7.5, boatY: 16.2, boatZ: -2.5, salvaged: true });
+  assert.equal(restored.boatX, 7.5);
+  assert.equal(restored.salvaged, true);
+  assert.equal(restoreCastawayArrival({ x: 'bad' }), null);
+  assert.match(castawayObjective(false), /Salvage the wreckage/);
+  assert.match(castawayObjective(true), /Find fresh water/);
+  const game = fsText('js/game.js');
+  const world = fsText('js/world.js');
+  assert.match(game, /findCastawaySpawn\?\./);
+  assert.match(game, /_tryCastawaySalvage\(\)/);
+  assert.match(world, /findCastawaySpawn\(\)/);
+});
+
 test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.18.37'), 'HTML must expose v1.18.37');
+  assert.ok(html.includes('v1.18.38'), 'HTML must expose v1.18.38');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

@@ -104,6 +104,7 @@ export function buildSavePayload(state) {
     pressure: state.pressure,
     workshop: state.workshop,
     spawnPos: state.spawnPos || undefined,
+    castawayArrival: state.castawayArrival || undefined,
   };
 }
 

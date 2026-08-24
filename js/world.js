@@ -12,6 +12,7 @@ import {
   buildTerrainProxyArrays,
 } from './terrain-visibility.js?v=285';
 import { raycastVoxel } from './interaction-contract.js?v=4';
+import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=2';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -1804,6 +1805,107 @@ export class World {
       }
     }
     return heat;
+  }
+
+  findCastawaySpawn() {
+    const candidates = [];
+    const radius = Math.min(this.radiusChunks * CHUNK_SIZE - 8, 112);
+    const dirs = [
+      [1, 0], [-1, 0], [0, 1], [0, -1],
+      [0.707, 0.707], [-0.707, 0.707], [0.707, -0.707], [-0.707, -0.707],
+    ];
+    const waterAt = (x, z) => heightAt(x, z, this.seed) < SEA_LEVEL;
+    const foliage = new Set([
+      BLOCK.LOG, BLOCK.LEAVES, BLOCK.SPRUCE_LOG, BLOCK.SPRUCE_LEAVES,
+      BLOCK.SEQUOIA_LOG, BLOCK.SEQUOIA_LEAVES, BLOCK.PALM_LEAVES, BLOCK.BUSH,
+    ]);
+
+    for (let i = 0; i < 2200; i++) {
+      const x = Math.floor((hash2(i + this.seed * 3, this.seed + 17) - 0.5) * radius * 2);
+      const z = Math.floor((hash2(this.seed + 31, i * 5 + 9) - 0.5) * radius * 2);
+      const h = heightAt(x, z, this.seed);
+      if (h < SEA_LEVEL + 1 || h > SEA_LEVEL + 10 || h >= WORLD_HEIGHT - 6) continue;
+      const chunk = this.worldToChunk(x, z);
+      this.ensureChunk(chunk.cx, chunk.cz);
+      const surface = this.getBlock(x, h, z);
+      if (surface !== BLOCK.SAND) continue;
+      if (this.getBlock(x, h + 1, z) !== BLOCK.AIR || this.getBlock(x, h + 2, z) !== BLOCK.AIR) continue;
+
+      let clear = 0;
+      let blocked = false;
+      for (let dx = -3; dx <= 3 && !blocked; dx++) {
+        for (let dz = -3; dz <= 3 && !blocked; dz++) {
+          for (let dy = 1; dy <= 4; dy++) {
+            if (foliage.has(this.getBlock(x + dx, h + dy, z + dz))) {
+              blocked = true;
+              break;
+            }
+          }
+        }
+      }
+      if (blocked) continue;
+
+      let nearestWater = Infinity;
+      let waterX = 0;
+      let waterZ = 0;
+      for (const [dx, dz] of dirs) {
+        for (let distance = 2; distance <= 9; distance++) {
+          const wx = Math.round(x + dx * distance);
+          const wz = Math.round(z + dz * distance);
+          if (!waterAt(wx, wz)) continue;
+          if (distance < nearestWater) {
+            nearestWater = distance;
+            waterX = dx;
+            waterZ = dz;
+          }
+          break;
+        }
+      }
+      if (!Number.isFinite(nearestWater)) continue;
+
+      let horizon = 0;
+      for (const [dx, dz] of dirs) {
+        if (heightAt(x + Math.round(dx * 14), z + Math.round(dz * 14), this.seed) <= h + 3) horizon++;
+      }
+      const inlandX = x - Math.round(waterX * 12);
+      const inlandZ = z - Math.round(waterZ * 12);
+      const inland = Math.max(0, 20 - Math.abs(heightAt(inlandX, inlandZ, this.seed) - h));
+      candidates.push({
+        x: x + 0.5,
+        y: h + 1.01,
+        z: z + 0.5,
+        height: h,
+        surface: 'sand',
+        biome: biomeAt(x, z, this.seed),
+        waterDistance: nearestWater,
+        waterDirX: waterX,
+        waterDirZ: waterZ,
+        clearance: clear + 4,
+        horizon,
+        inland,
+      });
+    }
+
+    const chosen = chooseCastawayCandidate(candidates);
+    if (!chosen) return null;
+    const dirX = Number(chosen.waterDirX) || 0;
+    const dirZ = Number(chosen.waterDirZ) || 1;
+    const yaw = Math.atan2(-dirX, -dirZ);
+    const boatX = chosen.x + dirX * CASTAWAY_CONFIG.boatOffset;
+    const boatZ = chosen.z + dirZ * CASTAWAY_CONFIG.boatOffset;
+    const boatGround = heightAt(Math.floor(boatX), Math.floor(boatZ), this.seed);
+    return {
+      x: chosen.x,
+      y: chosen.y,
+      z: chosen.z,
+      yaw,
+      boatX,
+      boatY: Math.max(SEA_LEVEL + 0.12, boatGround + 0.08),
+      boatZ,
+      water: boatGround <= SEA_LEVEL,
+      waterDirX: dirX,
+      waterDirZ: dirZ,
+    };
   }
 
   findSpawn() {
