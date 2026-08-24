@@ -34,7 +34,7 @@ assert.equal(SAVE_VERSION, 2, 'destination integration does not bump SAVE_VERSIO
 has(game, /_ensureDestinationLandmark\s*\(/, 'fresh/load boot ensures the landmark');
 has(game, /world\.updateStreaming\([\s\S]*?\);\s*if \(this\.started && !this\._destinationLandmarkPlaced\) \{\s*this\._ensureDestinationLandmark\(\);\s*\}/, 'started update loop retries landmark stamping after streamed world data is available');
 has(game, /placeDestination\(/, 'landmark placement is deterministic from seed/camp');
-has(game, /from ['"]\.\/gen\.js\?v=285['"];?/, 'landmark surface fallback imports deterministic heightAt');
+has(game, /from ['"]\.\/gen\.js\?v=314['"];?/, 'landmark surface fallback imports deterministic heightAt');
 has(game, /heightAt\(x,\s*z,\s*this\.seed\)/, 'all-air destination columns use the seeded heightAt fallback');
 has(game, /world\.setBlock\([^;]+recordEdit/s, 'landmark stamping uses World.setBlock edits');
 has(game, /world\.exportEdits\(\)/, 'landmark edits flow through save capture');

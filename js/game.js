@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=482';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=483';
 import { Player } from './player.js?v=240';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
@@ -75,7 +75,7 @@ import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX,
 import { underwaterFogStyle } from './underwater-fog.js?v=245';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=8';
-import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=313';
+import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=314';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=29';
 import {
   equipmentWarmth,
@@ -93,7 +93,7 @@ import {
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=225';
+} from './save.js?v=226';
 import { getMode } from './modes.js?v=243';
 
 const HARVEST_BASE_SECONDS = 4.2;
@@ -169,6 +169,12 @@ import {
   securePressure,
   getPressureHudSummary,
 } from './expedition-pressure.js?v=1';
+import {
+  createCrossingState,
+  deserializeCrossingState,
+  tickCrossing,
+  crossingHudSummary,
+} from './expedition-crossing.js?v=1';
 
 function setItemIcon(element, itemId, name, color, className) {
   element.querySelectorAll('.hb-glyph:not(.slot-icon)').forEach((oldIcon) => oldIcon.remove());
@@ -414,6 +420,7 @@ export class Game {
     this._boatClock = 0;
     this._campFuel = new Map(); // "x,y,z" -> fuel 0..100
     this._destinationState = createDestinationState();
+    this._crossingState = createCrossingState();
     this._pressureState = createPressureState();
     this._destinationLandmarkPlaced = false;
     // Shared, serializable station state; P1/P2 always address these same records.
@@ -1055,6 +1062,10 @@ export class Game {
       this._achievements = emptyAchievements();
       this._crops = new Map();
       this._destinationState = createDestinationState({ seed, campPosition: this._spawnPos });
+      this._crossingState = createCrossingState({
+        start: this._spawnPos,
+        destination: this._destinationState.destination,
+      });
       this._pressureState = createPressureState();
       this._destinationLandmarkPlaced = false;
       this._workshopState = createWorkshopState();
@@ -1142,6 +1153,10 @@ export class Game {
       this._destinationState = deserializeDestinationState(saveData.destination, {
         seed,
         campPosition: this._spawnPos,
+      });
+      this._crossingState = deserializeCrossingState(saveData.crossing, {
+        start: this._spawnPos,
+        destination: this._destinationState.destination,
       });
       this._pressureState = deserializePressureState(saveData.pressure);
       this._destinationLandmarkPlaced = false;
@@ -2358,6 +2373,11 @@ export class Game {
       this.audio.dismount?.() || this.audio.ui();
       this.player.notify('Back on shore. Hold the boat and press F near it to board.', 2.5);
     }
+    this._crossingState = tickCrossing(this._crossingState, {
+      boat: { ...this._boat, mounted: false, beached: landfall },
+      destination: this._destinationState?.destination,
+      bothAboard: false,
+    });
     this._syncBoatVisual();
     return true;
   }
@@ -2404,6 +2424,11 @@ export class Game {
     } else {
       this._boatCameraSurge = 0;
     }
+    this._crossingState = tickCrossing(this._crossingState, {
+      boat: this._boat,
+      destination: this._destinationState?.destination,
+      bothAboard: this.hasTwoBoatRiders(),
+    });
     this._syncBoatVisual();
   }
 
@@ -2772,7 +2797,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=225').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=226').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -2843,6 +2868,7 @@ export class Game {
       crops: [...(this._crops || new Map()).entries()],
       chests: exportChests(this._chests),
       destination: this._destinationState,
+      crossing: this._crossingState,
       pressure: this._pressureState,
       workshop: serializeWorkshopState(this._workshopState),
     };
@@ -4388,7 +4414,7 @@ export class Game {
         const col = getColor(hit.id, 'side');
         this.fx.burst(hit.x, hit.y, hit.z, col, 12);
         this.fx.hideCrack();
-        this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR);
+        this.world.excavateBlock(hit.x, hit.y, hit.z);
         this.audio.breakBlock();
         this._showActionCue(`Mined ${displayName(hit.id)}`);
         this.player.breaking = null;
@@ -5519,7 +5545,7 @@ export class Game {
         if (p.breaking.progress >= 1) {
           let drop = resolveBlockDrop(hit.id, dropForBlock);
           if (hit.id === BLOCK.PALM_LEAVES) drop = palmLeafDrop(hit.id, Math.random());
-          this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR);
+          this.world.excavateBlock(hit.x, hit.y, hit.z);
           {
             const w = wearTool(p.slots, p.hotbarIndex, 1);
             p.slots = w.slots;
@@ -5661,14 +5687,11 @@ export class Game {
     const next = hud.querySelector('[data-destination-next]');
     if (!title || !status || !next) return;
     if (mountedSkiff) {
-      const from = { x: this.player.position.x, z: this.player.position.z };
-      const to = { x: destination.x, z: destination.z };
-      const relativeBearing = Math.round((compassNeedleAngle(this.player.yaw, from, to) * 180) / Math.PI);
       const boatSpeed = Math.hypot(this._boat.vx || 0, this._boat.vz || 0);
       const underway = boatSpeed > 0.18;
       const approaching = distance <= 25;
-      title.textContent = approaching ? 'Landfall Approach' : 'Skiff Route';
-      status.textContent = `Iron Ravine · ${Math.round(distance)}m · ${relativeBearing >= 0 ? '+' : ''}${relativeBearing}°`;
+      title.textContent = approaching ? 'Landfall Approach' : 'First Crossing';
+      status.textContent = crossingHudSummary(this._crossingState, 'Iron Ravine');
       next.textContent = state.phase === 'claimed'
         ? 'COMPLETE · Return to shore or continue offshore'
         : approaching

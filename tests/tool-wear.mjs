@@ -101,9 +101,9 @@ test('durabilityRatio defaults, clamps, and scales by tier', () => {
 });
 
 test('durability adapter uses literal current cache-busted imports and stays pure', () => {
-  assert.match(durabilitySource, /from ['"]\.\/items\.js\?v=246['"]/);
+  assert.match(durabilitySource, /from ['"]\.\/items\.js\?v=250['"]/);
   assert.match(durabilitySource, /from ['"]\.\/tool-tiers\.js\?v=222['"]/);
-  assert.match(durabilitySource, /from ['"]\.\/inventory\.js\?v=216['"]/);
+  assert.match(durabilitySource, /from ['"]\.\/inventory\.js\?v=222['"]/);
   assert.match(durabilitySource, /tierForItem\(id\)/);
   assert.match(durabilitySource, /TIER_DURABILITY\[tier\]/);
   assert.doesNotMatch(durabilitySource, /import\s*\(/);
@@ -111,7 +111,7 @@ test('durability adapter uses literal current cache-busted imports and stays pur
 });
 
 test('game mining paths reach durability wear and use the current adapter cache', () => {
-  assert.match(gameSource, /from ['"]\.\/durability\.js\?v=222['"]/);
+  assert.match(gameSource, /from ['"]\.\/durability\.js\?v=223['"]/);
   assert.match(gameSource, /wearTool\(this\.player\.slots, this\.player\.hotbarIndex, 1\)/);
   assert.match(gameSource, /wearTool\(p\.slots, p\.hotbarIndex, 1\)/);
   assert.match(gameSource, /if \(w\.broken\) this\.player\.notify\(['"]Tool broke!/);

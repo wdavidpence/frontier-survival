@@ -99,6 +99,7 @@ function parseBoat(boat) {
  * @param {Array} state.edits
  * @param {object} [state.destination]
  * @param {object} [state.pressure]
+ * @param {object} [state.crossing]
  * @param {object} [state.workshop]
  */
 export function buildSavePayload(state) {
@@ -127,6 +128,7 @@ export function buildSavePayload(state) {
     chests: state.chests || undefined,
     destination: state.destination,
     pressure: state.pressure,
+    crossing: state.crossing,
     workshop: state.workshop,
     spawnPos: state.spawnPos || undefined,
     castawayArrival: state.castawayArrival || undefined,
@@ -158,6 +160,7 @@ export function parseSavePayload(raw) {
   data.boat = parseBoat(data.boat);
   if (data.destination == null) data.destination = null;
   if (data.pressure == null) data.pressure = null;
+  if (data.crossing == null) data.crossing = null;
   if (data.workshop == null) data.workshop = null;
   if (!Array.isArray(data.player.slots)) return { ok: false, error: 'missing slots' };
   if (!data.player.equipment || typeof data.player.equipment !== 'object') {

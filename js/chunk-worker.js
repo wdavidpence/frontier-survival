@@ -307,6 +307,15 @@ function coastalGradeHeight(x, z, seed = 0) {
   if (!Number.isFinite(nearestWater)) return raw;
   return Math.min(raw, 16 + Math.floor(1 + nearestWater * 1.25));
 }
+function sandyCoastHeight(x, z, seed, biome, gradedHeight, rocky = false) {
+  if (rocky || (biome !== 'shore' && biome !== 'ocean')) return gradedHeight;
+  const adjacentWater = [[1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2]]
+    .some(([dx, dz]) => heightAt(x + dx, z + dz, seed) < 16);
+  return adjacentWater ? Math.min(gradedHeight, 15) : gradedHeight;
+}
+function isSandyBeachSurface(height, biome, rocky = false) {
+  return !rocky && (biome === 'shore' || biome === 'ocean') && height <= 15;
+}
 function mountainFaceAt(x, z, seed = 0) {
   const center = heightAt(x, z, seed);
   if (center < 16 + 10) return false;
@@ -583,9 +592,12 @@ function generateChunkData(cx, cz, seed) {
       const z = baseZ + lz;
       const biome = biomeAt(x, z, seed);
       const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
-      const h = (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+      const baseHeight = (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
         ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, seed);
       const cliff = biome === 'tropical' && tropicalCliffAt(x, z, seed);
+      const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
+      const h = sandyCoastHeight(x, z, seed, biome, baseHeight, rockyCoast);
+      const sandySurface = isSandyBeachSurface(h, biome, rockyCoast);
 
       for (let y = 0; y < WORLD_HEIGHT; y++) {
         let id = BLOCK.AIR;
@@ -594,13 +606,15 @@ function generateChunkData(cx, cz, seed) {
           if (y <= SEA_LEVEL) id = BLOCK.WATER;
         } else if (y === h) {
           if (biome === 'mangrove') id = BLOCK.MANGROVE_MUD;
-          else if (biome === 'shore' || biome === 'desert' || biome === 'ocean') id = BLOCK.SAND;
+          else if (biome === 'desert' || sandySurface) id = BLOCK.SAND;
+          else if (biome === 'shore' || biome === 'ocean') id = cliff ? BLOCK.STONE : BLOCK.GRASS;
           else if (biome === 'tundra') id = BLOCK.SNOW;
           else if (cliff) id = BLOCK.STONE;
           else id = BLOCK.GRASS;
         } else if (y > h - 4) {
           if (biome === 'mangrove') id = BLOCK.MANGROVE_MUD;
-          else if (biome === 'desert' || biome === 'shore' || biome === 'ocean') id = BLOCK.SAND;
+          else if (biome === 'desert' || sandySurface) id = BLOCK.SAND;
+          else if (biome === 'shore' || biome === 'ocean') id = cliff ? BLOCK.STONE : BLOCK.DIRT;
           else if (cliff) id = BLOCK.STONE;
           else id = BLOCK.DIRT;
         } else {

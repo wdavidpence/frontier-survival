@@ -304,7 +304,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=482/);
+  assert.match(gameSource, /world\.js\?v=483/);
 });
 
 test('BVI fresh spawns prefer the authored launch beach when clear', () => {
@@ -3440,12 +3440,12 @@ test('offshore fishing has boardable skiff and lure-attracted school contracts',
   assert.match(game, /E — Open skiff storage · F — Disembark/);
   assert.match(game, /F — Disembark skiff/);
   assert.match(game, /const mountedSkiff = !!this\._boat\?\.mounted/);
-  assert.match(game, /title\.textContent = approaching \? 'Landfall Approach' : 'Skiff Route'/);
-  assert.match(game, /Iron Ravine · \$\{Math\.round\(distance\)\}m ·/);
+  assert.match(game, /title\.textContent = approaching \? 'Landfall Approach' : 'First Crossing'/);
+  assert.match(game, /crossingHudSummary\(this\._crossingState, 'Iron Ravine'\)/);
   assert.match(game, /const boatSpeed = Math\.hypot\(this\._boat\.vx \|\| 0, this\._boat\.vz \|\| 0\)/);
   assert.match(game, /const underway = boatSpeed > 0\.18/);
   assert.match(game, /const approaching = distance <= 25/);
-  assert.match(game, /title\.textContent = approaching \? 'Landfall Approach' : 'Skiff Route'/);
+  assert.match(game, /title\.textContent = approaching \? 'Landfall Approach' : 'First Crossing'/);
   assert.match(game, /APPROACHING · Ease toward shore · E storage · F disembark/);
   assert.match(game, /LANDING RANGE · Steer toward shore · F disembark/);
   assert.match(game, /UNDERWAY · \$\{boatSpeed\.toFixed\(1\)\} m\/s · Follow route · E storage/);
@@ -3724,7 +3724,7 @@ test('mining path keeps pointer hold, raycast break, remesh, and drop feedback w
   assert.ok(inputSrc.includes("addEventListener('pointerdown'"), 'pointerdown must preserve LMB mining in modern browsers');
   assert.ok(inputSrc.includes('_onPointerUp'), 'pointer release/cancel must clear the mining state');
   assert.ok(gameSrc.includes('this._raycastInteraction(origin, dir, 6)'), 'mining must select the targeted voxel');
-  assert.ok(gameSrc.includes('this.world.setBlock(hit.x, hit.y, hit.z, BLOCK.AIR)'), 'mining must clear the voxel');
+  assert.ok(gameSrc.includes('this.world.excavateBlock(hit.x, hit.y, hit.z)'), 'mining must clear the voxel through the fluid-aware excavation path');
   assert.ok(gameSrc.includes('resolveBlockDrop(hit.id, dropForBlock)'), 'mining must resolve a block drop');
   assert.ok(gameSrc.includes('this.player.notify(`+${dropCount} ${displayName(drop)}`'), 'mining must report the awarded drop');
   assert.ok(gameSrc.includes('this.world.flushDirty()'), 'the frame must flush dirty chunks after a break');
@@ -5434,7 +5434,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.19.0'), 'HTML must expose v1.19.0');
+  assert.ok(html.includes('v1.19.1'), 'HTML must expose v1.19.1');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

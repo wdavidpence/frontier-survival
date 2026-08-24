@@ -1,4 +1,5 @@
 /** Deterministic value noise for terrain */
+import { sandyBeachHeight, isSandyBeachSurface } from './shore-water.js?v=1';
 /** Deterministic 2D hash in [0,1). Integer-safe (float mul collapsed to ~0.5 for large coords). */
 export function hash2(x, z) {
   let n = Math.imul(x | 0, 374761393) + Math.imul(z | 0, 668265263);
@@ -404,6 +405,22 @@ export function coastalGradeHeight(x, z, seed = 0) {
   const allowedRise = 1 + nearestWater * 1.25;
   return Math.min(raw, GEN_SEA_LEVEL + Math.floor(allowedRise));
 }
+
+/**
+ * Lower ordinary sandy shoreline cells to the flush waterline. Rocky faces and
+ * higher inland relief remain untouched; sync and worker generation mirror this
+ * seam so streamed chunks cannot resurrect one-block-high sand.
+ */
+export function sandyCoastHeight(x, z, seed = 0, biome = '', gradedHeight = coastalGradeHeight(x, z, seed), rocky = false) {
+  if (rocky || (biome !== 'shore' && biome !== 'ocean')) return gradedHeight;
+  const adjacentWater = [
+    [1, 0], [-1, 0], [0, 1], [0, -1],
+    [2, 0], [-2, 0], [0, 2], [0, -2],
+  ].some(([dx, dz]) => heightAt(x + dx, z + dz, seed) < GEN_SEA_LEVEL);
+  return sandyBeachHeight({ height: gradedHeight, biome, seaLevel: GEN_SEA_LEVEL, adjacentWater, rocky });
+}
+
+export { isSandyBeachSurface };
 
 /** True only for warm, high, sheared mountain cells with a visible drop. */
 export function mountainFaceAt(x, z, seed = 0) {
