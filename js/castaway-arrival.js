@@ -46,7 +46,7 @@ export function chooseCastawayCandidate(candidates = []) {
   return best ? { ...best, score: bestScore } : null;
 }
 
-export function createCastawayArrival({ x, y, z, yaw = 0, water = false } = {}) {
+export function createCastawayArrival({ x, y, z, yaw = 0, water = false, beached = true } = {}) {
   return {
     version: CASTAWAY_ARRIVAL_VERSION,
     x: Number(x) || 0,
@@ -54,6 +54,7 @@ export function createCastawayArrival({ x, y, z, yaw = 0, water = false } = {}) 
     z: Number(z) || 0,
     yaw: Number(yaw) || 0,
     water: !!water,
+    beached: beached !== false,
     salvaged: false,
   };
 }
@@ -76,6 +77,6 @@ export function restoreCastawayArrival(raw) {
 
 export function castawayObjective(salvaged = false) {
   return salvaged
-    ? 'Find fresh water · choose a camp before nightfall'
-    : 'Salvage the wreckage · find fresh water before nightfall';
+    ? 'Find fresh water · repair the dinghy when you can'
+    : 'Open the dinghy locker · find fresh water before nightfall';
 }

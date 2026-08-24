@@ -1,6 +1,6 @@
 /** Crafting recipes — pure data + craft helper */
-import { BLOCK } from './blocks.js?v=289';
-import { ITEM } from './items.js?v=248';
+import { BLOCK } from './blocks.js?v=291';
+import { ITEM } from './items.js?v=250';
 import { craftWith, countItems } from './inventory.js?v=222';
 
 /**
@@ -434,6 +434,32 @@ const ALL_RECIPES = [
     tier: 1,
     ingredients: [{ id: BLOCK.PLANKS, count: 5 }],
     results: [{ id: ITEM.BOAT, count: 1 }],
+  },
+  {
+    id: 'flotation',
+    name: 'Coconut-Fiber Float',
+    desc: '2 Palm Fronds + 3 Cloth + 2 Sticks → restable open-water flotation',
+    category: 'utility',
+    tier: 1,
+    ingredients: [
+      { id: ITEM.PALM_FROND, count: 2 },
+      { id: ITEM.CLOTH, count: 3 },
+      { id: ITEM.STICK, count: 2 },
+    ],
+    results: [{ id: ITEM.FLOTATION, count: 1 }],
+  },
+  {
+    id: 'canteen',
+    name: 'Canteen',
+    desc: '1 Coconut + 1 Cloth + 1 Palm Frond → empty refillable canteen',
+    category: 'utility',
+    tier: 1,
+    ingredients: [
+      { id: ITEM.COCONUT, count: 1 },
+      { id: ITEM.CLOTH, count: 1 },
+      { id: ITEM.PALM_FROND, count: 1 },
+    ],
+    results: [{ id: ITEM.EMPTY_CANTEEN, count: 1 }],
   },
   {
     id: 'fish_bait',

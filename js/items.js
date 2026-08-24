@@ -2,7 +2,7 @@
  * Unified item/block IDs for inventory stacks.
  * Blocks: 0–99 (see blocks.js). Items: 100+.
  */
-import { BLOCK, BLOCK_PROPS } from './blocks.js?v=289';
+import { BLOCK, BLOCK_PROPS } from './blocks.js?v=291';
 
 export const ITEM = {
   STICK: 100,
@@ -60,6 +60,9 @@ export const ITEM = {
   COOKED_TROPICAL_FISH: 161,
   RAW_CRAB: 162,
   COOKED_CRAB: 163,
+  FLOTATION: 164,
+  CANTEEN: 165,
+  EMPTY_CANTEEN: 166,
   WOOD_HOE: 149,
   STONE_HOE: 150,
   IRON_HOE: 151,
@@ -265,6 +268,9 @@ export const ITEM_PROPS = {
     cookable: ITEM.COOKED_CRAB, maxStack: 16,
   },
   [ITEM.COOKED_CRAB]: { name: 'Cooked Crab', color: [0.92, 0.42, 0.18], edible: 26, maxStack: 16 },
+  [ITEM.FLOTATION]: { name: 'Coconut-Fiber Float', color: [0.72, 0.58, 0.32], maxStack: 1, flotation: true },
+  [ITEM.CANTEEN]: { name: 'Fresh Water Canteen', color: [0.20, 0.48, 0.82], maxStack: 1, drinkable: 58, drinkStamina: 18 },
+  [ITEM.EMPTY_CANTEEN]: { name: 'Empty Canteen', color: [0.28, 0.34, 0.42], maxStack: 1, refillable: true },
 };
 
 export function propsOf(id) {
@@ -356,6 +362,7 @@ export function dropForBlock(blockId) {
   if (blockId === BLOCK.FENCE) return BLOCK.FENCE;
   if (blockId === BLOCK.SNARE) return BLOCK.SNARE;
   if (blockId === BLOCK.PUMPKIN) return ITEM.PUMPKIN;
+  if (blockId === BLOCK.COCONUT) return ITEM.COCONUT;
   if (blockId === BLOCK.CLAY) return ITEM.CLAY_BALL;
   if (blockId === BLOCK.CLAY_DEEP_ORE) return ITEM.CLAY_BALL;
   if (blockId === BLOCK.DOOR_CLOSED || blockId === BLOCK.DOOR_OPEN) return BLOCK.DOOR_CLOSED;

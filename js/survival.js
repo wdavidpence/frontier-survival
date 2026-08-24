@@ -22,6 +22,14 @@ export const BREATH_SEC = 30;
 /** Gentle recovery rate after the player's head clears the water. */
 export const BREATH_RECOVER_PER_SEC = 8;
 
+export function celsiusToFahrenheit(celsius) {
+  return Number(celsius) * 9 / 5 + 32;
+}
+
+export function formatTemperatureF(celsius) {
+  return `${Math.round(celsiusToFahrenheit(celsius))}°F`;
+}
+
 export const DEFAULT_SURVIVAL = {
   health: 100,
   maxHealth: 100,
@@ -36,6 +44,7 @@ export const DEFAULT_SURVIVAL = {
   bodyTemp: 37.0, // °C
   sleep: 0, // 0 rested → 100 collapsing
   wetness: 0,
+  sickness: 0,
   warmthFromClothes: 0,
   bleed: 0,
   dead: false,
@@ -49,7 +58,7 @@ export function ambientTempC(dayPhase, weather = 'clear') {
   // cos peaking at noon (phase 0.25), coldest at midnight (0.75)
   const t = Math.cos((dayPhase - 0.25) * Math.PI * 2);
   let ambient = 12 + t * 14; // ~ -2 night to 26 day baseline temperate
-  if (weather === 'rain') ambient -= 4;
+  if (weather === 'rain') ambient -= 10;
   if (weather === 'snow') ambient -= 12;
   return ambient;
 }
@@ -81,6 +90,9 @@ export function tickSurvival(state, env) {
   if (next.maxBreath == null || !Number.isFinite(next.maxBreath)) next.maxBreath = BREATH_SEC;
   if (next.breath == null || !Number.isFinite(next.breath)) next.breath = next.maxBreath;
   const grace = Math.max(0, Math.min(1, env.earlyGameGrace ?? 0));
+  const shade = Math.max(0, Math.min(1, env.shade ?? 0));
+  const swimming = !!env.swimming;
+  const flotation = !!env.flotation;
   let ambient = ambientTempC(env.dayPhase, env.weather);
   // Apply biome temperature bias (desert +8, tundra -10, etc.)
   if (env.ambientTempOffset) ambient += env.ambientTempOffset;
@@ -95,11 +107,17 @@ export function tickSurvival(state, env) {
     next.wetness = Math.min(100, next.wetness + env.wetnessGain * dt * wetMul);
   } else next.wetness = Math.max(0, next.wetness - 8 * dt);
 
+  if (next.sickness == null || !Number.isFinite(next.sickness)) next.sickness = 0;
+  const rainExposed = env.weather === 'rain' && !env.roofed && next.wetness > 55;
+  if (rainExposed) next.sickness = Math.min(100, next.sickness + dt * (0.45 + next.wetness / 120));
+  else if (env.roofed || (env.blockHeat || 0) > 5 || next.wetness < 25) next.sickness = Math.max(0, next.sickness - dt * 0.22);
+
   const wetPenalty = (next.wetness / 100) * 8;
   // Campfires are a primary survival tool — strong local heat must beat night air
   const fireWarmth = Math.min(32, fire * 1.35);
   // Early game: bias feels-like toward comfort so new players can explore/build
   let feelsLike = ambient + clothes + fireWarmth - wetPenalty + grace * 10;
+  if (shade > 0) feelsLike -= Math.max(0, feelsLike - 24) * shade * 0.32;
   if (env.desertHeat) feelsLike += 10 * (1 - grace * 0.7);
 
   // Homeostasis: comfortable air keeps core ~37°C; extremes and wetness pull away
@@ -160,13 +178,16 @@ export function tickSurvival(state, env) {
     next.thirst = Math.max(next.thirst, 30 + grace * 35);
   }
 
-  // Breath: underwater exploration has a clear, forgiving timer. The head clears
-  // water by the time the movement probe returns false, then recovery is quick.
-  if (env.inWater) next.breath = Math.max(0, next.breath - dt);
+  // Breath and open-water exertion. A flotation device makes resting on the
+  // surface viable; without one, exhaustion accelerates drowning pressure.
+  if (env.inWater) next.breath = Math.max(0, next.breath - dt * (swimming && !flotation ? 1.45 : 1));
   else next.breath = Math.min(next.maxBreath, next.breath + BREATH_RECOVER_PER_SEC * dt);
 
   // Stamina
-  if (env.sprinting && env.moving) {
+  if (swimming) {
+    if (env.swimMoving) next.stamina = Math.max(0, next.stamina - (flotation ? 7 : 18) * dt);
+    else next.stamina = Math.min(next.maxStamina, next.stamina + (flotation ? 9 : 2) * dt);
+  } else if (env.sprinting && env.moving) {
     next.stamina = Math.max(0, next.stamina - 18 * dt * (1 - grace * 0.4));
   } else if (!env.sprinting) {
     const regen = next.hunger > 10 && next.thirst > 10 ? 14 : 5;
@@ -231,6 +252,14 @@ export function tickSurvival(state, env) {
       dps += 1.2 * dmgScale;
       cause = 'drowning';
     }
+    if (swimming && !flotation && next.stamina <= 0) {
+      dps += 1.4 * dmgScale;
+      cause = 'drowning';
+    }
+    if (next.sickness >= 85) {
+      dps += 0.55 * dmgScale;
+      if (!cause) cause = 'sickness';
+    }
   }
 
   if (dps > 0) {
@@ -269,6 +298,7 @@ export function moveSpeedMultiplier(state, sprinting) {
   if (state.sleep > 80) m *= 0.7;
   if (state.bodyTemp < 33) m *= 0.65;
   if (state.wetness > 60) m *= 0.9;
+  if ((state.sickness || 0) > 35) m *= Math.max(0.55, 1 - (state.sickness - 35) / 180);
   return m;
 }
 

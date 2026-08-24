@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=481';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=482';
 import { Player } from './player.js?v=240';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
@@ -10,8 +10,11 @@ import {
   eatFood,
   drinkWater,
   applyDamage,
-} from './survival.js?v=243';
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=290';
+  formatTemperatureF,
+  moveSpeedMultiplier,
+} from './survival.js?v=244';
+
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=291';
 import {
   ITEM,
   propsOf,
@@ -20,7 +23,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=248';
+} from './items.js?v=250';
 import { iconDataUriForItem } from './item-icons.js?v=23';
 import { resolveBlockDrop, harvestDurationForBlock, workDurationForBlock } from './mine-tier.js?v=223';
 import {
@@ -64,7 +67,7 @@ import {
   ingredientSummary,
   recipeProgress,
   nextProgressionRecipe,
-} from './crafting.js?v=418';
+} from './crafting.js?v=420';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=267';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
 import { createBlockAtlas } from './atlas.js?v=305';
@@ -72,7 +75,7 @@ import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX,
 import { underwaterFogStyle } from './underwater-fog.js?v=245';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=8';
-import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=312';
+import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=313';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=29';
 import {
   equipmentWarmth,
@@ -90,7 +93,7 @@ import {
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=223';
+} from './save.js?v=225';
 import { getMode } from './modes.js?v=243';
 
 const HARVEST_BASE_SECONDS = 4.2;
@@ -132,7 +135,7 @@ import { readGamepad } from './input-coop.js?v=261';
 import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=220';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=220';
 import { palmLeafDrop } from './palm-drops.js?v=2';
-import { createBoat, mountBoat, dismountBoat, stepBoat, buoyancyY, riderPosition, boatWaterFootprintClear, BOAT_CONFIG } from './boat-entity.js?v=3';
+import { createBoat, normalizeBoatState, mountBoat, dismountBoat, hasRider, stepBoat, degradeBoat, boatRepairPlan, repairBoat, pushBoat, buoyancyY, riderPosition, boatWaterFootprintClear, BOAT_CONFIG } from './boat-entity.js?v=5';
 import { boatAttachChest, createBoatChest } from './boat-chest.js?v=1';
 import { FISH_SCHOOL_COUNT, schoolFishPose, schoolVisibility } from './fish-school.js?v=2';
 import {
@@ -197,7 +200,7 @@ import {
   castawayObjective,
   createCastawayArrival,
   restoreCastawayArrival,
-} from './castaway-arrival.js?v=2';
+} from './castaway-arrival.js?v=3';
 
 export class Game {
   /**
@@ -1005,6 +1008,7 @@ export class Game {
     }
 
     if (freshPlayer || !saveData) {
+      this._chests = new Map();
       const arrival = this.world.findCastawaySpawn?.() || this.world.findSpawn();
       const spawn = { x: arrival.x, y: arrival.y, z: arrival.z };
       this._spawnPos = { x: spawn.x, y: spawn.y, z: spawn.z };
@@ -1021,6 +1025,17 @@ export class Game {
       this._castawayArrival.boatZ = Number.isFinite(arrival.boatZ) ? arrival.boatZ : spawn.z + 2.5;
       this._castawayArrival.waterDirX = Number(arrival.waterDirX) || 0;
       this._castawayArrival.waterDirZ = Number(arrival.waterDirZ) || 1;
+      this._boat = createBoat(this._castawayArrival.boatX, this._castawayArrival.boatY, this._castawayArrival.boatZ, this._castawayArrival.yaw);
+      this._boat.beached = arrival.beached !== false;
+      this._boat.chest = boatAttachChest(createBoatChest(false));
+      setChestSlots(this._chests, `boat:${this.seed}`, [
+        { id: ITEM.CANTEEN, count: 1 },
+        { id: ITEM.RATION, count: 2 },
+        { id: ITEM.STICK, count: 3 },
+      ], 27);
+      this._boat.hull = 0.86;
+      this._boat.mast = 0.58;
+      this._boat.sail = 0.46;
       this.player = new Player(spawn, { starterRations: this.modeDef().starterRations });
       // The first frame is the survivor looking back at the wreckage, with the
       // island and its readable horizon behind it.
@@ -1152,6 +1167,7 @@ export class Game {
     this._clearCastawayArrivalVisual();
     if (this._castawayArrival) {
       this._buildCastawayArrivalVisual();
+      this._syncBoatVisual();
       this._castawayCardT = freshPlayer ? CASTAWAY_CONFIG.cardSeconds : 0;
       this._castawayCardShown = freshPlayer;
     }
@@ -1537,16 +1553,27 @@ export class Game {
   _tickCastawayArrival(dt) {
     if (!this._castawayArrival || !this._castawayGroup) return;
     this._castawayClock += dt;
-    const water = !!this._castawayArrival.water;
+    const water = !!this._boat ? !this._boat.beached : !!this._castawayArrival.water;
     const bob = Math.sin(this._castawayClock * (water ? 2.2 : 1.35)) * (water ? 0.07 : 0.018);
-    this._castawayGroup.position.y = (this._castawayArrival.boatY ?? this._castawayArrival.y - 0.9) + bob;
+    const source = this._boat || this._castawayArrival;
+    this._castawayGroup.position.set(
+      source.x ?? source.boatX,
+      (source.y ?? source.boatY ?? source.y - 0.9) + bob,
+      source.z ?? source.boatZ,
+    );
+    this._castawayGroup.rotation.y = source.yaw || 0;
     this._castawayGroup.rotation.z = Math.sin(this._castawayClock * 1.6) * (water ? 0.025 : 0.008);
     if (this._castawayFoam) {
       const pulse = 1 + Math.sin(this._castawayClock * 1.8) * 0.045;
       this._castawayFoam.scale.set(pulse, pulse, pulse);
+      this._castawayFoam.visible = water;
       this._castawayFoam.material.opacity = 0.34 + Math.sin(this._castawayClock * 1.4) * 0.08;
     }
     if (this._castawaySail) {
+      const sailCondition = this._boat?.sail ?? 0.46;
+      this._castawaySail.visible = sailCondition > 0.03;
+      this._castawaySail.scale.x = 0.72 + sailCondition * 0.28;
+      this._castawaySail.material.opacity = 0.42 + sailCondition * 0.4;
       this._castawaySail.rotation.y = Math.sin(this._castawayClock * 1.1) * 0.045;
     }
 
@@ -1586,7 +1613,7 @@ export class Game {
     state.salvaged = true;
     if (this._castawayCrate) this._castawayCrate.visible = false;
     this._castawayGroup?.getObjectByName('salvage-bottle') && (this._castawayGroup.getObjectByName('salvage-bottle').visible = false);
-    this.player.notify('Salvaged the wreckage · sticks, timber, and one dry ration recovered.', 4.5);
+    this.player.notify('Opened the dinghy locker · sticks, timber, and one dry ration recovered.', 4.5);
     this.audio.splash?.() || this.audio.ui();
     this._castawayCardT = Math.max(this._castawayCardT, 3.8);
     this._castawayCardShown = true;
@@ -1636,6 +1663,25 @@ export class Game {
     if (blockId === BLOCK.SNOW || blockId === BLOCK.ICE) return 'snow';
     if (blockId === BLOCK.WATER) return 'water';
     return 'dirt';
+  }
+
+  _sampleShade(x, y, z) {
+    if (!this.world) return 0;
+    const canopy = new Set([BLOCK.LEAVES, BLOCK.PALM_LEAVES, BLOCK.MANGROVE_LEAVES, BLOCK.SEQUOIA_LEAVES]);
+    let hits = 0;
+    for (let dy = 2; dy <= 7; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dz = -1; dz <= 1; dz++) {
+          if (canopy.has(this.world.getBlock(Math.floor(x + dx), Math.floor(y + dy), Math.floor(z + dz)))) hits++;
+        }
+      }
+    }
+    return Math.max(0, Math.min(1, hits / 5));
+  }
+
+  _hasFlotation(pl = this.player) {
+    if (!pl) return false;
+    return countItems(pl.slots, ITEM.FLOTATION) > 0 || !!propsOf(pl.heldId())?.flotation;
   }
 
   _ensureRain() {
@@ -2026,6 +2072,26 @@ export class Game {
   }
 
   _syncBoatVisual() {
+    const source = this._boat || this._castawayArrival;
+    if (this._castawayGroup) {
+      if (!source) {
+        this._castawayGroup.visible = false;
+      } else {
+        this._castawayGroup.visible = true;
+        this._castawayGroup.position.set(
+          source.x ?? source.boatX,
+          source.y ?? source.boatY,
+          source.z ?? source.boatZ,
+        );
+        this._castawayGroup.rotation.y = source.yaw || 0;
+        this._castawayGroup.userData.beached = !!source.beached;
+        this._castawayGroup.userData.sailCondition = source.sail ?? 0.46;
+        this._castawayGroup.userData.mastCondition = source.mast ?? 0.58;
+        this._castawayGroup.userData.hullCondition = source.hull ?? 0.86;
+      }
+      if (this._boatMesh) this._boatMesh.visible = false;
+      return;
+    }
     if (!this._boatMesh) return;
     if (!this._boat) {
       this._boatMesh.visible = false;
@@ -2038,15 +2104,18 @@ export class Game {
   }
 
   _restoreBoat(saved) {
-    const fields = ['x', 'y', 'z', 'yaw', 'vx', 'vz'];
-    if (!saved || !this.player || !fields.every((key) => Number.isFinite(saved[key]))) return;
-    const boat = createBoat(saved.x, saved.y, saved.z, saved.yaw);
-    boat.vx = saved.vx;
-    boat.vz = saved.vz;
+    if (!saved || !this.player) return;
+    const boat = normalizeBoatState(saved);
     boat.chest = saved.hasChest ? createBoatChest(true) : createBoatChest(false);
-    if (saved.mounted && saved.rider === 'p1' && mountBoat(boat, 'p1').ok) {
-      this.player.position.copy(riderPosition(boat));
+    if (hasRider(boat, 'p1')) {
+      mountBoat(boat, 'p1');
+      this.player.position.copy(riderPosition(boat, 'p1'));
       this.player.yaw = boat.yaw;
+    }
+    if (hasRider(boat, 'p2') && this.player2) {
+      mountBoat(boat, 'p2');
+      this.player2.position.copy(riderPosition(boat, 'p2'));
+      this.player2.yaw = boat.yaw;
     }
     this._boat = boat;
     this._syncBoatVisual();
@@ -2126,18 +2195,80 @@ export class Game {
     return best;
   }
 
+  _tryRepairDinghy() {
+    if (!this._boat || !this.player) return false;
+    const plan = boatRepairPlan(this._boat);
+    if (!plan) return false;
+    let slots = cloneSlots(this.player.slots);
+    for (const need of plan.needs) {
+      if (countItems(slots, need.id) < need.count) return false;
+    }
+    for (const need of plan.needs) {
+      const removed = removeItems(slots, need.id, need.count);
+      if (!removed.ok) return false;
+      slots = removed.slots;
+    }
+    this.player.slots = slots;
+    repairBoat(this._boat, plan.part);
+    this._syncBoatVisual();
+    this.player.notify(`Repaired the ${plan.label}. ${Math.round((this._boat[plan.part] || 0) * 100)}% ready.`, 3.4);
+    this.audio.placeBlock?.() || this.audio.ui();
+    this.saveGame({ quiet: true });
+    return true;
+  }
+
   _useBoat() {
     if (this._boat && !this._boat.mounted) {
       const d = Math.hypot(this.player.position.x - this._boat.x, this.player.position.z - this._boat.z);
-      if (d <= 3.2) {
+      if (d <= 4.8) {
+        if (this._boat.beached) {
+          if (this._tryRepairDinghy()) return true;
+          const dir = {
+            x: this._castawayArrival?.waterDirX || Math.cos(this._boat.yaw),
+            z: this._castawayArrival?.waterDirZ || -Math.sin(this._boat.yaw),
+          };
+          const pushScale = this._boat.pushes > 0 ? 2 : 1;
+          const pushed = pushBoat(this._boat, dir, pushScale);
+          let clear = pushed.ok && this._boatCanOccupyWater(this._boat.x, this._boat.z);
+          let tideCarry = false;
+          if (pushed.ok && !clear && this._boat.pushes >= 3) {
+            for (let i = 1; i <= 24; i++) {
+              const tx = this._boat.x + dir.x * BOAT_CONFIG.pushDistance * i;
+              const tz = this._boat.z + dir.z * BOAT_CONFIG.pushDistance * i;
+              if (!this._boatCanOccupyWater(tx, tz)) continue;
+              this._boat.x = tx;
+              this._boat.z = tz;
+              clear = true;
+              tideCarry = true;
+              break;
+            }
+          }
+          if (pushed.ok && clear) {
+            this._boat.beached = false;
+            this._boat.y = SEA_LEVEL + 0.12;
+            this._castawayArrival && (this._castawayArrival.water = true, this._castawayArrival.beached = false);
+            this.player.notify(tideCarry
+              ? 'The tide catches the dinghy and pulls it into the launch lane. F boards it · WASD steers.'
+              : 'The dinghy is afloat. F boards it · WASD steers · F disembarks.', 3.8);
+            this.audio.splash?.() || this.audio.ui();
+          } else {
+            this.player.notify('You shove the dinghy toward the tide. Push again to launch it.', 2.8);
+          }
+          this._syncBoatVisual();
+          this.saveGame({ quiet: true });
+          return true;
+        }
         const mounted = mountBoat(this._boat, 'p1');
         if (mounted.ok) {
           this._boat.chest ||= boatAttachChest(createBoatChest(false));
-          this.player.position.copy(riderPosition(this._boat));
+          this.player.position.copy(riderPosition(this._boat, 'p1'));
+          if (this.coopMode && this.player2 && Math.hypot(this.player2.position.x - this._boat.x, this.player2.position.z - this._boat.z) <= 6) {
+            if (mountBoat(this._boat, 'p2').ok) this.player2.position.copy(riderPosition(this._boat, 'p2'));
+          }
           this._boatTransitionT = 0.5;
           this._boatTransitionKind = 'board';
           this.audio.board?.() || this.audio.ui();
-          this.player.notify('Aboard the skiff. WASD steers · F disembarks.', 3);
+          this.player.notify(this.hasTwoBoatRiders() ? 'Both survivors aboard. WASD steers · F disembarks.' : 'Aboard the dinghy. WASD steers · F disembarks.', 3);
           this._syncBoatVisual();
           return true;
         }
@@ -2158,7 +2289,7 @@ export class Game {
     if (!consumed.ok) return true;
     this.player.slots = consumed.slots;
     this._boat = boat;
-    this.player.position.copy(riderPosition(boat));
+    this.player.position.copy(riderPosition(boat, 'p1'));
     this._boatTransitionT = 0.6;
     this._boatTransitionKind = 'launch';
     this._syncBoatVisual();
@@ -2168,10 +2299,17 @@ export class Game {
     return true;
   }
 
+  hasTwoBoatRiders() {
+    return !!(this._boat && hasRider(this._boat, 'p1') && hasRider(this._boat, 'p2'));
+  }
+
   _dismountBoat() {
     if (!this._boat?.mounted) return false;
-    const result = dismountBoat(this._boat);
+    const result = dismountBoat(this._boat, 'p1');
     if (!result.ok) return false;
+    const result2 = this.coopMode && this.player2 && hasRider(this._boat, 'p2')
+      ? dismountBoat(this._boat, 'p2')
+      : null;
     const northSoundApproach = this._boat.x >= 49 && this._boat.x <= 56
       && this._boat.z >= -3 && this._boat.z <= 1
       && bviRouteCorridorAt(this._boat.x, this._boat.z).name === 'north-sound-approach';
@@ -2184,10 +2322,12 @@ export class Game {
       this.player.onGround = true;
       this.player.yaw = 0;
       this.player.pitch = 0;
+      if (result2?.ok && this.player2) this.player2.position.set(52.5, SEA_LEVEL + 1.0001, -5);
       this._wildlifeQuietT = 0;
       this._wildlifeWasNear = true;
     } else {
       this.player.position.set(result.position.x, result.position.y, result.position.z);
+      if (result2?.ok && this.player2) this.player2.position.set(result2.position.x, result2.position.y, result2.position.z);
     }
     const destination = this._destinationState?.destination;
     const destinationState = this._destinationState;
@@ -2244,6 +2384,7 @@ export class Game {
       const forward = this.input.wantsForward() ? 1 : this.input.wantsBack() ? -1 : 0;
       const turn = this.input.wantsLeft() ? -1 : this.input.wantsRight() ? 1 : 0;
       stepBoat(this._boat, { forward, turn }, dt);
+      degradeBoat(this._boat, dt, Math.hypot(this._boat.vx || 0, this._boat.vz || 0) > 0.18);
       if (!this._boatCanOccupyWater(this._boat.x, this._boat.z)) {
         this._boat.x = previousX;
         this._boat.z = previousZ;
@@ -2254,8 +2395,12 @@ export class Game {
       this._boatCameraSurge = Math.max(-1, Math.min(1, (nextSpeed - previousSpeed) / Math.max(0.016, dt) / 8));
       const waterY = Math.floor(this._boat.y - 0.05);
       this._boat.y = buoyancyY(waterY, this._boat.y, dt);
-      this.player.position.copy(riderPosition(this._boat));
+      this.player.position.copy(riderPosition(this._boat, 'p1'));
       this.player.yaw = this._boat.yaw;
+      if (this.coopMode && this.player2 && hasRider(this._boat, 'p2')) {
+        this.player2.position.copy(riderPosition(this._boat, 'p2'));
+        this.player2.yaw = this._boat.yaw;
+      }
     } else {
       this._boatCameraSurge = 0;
     }
@@ -2627,7 +2772,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=223').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=225').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -2680,8 +2825,15 @@ export class Game {
             vx: this._boat.vx,
             vz: this._boat.vz,
             rider: this._boat.rider,
+            rider2: this._boat.rider2,
+            riders: this._boat.riders,
             mounted: this._boat.mounted,
             hasChest: !!this._boat.chest?.hasChest,
+            beached: !!this._boat.beached,
+            hull: this._boat.hull,
+            mast: this._boat.mast,
+            sail: this._boat.sail,
+            pushes: this._boat.pushes,
           }
         : null,
       edits: this.world.exportEdits(),
@@ -3204,6 +3356,9 @@ export class Game {
       weather: this.time.weather,
       roofed: this._roofed,
     });
+    const shade = this._sampleShade(this.player.position.x, this.player.position.y, this.player.position.z);
+    const swimming = move.inWater && !this._boat?.mounted;
+    const flotation = this._hasFlotation(this.player);
     // storm warning
     if (this.time.weather !== this._lastWeather) {
       if (this.time.weather === 'rain') {
@@ -3317,6 +3472,11 @@ export class Game {
       sprinting: move.sprinting,
       moving: move.moved,
       inWater: move.inWater,
+      swimming,
+      swimMoving: swimming && move.moved,
+      flotation,
+      roofed: this._roofed,
+      shade,
       sleeping: false,
       hungerMult: mode.hungerMult,
       thirstMult: mode.thirstMult ?? 1,
@@ -3352,6 +3512,9 @@ export class Game {
       const temp2 = ambientTempOffset(biome2);
       const inW2 = this.world.getBlock(p2.x, p2.y, p2.z) === BLOCK.WATER
         || this.world.getBlock(p2.x, p2.y + 1, p2.z) === BLOCK.WATER;
+      const swimming2 = inW2;
+      const flotation2 = this._hasFlotation(this.player2);
+      const shade2 = this._sampleShade(p2.x, p2.y, p2.z);
       // Approximate move/sprint from pad input2 if present
       const moving2 = !!(this.input2 && (
         this.input2.wantsForward() || this.input2.wantsBack()
@@ -3371,6 +3534,11 @@ export class Game {
         sprinting: sprint2,
         moving: moving2,
         inWater: inW2,
+        swimming: swimming2,
+        swimMoving: swimming2 && moving2,
+        flotation: flotation2,
+        roofed: roof2,
+        shade: shade2,
         sleeping: false,
         hungerMult: mode.hungerMult,
         thirstMult: mode.thirstMult ?? 1,
@@ -3857,7 +4025,12 @@ export class Game {
         this.player.position.x - this._boat.x,
         this.player.position.z - this._boat.z,
       );
-      if (boatDistance <= 3.2) text = 'F — Board skiff · WASD steer';
+      if (boatDistance <= 4.8) {
+        const repair = boatRepairPlan(this._boat);
+        if (repair) text = `F — Repair ${repair.label} · ${repair.needs.map(n => `${n.count} ${displayName(n.id)}`).join(' + ')}`;
+        else if (this._boat.beached) text = 'F — Push dinghy toward the tide';
+        else text = 'F — Board dinghy · WASD steer';
+      }
     }
     if (!text && held?.id === ITEM.BOAT && this._findBoatWaterTarget()) {
       text = 'F — Launch skiff into clear water';
@@ -4380,6 +4553,20 @@ export class Game {
     const held = this.player.heldStack();
     const p = propsOf(held.id);
 
+    // Fresh-water canteen: drinking leaves an empty vessel that can be refilled.
+    if (p?.drinkable && held.count > 0) {
+      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+      if (!cons.ok) return;
+      const add = addItems(cons.slots, ITEM.EMPTY_CANTEEN, 1);
+      if (add.leftover > 0) return;
+      this.player.slots = add.slots;
+      this.survival = drinkWater(this.survival, p.drinkable, p.drinkStamina || 18);
+      this._nourishT = 0.34;
+      this.audio.splash?.() || this.audio.eat();
+      this.player.notify('Drank from the fresh-water canteen. Empty canteen ready to refill.', 3.2);
+      return;
+    }
+
     // Bandage: stop bleeding + heal
     if (p?.bandage && held.count > 0) {
       const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
@@ -4474,6 +4661,7 @@ export class Game {
       return;
     }
     if (this._tryCastawaySalvage()) return;
+    if (this._boat && !this._boat.mounted && this._useBoat()) return;
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
     const hit = this._raycastInteraction(origin, dir, 5);
@@ -4486,6 +4674,20 @@ export class Game {
       return;
     }
 
+
+    // Refill an empty canteen from clean surface water.
+    const heldWater = this.player.heldStack();
+    if (heldWater.id === ITEM.EMPTY_CANTEEN && hit && hit.id === BLOCK.WATER && this._drinkCd <= 0) {
+      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+      if (!cons.ok) return;
+      const add = addItems(cons.slots, ITEM.CANTEEN, 1);
+      if (add.leftover > 0) return;
+      this.player.slots = add.slots;
+      this._drinkCd = 0.5;
+      this.audio.splash?.() || this.audio.ui();
+      this.player.notify('Canteen refilled with fresh water.', 2.6);
+      return;
+    }
 
     // Bucket fill / empty
     const heldB = this.player.heldStack();
@@ -5524,7 +5726,7 @@ export class Game {
       setBar('bar-temp-p2', this._tempBar(s2.bodyTemp), 100);
       setBar('bar-sleep-p2', s2.sleep, 100);
       const tl2 = document.getElementById('temp-label-p2');
-      if (tl2) tl2.textContent = `${s2.bodyTemp.toFixed(1)}°C`;
+      if (tl2) tl2.textContent = formatTemperatureF(s2.bodyTemp);
     }
 
     const bleedTag = document.getElementById('bleed-tag');
@@ -5535,7 +5737,7 @@ export class Game {
       bleedTag.textContent = bleeding ? `Bleeding · ${Math.ceil(s.bleed)}` : '';
     }
     const tempLabel = document.getElementById('temp-label');
-    if (tempLabel) tempLabel.textContent = `${s.bodyTemp.toFixed(1)}°C`;
+    if (tempLabel) tempLabel.textContent = formatTemperatureF(s.bodyTemp);
 
     // critical pulses
     const meters = document.getElementById('meters');
@@ -5605,7 +5807,7 @@ export class Game {
       bits.push(`Day ${this.time.dayNumber}`);
       bits.push(this.time.isNight() ? 'Night' : 'Day');
       bits.push(this.time.weather);
-      if (s._debug) bits.push(`Air ${s._debug.ambient.toFixed(0)}°C`);
+      if (s._debug) bits.push(`Air ${formatTemperatureF(s._debug.ambient)}`);
       const cw = equipmentWarmth(this.player.equipment);
       if (cw > 0) bits.push(`Warmth +${cw}`);
       bits.push(`Food ${countItems(this.player.slots, ITEM.RATION)}`);

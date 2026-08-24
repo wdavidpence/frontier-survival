@@ -314,7 +314,7 @@ export function bviReefShelfAt(x, z) {
 
 /** Deterministic forest-floor dressing, kept pure so sync and worker terrain agree. */
 export function forestFloorDetail(x, z, seed, biome, height, surfaceId, aboveId) {
-  if (!['forest', 'tropical', 'shore'].includes(biome) || height <= GEN_SEA_LEVEL + 1 || aboveId !== 0) return null;
+  if (biome !== 'forest' || height <= GEN_SEA_LEVEL + 1 || aboveId !== 0) return null;
   const roll = hash2(x * 29 + seed * 7, z * 31 + seed * 11);
   if (surfaceId !== 1 && surfaceId !== 2 && surfaceId !== 4) return null;
   if (roll > 0.9875) return 'mushroom';
@@ -390,6 +390,19 @@ export function heightAt(x, z, seed = 0) {
     y = Math.max(y, GEN_SEA_LEVEL + 1 + rise * 32);
   }
   return Math.max(1, Math.min(46, Math.floor(y)));
+}
+
+/** Grade the first few land blocks above sea level into a readable tropical beach. */
+export function coastalGradeHeight(x, z, seed = 0) {
+  const raw = heightAt(x, z, seed);
+  if (raw < GEN_SEA_LEVEL) return raw;
+  let nearestWater = Infinity;
+  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2], [3, 0], [-3, 0], [0, 3], [0, -3], [4, 0], [-4, 0], [0, 4], [0, -4]]) {
+    if (heightAt(x + dx, z + dz, seed) < GEN_SEA_LEVEL) nearestWater = Math.min(nearestWater, Math.abs(dx) + Math.abs(dz));
+  }
+  if (!Number.isFinite(nearestWater)) return raw;
+  const allowedRise = 1 + nearestWater * 1.25;
+  return Math.min(raw, GEN_SEA_LEVEL + Math.floor(allowedRise));
 }
 
 /** True only for warm, high, sheared mountain cells with a visible drop. */

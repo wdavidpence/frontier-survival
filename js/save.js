@@ -37,6 +37,7 @@ function packSurvival(survival) {
     bodyTemp: survival.bodyTemp,
     sleep: survival.sleep,
     wetness: survival.wetness,
+    sickness: survival.sickness || 0,
     warmthFromClothes: survival.warmthFromClothes || 0,
     dead: !!survival.dead,
     causeOfDeath: survival.causeOfDeath || null,
@@ -48,16 +49,40 @@ function packBoat(boat) {
   if (!boat || typeof boat !== 'object') return null;
   const fields = ['x', 'y', 'z', 'yaw', 'vx', 'vz'];
   if (!fields.every((key) => typeof boat[key] === 'number' && Number.isFinite(boat[key]))) return null;
-  const rider = boat.mounted && boat.rider === 'p1' ? 'p1' : null;
-  return { x: boat.x, y: boat.y, z: boat.z, yaw: boat.yaw, vx: boat.vx, vz: boat.vz, rider, mounted: rider !== null };
+  const riders = Array.isArray(boat.riders)
+    ? boat.riders.filter((id) => id === 'p1' || id === 'p2').slice(0, 2)
+    : [boat.rider, boat.rider2].filter((id) => id === 'p1' || id === 'p2').slice(0, 2);
+  return {
+    x: boat.x, y: boat.y, z: boat.z, yaw: boat.yaw, vx: boat.vx, vz: boat.vz,
+    rider: riders[0] || null, rider2: riders[1] || null, riders,
+    mounted: riders.length > 0,
+    hasChest: boat.hasChest === true || !!boat.chest?.hasChest,
+    beached: boat.beached === true,
+    hull: Number.isFinite(boat.hull) ? boat.hull : 0.86,
+    mast: Number.isFinite(boat.mast) ? boat.mast : 0.58,
+    sail: Number.isFinite(boat.sail) ? boat.sail : 0.46,
+    pushes: Number.isFinite(boat.pushes) ? boat.pushes : 0,
+  };
 }
 
 function parseBoat(boat) {
   if (!boat || typeof boat !== 'object') return null;
   const fields = ['x', 'y', 'z', 'yaw', 'vx', 'vz'];
   if (!fields.every((key) => typeof boat[key] === 'number' && Number.isFinite(boat[key]))) return null;
-  const rider = boat.mounted === true && boat.rider === 'p1' ? 'p1' : null;
-  return { x: boat.x, y: boat.y, z: boat.z, yaw: boat.yaw, vx: boat.vx, vz: boat.vz, rider, mounted: rider !== null };
+  const riders = Array.isArray(boat.riders)
+    ? boat.riders.filter((id) => id === 'p1' || id === 'p2').slice(0, 2)
+    : [boat.rider, boat.rider2].filter((id) => id === 'p1' || id === 'p2').slice(0, 2);
+  return {
+    x: boat.x, y: boat.y, z: boat.z, yaw: boat.yaw, vx: boat.vx, vz: boat.vz,
+    rider: riders[0] || null, rider2: riders[1] || null, riders,
+    mounted: riders.length > 0,
+    hasChest: boat.hasChest === true,
+    beached: boat.beached === true,
+    hull: Number.isFinite(boat.hull) ? boat.hull : 0.86,
+    mast: Number.isFinite(boat.mast) ? boat.mast : 0.58,
+    sail: Number.isFinite(boat.sail) ? boat.sail : 0.46,
+    pushes: Number.isFinite(boat.pushes) ? boat.pushes : 0,
+  };
 }
 
 /**

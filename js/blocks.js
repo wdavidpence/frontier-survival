@@ -61,6 +61,7 @@ export const BLOCK = {
   MANGROVE_LOG: 58,
   MANGROVE_LEAVES: 59,
   MANGROVE_MUD: 60,
+  COCONUT: 61,
 };
 
 /** @type {Record<number, {
@@ -140,6 +141,7 @@ export const BLOCK_PROPS = {
   [BLOCK.MANGROVE_LOG]: { name: 'Mangrove Log', solid: true, transparent: false, hardness: 1.0, color: [0.28, 0.16, 0.10], topColor: [0.46, 0.28, 0.15], drops: BLOCK.MANGROVE_LOG },
   [BLOCK.MANGROVE_LEAVES]: { name: 'Mangrove Leaves', solid: true, transparent: true, hardness: 0.2, color: [0.12, 0.42, 0.24], drops: BLOCK.MANGROVE_LEAVES },
   [BLOCK.MANGROVE_MUD]: { name: 'Mangrove Mud', solid: true, transparent: false, hardness: 0.42, color: [0.28, 0.24, 0.15], topColor: [0.36, 0.31, 0.19], drops: BLOCK.MANGROVE_MUD },
+  [BLOCK.COCONUT]: { name: 'Coconut', solid: false, transparent: true, hardness: 0.08, color: [0.38, 0.24, 0.12], drops: BLOCK.COCONUT, replaceable: true },
 };
 
 export function isSolid(id) {

@@ -3,7 +3,7 @@
  * Prefer consulting this table when wiring mine drops; existing dropForBlock remains authoritative until wire.
  */
 import { BLOCK } from './blocks.js?v=289';
-import { ITEM } from './items.js?v=220';
+import { ITEM } from './items.js?v=250';
 
 /**
  * @typedef {{ id: number, count: number }} DropStack

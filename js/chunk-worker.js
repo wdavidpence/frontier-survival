@@ -297,6 +297,16 @@ function heightAt(x, z, seed = 0) {
   }
   return Math.max(1, Math.min(46, Math.floor(y)));
 }
+function coastalGradeHeight(x, z, seed = 0) {
+  const raw = heightAt(x, z, seed);
+  if (raw < 16) return raw;
+  let nearestWater = Infinity;
+  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2], [3, 0], [-3, 0], [0, 3], [0, -3], [4, 0], [-4, 0], [0, 4], [0, -4]]) {
+    if (heightAt(x + dx, z + dz, seed) < 16) nearestWater = Math.min(nearestWater, Math.abs(dx) + Math.abs(dz));
+  }
+  if (!Number.isFinite(nearestWater)) return raw;
+  return Math.min(raw, 16 + Math.floor(1 + nearestWater * 1.25));
+}
 function mountainFaceAt(x, z, seed = 0) {
   const center = heightAt(x, z, seed);
   if (center < 16 + 10) return false;
@@ -519,6 +529,7 @@ const BLOCK = {
   MANGROVE_LOG: 58,
   MANGROVE_LEAVES: 59,
   MANGROVE_MUD: 60,
+  COCONUT: 61,
 };
 
 const CHUNK_SIZE = 16;
@@ -573,7 +584,7 @@ function generateChunkData(cx, cz, seed) {
       const biome = biomeAt(x, z, seed);
       const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
       const h = (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
-        ? SEA_LEVEL - 1 : heightAt(x, z, seed);
+        ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, seed);
       const cliff = biome === 'tropical' && tropicalCliffAt(x, z, seed);
 
       for (let y = 0; y < WORLD_HEIGHT; y++) {
@@ -674,7 +685,7 @@ function generateChunkData(cx, cz, seed) {
 
       // Berry bushes
       if (
-        (biome === 'forest' || biome === 'shore') &&
+        (biome === 'forest' || biome === 'shore' || biome === 'tropical') &&
         h > SEA_LEVEL + 1 &&
         data[idx(lx, h, lz)] === BLOCK.GRASS &&
         data[idx(lx, h + 1, lz)] === BLOCK.AIR &&
@@ -685,7 +696,7 @@ function generateChunkData(cx, cz, seed) {
 
       const surfaceId = data[idx(lx, h, lz)];
       const aboveId = data[idx(lx, h + 1, lz)];
-      if ((biome === 'forest' || biome === 'tropical' || biome === 'mangrove' || biome === 'shore') && h > SEA_LEVEL + 1 && aboveId === BLOCK.AIR) {
+      if (biome === 'forest' && h > SEA_LEVEL + 1 && aboveId === BLOCK.AIR) {
         const roll = hash2(x * 29 + seed * 7, z * 31 + seed * 11);
         if (surfaceId === BLOCK.GRASS || surfaceId === BLOCK.DIRT || surfaceId === BLOCK.SAND || surfaceId === BLOCK.MANGROVE_MUD) {
           if (roll > 0.9875) data[idx(lx, h + 1, lz)] = BLOCK.MUSHROOM;
@@ -733,6 +744,11 @@ function _placePalm(data, idx, lx, y, lz) {
   for (const [dx, dz] of fronds) {
     const distance = Math.abs(dx) + Math.abs(dz);
     set(lx + dx, top + (distance >= 2 ? -1 : 1), lz + dz, BLOCK.PALM_LEAVES);
+  }
+  const fruitRoll = hash2(lx * 13 + 77, lz * 17 + 91);
+  if (fruitRoll > 0.42) {
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1]]) set(lx + dx, top - 1, lz + dz, BLOCK.COCONUT);
+    set(lx + (fruitRoll > 0.72 ? 2 : -2), y, lz + (fruitRoll > 0.72 ? 1 : -1), BLOCK.COCONUT);
   }
 }
 

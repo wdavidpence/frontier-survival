@@ -3,7 +3,7 @@ import { chooseCastawayCandidate, createCastawayArrival, restoreCastawayArrival,
 
 import { palmLeafDrop } from '../js/palm-drops.js';
 import { createFishingState, startCast, tickFishing, rollFishingCatch, FISHING_CAST_TRAVEL_SECONDS } from '../js/fishing-cast.js';
-import { createBoat, canPlaceBoat, mountBoat, dismountBoat, stepBoat, buoyancyY, riderPosition, boatWaterFootprintClear } from '../js/boat-entity.js';
+import { createBoat, canPlaceBoat, mountBoat, dismountBoat, hasRider, stepBoat, degradeBoat, boatRepairPlan, repairBoat, pushBoat, buoyancyY, riderPosition, boatWaterFootprintClear } from '../js/boat-entity.js';
 import { schoolFishPose, schoolVisibility } from '../js/fish-school.js';
 import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviLocationAt, BVI_TENTH_SCALE, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt, villageSitesForSeed, villageColumnAt, villageBlockAt, TORTOLA_VILLAGE_SITES } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
@@ -216,6 +216,7 @@ import {
   THIRST_DAYS_AT_MULT_1,
   BREATH_SEC,
   applyDamage,
+  formatTemperatureF,
   fallDamageFromSpeed,
 } from '../js/survival.js';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js';
@@ -303,7 +304,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=481/);
+  assert.match(gameSource, /world\.js\?v=482/);
 });
 
 test('BVI fresh spawns prefer the authored launch beach when clear', () => {
@@ -1346,7 +1347,9 @@ test('save roundtrip preserves seed inventory edits', () => {
   assert.strictEqual(parsed.data.edits[0][3], BLOCK.CAMPFIRE);
   assert.strictEqual(parsed.data.time.weather, 'rain');
   assert.deepStrictEqual(parsed.data.boat, {
-    x: 8.5, y: 4.12, z: -4.25, yaw: 1.25, vx: 2.5, vz: -0.75, rider: 'p1', mounted: true,
+    x: 8.5, y: 4.12, z: -4.25, yaw: 1.25, vx: 2.5, vz: -0.75,
+    rider: 'p1', rider2: null, riders: ['p1'], mounted: true,
+    hasChest: false, beached: false, hull: 0.86, mast: 0.58, sail: 0.46, pushes: 0,
   });
 
   const legacy = { ...parsed.data, v: 1 };
@@ -3223,7 +3226,7 @@ test('crafting lists shape building recipes', () => {
 test('crafting progression metadata is complete and reachable', () => {
   const categories = new Set(RECIPE_CATEGORIES.map((c) => c.id));
   const tiers = new Set(RECIPE_TIERS.map((t) => t.tier));
-  assert.equal(RECIPES.length, 58);
+  assert.equal(RECIPES.length, 60);
   for (const recipe of RECIPES) {
     assert.ok(categories.has(recipe.category), `${recipe.id} category`);
     assert.ok(tiers.has(recipe.tier), `${recipe.id} tier`);
@@ -3432,7 +3435,7 @@ test('offshore fishing has boardable skiff and lure-attracted school contracts',
   assert.match(game, /_tickBoat\(dt\)/);
   assert.match(game, /_updateFishSchoolVisual\(\)/);
   assert.match(game, /heldUse\.id === ITEM\.BOAT/);
-  assert.match(game, /F — Board skiff · WASD steer/);
+  assert.match(game, /F — Board dinghy · WASD steer/);
   assert.match(game, /F — Launch skiff into clear water/);
   assert.match(game, /E — Open skiff storage · F — Disembark/);
   assert.match(game, /F — Disembark skiff/);
@@ -3447,7 +3450,7 @@ test('offshore fishing has boardable skiff and lure-attracted school contracts',
   assert.match(game, /LANDING RANGE · Steer toward shore · F disembark/);
   assert.match(game, /UNDERWAY · \$\{boatSpeed\.toFixed\(1\)\} m\/s · Follow route · E storage/);
   assert.match(game, /DRIFTING · Follow route · E storage · F disembark/);
-  assert.match(game, /boatDistance <= 3\.2/);
+  assert.match(game, /boatDistance <= 4\.8/);
   assert.match(game, /_applyTraversalCameraResponse\(move, dt\)/);
   assert.match(game, /const activeFootsteps = !!move\?\.moved && !move\.inWater/);
   assert.match(game, /this\._cameraLandKick = Math\.min\(1, this\._cameraLandKick/);
@@ -3549,8 +3552,117 @@ test('offshore fishing has boardable skiff and lure-attracted school contracts',
   assert.match(chests, /export function setChestSlots\(chests, key, slots, size = CHEST_SIZE\)/);
   assert.match(game, /const previousSpeed = Math\.hypot/);
   assert.match(game, /this\._boatCameraSurge = Math\.max\(-1, Math\.min\(1/);
+  assert.match(game, /const pushScale = this\._boat\.pushes > 0 \? 2 : 1/);
+  assert.match(game, /this\._boat\.pushes >= 3/);
+  assert.match(game, /The tide catches the dinghy/);
   assert.match(game, /this\.camera\.rotation\.x \+= boatSurge \* 0\.012/);
 
+});
+
+test('dinghy supports two seats, beach push, wear, and repair', () => {
+  const boat = createBoat(2, 16, 3, 0);
+  boat.beached = true;
+  const pushed = pushBoat(boat, { x: 0, z: 1 }, 1);
+  assert.equal(pushed.ok, true);
+  assert.ok(boat.z > 3);
+  boat.beached = false;
+  assert.equal(mountBoat(boat, 'p1').ok, true);
+  assert.equal(mountBoat(boat, 'p2').ok, true);
+  assert.equal(hasRider(boat, 'p1'), true);
+  assert.equal(hasRider(boat, 'p2'), true);
+  assert.equal(mountBoat(boat, 'p2').ok, true);
+  const p1 = riderPosition(boat, 'p1');
+  const p2 = riderPosition(boat, 'p2');
+  assert.notEqual(p1.x, p2.x);
+  const before = boat.sail;
+  stepBoat(boat, { forward: 1 }, 1);
+  degradeBoat(boat, 120, true);
+  assert.ok(boat.sail < before);
+  const plan = boatRepairPlan(boat);
+  assert.ok(plan && plan.needs.length > 0);
+  const damaged = boat[plan.part];
+  repairBoat(boat, plan.part);
+  assert.ok(boat[plan.part] > damaged);
+});
+
+test('survival uses Fahrenheit labels and punishes exposed tropical rain', () => {
+  assert.equal(formatTemperatureF(37), '99°F');
+  const wet = tickSurvival({ ...DEFAULT_SURVIVAL, wetness: 70 }, {
+    dt: 60, dayPhase: 0.2, weather: 'rain', blockHeat: 0, inWater: false,
+    roofed: false, shade: 0, wetnessGain: 1, earlyGameGrace: 0,
+  });
+  assert.ok(wet.sickness > 0);
+  assert.ok(wet.wetness > 70);
+  const shade = tickSurvival({ ...DEFAULT_SURVIVAL, wetness: 70 }, {
+    dt: 60, dayPhase: 0.2, weather: 'rain', blockHeat: 0, inWater: false,
+    roofed: true, shade: 0.8, wetnessGain: 0, earlyGameGrace: 0,
+  });
+  assert.ok(shade.sickness < wet.sickness);
+});
+
+test('open-water exertion needs flotation to rest safely', () => {
+  const swimmer = tickSurvival({ ...DEFAULT_SURVIVAL, stamina: 8, breath: 2 }, {
+    dt: 1, dayPhase: 0.2, weather: 'clear', blockHeat: 0, inWater: true,
+    swimming: true, swimMoving: true, flotation: false, earlyGameGrace: 0,
+  });
+  assert.ok(swimmer.stamina < 8);
+  assert.ok(swimmer.breath < 1);
+  const floater = tickSurvival({ ...DEFAULT_SURVIVAL, stamina: 8, breath: 2 }, {
+    dt: 1, dayPhase: 0.2, weather: 'clear', blockHeat: 0, inWater: true,
+    swimming: true, swimMoving: false, flotation: true, earlyGameGrace: 0,
+  });
+  assert.ok(floater.stamina > 8);
+  assert.ok(floater.breath > swimmer.breath);
+});
+
+test('tropical floor dressing is mushroom-free and coconut block is harvestable', () => {
+  assert.equal(forestFloorDetail(4, 7, 3, 'tropical', 22, BLOCK.GRASS, BLOCK.AIR), null);
+  assert.equal(forestFloorDetail(4, 7, 3, 'shore', 18, BLOCK.SAND, BLOCK.AIR), null);
+  assert.ok(propsOf(BLOCK.COCONUT));
+  assert.equal(dropForBlock(BLOCK.COCONUT), ITEM.COCONUT);
+});
+
+test('canteen is craftable, drinkable, refillable, and save-safe', () => {
+  assert.equal(propsOf(ITEM.CANTEEN).drinkable, 58);
+  assert.equal(propsOf(ITEM.EMPTY_CANTEEN).refillable, true);
+  let slots = createStarterInventory(0);
+  slots = addItems(slots, ITEM.COCONUT, 1).slots;
+  slots = addItems(slots, ITEM.CLOTH, 1).slots;
+  slots = addItems(slots, ITEM.PALM_FROND, 1).slots;
+  const crafted = craftRecipe(slots, 'canteen');
+  assert.equal(crafted.ok, true);
+  assert.equal(countItems(crafted.slots, ITEM.EMPTY_CANTEEN), 1);
+  let survival = drinkWater({ ...DEFAULT_SURVIVAL, thirst: 20, stamina: 10 }, 58, 18);
+  assert.ok(survival.thirst >= 78);
+  assert.ok(survival.stamina >= 28);
+  const payload = buildSavePayload({
+    seed: 7,
+    survival: DEFAULT_SURVIVAL,
+    time: { elapsed: 0, weather: 'clear', weatherTimer: 60, dayLengthSec: 720 },
+    player: { x: 0, y: 18, z: 0, yaw: 0, pitch: 0, hotbarIndex: 0, slots: crafted.slots, equipment: {} },
+    boat: { x: 1, y: 16, z: 1, yaw: 0, vx: 0, vz: 0, riders: ['p1'], hasChest: true, beached: false, hull: 0.8, mast: 0.5, sail: 0.4 },
+    edits: [],
+    chests: [['boat:7', [{ id: ITEM.CANTEEN, count: 1 }]]],
+  });
+  const parsed = parseSavePayload(JSON.stringify(payload));
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.data.boat.hasChest, true);
+  assert.equal(parsed.data.chests[0][1][0].id, ITEM.CANTEEN);
+});
+
+test('production canteen path reaches locker, drink, refill, and persistent chest seams', () => {
+  const gameSrc = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  const itemsSrc = readFileSync(new URL('../js/items.js', import.meta.url), 'utf8');
+  const craftSrc = readFileSync(new URL('../js/crafting.js', import.meta.url), 'utf8');
+  assert.ok(itemsSrc.includes('EMPTY_CANTEEN'));
+  assert.ok(craftSrc.includes("id: 'canteen'"));
+  assert.ok(gameSrc.includes('setChestSlots(this._chests, `boat:${this.seed}`'));
+  assert.ok(gameSrc.includes('ITEM.CANTEEN, count: 1'));
+  assert.ok(gameSrc.includes('heldWater.id === ITEM.EMPTY_CANTEEN'));
+  assert.ok(gameSrc.includes('addItems(cons.slots, ITEM.CANTEEN, 1)'));
+  assert.ok(gameSrc.includes('p?.drinkable'));
+  assert.ok(gameSrc.includes('ITEM.EMPTY_CANTEEN, 1'));
+  assert.ok(gameSrc.includes('chests: exportChests(this._chests)'));
 });
 
 test('furnace-tick smelts with fuel', () => {
@@ -3739,8 +3851,8 @@ test('production save path reaches boat capture, restore, and visual sync', () =
   const gameSrc = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
   assert.match(gameSrc, /boat: this\._boat/);
   assert.match(gameSrc, /this\._restoreBoat\(saveData\?\.boat\)/);
-  assert.match(gameSrc, /const boat = createBoat\(saved\.x, saved\.y, saved\.z, saved\.yaw\)/);
-  assert.match(gameSrc, /saved\.mounted && saved\.rider === 'p1'/);
+  assert.match(gameSrc, /const boat = normalizeBoatState\(saved\)/);
+  assert.match(gameSrc, /hasRider\(boat, 'p1'\)/);
   assert.match(gameSrc, /this\._boat = null;\n    this\._syncBoatVisual\(\);/);
   assert.strictEqual((gameSrc.match(/this\._boatMesh = boat;/g) || []).length, 1);
 });
@@ -5072,7 +5184,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker\.js\?v=334/);
+  assert.match(world, /chunk-worker\.js\?v=335/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
   assert.match(world, /Sparse mangrove-log ribs/);
@@ -5309,7 +5421,7 @@ test('castaway arrival candidate selection is deterministic and legacy-safe', ()
   assert.equal(restored.boatX, 7.5);
   assert.equal(restored.salvaged, true);
   assert.equal(restoreCastawayArrival({ x: 'bad' }), null);
-  assert.match(castawayObjective(false), /Salvage the wreckage/);
+  assert.match(castawayObjective(false), /Open the dinghy locker/);
   assert.match(castawayObjective(true), /Find fresh water/);
   const game = fsText('js/game.js');
   const world = fsText('js/world.js');
@@ -5322,7 +5434,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.18.38'), 'HTML must expose v1.18.38');
+  assert.ok(html.includes('v1.19.0'), 'HTML must expose v1.19.0');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5491,7 +5603,7 @@ test('durability adapter cache and mining wear remain reachable', () => {
   const game = fsText('js/game.js');
   const durability = fsText('js/durability.js');
   assert.match(game, /from ['"]\.\/durability\.js\?v=223['"]/);
-  assert.match(durability, /from ['"]\.\/items\.js\?v=248['"]/);
+  assert.match(durability, /from ['"]\.\/items\.js\?v=250['"]/);
   assert.match(durability, /from ['"]\.\/tool-tiers\.js\?v=222['"]/);
   assert.match(game.slice(game.indexOf('  _handleMining(dt) {'), game.indexOf('  _handlePlace() {')), /wearTool\(this\.player\.slots, this\.player\.hotbarIndex, 1\)/);
   assert.match(game.slice(game.indexOf('  _handleCoopP2World(dt) {'), game.indexOf('  _spawnCoopP2(spawn) {')), /wearTool\(p\.slots, p\.hotbarIndex, 1\)/);

@@ -1,5 +1,5 @@
 /** Pure fishing cast state, bite timing, and tropical catch tables. */
-import { ITEM } from './items.js?v=248';
+import { ITEM } from './items.js?v=250';
 
 export const FISHING_CAST_SECONDS = 2.2;
 export const FISHING_CAST_TRAVEL_SECONDS = 0.45;
