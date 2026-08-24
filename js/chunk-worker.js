@@ -366,6 +366,94 @@ function tropicalCliffAt(x, z, seed = 0) {
   return eastWest + northSouth >= 7;
 }
 
+// Rare, compact Tortola population centers. Keep this pure and mirrored with
+// gen.js so worker and synchronous fallback produce identical islands.
+const TORTOLA_VILLAGE_SITES = [
+  { name: 'Road Town · Tortola', x: 22, z: 1, activation: 0.70 },
+  { name: 'Cane Garden Bay · Tortola', x: -10, z: -34, activation: 0.70 },
+  { name: 'East End · Tortola', x: 82, z: -10, activation: 0.74 },
+  { name: 'West End · Tortola', x: -55, z: -10, activation: 0.82 },
+];
+const VILLAGE_SPOTS = [
+  [-18, -3], [-12, -3], [-6, -3], [0, -3],
+  [-18, 6], [-12, 6], [-6, 6], [0, 6],
+  [-18, 10], [-12, 10], [-6, 10], [0, 10],
+];
+function villageSiteIsFlat(cx, cz, seed, ground) {
+  for (const [dx, dz] of [[-8, 0], [8, 0], [0, -8], [0, 8], [-6, -6], [6, 6]]) {
+    if (Math.abs(heightAt(cx + dx, cz + dz, seed) - ground) > 10) return false;
+  }
+  return true;
+}
+function villageSpotIsBuildable(cx, cz, ox, oz, seed) {
+  let min = Infinity;
+  let max = -Infinity;
+  for (let dx = -3; dx <= 3; dx++) {
+    for (let dz = -3; dz <= 3; dz++) {
+      const height = heightAt(cx + ox + dx, cz + oz + dz, seed);
+      min = Math.min(min, height);
+      max = Math.max(max, height);
+    }
+  }
+  return min >= 20 && max - min <= 10;
+}
+function villageSitesForSeed(seed = 0) {
+  const sites = [];
+  for (const anchor of TORTOLA_VILLAGE_SITES) {
+    const roll = hash2(anchor.x * 97 + seed * 11, anchor.z * 89 + seed * 17);
+    if (roll < anchor.activation) continue;
+    const ground = heightAt(anchor.x, anchor.z, seed);
+    if (ground < 20 || ground > 36 || !villageSiteIsFlat(anchor.x, anchor.z, seed, ground)) continue;
+    const spots = VILLAGE_SPOTS.filter(([ox, oz]) => villageSpotIsBuildable(anchor.x, anchor.z, ox, oz, seed));
+    if (spots.length < 4) continue;
+    const countRoll = hash2(anchor.x * 131 + seed * 19, anchor.z * 137 + seed * 23);
+    sites.push({ ...anchor, cx: anchor.x, cz: anchor.z, ground, spots, structureCount: 4 + Math.floor(countRoll * Math.min(9, spots.length - 3)), seed });
+  }
+  return sites;
+}
+function villageColumnAt(x, z, sites = []) {
+  for (const site of sites) {
+    for (let index = 0; index < site.structureCount; index++) {
+      const [ox, oz] = (site.spots || VILLAGE_SPOTS)[index];
+      const typeRoll = hash2(site.cx * 151 + index * 17 + site.seed * 7, site.cz * 157 + index * 23 + site.seed * 11);
+      const type = index === 0 && site.structureCount >= 7 && typeRoll > 0.42 ? 'church'
+        : index === 1 && site.structureCount >= 6 && typeRoll > 0.32 ? 'store' : 'home';
+      const halfW = type === 'church' ? 3 : 2;
+      const halfD = type === 'store' ? 3 : 2;
+      const dx = x - (site.cx + ox);
+      const dz = z - (site.cz + oz);
+      if (Math.abs(dx) <= halfW && Math.abs(dz) <= halfD) return { site, type, dx, dz, halfW, halfD, ox, oz };
+    }
+  }
+  return null;
+}
+function villageBlockAt(x, y, z, sites = []) {
+  const column = villageColumnAt(x, z, sites);
+  if (!column) return null;
+  const { site, type, dx, dz, halfW, halfD, ox, oz } = column;
+  const ground = heightAt(site.cx + ox, site.cz + oz, site.seed);
+  const wallHeight = type === 'church' ? 4 : 3;
+  const roofY = ground + wallHeight + 1;
+  const frontDoor = dz === halfD && dx === 0;
+  const boundary = Math.abs(dx) === halfW || Math.abs(dz) === halfD;
+  if (y < ground) return null;
+  if (y === ground) return BLOCK.COBBLE;
+  if (y <= ground + wallHeight) {
+    if (frontDoor && y <= ground + 2) return y === ground + 1 ? BLOCK.DOOR_CLOSED : BLOCK.AIR;
+    return boundary
+      ? (Math.abs(dx) === halfW && Math.abs(dz) === halfD ? BLOCK.LOG : BLOCK.PLANKS)
+      : (type === 'store' && dx === 0 && dz === 0 && y === ground + 1 ? BLOCK.CHEST : BLOCK.AIR);
+  }
+  if (y === roofY) {
+    if (type === 'church' && Math.abs(dx) <= 1 && dz <= 0) return BLOCK.BRICKS;
+    return BLOCK.PLANKS;
+  }
+  if (type === 'church' && Math.abs(dx) <= 1 && dz <= 0 && y <= roofY + 3) {
+    return y === roofY + 3 ? BLOCK.BRICKS : BLOCK.COBBLE;
+  }
+  return BLOCK.AIR;
+}
+
 // ── Block IDs (must match blocks.js) ────────────────────────────────────────
 
 // Must match js/blocks.js exactly — wrong IDs corrupt async gen.
@@ -443,10 +531,6 @@ function forestSightlinePocket(x, z, biome) {
   const pz = forestPhase(z);
   return biome === 'forest' && px >= 26 && px <= 37 && pz >= 26 && pz <= 37;
 }
-function forestMarkerAt(x, z, biome, height) {
-  return biome === 'forest' && height <= WORLD_HEIGHT - 5
-    && forestPhase(x) === 31 && forestPhase(z) === 31;
-}
 function mangroveMarkerAt(x, z, biome, height) {
   return biome === 'mangrove' && x === 55 && z === 58 && height <= WORLD_HEIGHT - 5;
 }
@@ -480,6 +564,7 @@ function generateChunkData(cx, cz, seed) {
 
   const baseX = cx * CHUNK_SIZE;
   const baseZ = cz * CHUNK_SIZE;
+  const villageSites = villageSitesForSeed(seed);
 
   for (let lz = 0; lz < CHUNK_SIZE; lz++) {
     for (let lx = 0; lx < CHUNK_SIZE; lx++) {
@@ -554,20 +639,13 @@ function generateChunkData(cx, cz, seed) {
         else if (biome === 'tundra') treeChance = 0.012;
         else if (biome === 'tropical') treeChance = 0.014;
         else if (biome === 'mangrove') treeChance = 0.014;
-        const ruinLandmark = biome === 'tropical' && h <= WORLD_HEIGHT - 8
-        && ((x % 32) + 32) % 32 === 22
-        && ((z % 32) + 32) % 32 === 26;
-      const forestPocket = forestSightlinePocket(x, z, biome);
-      const forestLandmark = forestMarkerAt(x, z, biome, h);
-      const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
-      if (mangroveLandmark) {
-        _placeMangroveBridge(data, idx, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-      } else if (ruinLandmark) {
-        _placeRuin(data, idx, lx, h + 1, lz);
-      } else if (forestLandmark) {
-        _placeForestMarker(data, idx, lx, h + 1, lz);
-      } else if (!forestPocket && !beachApproach && !saltPond && !mangroveSightlinePocket(x, z, biome)
-        && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
+        const forestPocket = forestSightlinePocket(x, z, biome);
+        const villageColumn = villageColumnAt(x, z, villageSites);
+        const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
+        if (mangroveLandmark) {
+          _placeMangroveBridge(data, idx, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
+        } else if (!villageColumn && !forestPocket && !beachApproach && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+          && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
           if (biome === 'mangrove') _placeMangrove(data, idx, lx, h + 1, lz);
           else if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);
           else _placeTree(data, idx, lx, h + 1, lz);
@@ -626,6 +704,12 @@ function generateChunkData(cx, cz, seed) {
           }
         }
       }
+      if (villageColumnAt(x, z, villageSites)) {
+        for (let yy = 1; yy < WORLD_HEIGHT; yy++) {
+          const villageId = villageBlockAt(x, yy, z, villageSites);
+          if (villageId !== null) data[idx(lx, yy, lz)] = villageId;
+        }
+      }
     }
   }
 
@@ -633,34 +717,6 @@ function generateChunkData(cx, cz, seed) {
   _carveLavaTubes(data, idx, baseX, baseZ, seed);
 
   return data;
-}
-
-function _placeRuin(data, idx, lx, y, lz) {
-  const set = (x, yy, z, id) => {
-    if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
-    const i = idx(x, yy, z);
-    if (data[i] === BLOCK.AIR) data[i] = id;
-  };
-  for (const dx of [-1, 1]) {
-    for (let dz = -1; dz <= 1; dz++) {
-      for (let dy = 0; dy < 4; dy++) set(lx + dx, y + dy, lz + dz, dy === 2 ? BLOCK.BRICKS : BLOCK.COBBLE);
-    }
-  }
-  for (let dx = -1; dx <= 1; dx++) {
-    set(lx + dx, y + 4, lz + 1, BLOCK.BRICKS);
-    set(lx + dx, y + 5, lz + 1, BLOCK.COBBLE);
-  }
-}
-
-function _placeForestMarker(data, idx, lx, y, lz) {
-  const set = (x, yy, z, id) => {
-    if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
-    const i = idx(x, yy, z);
-    if (data[i] === BLOCK.AIR) data[i] = id;
-  };
-  for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) set(lx + dx, y, lz + dz, BLOCK.SANDSTONE);
-  set(lx, y, lz, BLOCK.BRICKS);
-  set(lx, y + 1, lz, BLOCK.BRICKS);
 }
 
 function _placePalm(data, idx, lx, y, lz) {

@@ -4,7 +4,7 @@ import { palmLeafDrop } from '../js/palm-drops.js';
 import { createFishingState, startCast, tickFishing, rollFishingCatch, FISHING_CAST_TRAVEL_SECONDS } from '../js/fishing-cast.js';
 import { createBoat, canPlaceBoat, mountBoat, dismountBoat, stepBoat, buoyancyY, riderPosition, boatWaterFootprintClear } from '../js/boat-entity.js';
 import { schoolFishPose, schoolVisibility } from '../js/fish-school.js';
-import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviLocationAt, BVI_TENTH_SCALE, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt } from '../js/gen.js';
+import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviLocationAt, BVI_TENTH_SCALE, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt, villageSitesForSeed, villageColumnAt, villageBlockAt, TORTOLA_VILLAGE_SITES } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
 import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
 import { seaTurtleLayout } from '../js/fauna-parts/turtle-layout.js';
@@ -302,7 +302,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=478/);
+  assert.match(gameSource, /world\.js\?v=480/);
 });
 
 test('BVI fresh spawns prefer the authored launch beach when clear', () => {
@@ -5068,7 +5068,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker\.js\?v=332/);
+  assert.match(world, /chunk-worker\.js\?v=334/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
   assert.match(world, /Sparse mangrove-log ribs/);
@@ -5298,7 +5298,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.18.36'), 'HTML must expose v1.18.36');
+  assert.ok(html.includes('v1.18.37'), 'HTML must expose v1.18.37');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5327,15 +5327,28 @@ test('survival danger feedback combines active damage and critical body state', 
   assert.match(game, /bleedTag\.classList\.toggle\(['"]crit-bleed['"]/);
 });
 
-test('v1.12.73: ruin landmark stays mirrored in sync and worker generation', () => {
+test('Tortola villages are rare, anchored, compact, and deterministic', () => {
+  const sites = villageSitesForSeed(12);
+  assert.ok(TORTOLA_VILLAGE_SITES.some(site => site.name.startsWith('East End')));
+  assert.ok(sites.length >= 1, 'fixed BVI seed should expose one settlement');
+  assert.ok(sites.every(site => site.structureCount >= 4 && site.structureCount <= 12));
+  assert.deepStrictEqual(villageSitesForSeed(12), sites, 'village layout must be stable');
+  const site = sites[0];
+  const buildingColumn = villageColumnAt(site.cx - 18, site.cz - 3, sites);
+  assert.ok(buildingColumn, 'first compact home must have a deterministic footprint');
+  const ids = new Set();
+  for (let y = 1; y < 48; y++) {
+    const id = villageBlockAt(site.cx - 18, y, site.cz - 3, sites);
+    if (id !== null) ids.add(id);
+  }
+  assert.ok(ids.has(BLOCK.COBBLE), 'village foundation uses authored cobble only');
+  assert.ok(ids.has(BLOCK.PLANKS), 'village walls/roof use authored planks only');
   const world = fsText('js/world.js');
   const worker = fsText('js/chunk-worker.js');
-  assert.match(world, /_placeRuin\(data, lx, h \+ 1, lz\)/);
-  assert.match(worker, /_placeRuin\(data, idx, lx, h \+ 1, lz\)/);
-  assert.match(world, /\(\(x % 32\) \+ 32\) % 32 === 22/);
-  assert.match(worker, /\(\(x % 32\) \+ 32\) % 32 === 22/);
-  assert.match(world, /BLOCK\.BRICKS/);
-  assert.match(worker, /BLOCK\.BRICKS/);
+  assert.match(world, /villageSitesForSeed\(this\.seed\)/);
+  assert.match(worker, /villageSitesForSeed\(seed\)/);
+  assert.doesNotMatch(world, /_placeRuin\(data, lx/);
+  assert.doesNotMatch(worker, /_placeRuin\(data, idx, lx/);
 });
 test('bug sprint: worker requests are correlated', () => {
   assert.match(fsText('js/world.js'), /requestId/);

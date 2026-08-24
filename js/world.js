@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=290';
-import { heightAt, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt } from './gen.js?v=310';
+import { heightAt, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=312';
 import { biomeAt, BIOME } from './biomes.js?v=270';
 import { tileForBlock } from './atlas-core.js?v=287';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=246';
@@ -22,10 +22,6 @@ function forestSightlinePocket(x, z, biome) {
   const px = forestPhase(x);
   const pz = forestPhase(z);
   return biome === BIOME.FOREST && px >= 26 && px <= 37 && pz >= 26 && pz <= 37;
-}
-function forestMarkerAt(x, z, biome, height) {
-  return biome === BIOME.FOREST && height <= WORLD_HEIGHT - 5
-    && forestPhase(x) === 31 && forestPhase(z) === 31;
 }
 function mangroveMarkerAt(x, z, biome, height) {
   return biome === BIOME.MANGROVE && x === 55 && z === 58 && height <= WORLD_HEIGHT - 5;
@@ -456,7 +452,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=332';
+    const workerUrl = './js/chunk-worker.js?v=334';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -510,6 +506,7 @@ export class World {
     const data = new Uint8Array(CHUNK_SIZE * WORLD_HEIGHT * CHUNK_SIZE);
     const baseX = cx * CHUNK_SIZE;
     const baseZ = cz * CHUNK_SIZE;
+    const villageSites = villageSitesForSeed(this.seed);
 
     for (let lz = 0; lz < CHUNK_SIZE; lz++) {
       for (let lx = 0; lx < CHUNK_SIZE; lx++) {
@@ -584,20 +581,13 @@ export class World {
           else if (biome === BIOME.TROPICAL) treeChance = 0.014; // trimmed further so the starter island sightline reads clearly
           else if (biome === BIOME.MANGROVE) treeChance = 0.014; // sparse tidal grove sightlines
           else if (biome === BIOME.OCEAN) treeChance = 0;
-          const ruinLandmark = biome === BIOME.TROPICAL && h <= WORLD_HEIGHT - 8
-          && ((x % 32) + 32) % 32 === 22
-          && ((z % 32) + 32) % 32 === 26;
           const forestPocket = forestSightlinePocket(x, z, biome);
-          const forestLandmark = forestMarkerAt(x, z, biome, h);
+          const villageColumn = villageColumnAt(x, z, villageSites);
           const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
-        if (mangroveLandmark) {
-          this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-        } else if (ruinLandmark) {
-          this._placeRuin(data, lx, h + 1, lz);
-        } else if (forestLandmark) {
-          this._placeForestMarker(data, lx, h + 1, lz);
-        } else if (!forestPocket && !beachApproach && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
-          && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
+          if (mangroveLandmark) {
+            this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
+          } else if (!villageColumn && !forestPocket && !beachApproach && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+            && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
             const spruceRoll = hash2(x * 5 + 17, z * 3 + (this.seed | 0));
@@ -667,6 +657,12 @@ export class World {
             if (surface === BLOCK.GRASS || surface === BLOCK.DIRT || surface === BLOCK.SAND) {
               data[this._idx(lx, h, lz)] = BLOCK.CLAY;
             }
+          }
+        }
+        if (villageColumnAt(x, z, villageSites)) {
+          for (let yy = 1; yy < WORLD_HEIGHT; yy++) {
+            const villageId = villageBlockAt(x, yy, z, villageSites);
+            if (villageId !== null) data[this._idx(lx, yy, lz)] = villageId;
           }
         }
       }
@@ -1051,6 +1047,7 @@ export class World {
     const data = new Uint8Array(CHUNK_SIZE * WORLD_HEIGHT * CHUNK_SIZE);
     const baseX = cx * CHUNK_SIZE;
     const baseZ = cz * CHUNK_SIZE;
+    const villageSites = villageSitesForSeed(this.seed);
 
     for (let lz = 0; lz < CHUNK_SIZE; lz++) {
       for (let lx = 0; lx < CHUNK_SIZE; lx++) {
@@ -1132,20 +1129,13 @@ export class World {
           else if (biome === BIOME.TROPICAL) treeChance = 0.014; // trimmed further so the starter island sightline reads clearly
           else if (biome === BIOME.MANGROVE) treeChance = 0.014; // sparse tidal grove sightlines
           else if (biome === BIOME.OCEAN) treeChance = 0;
-          const ruinLandmark = biome === BIOME.TROPICAL && h <= WORLD_HEIGHT - 8
-          && ((x % 32) + 32) % 32 === 22
-          && ((z % 32) + 32) % 32 === 26;
           const forestPocket = forestSightlinePocket(x, z, biome);
-          const forestLandmark = forestMarkerAt(x, z, biome, h);
+          const villageColumn = villageColumnAt(x, z, villageSites);
           const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
-        if (mangroveLandmark) {
-          this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-        } else if (ruinLandmark) {
-          this._placeRuin(data, lx, h + 1, lz);
-        } else if (forestLandmark) {
-          this._placeForestMarker(data, lx, h + 1, lz);
-        } else if (!forestPocket && !beachApproach && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
-          && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
+          if (mangroveLandmark) {
+            this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
+          } else if (!villageColumn && !forestPocket && !beachApproach && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+            && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
             const spruceRoll = hash2(x * 5 + 17, z * 3 + (this.seed | 0));
@@ -1217,6 +1207,12 @@ export class World {
             if (surface === BLOCK.GRASS || surface === BLOCK.DIRT || surface === BLOCK.SAND) {
               data[this._idx(lx, h, lz)] = BLOCK.CLAY;
             }
+          }
+        }
+        if (villageColumnAt(x, z, villageSites)) {
+          for (let yy = 1; yy < WORLD_HEIGHT; yy++) {
+            const villageId = villageBlockAt(x, yy, z, villageSites);
+            if (villageId !== null) data[this._idx(lx, yy, lz)] = villageId;
           }
         }
       }
@@ -1382,34 +1378,6 @@ export class World {
     }
   }
 
-
-  _placeRuin(data, lx, y, lz) {
-    const set = (x, yy, z, id) => {
-      if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
-      const i = this._idx(x, yy, z);
-      if (data[i] === BLOCK.AIR) data[i] = id;
-    };
-    for (const dx of [-1, 1]) {
-      for (let dz = -1; dz <= 1; dz++) {
-        for (let dy = 0; dy < 4; dy++) set(lx + dx, y + dy, lz + dz, dy === 2 ? BLOCK.BRICKS : BLOCK.COBBLE);
-      }
-    }
-    for (let dx = -1; dx <= 1; dx++) {
-      set(lx + dx, y + 4, lz + 1, BLOCK.BRICKS);
-      set(lx + dx, y + 5, lz + 1, BLOCK.COBBLE);
-    }
-  }
-
-  _placeForestMarker(data, lx, y, lz) {
-    const set = (x, yy, z, id) => {
-      if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
-      const i = this._idx(x, yy, z);
-      if (data[i] === BLOCK.AIR) data[i] = id;
-    };
-    for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) set(lx + dx, y, lz + dz, BLOCK.SANDSTONE);
-    set(lx, y, lz, BLOCK.BRICKS);
-    set(lx, y + 1, lz, BLOCK.BRICKS);
-  }
 
   /** Tropical palm: tapered trunk, small root flare, and drooping frond crown. */
   _placePalm(data, lx, y, lz) {

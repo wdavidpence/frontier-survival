@@ -424,3 +424,136 @@ export function exposedOreAt(x, y, z, seed = 0) {
 export function tropicalCliffAt(x, z, seed = 0) {
   return mountainFaceAt(x, z, seed);
 }
+
+/**
+ * Small, rare settlements for the Tortola-inspired island chain.
+ *
+ * These are intentionally anchored to the existing population cues rather than
+ * scattered as noise: Road Town, Cane Garden Bay, East End, and West End are
+ * the largest settlement references in the authored BVI region. The generator
+ * may leave any site empty for a seed, so most islands remain natural.
+ */
+export const TORTOLA_VILLAGE_SITES = Object.freeze([
+  { name: 'Road Town · Tortola', x: 22, z: 1, activation: 0.70 },
+  { name: 'Cane Garden Bay · Tortola', x: -10, z: -34, activation: 0.70 },
+  { name: 'East End · Tortola', x: 82, z: -10, activation: 0.74 },
+  { name: 'West End · Tortola', x: -55, z: -10, activation: 0.82 },
+]);
+
+const VILLAGE_SPOTS = Object.freeze([
+  [-18, -3], [-12, -3], [-6, -3], [0, -3],
+  [-18, 6], [-12, 6], [-6, 6], [0, 6],
+  [-18, 10], [-12, 10], [-6, 10], [0, 10],
+]);
+
+const VILLAGE_BLOCK = Object.freeze({
+  AIR: 0,
+  LOG: 6,
+  PLANKS: 8,
+  COBBLE: 9,
+  CHEST: 22,
+  DOOR: 27,
+  BRICKS: 31,
+});
+
+function villageSiteIsFlat(cx, cz, seed, ground) {
+  for (const [dx, dz] of [[-8, 0], [8, 0], [0, -8], [0, 8], [-6, -6], [6, 6]]) {
+    if (Math.abs(heightAt(cx + dx, cz + dz, seed) - ground) > 10) return false;
+  }
+  return true;
+}
+
+function villageSpotIsBuildable(cx, cz, ox, oz, seed) {
+  let min = Infinity;
+  let max = -Infinity;
+  for (let dx = -3; dx <= 3; dx++) {
+    for (let dz = -3; dz <= 3; dz++) {
+      const height = heightAt(cx + ox + dx, cz + oz + dz, seed);
+      min = Math.min(min, height);
+      max = Math.max(max, height);
+    }
+  }
+  return min >= GEN_SEA_LEVEL + 4 && max - min <= 10;
+}
+
+/** Return the active, buildable settlement descriptors for one world seed. */
+export function villageSitesForSeed(seed = 0) {
+  const sites = [];
+  for (const anchor of TORTOLA_VILLAGE_SITES) {
+    const roll = hash2(anchor.x * 97 + seed * 11, anchor.z * 89 + seed * 17);
+    if (roll < anchor.activation) continue;
+    const ground = heightAt(anchor.x, anchor.z, seed);
+    // Villages belong on low, buildable land—not water, beach lips, or cliffs.
+    if (ground < GEN_SEA_LEVEL + 4 || ground > GEN_SEA_LEVEL + 20) continue;
+    if (!villageSiteIsFlat(anchor.x, anchor.z, seed, ground)) continue;
+    const spots = VILLAGE_SPOTS.filter(([ox, oz]) => villageSpotIsBuildable(anchor.x, anchor.z, ox, oz, seed));
+    if (spots.length < 4) continue;
+    const countRoll = hash2(anchor.x * 131 + seed * 19, anchor.z * 137 + seed * 23);
+    sites.push({
+      ...anchor,
+      cx: anchor.x,
+      cz: anchor.z,
+      ground,
+      spots,
+      structureCount: 4 + Math.floor(countRoll * Math.min(9, spots.length - 3)),
+      seed,
+    });
+  }
+  return sites;
+}
+
+/** Return the building occupying a world column, or null for natural terrain. */
+export function villageColumnAt(x, z, sites = []) {
+  for (const site of sites) {
+    for (let index = 0; index < site.structureCount; index++) {
+      const [ox, oz] = (site.spots || VILLAGE_SPOTS)[index];
+      const typeRoll = hash2(site.cx * 151 + index * 17 + site.seed * 7, site.cz * 157 + index * 23 + site.seed * 11);
+      const type = index === 0 && site.structureCount >= 7 && typeRoll > 0.42
+        ? 'church'
+        : index === 1 && site.structureCount >= 6 && typeRoll > 0.32
+          ? 'store'
+          : 'home';
+      const halfW = type === 'church' ? 3 : 2;
+      const halfD = type === 'store' ? 3 : 2;
+      const dx = x - (site.cx + ox);
+      const dz = z - (site.cz + oz);
+      if (Math.abs(dx) <= halfW && Math.abs(dz) <= halfD) return { site, index, type, dx, dz, halfW, halfD, ox, oz };
+    }
+  }
+  return null;
+}
+
+/**
+ * Resolve one deterministic voxel of a village building. Null means the
+ * natural terrain remains untouched; AIR deliberately clears trees/brush under
+ * a roof so buildings do not inherit random forest clutter.
+ */
+export function villageBlockAt(x, y, z, sites = []) {
+  const column = villageColumnAt(x, z, sites);
+  if (!column) return null;
+  const { site, type, dx, dz, halfW, halfD, ox, oz } = column;
+  const ground = heightAt(site.cx + ox, site.cz + oz, site.seed);
+  const wallHeight = type === 'church' ? 4 : 3;
+  const roofY = ground + wallHeight + 1;
+  const frontDoor = dz === halfD && dx === 0;
+  const boundary = Math.abs(dx) === halfW || Math.abs(dz) === halfD;
+  if (y < ground) return null;
+  if (y === ground) return VILLAGE_BLOCK.COBBLE;
+  if (y <= ground + wallHeight) {
+    if (frontDoor && y <= ground + 2) return y === ground + 1 ? VILLAGE_BLOCK.DOOR : VILLAGE_BLOCK.AIR;
+    return boundary
+      ? (Math.abs(dx) === halfW && Math.abs(dz) === halfD ? VILLAGE_BLOCK.LOG : VILLAGE_BLOCK.PLANKS)
+      : (type === 'store' && dx === 0 && dz === 0 && y === ground + 1 ? VILLAGE_BLOCK.CHEST : VILLAGE_BLOCK.AIR);
+  }
+  if (y === roofY) {
+    if (type === 'church' && Math.abs(dx) <= 1 && dz <= 0) return VILLAGE_BLOCK.BRICKS;
+    if (type === 'store' && Math.abs(dz) === halfD + 1 && Math.abs(dx) <= halfW) return VILLAGE_BLOCK.PLANKS;
+    return VILLAGE_BLOCK.PLANKS;
+  }
+  // A compact church tower gives the settlement a readable landmark without
+  // turning the village into a town-scale monument.
+  if (type === 'church' && Math.abs(dx) <= 1 && dz <= 0 && y <= roofY + 3) {
+    return y === roofY + 3 ? VILLAGE_BLOCK.BRICKS : VILLAGE_BLOCK.COBBLE;
+  }
+  return VILLAGE_BLOCK.AIR;
+}
