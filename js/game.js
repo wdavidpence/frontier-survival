@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=486';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=494';
 import { Player } from './player.js?v=240';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
@@ -68,14 +68,14 @@ import {
   recipeProgress,
   nextProgressionRecipe,
 } from './crafting.js?v=420';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=273';
-import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=249';
-import { createBlockAtlas } from './atlas.js?v=309';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=275';
+import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=250';
+import { createBlockAtlas } from './atlas.js?v=315';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=288';
 import { underwaterFogStyle } from './underwater-fog.js?v=245';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=8';
-import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=314';
+import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=315';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=29';
 import {
   equipmentWarmth,
@@ -104,7 +104,7 @@ import {
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=220';
+} from './settings.js?v=221';
 import {
   emptyAchievements,
   unlockAchievement,
@@ -206,7 +206,7 @@ import {
   castawayObjective,
   createCastawayArrival,
   restoreCastawayArrival,
-} from './castaway-arrival.js?v=3';
+} from './castaway-arrival.js?v=5';
 
 export class Game {
   /**
@@ -386,7 +386,7 @@ export class Game {
     this._cameraMotionT = 0;
     this._cameraBob = 0;
     this._cameraLandKick = 0;
-    this._cameraFov = 75;
+    this._cameraFov = 77;
     this._boatCameraLean = 0;
     this._boatCameraSurge = 0;
     this._boatTransitionT = 0;
@@ -450,6 +450,7 @@ export class Game {
     this._castawayArrival = null;
     this._castawayGroup = null;
     this._castawayClock = 0;
+    this._castawayCardWallStartedAt = 0;
     this._castawayCardT = 0;
     this._castawayCardShown = false;
     this._poweredLamps = new Set();
@@ -865,7 +866,7 @@ export class Game {
 
   /** Latest terrain visibility plan (streaming + fog). */
   _terrainVisibilityPlan() {
-    let rd = this.settings.renderDistance ?? DEFAULT_SETTINGS.renderDistance ?? 8;
+    let rd = this.settings.renderDistance ?? DEFAULT_SETTINGS.renderDistance ?? 9;
     if (this.coopMode) rd = effectiveCoopRenderDistance(rd);
     return this._visPlan || terrainVisibilityPlan(rd);
   }
@@ -1028,13 +1029,14 @@ export class Game {
         yaw: arrival.yaw,
         water: arrival.water,
       });
+      const hasArrivalBoat = Number.isFinite(arrival.boatY);
       this._castawayArrival.boatX = Number.isFinite(arrival.boatX) ? arrival.boatX : spawn.x;
-      this._castawayArrival.boatY = Number.isFinite(arrival.boatY) ? arrival.boatY : spawn.y - 0.9;
-      this._castawayArrival.boatZ = Number.isFinite(arrival.boatZ) ? arrival.boatZ : spawn.z + 2.5;
+      this._castawayArrival.boatY = hasArrivalBoat ? arrival.boatY : SEA_LEVEL - 0.72;
+      this._castawayArrival.boatZ = Number.isFinite(arrival.boatZ) ? arrival.boatZ : spawn.z + 3.2;
       this._castawayArrival.waterDirX = Number(arrival.waterDirX) || 0;
       this._castawayArrival.waterDirZ = Number(arrival.waterDirZ) || 1;
       this._boat = createBoat(this._castawayArrival.boatX, this._castawayArrival.boatY, this._castawayArrival.boatZ, this._castawayArrival.yaw);
-      this._boat.beached = arrival.beached !== false;
+      this._boat.beached = hasArrivalBoat && arrival.beached !== false;
       this._boat.chest = boatAttachChest(createBoatChest(false));
       setChestSlots(this._chests, `boat:${this.seed}`, [
         { id: ITEM.CANTEEN, count: 1 },
@@ -1045,10 +1047,10 @@ export class Game {
       this._boat.mast = 0.58;
       this._boat.sail = 0.46;
       this.player = new Player(spawn, { starterRations: this.modeDef().starterRations });
-      // The first frame is the survivor looking back at the wreckage, with the
-      // island and its readable horizon behind it.
-      this.player.yaw = Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI);
-      this.player.pitch = freshPlayer ? 0.24 : 0;
+      // Fresh arrivals open toward the authored channel so the first frame sells
+      // the expedition route; saved worlds preserve the player's stored heading.
+      this.player.yaw = freshPlayer ? 1.25 : (Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI));
+      this.player.pitch = freshPlayer ? 0.12 : 0;
       this.input.lookX = this.player.yaw;
       this.input.lookY = this.player.pitch;
       if (spawn.landmark) {
@@ -1185,6 +1187,7 @@ export class Game {
       this._buildCastawayArrivalVisual();
       this._syncBoatVisual();
       this._castawayCardT = freshPlayer ? CASTAWAY_CONFIG.cardSeconds : 0;
+      this._castawayCardWallStartedAt = freshPlayer ? performance.now() : 0;
       this._castawayCardShown = freshPlayer;
     }
     this.started = true;
@@ -1594,9 +1597,19 @@ export class Game {
     }
 
     const card = document.getElementById('arrival-card');
-    if (!card || !this._castawayCardShown) return;
+    if (!card || !this._castawayCardShown) {
+      if (card) card.style.display = 'none';
+      return;
+    }
+    if ((this._castawayClock > 5 || (this._castawayCardWallStartedAt > 0 && performance.now() - this._castawayCardWallStartedAt > 5500)) && !this._castawayArrival?.salvaged) {
+      this._castawayCardShown = false;
+      card.classList.add('hidden');
+      card.style.display = 'none';
+      return;
+    }
     this._castawayCardT -= dt;
     const fade = Math.min(1, Math.max(0, this._castawayCardT / 1.5));
+    card.style.display = 'block';
     card.classList.remove('hidden');
     card.style.opacity = String(fade);
     const objective = document.getElementById('arrival-objective');
@@ -1604,6 +1617,7 @@ export class Game {
     if (this._castawayCardT <= 0) {
       this._castawayCardShown = false;
       card.classList.add('hidden');
+      card.style.display = 'none';
     }
   }
 
@@ -1880,6 +1894,10 @@ export class Game {
             const res = this.fauna.damageAnimal(a, proj.damage);
             this.audio.hit();
             this._crossHitT = 0.25;
+            if (res?.ink) {
+              this.fx.burst(a.x, a.y + 0.25, a.z, [0.12, 0.04, 0.18], 24);
+              this.player.notify('Octopus ink clouds the water!', 2.2);
+            }
             if (res?.killed) {
               this._stats.kills = (this._stats.kills || 0) + 1;
               if (a.type === 'wolf') {
@@ -4160,7 +4178,7 @@ export class Game {
     this.camera.position.y += transitionSign * transitionPulse * 0.012 * transitionScale;
     this.camera.rotation.x -= transitionSign * transitionPulse * 0.008 * transitionScale;
     this.camera.rotation.z += this._boatCameraLean;
-    const targetFov = 75 + (move?.sprinting ? 4 : Math.min(3, boatSpeed * 0.5));
+    const targetFov = 77 + (move?.sprinting ? 4 : Math.min(3, boatSpeed * 0.5));
     this._cameraFov += (targetFov - this._cameraFov) * Math.min(1, Math.max(0, dt) * 7);
     if (Math.abs(this.camera.fov - this._cameraFov) > 0.01) {
       this.camera.fov = this._cameraFov;
@@ -4325,6 +4343,10 @@ export class Game {
         this.audio.breakBlock();
         this._meleeCd = held?.tool === 'weapon' ? 0.42 : 0.35;
         this._crossHitT = 0.22;
+        if (res?.ink) {
+          this.fx.burst(ah.animal.x, ah.animal.y + 0.25, ah.animal.z, [0.12, 0.04, 0.18], 24);
+          this.player.notify('Octopus ink clouds the water!', 2.2);
+        }
         this.audio.hit?.();
         if (res?.killed) {
           this._stats.kills = (this._stats.kills || 0) + 1;
@@ -5103,7 +5125,7 @@ export class Game {
         a.y = this.player.position.y - (spec.scale?.[1] || 0.8) * 0.82;
         a.yaw = this.player.yaw;
       }
-      mesh.position.set(a.x, a.y, a.z);
+      mesh.position.set(a.x, a.y + (spec.playful ? Math.max(0, Math.sin(mesh.userData.phase * 0.32 + a.id) * 0.24) : 0), a.z);
       mesh.scale.setScalar(a.juvenileT > 0 ? 0.68 : 1);
       mesh.rotation.y = a.yaw || 0;
       const dx = a.x - this.camera.position.x;

@@ -10,7 +10,7 @@ export const DEFAULT_SETTINGS = {
   playMode: 'solo',
   sensitivity: 0.0022,
   helpVisible: true,
-  renderDistance: 8, // larger default world (~2.5x area vs old RD5)
+  renderDistance: 9, // wider tropical horizon by default while keeping full-detail local
   /** Coop: when false (default), players cannot hurt each other with melee/arrows */
   friendlyFire: false,
 };

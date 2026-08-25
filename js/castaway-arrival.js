@@ -7,7 +7,7 @@ export const CASTAWAY_CONFIG = Object.freeze({
   maxSpawnRadius: 112,
   boatOffset: 4.2,
   salvageRadius: 6.0,
-  cardSeconds: 9,
+  cardSeconds: 4.5,
 });
 
 /**
@@ -21,9 +21,11 @@ export function scoreCastawayCandidate(candidate = {}) {
   const clear = Number(candidate.clearance);
   const horizon = Number(candidate.horizon);
   const inland = Number(candidate.inland);
+  const authored = candidate.authored === true;
   if (!Number.isFinite(shallow) || !Number.isFinite(clear) || !Number.isFinite(horizon)) return -Infinity;
   if (shallow < 1 || shallow > 9 || clear < 2 || horizon < 0) return -Infinity;
   return (sand ? 240 : 0)
+    + (authored ? 300 : 0)
     + Math.max(0, 34 - shallow * 5)
     + Math.min(24, clear * 3)
     + Math.min(28, horizon * 2)

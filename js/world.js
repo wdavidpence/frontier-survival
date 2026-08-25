@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=293';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=314';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, bviDeepWaterAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=315';
 import { biomeAt, BIOME } from './biomes.js?v=270';
 import { tileForBlock } from './atlas-core.js?v=289';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=247';
@@ -12,7 +12,7 @@ import {
   buildTerrainProxyArrays,
 } from './terrain-visibility.js?v=285';
 import { raycastVoxel } from './interaction-contract.js?v=4';
-import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=3';
+import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=5';
 import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=1';
 
 export const CHUNK_SIZE = 16;
@@ -288,6 +288,9 @@ export function buildPlantGeometry(instances, seed = 0) {
     const texel = PLANT_TEXEL[form];
     const tile = tileForBlock(instance.id);
     const color = getColor(instance.id);
+    const renderColor = form === 'bamboo'
+      ? [color[0] * 0.68, color[1] * 0.76, color[2] * 0.70]
+      : color;
     const cellX = instance.x + 0.5;
     const cellZ = instance.z + 0.5;
     const spin = plantHash(instance.x, instance.y, instance.z, seed + 3) * PLANT_TAU;
@@ -305,7 +308,7 @@ export function buildPlantGeometry(instances, seed = 0) {
         cellY: instance.y,
         cellZ,
         tile,
-        color,
+        color: renderColor,
         angle: (i / shape.blades) * PLANT_TAU + spin + (r1 - 0.5) * 0.8,
         offset: spine ? 0 : plantLerp(0.02, 0.12, r2),
         height: plantLerp(shape.height[0], shape.height[1], r1) * grow,
@@ -318,8 +321,8 @@ export function buildPlantGeometry(instances, seed = 0) {
         vBase: texel.vBase,
         vTip: texel.vTip,
         kBase: 0.74,
-        kTip: plantLerp(1.06 + kTipBoost, 1.3 + kTipBoost, r3),
-        warm: (r1 - 0.5) * 0.07
+        kTip: form === 'bamboo' ? plantLerp(0.96, 1.10, r3) : plantLerp(1.06 + kTipBoost, 1.3 + kTipBoost, r3),
+        warm: (r1 - 0.5) * (form === 'bamboo' ? 0.025 : 0.07)
           + (isTropicalOrShore ? 0.03 : 0)
           + (form === 'flower' ? 0.08 : 0),
       });
@@ -578,7 +581,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=337';
+    const workerUrl = './js/chunk-worker.js?v=342';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -640,12 +643,14 @@ export class World {
         const z = baseZ + lz;
         const biome = biomeAt(x, z, this.seed);
         const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
-        const baseHeight = (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+        const starterCove = starterCoveAt(x, z);
+        const deepWater = bviDeepWaterAt(x, z);
+        const baseHeight = starterCove ? SEA_LEVEL + 1 : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
           ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, this.seed);
         const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
         const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
-        const h = sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
-        const sandySurface = isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast });
+        const h = starterCove ? SEA_LEVEL + 1 : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
+        const sandySurface = !deepWater && (starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
           let id = BLOCK.AIR;
@@ -654,15 +659,17 @@ export class World {
             if (y <= SEA_LEVEL) id = BLOCK.WATER;
             else id = BLOCK.AIR;
           } else if (y === h) {
-            if (biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
-            else if (biome === BIOME.DESERT || sandySurface) id = BLOCK.SAND;
+            if (deepWater) id = BLOCK.STONE;
+            else if (!starterCove && biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
+            else if (starterCove || biome === BIOME.DESERT || sandySurface) id = BLOCK.SAND;
             else if (biome === BIOME.SHORE || biome === BIOME.OCEAN) id = cliff ? BLOCK.STONE : BLOCK.GRASS;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
             else if (cliff) id = BLOCK.STONE;
             else id = BLOCK.GRASS;
           } else if (y > h - 4) {
-            if (biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
-            else if (biome === BIOME.DESERT || sandySurface) id = BLOCK.SAND;
+            if (deepWater) id = BLOCK.STONE;
+            else if (!starterCove && biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
+            else if (starterCove || biome === BIOME.DESERT || sandySurface) id = BLOCK.SAND;
             else if (biome === BIOME.SHORE || biome === BIOME.OCEAN) id = cliff ? BLOCK.STONE : BLOCK.DIRT;
             else if (cliff) id = BLOCK.STONE;
             else id = BLOCK.DIRT;
@@ -675,7 +682,7 @@ export class World {
               if (hash2(x + y * 7, z + this.seed * 3) > 0.991) id = BLOCK.AIR;
             }
           }
-          if (y >= h - 1 && y <= h && id === BLOCK.STONE) {
+          if (!deepWater && y >= h - 1 && y <= h && id === BLOCK.STONE) {
             const exposedOre = exposedOreAt(x, y, z, this.seed);
             if (exposedOre) id = exposedOre;
           }
@@ -717,7 +724,7 @@ export class World {
           const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
           if (mangroveLandmark) {
             this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-          } else if (!villageColumn && !forestPocket && !beachApproach && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+          } else if (!villageColumn && !forestPocket && !beachApproach && !starterCove && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
             && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -1187,12 +1194,14 @@ export class World {
         const z = baseZ + lz;
         const biome = biomeAt(x, z, this.seed);
         const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
-        const baseHeight = (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+        const starterCove = starterCoveAt(x, z);
+        const deepWater = bviDeepWaterAt(x, z);
+        const baseHeight = starterCove ? SEA_LEVEL + 1 : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
           ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, this.seed);
         const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
         const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
-        const h = sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
-        const sandySurface = isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast });
+        const h = starterCove ? SEA_LEVEL + 1 : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
+        const sandySurface = !deepWater && (starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
           let id = BLOCK.AIR;
@@ -1202,16 +1211,18 @@ export class World {
             else id = BLOCK.AIR;
           } else if (y === h) {
             // Biome-driven surface block
-            if (biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
-            else if (biome === BIOME.DESERT || sandySurface) id = BLOCK.SAND;
+            if (deepWater) id = BLOCK.STONE;
+            else if (!starterCove && biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
+            else if (starterCove || biome === BIOME.DESERT || sandySurface) id = BLOCK.SAND;
             else if (biome === BIOME.SHORE || biome === BIOME.OCEAN) id = cliff ? BLOCK.STONE : BLOCK.GRASS;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
             else if (cliff) id = BLOCK.STONE;
             else id = BLOCK.GRASS; // FOREST default
           } else if (y > h - 4) {
             // Sub-surface follows biome: desert/shore → sand, tundra → dirt, else dirt
-            if (biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
-            else if (biome === BIOME.DESERT || sandySurface) id = BLOCK.SAND;
+            if (deepWater) id = BLOCK.STONE;
+            else if (!starterCove && biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
+            else if (starterCove || biome === BIOME.DESERT || sandySurface) id = BLOCK.SAND;
             else if (biome === BIOME.SHORE || biome === BIOME.OCEAN) id = cliff ? BLOCK.STONE : BLOCK.DIRT;
             else if (cliff) id = BLOCK.STONE;
             else id = BLOCK.DIRT;
@@ -1228,7 +1239,7 @@ export class World {
               if (hash2(x + y * 7, z + this.seed * 3) > 0.991) id = BLOCK.AIR;
             }
           }
-          if (y >= h - 1 && y <= h && id === BLOCK.STONE) {
+          if (!deepWater && y >= h - 1 && y <= h && id === BLOCK.STONE) {
             const exposedOre = exposedOreAt(x, y, z, this.seed);
             if (exposedOre) id = exposedOre;
           }
@@ -1271,7 +1282,7 @@ export class World {
           const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
           if (mangroveLandmark) {
             this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-          } else if (!villageColumn && !forestPocket && !beachApproach && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+          } else if (!villageColumn && !forestPocket && !beachApproach && !starterCove && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
             && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -2060,19 +2071,23 @@ export class World {
       BLOCK.SEQUOIA_LOG, BLOCK.SEQUOIA_LEAVES, BLOCK.PALM_LEAVES, BLOCK.BUSH,
     ]);
 
+    const authoredCoveCandidates = [[26, 15], [25, 15], [27, 15], [26, 14]];
     for (let i = 0; i < 2200; i++) {
-      const x = Math.floor((hash2(i + this.seed * 3, this.seed + 17) - 0.5) * radius * 2);
-      const z = Math.floor((hash2(this.seed + 31, i * 5 + 9) - 0.5) * radius * 2);
+      const authored = authoredCoveCandidates[i] || null;
+      const x = authored ? authored[0] : Math.floor((hash2(i + this.seed * 3, this.seed + 17) - 0.5) * radius * 2);
+      const z = authored ? authored[1] : Math.floor((hash2(this.seed + 31, i * 5 + 9) - 0.5) * radius * 2);
       const h = heightAt(x, z, this.seed);
-      if (h < SEA_LEVEL + 1 || h > SEA_LEVEL + 10 || h >= WORLD_HEIGHT - 6) continue;
+      if (h < SEA_LEVEL + 1 || h > SEA_LEVEL + 3 || h >= WORLD_HEIGHT - 6) continue;
       const chunk = this.worldToChunk(x, z);
       this.ensureChunk(chunk.cx, chunk.cz);
       const surface = this.getBlock(x, h, z);
-      if (surface !== BLOCK.SAND) continue;
-      if (this.getBlock(x, h + 1, z) !== BLOCK.AIR || this.getBlock(x, h + 2, z) !== BLOCK.AIR) continue;
+      const authoredSurface = !!authored && starterCoveAt(x, z);
+      if (!authoredSurface && surface !== BLOCK.SAND) continue;
+      if (!authoredSurface && (this.getBlock(x, h + 1, z) !== BLOCK.AIR || this.getBlock(x, h + 2, z) !== BLOCK.AIR)) continue;
 
       let clear = 0;
       let blocked = false;
+      if (!authoredSurface) {
       for (let dx = -3; dx <= 3 && !blocked; dx++) {
         for (let dz = -3; dz <= 3 && !blocked; dz++) {
           for (let dy = 1; dy <= 4; dy++) {
@@ -2082,6 +2097,7 @@ export class World {
             }
           }
         }
+      }
       }
       if (blocked) continue;
 
@@ -2122,6 +2138,7 @@ export class World {
         waterDirZ: waterZ,
         clearance: clear + 4,
         horizon,
+        authored: !!authored,
         inland,
       });
     }
@@ -2131,17 +2148,20 @@ export class World {
     const dirX = Number(chosen.waterDirX) || 0;
     const dirZ = Number(chosen.waterDirZ) || 1;
     const yaw = Math.atan2(-dirX, -dirZ);
-    const beachOffset = Math.min(3.0, Math.max(2.2, Number(chosen.waterDistance) - 1));
-    const boatX = chosen.x + dirX * beachOffset;
-    const boatZ = chosen.z + dirZ * beachOffset;
-    const boatGround = heightAt(Math.floor(boatX), Math.floor(boatZ), this.seed);
+    const beachOffset = Math.min(9.0, Math.max(chosen.authored ? 6.5 : 2.8, Number(chosen.waterDistance) + 0.6));
+    let boatX = chosen.x + dirX * beachOffset;
+    let boatZ = chosen.z + dirZ * beachOffset;
+    while (!waterAt(Math.floor(boatX), Math.floor(boatZ)) && Math.hypot(boatX - chosen.x, boatZ - chosen.z) < 9) {
+      boatX += dirX * 0.5;
+      boatZ += dirZ * 0.5;
+    }
     return {
       x: chosen.x,
       y: chosen.y,
       z: chosen.z,
       yaw,
       boatX,
-      boatY: Math.max(chosen.y - 0.82, boatGround + 0.08),
+      boatY: SEA_LEVEL - 0.72,
       boatZ,
       water: false,
       beached: true,
@@ -2157,8 +2177,8 @@ export class World {
     // the authored launch ramp, driftwood, and channel without a lucky random
     // spawn on a distant cay. The normal clearance checks below still apply.
     const launchCandidates = [
-      [-10, -34, 'Cane Garden Bay · Tortola', Math.PI],
-      [26, 15], [25, 15], [27, 15], [24, 15], [28, 15],
+      [26, 15, 'Road Town · Tortola', Math.PI],
+      [-10, -34, 'Cane Garden Bay · Tortola', Math.PI], [25, 15], [27, 15], [24, 15], [28, 15],
       [26, 14], [25, 14], [27, 14],
     ];
     // Tropical/coastal seeds can have sparse clearings; sample deeply enough
@@ -2173,12 +2193,13 @@ export class World {
         ? preferred[1]
         : Math.floor((hash2(this.seed, i + 9) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.6);
       const h = heightAt(x, z, this.seed);
-      if (h < SEA_LEVEL + (preferred ? 1 : 2) || h >= WORLD_HEIGHT - 6) continue;
+      if (h < SEA_LEVEL + (preferred ? 1 : 2) || (preferred && h > SEA_LEVEL + 3) || h >= WORLD_HEIGHT - 6) continue;
       const spawnChunk = this.worldToChunk(x, z);
       this.ensureChunk(spawnChunk.cx, spawnChunk.cz);
       // surface must be solid non-water
       const surface = this.getBlock(x, h, z);
       if (surface === BLOCK.WATER || surface === BLOCK.AIR) continue;
+      if (preferred && surface !== BLOCK.SAND) continue;
       if (!isSolid(surface)) continue;
       const above1 = this.getBlock(x, h + 1, z);
       const above2 = this.getBlock(x, h + 2, z);

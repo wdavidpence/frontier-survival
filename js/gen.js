@@ -313,6 +313,17 @@ export function bviReefShelfAt(x, z) {
   return nearby > 0.18 ? Math.min(1, nearby * 1.35) : 0;
 }
 
+export function bviDeepWaterAt(x, z) {
+  if (bviLandformAt(x, z).influence > 0) return 0;
+  if (x < -90 || x > 330 || z < -120 || z > 130) return 0;
+  const route = bviRouteCorridorAt(x, z);
+  const broad = fbm(x * 0.008 + 17, z * 0.008 - 11, 3);
+  const trench = fbm(x * 0.021 - 23, z * 0.021 + 31, 3);
+  if (route.influence > 0.78) return 0.25;
+  if (broad < 0.40 || trench < 0.52) return 0;
+  return Math.min(1, (broad - 0.40) * 1.55 + (trench - 0.52) * 1.20);
+}
+
 /** Deterministic forest-floor dressing, kept pure so sync and worker terrain agree. */
 export function forestFloorDetail(x, z, seed, biome, height, surfaceId, aboveId) {
   if (biome !== 'forest' || height <= GEN_SEA_LEVEL + 1 || aboveId !== 0) return null;
@@ -328,6 +339,10 @@ export function forestFloorDetail(x, z, seed, biome, height, surfaceId, aboveId)
 /** Blend the first few chunks toward a low, wet island shelf. */
 export function starterCoastBlend(x, z) {
   return Math.max(0, Math.min(1, 1 - Math.hypot(x, z) / 180));
+}
+
+export function starterCoveAt(x, z) {
+  return x >= 20 && x <= 31 && z >= 14 && z <= 15;
 }
 
 export function heightAt(x, z, seed = 0) {
@@ -360,6 +375,7 @@ export function heightAt(x, z, seed = 0) {
   const cove = bviCoveAt(x, z);
   const beachLanding = bviBeachLandingAt(x, z);
   const route = bviRouteCorridorAt(x, z);
+  const deepWater = bviDeepWaterAt(x, z);
   const bviRegion = x >= -90 && x <= 330 && z >= -120 && z <= 130;
   const authoredWetland = x >= 46 && x <= 68 && z >= 52 && z <= 72;
   if (bvi.influence > 0) {
@@ -368,13 +384,16 @@ export function heightAt(x, z, seed = 0) {
     const macroPeak = bvi.majorInfluence > 0 ? bvi.majorPeak : bvi.cayPeak;
     y = Math.max(y, GEN_SEA_LEVEL + 1 + macroPeak * macroInfluence + relief * 3 * macroInfluence);
   } else if (bviRegion && !authoredWetland) {
-    // Keep the Drake Channel and sheltered coves open instead of spawning noise islands.
-    y = Math.min(y, GEN_SEA_LEVEL - 2);
+    // Keep the Drake Channel open, but carve rare 4–10 block bluewater basins.
+    y = deepWater > 0
+      ? Math.min(y, GEN_SEA_LEVEL - 4 - Math.floor(deepWater * 6))
+      : Math.min(y, GEN_SEA_LEVEL - 2);
   }
   if (cove.influence > 0) y = Math.max(y, Math.min(GEN_SEA_LEVEL - 1, GEN_SEA_LEVEL - 2 + Math.floor(cove.influence)));
   if (route.influence > 0) y = Math.min(y, GEN_SEA_LEVEL - 1);
   if (beachLanding.influence > 0) y = Math.max(y, GEN_SEA_LEVEL + 1);
   if (authoredWetland) y = Math.max(y, GEN_SEA_LEVEL + 2);
+  if (starterCoveAt(x, z)) y = GEN_SEA_LEVEL + 1;
   // Safe, buildable starter island and the existing authored shore destination.
   if (Math.hypot(x, z) < 18 && route.influence <= 0) y = Math.max(y, GEN_SEA_LEVEL);
   if (Math.hypot(x - 26, z - 22) < 9) y = Math.max(y, GEN_SEA_LEVEL);

@@ -5,7 +5,7 @@ import { palmLeafDrop } from '../js/palm-drops.js';
 import { createFishingState, startCast, tickFishing, rollFishingCatch, FISHING_CAST_TRAVEL_SECONDS } from '../js/fishing-cast.js';
 import { createBoat, canPlaceBoat, mountBoat, dismountBoat, hasRider, stepBoat, degradeBoat, boatRepairPlan, repairBoat, pushBoat, buoyancyY, riderPosition, boatWaterFootprintClear } from '../js/boat-entity.js';
 import { schoolFishPose, schoolVisibility } from '../js/fish-school.js';
-import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviLocationAt, BVI_TENTH_SCALE, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt, villageSitesForSeed, villageColumnAt, villageBlockAt, TORTOLA_VILLAGE_SITES } from '../js/gen.js';
+import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviLocationAt, BVI_TENTH_SCALE, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt, bviDeepWaterAt, starterCoveAt, villageSitesForSeed, villageColumnAt, villageBlockAt, TORTOLA_VILLAGE_SITES } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
 import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
 import { seaTurtleLayout } from '../js/fauna-parts/turtle-layout.js';
@@ -304,7 +304,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=486/);
+  assert.match(gameSource, /world\.js\?v=494/);
 });
 
 test('BVI fresh spawns prefer the authored launch beach when clear', () => {
@@ -585,7 +585,7 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /float northSound/);
   assert.match(atlas, /float foamBand/);
   assert.match(atlas, /vTile - 5\.0/);
-  assert.match(game, /atlas\.js\?v=309/);
+  assert.match(game, /atlas\.js\?v=315/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -623,6 +623,27 @@ test('BVI White Bay has a deterministic sand landing between shelf and island', 
   assert.match(worker, /!beachApproach/);
   assert.match(world, /bviBeachLandingAt\(x, z\)\.influence/);
   assert.match(world, /!beachApproach/);
+});
+
+test('Deep Blue BVI water tiers and sea-level starter cove stay deterministic', () => {
+  assert.equal(starterCoveAt(26, 15), true);
+  assert.equal(starterCoveAt(26, 13), false, 'launch ramp remains water');
+  assert.ok(heightAt(26, 15, 1884808540) >= 17 && heightAt(26, 15, 1884808540) <= 18);
+  assert.equal(heightAt(26, 13, 1884808540) < 16, true);
+  const deepSamples = [];
+  for (let x = -80; x <= 300; x += 4) for (let z = -100; z <= 100; z += 4) {
+    const d = bviDeepWaterAt(x, z);
+    if (d > 0) deepSamples.push(16 - heightAt(x, z, 1884808540));
+  }
+  assert.ok(deepSamples.some(depth => depth >= 6), 'BVI has a real bluewater tier');
+  assert.ok(SPECIES.dolphin?.aquatic && SPECIES.octopus?.aquatic, 'Deep Blue species are aquatic');
+  assert.equal(SPECIES.octopus.ink, true);
+  const fauna = fsText('js/animal-visuals.js');
+  assert.match(fauna, /dolphin:\s*layoutDolphin/);
+  assert.match(fauna, /octopus:\s*layoutOctopus/);
+  const worker = fsText('js/chunk-worker.js');
+  assert.match(worker, /bviDeepWaterAt/);
+  assert.match(worker, /starterCoveAt/);
 });
 
 test('BVI White Bay channel is a continuous water-safe route from starter launch to cove', () => {
@@ -3455,7 +3476,7 @@ test('offshore fishing has boardable skiff and lure-attracted school contracts',
   assert.match(game, /const activeFootsteps = !!move\?\.moved && !move\.inWater/);
   assert.match(game, /this\._cameraLandKick = Math\.min\(1, this\._cameraLandKick/);
   assert.match(game, /const dmg = this\.player\.pendingFallDamage;\n        this\._cameraLandKick = Math\.min\(1, this\._cameraLandKick \+ dmg \/ 24\);/);
-  assert.match(game, /const targetFov = 75 \+ \(move\?\.sprinting \? 4 : Math\.min\(3, boatSpeed \* 0\.5\)\)/);
+  assert.match(game, /const targetFov = 77 \+ \(move\?\.sprinting \? 4 : Math\.min\(3, boatSpeed \* 0\.5\)\)/);
   assert.match(game, /this\.camera\.updateProjectionMatrix\(\)/);
   assert.match(game, /const swingProgress = this\._heldSwingT > 0/);
   assert.match(game, /const impactPulse = Math\.sin\(Math\.PI \* swingProgress\)/);
@@ -4525,9 +4546,9 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const main = fsText('js/main.js');
   const visuals = fsText('js/animal-visuals.js');
   const animals = fsText('js/animals.js');
-  assert.match(game, /animals\.js\?v=273/);
-  assert.match(game, /animal-visuals\.js\?v=249/);
-  assert.match(main, /game\.js\?v=711/);
+  assert.match(game, /animals\.js\?v=275/);
+  assert.match(game, /animal-visuals\.js\?v=250/);
+  assert.match(main, /game\.js\?v=730/);
   assert.match(game, /FRIENDLY/);
   assert.match(game, /trust \$\{Math\.round\(ah\.animal\._tame\)\}%/);
   assert.match(game, /this\.fx\.burst\(ah\.animal\.x/);
@@ -5275,7 +5296,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker\.js\?v=337/);
+  assert.match(world, /chunk-worker\.js\?v=342/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
   assert.match(world, /Sparse mangrove-log ribs/);
@@ -5525,7 +5546,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.21.0'), 'HTML must expose v1.21.0');
+  assert.ok(html.includes('v1.23.0'), 'HTML must expose v1.23.0');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

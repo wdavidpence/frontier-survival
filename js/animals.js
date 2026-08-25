@@ -3,7 +3,7 @@
  * Prey flee; predators hunt (worse at night). Meat drops on death.
  */
 import { isSolid, BLOCK } from './blocks.js?v=293';
-import { hash2 } from './gen.js?v=312';
+import { hash2 } from './gen.js?v=315';
 import { biomeAt, BIOME } from './biomes.js?v=270';
 
 export const SPECIES = {
@@ -257,6 +257,18 @@ export const SPECIES = {
     hostile: true, fleeRange: 0, senseRange: 8, nightSense: 11, damage: 12, attackRange: 1.5, attackCd: 1.7,
     meatMin: 2, meatMax: 3, color: [0.28, 0.42, 0.5], scale: [0.58, 0.42, 1.55], count: 1,
     aquatic: true, swimDepth: 2.8, cautious: true, tropical: true,
+  },
+  dolphin: {
+    id: 'dolphin', name: 'Dolphin', hp: 18, speed: 5.4, hostile: false,
+    fleeRange: 10, senseRange: 15, damage: 0, attackRange: 0, attackCd: 99,
+    meatMin: 0, meatMax: 0, color: [0.28, 0.52, 0.68], scale: [0.48, 0.42, 1.35], count: 3,
+    aquatic: true, swimDepth: 1.0, tropical: true, playful: true,
+  },
+  octopus: {
+    id: 'octopus', name: 'Octopus', hp: 28, speed: 2.6, hostile: false,
+    fleeRange: 8, senseRange: 12, damage: 0, attackRange: 0, attackCd: 99,
+    meatMin: 1, meatMax: 2, color: [0.46, 0.18, 0.34], scale: [0.62, 0.72, 0.72], count: 2,
+    aquatic: true, swimDepth: 3.6, tropical: true, ink: true,
   },
   crab: {
     id: 'crab', name: 'Reef Crab', hp: 7, speed: 2.2,
@@ -529,6 +541,16 @@ export class FaunaSystem {
       const px = nearest ? nearest.x : 0;
       const pz = nearest ? nearest.z : 0;
       const targetId = nearest?.id === 'p2' ? 'p2' : 'p1';
+      if (spec.school) {
+        const school = this.animals.filter(other => !other.dead && other.type === a.type && Math.hypot(other.x - a.x, other.z - a.z) < 14);
+        if (school.length > 1) {
+          const cx = school.reduce((sum, other) => sum + other.x, 0) / school.length;
+          const cz = school.reduce((sum, other) => sum + other.z, 0) / school.length;
+          const scatter = (hash2(this.seed + a.id * 19, 557) - 0.5) * 4;
+          a.targetX = cx + scatter;
+          a.targetZ = cz - scatter;
+        }
+      }
       if (spec.id === 'sea_turtle' && a.nestT > 0) {
         a.nestT -= dt;
         if (a.nestT <= 0 && (!nearest || dist > 10)) {
@@ -733,7 +755,7 @@ export class FaunaSystem {
     animal.aggro = true;
     animal._aggro = true;
     animal.state = this.getSpec(animal.type).hostile ? 'chase' : 'flee';
-    if (animal.hp > 0) return { killed: false, meat: 0, hide: 0, name: this.getSpec(animal.type).name };
+    if (animal.hp > 0) return { killed: false, meat: 0, hide: 0, ink: !!this.getSpec(animal.type).ink, name: this.getSpec(animal.type).name };
     animal.dead = true;
     animal._corpseT = 0;
     const spec = this.getSpec(animal.type);

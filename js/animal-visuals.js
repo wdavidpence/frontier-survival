@@ -532,6 +532,33 @@ function layoutBat(spec) {
   return { parts, legNames, wingNames, eyeNames };
 }
 
+function layoutDolphin(spec) {
+  const { w, h, l } = scaleOf(spec); const c = baseCol(spec); const belly = accentColor(c, 'belly'); const dark = accentColor(c, 'dark');
+  const parts = []; const wingNames = ['flipperL', 'flipperR']; const eyeNames = [];
+  parts.push(part('body', w * 0.88, h * 0.62, l * 0.72, 0, h * 0.58, 0, c, 'body'));
+  parts.push(part('belly', w * 0.62, h * 0.25, l * 0.54, 0, h * 0.42, l * 0.04, belly, 'body'));
+  parts.push(part('head', w * 0.68, h * 0.58, l * 0.38, 0, h * 0.68, l * 0.40, c, 'head'));
+  parts.push(part('beak', w * 0.30, h * 0.16, l * 0.42, 0, h * 0.62, l * 0.68, dark, 'snout'));
+  parts.push(part('dorsalFin', w * 0.12, h * 0.44, w * 0.22, 0, h * 1.04, -l * 0.05, dark, 'fin'));
+  parts.push(part('flipperL', w * 0.12, h * 0.10, l * 0.50, -w * 0.72, h * 0.55, l * 0.08, c, 'wing'));
+  parts.push(part('flipperR', w * 0.12, h * 0.10, l * 0.50, w * 0.72, h * 0.55, l * 0.08, c, 'wing'));
+  parts.push(part('tailL', w * 0.38, h * 0.12, l * 0.22, -w * 0.20, h * 0.52, -l * 0.44, dark, 'tail'));
+  parts.push(part('tailR', w * 0.38, h * 0.12, l * 0.22, w * 0.20, h * 0.52, -l * 0.44, dark, 'tail'));
+  addEyes(parts, eyeNames, w * 0.42, h * 0.78, l * 0.60, w * 0.08, [0.04, 0.06, 0.08]);
+  return { parts, legNames: [], wingNames, eyeNames };
+}
+
+function layoutOctopus(spec) {
+  const { w, h, l } = scaleOf(spec); const c = baseCol(spec); const light = accentColor(c, 'light'); const dark = accentColor(c, 'dark');
+  const parts = []; const legNames = []; const eyeNames = [];
+  parts.push(part('mantle', w * 0.92, h * 0.92, l * 0.78, 0, h * 0.88, 0, c, 'body'));
+  parts.push(part('underside', w * 0.72, h * 0.22, l * 0.62, 0, h * 0.38, l * 0.04, light, 'body'));
+  const tentacles = [[-0.72,0.34,-0.38],[-0.48,0.20,-0.62],[-0.20,0.12,-0.78],[0.20,0.12,-0.78],[0.48,0.20,-0.62],[0.72,0.34,-0.38],[-0.62,0.26,0.30],[0.62,0.26,0.30]];
+  tentacles.forEach(([x,y,z], i) => { parts.push(part(`tentacle${i}`, w * 0.18, h * 0.20, l * 0.58, x * w, y * h, z * l, dark, 'leg')); legNames.push(`tentacle${i}`); });
+  addEyes(parts, eyeNames, w * 0.44, h * 1.06, l * 0.34, w * 0.10, [0.92, 0.82, 0.30]);
+  return { parts, legNames, wingNames: [], eyeNames };
+}
+
 function layoutFish(spec) {
   const { w, h, l } = scaleOf(spec);
   const c = baseCol(spec);
@@ -632,6 +659,8 @@ const LAYOUTS = {
   tropical_fish: authoredTropicalFishLayout,
   sea_turtle: authoredSeaTurtleLayout,
   reef_shark: authoredReefSharkLayout,
+  dolphin: layoutDolphin,
+  octopus: layoutOctopus,
   crab: authoredCrabLayout,
 };
 

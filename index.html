@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.21.0</title>
+  <title>Frontier Survival v1.23.0</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -39,6 +39,17 @@
       background:
         linear-gradient(180deg, var(--sky-top, #2966b0) 0%, var(--sky-mid, #72bce8) 34%, var(--sky-horizon, #ffca92) 58%, var(--sky-ground, #657681) 100%);
       transition: background 220ms linear;
+    }
+    #sky-backdrop::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle 18% at 78% 17%, rgba(255,241,202,0.32), rgba(255,210,148,0.11) 32%, transparent 72%),
+        linear-gradient(180deg, transparent 0%, transparent 48%, rgba(236,203,159,0.08) 67%, transparent 100%);
+      mix-blend-mode: screen;
+      opacity: 0.82;
     }
     #sky-backdrop::after {
       content: "";
@@ -488,6 +499,7 @@
       backdrop-filter: blur(12px) saturate(1.12); text-align: center; pointer-events: none;
       transition: opacity .22s ease;
     }
+    #arrival-card.hidden { display: none; }
     #arrival-card::before { content: ''; display: block; width: 54px; height: 2px; margin: -2px auto 10px; background: linear-gradient(90deg, transparent, #f4d59f, transparent); }
     #arrival-card .arrival-kicker { color: #f4d59f; font-size: 9px; font-weight: 800; letter-spacing: .28em; text-transform: uppercase; }
     #arrival-card h2 { margin: 5px 0 3px; color: #fff3d8; font-size: clamp(19px, 3vw, 27px); letter-spacing: .02em; text-shadow: 0 3px 14px rgba(0,0,0,.38); }
@@ -1504,6 +1516,74 @@
       #ach-toast { top: 14%; right: 10px; width: min(270px, calc(100vw - 20px)); }
       body.coop-mode #status-line { left: 50%; right: auto; max-width: none; }
     }
+    /* Visual streak 01: art-direction pass — quieter glass, clearer hierarchy,
+       and a soft cinematic frame that never blocks gameplay input. */
+    #hud::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(4,12,22,0.24), transparent 22%, transparent 72%, rgba(5,10,16,0.22)),
+        radial-gradient(ellipse at 50% 46%, transparent 42%, rgba(4,10,16,0.16) 100%);
+      mix-blend-mode: multiply;
+      opacity: 0.72;
+    }
+    #status-line {
+      background: linear-gradient(135deg, rgba(10,24,34,0.84), rgba(7,14,23,0.66));
+      border-color: rgba(163,220,222,0.24);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.10);
+      backdrop-filter: blur(14px) saturate(1.25);
+    }
+    #meters {
+      background: linear-gradient(150deg, rgba(12,26,35,0.84), rgba(5,12,19,0.72));
+      border-color: rgba(161,211,204,0.20);
+      box-shadow: 0 16px 34px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px) saturate(1.18);
+    }
+    #destination-hud, #workshop-hud {
+      background: linear-gradient(145deg, rgba(10,25,35,0.80), rgba(5,12,20,0.65));
+      box-shadow: 0 14px 34px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px) saturate(1.18);
+    }
+    #title-screen .panel h1 {
+      background: linear-gradient(180deg, #fff5df 0%, #f5d49d 56%, #d9a96d 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 10px 30px rgba(242,184,105,0.16);
+    }
+    #title-screen .panel {
+      box-shadow: 0 30px 100px rgba(0,0,0,0.56), 0 0 0 1px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.10);
+      background: linear-gradient(145deg, rgba(21,35,48,0.96), rgba(7,16,26,0.96));
+    }
+    @media (max-width: 620px) {
+      #hud::before { opacity: 0.52; }
+      #status-line {
+        left: 8px;
+        top: 12px;
+        transform: none;
+        width: 205px;
+        min-height: 34px;
+        padding: 6px 8px 6px 10px;
+      }
+      #status-line .status-detail { display: none; }
+      body.game-active #version-badge { display: none; }
+      .controls-button { top: 10px; right: 8px; padding: 6px 9px; font-size: 10px; }
+      #destination-hud, #workshop-hud {
+        top: 54px;
+        right: 8px;
+        width: 174px;
+        max-height: 112px;
+        overflow: hidden;
+        padding: 6px 8px;
+        font-size: 9px;
+        line-height: 1.18;
+      }
+      #destination-hud [data-destination-next] { font-size: 8px; }
+      #message { top: 24%; }
+    }
+
   </style>
   <script type="importmap">
   {
@@ -1543,7 +1623,7 @@
     </div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.21.0</div>
+    <div id="version-badge">v1.23.0</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1631,7 +1711,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.21.0</div>
+      <div class="tag">Browser survival sandbox · v1.23.0</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1755,6 +1835,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=723"></script>
+  <script type="module" src="./js/main.js?v=745"></script>
 </body>
 </html>

@@ -255,7 +255,7 @@ function scatterFlecks(ctx, x0, y0, opts) {
 // Coherent natural palettes for the high-visibility terrain surfaces. Each is a
 // shadow / base / light triple picked to hold its hue under the ACES tonemap:
 // shadows stay saturated rather than going grey, highlights stop short of white.
-const PAL_GRASS = { shadow: [70, 96, 52], base: [94, 128, 64], light: [116, 150, 78] };
+const PAL_GRASS = { shadow: [74, 100, 54], base: [98, 132, 68], light: [122, 154, 84] };
 const PAL_DIRT = { shadow: [74, 52, 34], base: [106, 78, 54], light: [138, 104, 76] };
 // Cool slate with a restrained warm lift: cliff faces keep their wetland weight
 // but retain enough separation from black shadow when the Rootwalk bank is close.
@@ -264,10 +264,10 @@ const PAL_SAND = { shadow: [186, 160, 110], base: [214, 186, 128], light: [238, 
 // Muted tropical teal keeps the water readable beside warm sand and foliage;
 // the darker trough also gives the atlas material a natural depth cue.
 const PAL_WATER = { shadow: [20, 67, 86], base: [39, 113, 137], light: [88, 163, 169] };
-const PAL_LEAVES = { shadow: [42, 70, 38], base: [60, 104, 46], light: [82, 132, 58] };
-const PAL_PALM = { shadow: [48, 86, 44], base: [70, 122, 56], light: [96, 146, 70] };
-const PAL_SPRUCE = { shadow: [30, 60, 46], base: [46, 88, 66], light: [70, 116, 88] };
-const PAL_SEQUOIA = { shadow: [32, 64, 38], base: [46, 92, 52], light: [68, 122, 66] };
+const PAL_LEAVES = { shadow: [48, 80, 41], base: [68, 114, 51], light: [92, 144, 66] };
+const PAL_PALM = { shadow: [52, 90, 47], base: [78, 130, 62], light: [102, 156, 78] };
+const PAL_SPRUCE = { shadow: [36, 68, 52], base: [54, 98, 74], light: [78, 128, 98] };
+const PAL_SEQUOIA = { shadow: [38, 72, 42], base: [54, 102, 58], light: [78, 136, 74] };
 
 function tileOrigin(index) {
   const tx = index % ATLAS_N;
@@ -1104,25 +1104,30 @@ function drawMushroom(ctx, x0, y0) {
 
 function drawBamboo(ctx, x0, y0) {
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
-  const r = rnd(616);
-  for (let i = 0; i < 3; i++) {
-    const x = 5 + i * 10 + ((r() * 3) | 0);
-    const top = 2 + ((r() * 4) | 0) * 2;
-    ctx.fillStyle = i === 1 ? '#78b94d' : '#559b42';
-    ctx.fillRect(x0 + x, y0 + top, 5, 28 - top);
-    ctx.fillStyle = '#b9d86b'; ctx.fillRect(x0 + x + 1, y0 + top, 2, 28 - top);
-    ctx.fillStyle = '#2f7130';
-    for (let y = top + 6; y < 29; y += 8) {
-      ctx.fillRect(x0 + x - 1, y0 + y, 7, 2);
-      ctx.fillStyle = '#b9dc5c'; ctx.fillRect(x0 + x + 1, y0 + y, 3, 1);
-      ctx.fillStyle = '#2f7130';
+  const r = rnd(716);
+  const stalks = [
+    { x: 6 + ((r() * 2) | 0), top: 5 + ((r() * 3) | 0) * 2, col: '#4e963e' },
+    { x: 14 + ((r() * 2) | 0), top: 2 + ((r() * 3) | 0) * 2, col: '#6aae46' },
+    { x: 22 + ((r() * 2) | 0), top: 8 + ((r() * 3) | 0) * 2, col: '#3f8238' },
+  ];
+  for (const stalk of stalks) {
+    const { x, top, col } = stalk;
+    ctx.fillStyle = '#285f32'; ctx.fillRect(x0 + x - 1, y0 + top + 1, 6, 27 - top);
+    ctx.fillStyle = col; ctx.fillRect(x0 + x, y0 + top, 4, 28 - top);
+    ctx.fillStyle = '#c4e37a'; ctx.fillRect(x0 + x + 1, y0 + top + 1, 1, 26 - top);
+    for (let y = top + 6; y < 29; y += 7) {
+      ctx.fillStyle = '#244e2d'; ctx.fillRect(x0 + x - 1, y0 + y, 6, 2);
+      ctx.fillStyle = '#a9cf62'; ctx.fillRect(x0 + x + 1, y0 + y, 2, 1);
     }
-    ctx.fillStyle = '#72c74b';
-    ctx.fillRect(x0 + x + 5, y0 + top + 4, 8, 2);
-    ctx.fillRect(x0 + x - 7, y0 + top + 10, 7, 2);
-    ctx.fillStyle = '#c4e66a';
-    ctx.fillRect(x0 + x + 7, y0 + top + 2, 4, 2);
+    const leafY = top + 3;
+    ctx.fillStyle = '#76bd50';
+    ctx.fillRect(x0 + x + 4, y0 + leafY, 7, 2);
+    ctx.fillRect(x0 + x - 6, y0 + leafY + 6, 6, 2);
+    ctx.fillStyle = '#b9dc6d';
+    ctx.fillRect(x0 + Math.min(29, x + 9), y0 + leafY - 1, 3, 2);
+    ctx.fillRect(x0 + Math.max(0, x - 8), y0 + leafY + 5, 3, 2);
   }
+  ctx.fillStyle = '#315f32'; ctx.fillRect(x0 + 4, y0 + 29, 24, 2);
 }
 
 function drawVines(ctx, x0, y0) {
@@ -1370,8 +1375,12 @@ export function createBlockAtlas() {
           * step(tex.r * 1.12, tex.g)
           * step(tex.b * 1.05, tex.g);
         light += vec3(0.025, 0.032, 0.018) * foliage;
-        light = max(light, vec3(0.34));
-        vec3 rgb = tex.rgb * max(vColor.rgb, vec3(0.25)) * light;
+        light = max(light, vec3(0.38, 0.40, 0.44));
+        vec3 material = tex.rgb * max(vColor.rgb, vec3(0.28));
+        vec3 rgb = material * light;
+        // Preserve hue in deep canopy shadows so the world reads as layered
+        // tropical material instead of collapsing into near-black silhouettes.
+        rgb = max(rgb, material * 0.36);
         // Named BVI coves get a restrained shallow-water response: a greener
         // shelf tint and a broken foam glint on upward-facing water tops. Deep
         // ocean and all non-water materials keep the existing atlas treatment.
@@ -1379,8 +1388,18 @@ export function createBlockAtlas() {
         float whiteBay = exp(-pow((vWorldPos.x + 42.0) / 14.0, 2.0) - pow((vWorldPos.z - 8.0) / 6.0, 2.0));
         float northSound = exp(-pow((vWorldPos.x - 52.0) / 10.0, 2.0) - pow((vWorldPos.z + 2.0) / 5.0, 2.0));
         float cove = max(whiteBay, northSound) * waterFace;
-        rgb = mix(rgb, rgb * vec3(0.78, 1.16, 1.10), clamp(cove * 0.42, 0.0, 0.42));
+        // Shoreline material response: lower sand/damp-soil faces catch a cool
+        // tidal stain while the dry upper lip keeps its warm sunlit identity.
+        float sandFace = 1.0 - smoothstep(0.5, 1.5, abs(vTile - 4.0));
+        float dampFace = 1.0 - smoothstep(0.5, 1.5, abs(vTile - 58.0));
         float topFace = smoothstep(0.78, 0.98, vNormal.y);
+        float tidalBand = (sandFace + dampFace * 0.82) * topFace
+          * (1.0 - smoothstep(16.4, 18.2, vWorldPos.y));
+        rgb = mix(rgb, rgb * vec3(0.82, 0.94, 0.98), clamp(tidalBand * 0.34, 0.0, 0.34));
+        float wetRockFace = (1.0 - smoothstep(0.5, 1.5, abs(vTile - 3.0))) * topFace
+          * (1.0 - smoothstep(16.0, 18.4, vWorldPos.y));
+        rgb = mix(rgb, rgb * vec3(0.64, 0.82, 0.88) + vec3(0.025, 0.055, 0.065), clamp(wetRockFace * 0.48, 0.0, 0.48));
+        rgb = mix(rgb, rgb * vec3(0.78, 1.16, 1.10), clamp(cove * 0.42, 0.0, 0.42));
         float foamBand = smoothstep(0.48, 0.78, cove) * (1.0 - smoothstep(0.78, 0.96, cove));
         float foamBreak = 0.55 + 0.45 * sin(vWorldPos.x * 1.7 + vWorldPos.z * 1.1);
         rgb += vec3(0.16, 0.26, 0.22) * foamBand * topFace * foamBreak * 0.22;

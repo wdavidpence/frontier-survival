@@ -245,8 +245,21 @@ function bviReefShelfAt(x, z) {
   }
   return nearby > 0.18 ? Math.min(1, nearby * 1.35) : 0;
 }
+function bviDeepWaterAt(x, z) {
+  if (bviLandformAt(x, z).influence > 0) return 0;
+  if (x < -90 || x > 330 || z < -120 || z > 130) return 0;
+  const route = bviRouteCorridorAt(x, z);
+  const broad = fbm(x * 0.008 + 17, z * 0.008 - 11, 3);
+  const trench = fbm(x * 0.021 - 23, z * 0.021 + 31, 3);
+  if (route.influence > 0.78) return 0.25;
+  if (broad < 0.40 || trench < 0.52) return 0;
+  return Math.min(1, (broad - 0.40) * 1.55 + (trench - 0.52) * 1.20);
+}
 function starterCoastBlend(x, z) {
   return Math.max(0, Math.min(1, 1 - Math.hypot(x, z) / 180));
+}
+function starterCoveAt(x, z) {
+  return x >= 20 && x <= 31 && z >= 14 && z <= 15;
 }
 function heightAt(x, z, seed = 0) {
   const sx = x * 0.03 * WORLD_SCALE + seed * 17.1;
@@ -274,6 +287,7 @@ function heightAt(x, z, seed = 0) {
   const cove = bviCoveAt(x, z);
   const beachLanding = bviBeachLandingAt(x, z);
   const route = bviRouteCorridorAt(x, z);
+  const deepWater = bviDeepWaterAt(x, z);
   const bviRegion = x >= -90 && x <= 330 && z >= -120 && z <= 130;
   const authoredWetland = x >= 46 && x <= 68 && z >= 52 && z <= 72;
   if (bvi.influence > 0) {
@@ -282,12 +296,15 @@ function heightAt(x, z, seed = 0) {
     const macroPeak = bvi.majorInfluence > 0 ? bvi.majorPeak : bvi.cayPeak;
     y = Math.max(y, 16 + 1 + macroPeak * macroInfluence + relief * 3 * macroInfluence);
   } else if (bviRegion && !authoredWetland) {
-    y = Math.min(y, 16 - 2);
+    y = deepWater > 0
+      ? Math.min(y, 16 - 4 - Math.floor(deepWater * 6))
+      : Math.min(y, 16 - 2);
   }
   if (cove.influence > 0) y = Math.max(y, Math.min(16 - 1, 16 - 2 + Math.floor(cove.influence)));
   if (route.influence > 0) y = Math.min(y, 16 - 1);
   if (beachLanding.influence > 0) y = Math.max(y, 16 + 1);
   if (authoredWetland) y = Math.max(y, 16 + 2);
+  if (starterCoveAt(x, z)) y = 16 + 1;
   if (Math.hypot(x, z) < 18 && route.influence <= 0) y = Math.max(y, 16);
   if (Math.hypot(x - 26, z - 22) < 9) y = Math.max(y, 16);
   if (Math.hypot(x - 42, z - 51) < 8) y = Math.max(y, 16 + 2);
@@ -596,12 +613,14 @@ function generateChunkData(cx, cz, seed) {
       const z = baseZ + lz;
       const biome = biomeAt(x, z, seed);
       const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
-      const baseHeight = (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+      const starterCove = starterCoveAt(x, z);
+      const deepWater = bviDeepWaterAt(x, z);
+      const baseHeight = starterCove ? SEA_LEVEL + 1 : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
         ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, seed);
       const cliff = biome === 'tropical' && tropicalCliffAt(x, z, seed);
       const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
-      const h = sandyCoastHeight(x, z, seed, biome, baseHeight, rockyCoast);
-      const sandySurface = isSandyBeachSurface(h, biome, rockyCoast);
+      const h = starterCove ? SEA_LEVEL + 1 : sandyCoastHeight(x, z, seed, biome, baseHeight, rockyCoast);
+      const sandySurface = !deepWater && (starterCove || isSandyBeachSurface(h, biome, rockyCoast));
 
       for (let y = 0; y < WORLD_HEIGHT; y++) {
         let id = BLOCK.AIR;
@@ -609,15 +628,17 @@ function generateChunkData(cx, cz, seed) {
         else if (y > h) {
           if (y <= SEA_LEVEL) id = BLOCK.WATER;
         } else if (y === h) {
-          if (biome === 'mangrove') id = BLOCK.MANGROVE_MUD;
-          else if (biome === 'desert' || sandySurface) id = BLOCK.SAND;
+          if (deepWater) id = BLOCK.STONE;
+          else if (!starterCove && biome === 'mangrove') id = BLOCK.MANGROVE_MUD;
+          else if (starterCove || biome === 'desert' || sandySurface) id = BLOCK.SAND;
           else if (biome === 'shore' || biome === 'ocean') id = cliff ? BLOCK.STONE : BLOCK.GRASS;
           else if (biome === 'tundra') id = BLOCK.SNOW;
           else if (cliff) id = BLOCK.STONE;
           else id = BLOCK.GRASS;
         } else if (y > h - 4) {
-          if (biome === 'mangrove') id = BLOCK.MANGROVE_MUD;
-          else if (biome === 'desert' || sandySurface) id = BLOCK.SAND;
+          if (deepWater) id = BLOCK.STONE;
+          else if (!starterCove && biome === 'mangrove') id = BLOCK.MANGROVE_MUD;
+          else if (starterCove || biome === 'desert' || sandySurface) id = BLOCK.SAND;
           else if (biome === 'shore' || biome === 'ocean') id = cliff ? BLOCK.STONE : BLOCK.DIRT;
           else if (cliff) id = BLOCK.STONE;
           else id = BLOCK.DIRT;
@@ -630,7 +651,7 @@ function generateChunkData(cx, cz, seed) {
             if (hash2(x + y * 7, z + seed * 3) > 0.991) id = BLOCK.AIR;
           }
         }
-        if (y >= h - 1 && y <= h && id === BLOCK.STONE) {
+        if (!deepWater && y >= h - 1 && y <= h && id === BLOCK.STONE) {
           const exposedOre = exposedOreAt(x, y, z, seed);
           if (exposedOre) id = exposedOre;
         }
@@ -673,7 +694,7 @@ function generateChunkData(cx, cz, seed) {
         const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
         if (mangroveLandmark) {
           _placeMangroveBridge(data, idx, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-        } else if (!villageColumn && !forestPocket && !beachApproach && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+        } else if (!villageColumn && !forestPocket && !beachApproach && !starterCove && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
           && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
           if (biome === 'mangrove') _placeMangrove(data, idx, lx, h + 1, lz);
           else if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);
