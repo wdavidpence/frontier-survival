@@ -4552,7 +4552,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals\.js\?v=275/);
   assert.match(game, /animal-visuals\.js\?v=250/);
-  assert.match(main, /game\.js\?v=733/);
+  assert.match(main, /game\.js\?v=734/);
   assert.match(game, /FRIENDLY/);
   assert.match(game, /trust \$\{Math\.round\(ah\.animal\._tame\)\}%/);
   assert.match(game, /this\.fx\.burst\(ah\.animal\.x/);
@@ -5550,7 +5550,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.24.0'), 'HTML must expose v1.24.0');
+  assert.ok(html.includes('v1.25.0'), 'HTML must expose v1.25.0');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

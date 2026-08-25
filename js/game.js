@@ -1049,8 +1049,8 @@ export class Game {
       this.player = new Player(spawn, { starterRations: this.modeDef().starterRations });
       // Fresh arrivals open toward the authored channel so the first frame sells
       // the expedition route; saved worlds preserve the player's stored heading.
-      this.player.yaw = freshPlayer ? 1.25 : (Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI));
-      this.player.pitch = freshPlayer ? 0.12 : 0;
+      this.player.yaw = freshPlayer ? 0.92 : (Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI));
+      this.player.pitch = freshPlayer ? 0.0 : 0;
       this.input.lookX = this.player.yaw;
       this.input.lookY = this.player.pitch;
       if (spawn.landmark) {
