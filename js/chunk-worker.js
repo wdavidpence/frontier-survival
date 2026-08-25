@@ -539,6 +539,10 @@ const BLOCK = {
   MANGROVE_LEAVES: 59,
   MANGROVE_MUD: 60,
   COCONUT: 61,
+  BAMBOO: 62,
+  VINES: 63,
+  TALL_GRASS: 64,
+  WILDFLOWER: 65,
 };
 
 const CHUNK_SIZE = 16;
@@ -696,6 +700,7 @@ function generateChunkData(cx, cz, seed) {
       }
       populateOceanColumn(data, idx, lx, h, lz, x, z, biome, seed);
       populateMangroveColumn(data, idx, lx, h, lz, x, z, biome, seed);
+      populateSurfaceFlora(data, idx, lx, h, lz, x, z, biome, seed);
 
       // Berry bushes
       if (
@@ -744,6 +749,45 @@ function generateChunkData(cx, cz, seed) {
   return data;
 }
 
+function populateSurfaceFlora(data, idx, lx, h, lz, x, z, biome, seed) {
+  if (h <= SEA_LEVEL + 1 || mangroveApproachPlantClearance(x, z, biome)) return;
+  if (biome !== 'forest' && biome !== 'shore' && biome !== 'tropical' && biome !== 'mangrove') return;
+  const surface = data[idx(lx, h, lz)];
+  if (surface !== BLOCK.GRASS && surface !== BLOCK.DIRT && surface !== BLOCK.SAND && surface !== BLOCK.MANGROVE_MUD) return;
+  if (data[idx(lx, h + 1, lz)] !== BLOCK.AIR) return;
+  const roll = hash2(x * 29 + seed * 7, z * 31 + seed * 11);
+  if ((biome === 'tropical' || biome === 'mangrove') && roll > 0.968) {
+    const height = 2 + Math.floor(hash2(x * 37 + 5, z * 41 + seed) * 3);
+    for (let i = 0; i < height && h + 1 + i < WORLD_HEIGHT; i++) {
+      const cell = idx(lx, h + 1 + i, lz);
+      if (data[cell] !== BLOCK.AIR) break;
+      data[cell] = BLOCK.BAMBOO;
+    }
+    return;
+  }
+  if (roll > 0.90) data[idx(lx, h + 1, lz)] = BLOCK.WILDFLOWER;
+  else if ((biome === 'forest' || biome === 'mangrove') && roll > 0.72) data[idx(lx, h + 1, lz)] = BLOCK.FERN;
+  else if (roll > 0.48) data[idx(lx, h + 1, lz)] = BLOCK.TALL_GRASS;
+}
+
+function placeVines(data, idx, lx, y, lz, trunkH) {
+  const top = y + trunkH - 2;
+  const sides = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  for (let i = 0; i < sides.length; i++) {
+    const [dx, dz] = sides[i];
+    if (hash2(lx * 17 + i * 13 + trunkH, lz * 23 + i * 19) < 0.48) continue;
+    const length = 1 + Math.floor(hash2(lx * 31 + i * 7, lz * 29 + i * 11) * 3);
+    const vx = lx + dx; const vz = lz + dz;
+    for (let step = 0; step < length; step++) {
+      const vy = top - step;
+      if (vx < 0 || vx >= CHUNK_SIZE || vz < 0 || vz >= CHUNK_SIZE || vy < 1 || vy >= WORLD_HEIGHT) break;
+      const cell = idx(vx, vy, vz);
+      if (data[cell] !== BLOCK.AIR) break;
+      data[cell] = BLOCK.VINES;
+    }
+  }
+}
+
 function _placePalm(data, idx, lx, y, lz) {
   const trunkH = 6 + Math.floor(hash2(lx + 21, lz + 13) * 4);
   const lean = hash2(lx + 27, lz + 31) > 0.5 ? 1 : -1;
@@ -764,6 +808,7 @@ function _placePalm(data, idx, lx, y, lz) {
     for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1]]) set(lx + dx, top - 1, lz + dz, BLOCK.COCONUT);
     set(lx + (fruitRoll > 0.72 ? 2 : -2), y, lz + (fruitRoll > 0.72 ? 1 : -1), BLOCK.COCONUT);
   }
+  placeVines(data, idx, lx, y, lz, trunkH);
 }
 
 function _placeMangroveBridge(data, idx, lx, y, lz, clearApproachPlants = false) {
@@ -846,6 +891,7 @@ function _placeMangrove(data, idx, lx, y, lz) {
     }
   }
   set(lx, top + 3, lz, BLOCK.MANGROVE_LEAVES);
+  placeVines(data, idx, lx, y, lz, trunkH);
 }
 
 function _placeTree(data, idx, lx, y, lz) {
@@ -877,6 +923,7 @@ function _placeTree(data, idx, lx, y, lz) {
     const i = idx(lx, peak, lz);
     if (data[i] === BLOCK.AIR) data[i] = BLOCK.LEAVES;
   }
+  placeVines(data, idx, lx, y, lz, trunkH);
 }
 
 function populateMangroveColumn(data, idx, lx, h, lz, x, z, biome, seed) {
@@ -895,6 +942,10 @@ function populateOceanColumn(data, idx, lx, h, lz, x, z, biome, seed) {
   if (floor !== BLOCK.SAND && floor !== BLOCK.DIRT) return;
   const waterY = h + 1;
   if (waterY >= SEA_LEVEL || data[idx(lx, waterY, lz)] !== BLOCK.WATER) return;
+  const lilyRoll = hash2(x * 43 + seed * 5, z * 47 + seed * 9);
+  if (h >= SEA_LEVEL - 5 && lilyRoll > 0.965 && data[idx(lx, SEA_LEVEL, lz)] === BLOCK.WATER) {
+    data[idx(lx, SEA_LEVEL, lz)] = BLOCK.LILY_PAD;
+  }
 
   const plantRoll = hash2(x * 11 + seed * 7, z * 13 + 31);
   const shallow = h >= SEA_LEVEL - 5;

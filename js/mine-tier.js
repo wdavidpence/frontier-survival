@@ -2,7 +2,7 @@
  * Pure mine-tier helper wrapping tool-tiers for harvest checks / speed.
  * Additive — does not change game mine path until a wire card imports it.
  */
-import { BLOCK } from './blocks.js?v=289';
+import { BLOCK } from './blocks.js?v=293';
 import {
   BLOCK_CLASS,
   WORK_CLASS,
@@ -12,7 +12,7 @@ import {
   requiredToolForWork,
   workTimeMultiplier,
 } from './harvest-balance.js?v=3';
-import { propsOf } from './items.js?v=250';
+import { propsOf } from './items.js?v=253';
 import { tierForItem, HARVEST_LEVEL, speedForItem, tierMeetsRequirement } from './tool-tiers.js?v=222';
 import { oreDropEntry, primaryOreDropId } from './ore-drops.js?v=220';
 

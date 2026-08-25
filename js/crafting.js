@@ -1,6 +1,6 @@
 /** Crafting recipes — pure data + craft helper */
-import { BLOCK } from './blocks.js?v=291';
-import { ITEM } from './items.js?v=250';
+import { BLOCK } from './blocks.js?v=293';
+import { ITEM } from './items.js?v=253';
 import { craftWith, countItems } from './inventory.js?v=222';
 
 /**

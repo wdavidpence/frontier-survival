@@ -82,7 +82,7 @@ export function greedyMeshChunk(opts) {
           const tile = tileFor(id, name);
 
           // Skip standard orthogonal faces for cross-model plants
-          const isPlant = (tile === 20 || tile === 22 || tile === 53 || tile === 54 || tile === 56 || tile === 57 || tile === 59);
+          const isPlant = (tile === 20 || tile === 22 || tile === 53 || tile === 54 || tile === 56 || tile === 57 || tile === 59 || tile === 64 || tile === 65 || tile === 66 || tile === 67 || tile === 68 || tile === 69);
           if (isPlant) continue;
 
           const col = colorFor(id, name);
@@ -202,7 +202,7 @@ export function greedyMeshChunk(opts) {
         if (id === 0 || id == null) continue;
 
         const tile = tileFor(id, 'cross');
-        const isPlant = (tile === 20 || tile === 22 || tile === 53 || tile === 54 || tile === 56 || tile === 57 || tile === 59);
+        const isPlant = (tile === 20 || tile === 22 || tile === 53 || tile === 54 || tile === 56 || tile === 57 || tile === 59 || tile === 64 || tile === 65 || tile === 66 || tile === 67 || tile === 68 || tile === 69);
         if (!isPlant) continue;
 
         const col = colorFor(id, 'cross');

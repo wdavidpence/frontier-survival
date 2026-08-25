@@ -1,10 +1,10 @@
 /**
  * Pure atlas tile math — no DOM/Three (unit-testable).
  */
-import { BLOCK } from './blocks.js?v=289';
+import { BLOCK } from './blocks.js?v=293';
 
 export const TILE_PX = 32;
-export const ATLAS_N = 8;
+export const ATLAS_N = 9;
 export const ATLAS_PX = TILE_PX * ATLAS_N;
 
 export const TILE = {
@@ -72,6 +72,12 @@ export const TILE = {
   DIAMOND_ORE: 61,
   MANGROVE_LOG_SIDE: 62,
   MANGROVE_LEAVES: 63,
+  BAMBOO: 64,
+  VINES: 65,
+  TALL_GRASS: 66,
+  WILDFLOWER: 67,
+  FERN: 68,
+  LILY_PAD: 69,
 };
 
 /** UV corners: bl, tl, tr, br in atlas space */
@@ -204,6 +210,18 @@ export function tileForBlock(blockId, faceDir) {
       return TILE.MANGROVE_LEAVES;
     case BLOCK.MANGROVE_MUD:
       return TILE.DAMP_SOIL;
+    case BLOCK.BAMBOO:
+      return TILE.BAMBOO;
+    case BLOCK.VINES:
+      return TILE.VINES;
+    case BLOCK.TALL_GRASS:
+      return TILE.TALL_GRASS;
+    case BLOCK.WILDFLOWER:
+      return TILE.WILDFLOWER;
+    case BLOCK.FERN:
+      return TILE.FERN;
+    case BLOCK.LILY_PAD:
+      return TILE.LILY_PAD;
     default:
       return TILE.STONE;
   }

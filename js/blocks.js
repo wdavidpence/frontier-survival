@@ -62,6 +62,12 @@ export const BLOCK = {
   MANGROVE_LEAVES: 59,
   MANGROVE_MUD: 60,
   COCONUT: 61,
+  BAMBOO: 62,
+  VINES: 63,
+  TALL_GRASS: 64,
+  WILDFLOWER: 65,
+  FERN: 66,
+  LILY_PAD: 67,
 };
 
 /** @type {Record<number, {
@@ -142,6 +148,12 @@ export const BLOCK_PROPS = {
   [BLOCK.MANGROVE_LEAVES]: { name: 'Mangrove Leaves', solid: true, transparent: true, hardness: 0.2, color: [0.12, 0.42, 0.24], drops: BLOCK.MANGROVE_LEAVES },
   [BLOCK.MANGROVE_MUD]: { name: 'Mangrove Mud', solid: true, transparent: false, hardness: 0.42, color: [0.28, 0.24, 0.15], topColor: [0.36, 0.31, 0.19], drops: BLOCK.MANGROVE_MUD },
   [BLOCK.COCONUT]: { name: 'Coconut', solid: false, transparent: true, hardness: 0.08, color: [0.38, 0.24, 0.12], drops: BLOCK.COCONUT, replaceable: true },
+  [BLOCK.BAMBOO]: { name: 'Bamboo', solid: false, transparent: true, hardness: 0.12, color: [0.32, 0.68, 0.22], drops: BLOCK.BAMBOO, replaceable: true },
+  [BLOCK.VINES]: { name: 'Vines', solid: false, transparent: true, hardness: 0.08, color: [0.18, 0.52, 0.2], drops: BLOCK.VINES, replaceable: true },
+  [BLOCK.TALL_GRASS]: { name: 'Tall Grass', solid: false, transparent: true, hardness: 0.08, color: [0.28, 0.66, 0.22], drops: BLOCK.TALL_GRASS, replaceable: true },
+  [BLOCK.WILDFLOWER]: { name: 'Wildflower', solid: false, transparent: true, hardness: 0.08, color: [0.3, 0.68, 0.25], drops: BLOCK.WILDFLOWER, replaceable: true },
+  [BLOCK.FERN]: { name: 'Fern', solid: false, transparent: true, hardness: 0.08, color: [0.18, 0.56, 0.22], drops: BLOCK.FERN, replaceable: true },
+  [BLOCK.LILY_PAD]: { name: 'Lily Pad', solid: false, transparent: true, hardness: 0.08, color: [0.22, 0.64, 0.25], drops: BLOCK.LILY_PAD, replaceable: true },
 };
 
 export function isSolid(id) {

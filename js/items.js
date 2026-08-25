@@ -2,7 +2,7 @@
  * Unified item/block IDs for inventory stacks.
  * Blocks: 0–99 (see blocks.js). Items: 100+.
  */
-import { BLOCK, BLOCK_PROPS } from './blocks.js?v=291';
+import { BLOCK, BLOCK_PROPS } from './blocks.js?v=293';
 
 export const ITEM = {
   STICK: 100,
@@ -63,6 +63,11 @@ export const ITEM = {
   FLOTATION: 164,
   CANTEEN: 165,
   EMPTY_CANTEEN: 166,
+  BAMBOO: 167,
+  PLANT_FIBER: 168,
+  WILDFLOWER: 169,
+  WOOL: 170,
+  SHEARS: 171,
   WOOD_HOE: 149,
   STONE_HOE: 150,
   IRON_HOE: 151,
@@ -271,6 +276,11 @@ export const ITEM_PROPS = {
   [ITEM.FLOTATION]: { name: 'Coconut-Fiber Float', color: [0.72, 0.58, 0.32], maxStack: 1, flotation: true },
   [ITEM.CANTEEN]: { name: 'Fresh Water Canteen', color: [0.20, 0.48, 0.82], maxStack: 1, drinkable: 58, drinkStamina: 18 },
   [ITEM.EMPTY_CANTEEN]: { name: 'Empty Canteen', color: [0.28, 0.34, 0.42], maxStack: 1, refillable: true },
+  [ITEM.BAMBOO]: { name: 'Bamboo', color: [0.42, 0.72, 0.25], maxStack: 64, placeable: true, placeAs: BLOCK.BAMBOO },
+  [ITEM.PLANT_FIBER]: { name: 'Plant Fiber', color: [0.35, 0.68, 0.28], maxStack: 64 },
+  [ITEM.WILDFLOWER]: { name: 'Wildflower', color: [0.92, 0.55, 0.72], maxStack: 64, placeable: true },
+  [ITEM.WOOL]: { name: 'Wool', color: [0.88, 0.86, 0.78], maxStack: 32 },
+  [ITEM.SHEARS]: { name: 'Shears', color: [0.72, 0.76, 0.84], tool: 'hand', maxStack: 1, durability: 80 },
 };
 
 export function propsOf(id) {
@@ -363,6 +373,10 @@ export function dropForBlock(blockId) {
   if (blockId === BLOCK.SNARE) return BLOCK.SNARE;
   if (blockId === BLOCK.PUMPKIN) return ITEM.PUMPKIN;
   if (blockId === BLOCK.COCONUT) return ITEM.COCONUT;
+  if (blockId === BLOCK.BAMBOO) return ITEM.BAMBOO;
+  if (blockId === BLOCK.WILDFLOWER) return ITEM.WILDFLOWER;
+  if (blockId === BLOCK.FERN || blockId === BLOCK.LILY_PAD) return ITEM.PLANT_FIBER;
+  if (blockId === BLOCK.VINES || blockId === BLOCK.TALL_GRASS || blockId === BLOCK.SEAGRASS || blockId === BLOCK.KELP) return ITEM.PLANT_FIBER;
   if (blockId === BLOCK.CLAY) return ITEM.CLAY_BALL;
   if (blockId === BLOCK.CLAY_DEEP_ORE) return ITEM.CLAY_BALL;
   if (blockId === BLOCK.DOOR_CLOSED || blockId === BLOCK.DOOR_OPEN) return BLOCK.DOOR_CLOSED;

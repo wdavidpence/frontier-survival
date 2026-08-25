@@ -2,7 +2,7 @@
  * Wildlife simulation — pure movement/AI helpers + manager.
  * Prey flee; predators hunt (worse at night). Meat drops on death.
  */
-import { isSolid, BLOCK } from './blocks.js?v=289';
+import { isSolid, BLOCK } from './blocks.js?v=293';
 import { hash2 } from './gen.js?v=312';
 import { biomeAt, BIOME } from './biomes.js?v=270';
 
@@ -136,6 +136,31 @@ export const SPECIES = {
     color: [0.55, 0.42, 0.3],
     scale: [1.0, 1.3, 1.6],
     count: 2,
+    wideRange: true,
+  },
+  pig: {
+    id: 'pig', name: 'Pig', hp: 20, speed: 3.6, hostile: false,
+    fleeRange: 10, senseRange: 13, damage: 0, attackRange: 0, attackCd: 99,
+    meatMin: 1, meatMax: 3, feedItem: 'berries', color: [0.82, 0.48, 0.48],
+    scale: [0.72, 0.72, 1.08], count: 4, wideRange: true,
+  },
+  horse: {
+    id: 'horse', name: 'Horse', hp: 34, speed: 5.8, hostile: false,
+    fleeRange: 13, senseRange: 16, damage: 0, attackRange: 0, attackCd: 99,
+    meatMin: 1, meatMax: 2, feedItem: 'berries', color: [0.52, 0.32, 0.18],
+    scale: [0.78, 1.22, 1.45], count: 2, wideRange: true,
+  },
+  sheep: {
+    id: 'sheep', name: 'Sheep', hp: 18, speed: 3.1, hostile: false,
+    fleeRange: 11, senseRange: 13, damage: 0, attackRange: 0, attackCd: 99,
+    meatMin: 1, meatMax: 2, feedItem: 'berries', color: [0.76, 0.72, 0.62],
+    scale: [0.76, 0.86, 1.02], count: 3, wideRange: true,
+  },
+  lamb: {
+    id: 'lamb', name: 'Lamb', hp: 10, speed: 3.8, hostile: false,
+    fleeRange: 10, senseRange: 12, damage: 0, attackRange: 0, attackCd: 99,
+    meatMin: 1, meatMax: 1, feedItem: 'berries', color: [0.86, 0.82, 0.72],
+    scale: [0.52, 0.60, 0.72], count: 3, wideRange: true,
   },
   alligator: {
     id: 'alligator',
@@ -361,8 +386,8 @@ export class FaunaSystem {
         const y = groundY(this.world, x, z);
         const localBiome = biomeAt(x, z, this.seed);
         const isTropical = localBiome === BIOME.TROPICAL || localBiome === BIOME.SHORE || localBiome === BIOME.OCEAN;
-        if (isTropical !== !!spec.tropical && !spec.aquatic) continue;
-        if (!isTropical && spec.tropical) continue;
+        if (!spec.wideRange && isTropical !== !!spec.tropical && !spec.aquatic) continue;
+        if (!isTropical && spec.tropical && !spec.wideRange) continue;
         // aquatic species prefer water; others avoid it
         if (spec.aquatic) {
           const biome = biomeAt(x, z, this.seed);
@@ -412,6 +437,7 @@ export class FaunaSystem {
   _make(spec, x, y, z) {
     const id = this._nextId++;
     const attentionSeed = hash2(this.seed + id * 13, 71 + spec.id.length);
+    const motionSeed = hash2(this.seed + id * 17, 173 + spec.id.length);
     return {
       id,
       type: spec.id,
@@ -422,16 +448,24 @@ export class FaunaSystem {
       vz: 0,
       hp: spec.hp,
       maxHp: spec.hp,
-      yaw: Math.random() * Math.PI * 2,
+      yaw: motionSeed * Math.PI * 2,
       state: 'wander',
       attention: attentionSeed < 0.5 ? 'idle' : 'browse',
       _attentionT: 1.8 + attentionSeed * 2.4,
       _attentionPhase: attentionSeed < 0.5 ? 0 : 1,
       attackTimer: 0,
-      wanderT: Math.random() * 3,
+      wanderT: 1 + motionSeed * 3,
       targetX: x,
       targetZ: z,
       dead: false,
+      shearedT: 0,
+      nesting: false,
+      nestT: spec.id === 'sea_turtle' ? 12 + motionSeed * 16 : 0,
+      nestEggs: spec.id === 'sea_turtle' ? 0 : undefined,
+      mounted: false,
+      juvenileT: 0,
+      breedT: 0,
+      rootingT: 0,
     };
   }
 
@@ -464,7 +498,24 @@ export class FaunaSystem {
       if (a.dead) continue;
       const spec = this.getSpec(a.type);
       a.attackTimer = Math.max(0, a.attackTimer - dt);
-
+      if (a.shearedT > 0) a.shearedT = Math.max(0, a.shearedT - dt);
+      if (a.juvenileT > 0) a.juvenileT = Math.max(0, a.juvenileT - dt);
+      if (a.breedT > 0) a.breedT = Math.max(0, a.breedT - dt);
+      if (a.rootingT > 0) a.rootingT = Math.max(0, a.rootingT - dt);
+      if (a.mounted) {
+        a.vx = 0; a.vz = 0;
+        continue;
+      }
+      if (a.nesting) {
+        a.nestT -= dt;
+        a.vx = 0; a.vz = 0;
+        if (a.nestT <= 0) { a.nesting = false; a.nestT = 34; }
+        continue;
+      }
+      if (spec.id === 'pig' && !a.tamed && a.state === 'wander') {
+        a._rootT = (a._rootT ?? (4 + hash2(this.seed + a.id * 5, 441) * 6)) - dt;
+        if (a._rootT <= 0) { a.attention = 'browse'; a.rootingT = 3; a._rootT = 7 + hash2(this.seed + a.id * 7, 443) * 5; }
+      }
       // Nearest living target among player list (solo = one entry)
       let nearest = null;
       let dist = Infinity;
@@ -478,6 +529,14 @@ export class FaunaSystem {
       const px = nearest ? nearest.x : 0;
       const pz = nearest ? nearest.z : 0;
       const targetId = nearest?.id === 'p2' ? 'p2' : 'p1';
+      if (spec.id === 'sea_turtle' && a.nestT > 0) {
+        a.nestT -= dt;
+        if (a.nestT <= 0 && (!nearest || dist > 10)) {
+          a.nesting = true;
+          a.nestT = 11;
+          a.nestEggs = 3;
+        }
+      }
       const sense = (isNight && spec.nightSense ? spec.nightSense : spec.senseRange) * senseMult;
 
       if (spec.hostile) {
@@ -540,6 +599,7 @@ export class FaunaSystem {
           ) * 2.4;
         }
       }
+      if (spec.id === 'pig' && a.rootingT > 0 && a.state === 'wander') a.attention = 'browse';
 
       let wishX = 0;
       let wishZ = 0;
@@ -697,6 +757,32 @@ export class FaunaSystem {
     return { killed: true, meat, hide, egg, feather, wing, name: spec.name, type: animal.type };
   }
 
+  shearAnimal(animal) {
+    if (!animal || animal.dead || !['sheep', 'lamb'].includes(animal.type)) return { ok: false, wool: 0, reason: 'not-shearable' };
+    if ((animal.shearedT || 0) > 0) return { ok: false, wool: 0, reason: 'fleece-regrowing' };
+    animal.shearedT = animal.type === 'lamb' ? 55 : 75;
+    return { ok: true, wool: animal.type === 'lamb' ? 1 : 2, regrowT: animal.shearedT };
+  }
+
+  findBreedPartner(animal) {
+    if (!animal || animal.dead || !animal.tamed || (animal.breedT || 0) > 0) return null;
+    return this.animals.find(other => other !== animal && !other.dead && other.type === animal.type && other.tamed && (other.breedT || 0) <= 0 && Math.hypot(other.x - animal.x, other.z - animal.z) <= 4.5) || null;
+  }
+
+  breedAnimal(animal) {
+    const partner = this.findBreedPartner(animal);
+    if (!partner) return { ok: false, child: null };
+    const spec = this.getSpec(animal.type);
+    const child = this._make(spec, (animal.x + partner.x) * 0.5, Math.min(animal.y, partner.y), (animal.z + partner.z) * 0.5);
+    child.tamed = true;
+    child.juvenileT = 120;
+    child.breedT = 120;
+    animal.breedT = 120;
+    partner.breedT = 120;
+    this.animals.push(child);
+    return { ok: true, child, partner };
+  }
+
   /** Count living of type */
   countLiving(type) {
     return this.animals.filter((a) => !a.dead && (!type || a.type === type)).length;
@@ -770,6 +856,13 @@ export class FaunaSystem {
         hp: a.hp,
         yaw: a.yaw,
         state: a.state,
+        shearedT: a.shearedT || 0,
+        nesting: !!a.nesting,
+        nestT: a.nestT || 0,
+        nestEggs: a.nestEggs || 0,
+        juvenileT: a.juvenileT || 0,
+        breedT: a.breedT || 0,
+        rootingT: a.rootingT || 0,
       }));
   }
 
@@ -785,6 +878,13 @@ export class FaunaSystem {
       a.hp = s.hp ?? spec.hp;
       a.yaw = s.yaw || 0;
       a.state = s.state || 'wander';
+      a.shearedT = Number.isFinite(s.shearedT) ? Math.max(0, s.shearedT) : 0;
+      a.nesting = s.nesting === true;
+      a.nestT = Number.isFinite(s.nestT) ? Math.max(0, s.nestT) : a.nestT;
+      a.nestEggs = Number.isFinite(s.nestEggs) ? Math.max(0, s.nestEggs | 0) : a.nestEggs;
+      a.juvenileT = Number.isFinite(s.juvenileT) ? Math.max(0, s.juvenileT) : 0;
+      a.breedT = Number.isFinite(s.breedT) ? Math.max(0, s.breedT) : 0;
+      a.rootingT = Number.isFinite(s.rootingT) ? Math.max(0, s.rootingT) : 0;
       this.animals.push(a);
       maxId = Math.max(maxId, a.id + 1);
     }

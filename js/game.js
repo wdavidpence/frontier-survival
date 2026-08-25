@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=483';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=486';
 import { Player } from './player.js?v=240';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
@@ -14,7 +14,7 @@ import {
   moveSpeedMultiplier,
 } from './survival.js?v=244';
 
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=291';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=293';
 import {
   ITEM,
   propsOf,
@@ -23,7 +23,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=250';
+} from './items.js?v=253';
 import { iconDataUriForItem } from './item-icons.js?v=23';
 import { resolveBlockDrop, harvestDurationForBlock, workDurationForBlock } from './mine-tier.js?v=223';
 import {
@@ -68,9 +68,9 @@ import {
   recipeProgress,
   nextProgressionRecipe,
 } from './crafting.js?v=420';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=267';
-import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=247';
-import { createBlockAtlas } from './atlas.js?v=305';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=273';
+import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=249';
+import { createBlockAtlas } from './atlas.js?v=309';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=288';
 import { underwaterFogStyle } from './underwater-fog.js?v=245';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
@@ -329,6 +329,7 @@ export class Game {
     this.player = null;
     this.fauna = null;
     this._animalMeshes = new Map();
+    this._mountedAnimalId = null;
     this.input = new Input(canvas);
     this.input.sensitivity = this.settings.sensitivity ?? DEFAULT_SETTINGS.sensitivity;
     this._meleeCd = 0;
@@ -4071,8 +4072,20 @@ export class Game {
     const ah = this.fauna?.rayHit(origin, dir, range);
     if (ah) {
         const spec = SPECIES[ah.animal.type];
-        if (ah.animal.tamed) {
-            text = `${spec?.name || 'animal'} — tamed (${Math.ceil(ah.animal.hp)} hp)`;
+        if ((ah.animal.type === 'sheep' || ah.animal.type === 'lamb') && held?.id === ITEM.SHEARS) {
+            text = ah.animal.shearedT > 0
+              ? `${spec?.name || 'Sheep'} · fleece regrowing`
+              : `F — Shear ${spec?.name || 'Sheep'} · collect Wool`;
+        } else if (ah.animal.tamed && held?.id === ITEM.BERRIES && this.fauna.findBreedPartner(ah.animal)) {
+            text = `F — Breed ${spec?.name || 'animal'} · 2 Berries`;
+        } else if (ah.animal.type === 'horse' && ah.animal.tamed) {
+            text = this._mountedAnimalId === ah.animal.id ? 'F — Dismount Horse' : 'F — Mount Horse · WASD ride';
+        } else if (ah.animal.type === 'pig' && ah.animal.attention === 'browse') {
+            text = 'Pig · rooting through the soil';
+        } else if (ah.animal.type === 'sea_turtle' && ah.animal.nesting) {
+            text = `Sea Turtle nest · protect ${ah.animal.nestEggs || 3} eggs`;
+        } else if (ah.animal.tamed) {
+            text = `${spec?.name || 'animal'} · FRIENDLY · ${Math.ceil(ah.animal.hp)} hp`;
         } else {
             text = `LMB — Attack ${spec?.name || 'animal'} (${Math.ceil(ah.animal.hp)} hp)`;
             // Show feed hint when holding the right item
@@ -4080,10 +4093,10 @@ export class Game {
                 const feedMap = { berries: ITEM.BERRIES, raw_meat: ITEM.RAW_MEAT, seeds: ITEM.SEEDS };
                 const needed = feedMap[spec.feedItem];
                 if (needed && held?.id === needed) {
-                    const feedHint = ah.animal._tame > 0 ? ` (${Math.round(ah.animal._tame)}%)` : '';
-                    text += ` · [F] Feed${feedHint}`;
+                    const feedHint = ah.animal._tame > 0 ? ` · trust ${Math.round(ah.animal._tame)}%` : '';
+                    text = `F — Feed ${spec.name}${feedHint} · LMB attack`;
                 } else if (needed) {
-                    text += ` · [F] Feed`;
+                    text += ` · hold ${displayName(needed)} to feed`;
                 }
             }
         }
@@ -4678,6 +4691,10 @@ export class Game {
     if (!this.input.consumeUse()) return;
     const heldUse = this.player.heldStack();
     const heldTool = propsOf(heldUse.id);
+    if (this._mountedAnimalId != null) {
+      this._dismountHorse();
+      return;
+    }
     if (this._boat?.mounted && heldTool?.tool !== 'rod') {
       this._dismountBoat();
       return;
@@ -4691,6 +4708,35 @@ export class Game {
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
     const hit = this._raycastInteraction(origin, dir, 5);
+    const animalHit = this.fauna?.rayHit(origin, dir, 5);
+    if (animalHit?.animal?.tamed && heldUse.id === ITEM.BERRIES && this.fauna.findBreedPartner(animalHit.animal)) {
+      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 2);
+      if (!cons.ok) { this.player.notify('Need 2 Berries to breed.', 2); return; }
+      const breed = this.fauna.breedAnimal(animalHit.animal);
+      if (!breed.ok) { this.player.slots = addItems(cons.slots, ITEM.BERRIES, 2).slots; return; }
+      this.player.slots = cons.slots;
+      this.fx.burst(breed.child.x, breed.child.y + 0.6, breed.child.z, [1.0, 0.48, 0.72], 16);
+      this.audio.eat();
+      this.player.notify(`${this.fauna.getSpec(animalHit.animal.type).name} family grew · baby ${this.fauna.getSpec(breed.child.type).name}`, 3);
+      return;
+    }
+    if (animalHit?.animal?.type === 'sheep' || animalHit?.animal?.type === 'lamb') {
+      if (heldUse.id === ITEM.SHEARS) {
+        const shear = this.fauna.shearAnimal(animalHit.animal);
+        if (!shear.ok) { this.player.notify(shear.reason === 'fleece-regrowing' ? 'Fleece is still regrowing.' : 'That animal cannot be sheared.', 2); return; }
+        const add = addItems(this.player.slots, ITEM.WOOL, shear.wool);
+        if (add.leftover > 0) { this.player.notify('No room for Wool.', 2); return; }
+        this.player.slots = add.slots;
+        this.fx.burst(animalHit.animal.x, animalHit.animal.y + 0.8, animalHit.animal.z, [0.95, 0.9, 0.78], 10);
+        this.audio.ui();
+        this.player.notify(`${this.fauna.getSpec(animalHit.animal.type).name} sheared · ${shear.wool} Wool`, 3);
+        return;
+      }
+    }
+    if (animalHit?.animal?.type === 'horse' && animalHit.animal.tamed) {
+      this._mountHorse(animalHit.animal);
+      return;
+    }
 
     if (this._handleDestinationUse(hit, 'p1')) return;
 
@@ -4784,6 +4830,7 @@ export class Game {
                         ? `${feedSpec.name} is now tamed!`
                         : `${feedSpec.name}: ${Math.round(result.tameProgress)}% tamed`;
                     this.audio.eat();
+                    this.fx.burst(ah.animal.x, ah.animal.y + 0.85, ah.animal.z, result.tamed ? [1.0, 0.48, 0.78] : [1.0, 0.76, 0.36], result.tamed ? 14 : 7);
                     this.player.notify(msg, 3);
                     return;
                 }
@@ -4972,6 +5019,31 @@ export class Game {
     this._unlock('first_sleep');
   }
 
+  _mountHorse(animal) {
+    if (!animal || animal.type !== 'horse' || !animal.tamed || this._mountedAnimalId != null) return false;
+    animal.mounted = true;
+    this._mountedAnimalId = animal.id;
+    this.player.notify('Mounted horse · WASD to ride · F to dismount', 3);
+    this.audio.ui();
+    return true;
+  }
+
+  _dismountHorse() {
+    if (this._mountedAnimalId == null) return false;
+    const animal = this.fauna?.animals.find(a => a.id === this._mountedAnimalId);
+    if (animal) {
+      animal.mounted = false;
+      animal.x = this.player.position.x + Math.sin(this.player.yaw) * 1.4;
+      animal.z = this.player.position.z + Math.cos(this.player.yaw) * 1.4;
+      const spec = SPECIES[animal.type] || SPECIES.hare;
+      animal.y = this.player.position.y - (spec.scale?.[1] || 0.8) * 0.82;
+    }
+    this._mountedAnimalId = null;
+    this.player.notify('Dismounted horse.', 2);
+    this.audio.dismount?.() || this.audio.ui();
+    return true;
+  }
+
   _clearAnimalMeshes() {
     for (const mesh of this._animalMeshes.values()) {
       this.scene.remove(mesh);
@@ -5024,9 +5096,16 @@ export class Game {
         this._animalMeshes.set(a.id, mesh);
         this.scene.add(mesh);
       }
-      mesh.position.set(a.x, a.y, a.z);
-      mesh.rotation.y = a.yaw || 0;
       const spec = SPECIES[a.type] || SPECIES.hare;
+      if (a.id === this._mountedAnimalId) {
+        a.x = this.player.position.x;
+        a.z = this.player.position.z;
+        a.y = this.player.position.y - (spec.scale?.[1] || 0.8) * 0.82;
+        a.yaw = this.player.yaw;
+      }
+      mesh.position.set(a.x, a.y, a.z);
+      mesh.scale.setScalar(a.juvenileT > 0 ? 0.68 : 1);
+      mesh.rotation.y = a.yaw || 0;
       const dx = a.x - this.camera.position.x;
       const dz = a.z - this.camera.position.z;
       const nearGroundShadow = !spec.aquatic && !spec.nocturnal && !['bird', 'parrot', 'bat'].includes(a.type)
@@ -5052,13 +5131,19 @@ export class Game {
         }
       }
       const hurt = a.hp < a.maxHp * 0.5;
+      const fleeceHidden = (a.type === 'sheep' || a.type === 'lamb') && (a.shearedT || 0) > 0;
+      mesh.userData.tamed = !!a.tamed;
       mesh.traverse((c) => {
+        if (c.isMesh && (c.name === 'woolBody' || c.name === 'woolShoulder' || c.name === 'tail') && (a.type === 'sheep' || a.type === 'lamb')) {
+          c.visible = !fleeceHidden;
+        }
         if (c.isMesh && c.material?.color) {
           const base = c.userData.baseColor || spec.color || [0.5, 0.5, 0.5];
+          const friendly = a.tamed && !hurt;
           c.material.color.setRGB(
-            hurt ? Math.min(1, base[0] + 0.25) : base[0],
-            hurt ? base[1] * 0.7 : base[1],
-            hurt ? base[2] * 0.7 : base[2],
+            hurt ? Math.min(1, base[0] + 0.25) : friendly ? Math.min(1, base[0] * 0.82 + 0.18) : base[0],
+            hurt ? base[1] * 0.7 : friendly ? Math.min(1, base[1] * 0.88 + 0.10) : base[1],
+            hurt ? base[2] * 0.7 : friendly ? Math.min(1, base[2] * 0.82 + 0.16) : base[2],
           );
         }
       });

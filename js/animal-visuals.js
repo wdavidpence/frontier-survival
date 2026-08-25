@@ -2,6 +2,12 @@
  * Procedural multi-box creature silhouettes + limb walk/fly poses.
  * Pure (no THREE / DOM). game.js builds Mesh groups from part lists.
  */
+import { alligatorLayout as authoredAlligatorLayout } from './fauna-parts/alligator-silhouette.js?v=1';
+import { crabLayout as authoredCrabLayout } from './fauna-parts/crab-layout.js?v=1';
+import { reefSharkLayout as authoredReefSharkLayout } from './fauna-parts/reef-shark-layout.js?v=1';
+import { seaTurtleLayout as authoredSeaTurtleLayout } from './fauna-parts/turtle-layout.js?v=1';
+import { tropicalFishLayout as authoredTropicalFishLayout } from './fauna-parts/tropical-fish-layout.js?v=1';
+
 export function accentColor(baseRgb, kind) {
   const r = Number(baseRgb?.[0]) || 0.5;
   const g = Number(baseRgb?.[1]) || 0.5;
@@ -96,6 +102,12 @@ function addEyes(parts, eyeNames, hx, hy, hz, eyeS, eyeColor) {
   const pupilColor = [0.02, 0.02, 0.03];
   parts.push(part('pupilL', px, px, px, -hx * 0.28, hy, pz, pupilColor, 'eye'));
   parts.push(part('pupilR', px, px, px, hx * 0.28, hy, pz, pupilColor, 'eye'));
+  // Tiny warm catchlights keep eyes readable against dark fur and foliage.
+  const glint = [1.0, 0.98, 0.84];
+  parts.push(part('catchL', ex * 0.22, ex * 0.22, ex * 0.10, -hx * 0.28 - ex * 0.08, hy + ex * 0.10, pz + ex * 0.08, glint, 'eye'));
+  parts.push(part('catchR', ex * 0.22, ex * 0.22, ex * 0.10, hx * 0.28 - ex * 0.08, hy + ex * 0.10, pz + ex * 0.08, glint, 'eye'));
+  // A shared mouth line makes faces expressive without changing collision.
+  parts.push(part('mouth', ex * 2.8, ex * 0.20, ex * 0.16, 0, hy - ex * 1.25, hz + ex * 0.46, [0.10, 0.045, 0.035], 'mouth'));
   eyeNames.push('eyeL', 'eyeR');
 }
 
@@ -306,6 +318,9 @@ function layoutCow(spec) {
   parts.push(part('body', w * 1.05, bodyH, l * 0.9, 0, bodyY, 0, c, 'body'));
   parts.push(part('belly', w * 0.85, bodyH * 0.45, l * 0.65, 0, bodyY - bodyH * 0.12, 0, belly, 'body'));
   parts.push(part('udder', w * 0.35, h * 0.1, w * 0.3, 0, legH + h * 0.06, -l * 0.05, light, 'body'));
+  for (const [i, ox, oz] of [[0, -w * 0.10, -l * 0.10], [1, w * 0.10, -l * 0.10], [2, -w * 0.10, l * 0.08], [3, w * 0.10, l * 0.08]]) {
+    parts.push(part(`teat${i}`, w * 0.055, h * 0.09, w * 0.055, ox, legH - h * 0.005, -l * 0.05 + oz, [0.82, 0.62, 0.55], 'body'));
+  }
   const headS = w * 0.55;
   const headY = bodyY + bodyH * 0.15;
   const headZ = l * 0.42;
@@ -317,9 +332,21 @@ function layoutCow(spec) {
   parts.push(part('hornR', w * 0.08, h * 0.12, w * 0.08, w * 0.22, headY + headS * 0.45, headZ - headS * 0.05, light, 'horn'));
   addEyes(parts, eyeNames, headS, headY + headS * 0.1, headZ + headS * 0.25, w * 0.08, [0.05, 0.05, 0.05]);
   parts.push(part('tail', w * 0.08, h * 0.35, w * 0.08, 0, bodyY, -l * 0.48, dark, 'tail'));
-  // spots
-  parts.push(part('spot1', w * 0.28, bodyH * 0.35, l * 0.2, -w * 0.25, bodyY + bodyH * 0.05, l * 0.1, dark, 'body'));
-  parts.push(part('spot2', w * 0.22, bodyH * 0.3, l * 0.18, w * 0.28, bodyY, -l * 0.15, dark, 'body'));
+  // Irregular layered splotches: varied scale, tone, and body placement read as hide rather than stickers.
+  const spotA = [0.16, 0.12, 0.10];
+  const spotB = [0.22, 0.17, 0.13];
+  const spots = [
+    [-w * 0.34, bodyY + bodyH * 0.12, l * 0.18, w * 0.24, bodyH * 0.34, l * 0.18, spotA],
+    [-w * 0.19, bodyY - bodyH * 0.04, -l * 0.26, w * 0.18, bodyH * 0.27, l * 0.16, spotB],
+    [w * 0.28, bodyY + bodyH * 0.08, l * 0.12, w * 0.25, bodyH * 0.30, l * 0.20, spotA],
+    [w * 0.34, bodyY - bodyH * 0.10, -l * 0.26, w * 0.16, bodyH * 0.26, l * 0.14, spotB],
+    [-w * 0.08, bodyY + bodyH * 0.18, l * 0.34, w * 0.13, bodyH * 0.20, l * 0.12, spotA],
+    [w * 0.08, bodyY - bodyH * 0.19, -l * 0.40, w * 0.12, bodyH * 0.18, l * 0.11, spotB],
+  ];
+  for (let i = 0; i < spots.length; i++) {
+    const [sx, sy, sz, sw, sh, sl, col] = spots[i];
+    parts.push(part(`spot${i}`, sw, sh, sl, sx, sy, sz, col, 'body'));
+  }
   quadLegs(parts, legNames, w, h, l, legH, w * 0.18, 0, c, w * 0.32, l * 0.3);
   return { parts, legNames, wingNames, eyeNames };
 }
@@ -342,6 +369,15 @@ function layoutAlligator(spec) {
   const headZ = l * 0.35;
   parts.push(part('head', w * 0.7, bodyH * 0.7, l * 0.2, 0, bodyY, headZ, c, 'head'));
   parts.push(part('snout', w * 0.45, bodyH * 0.4, l * 0.35, 0, bodyY - bodyH * 0.05, headZ + l * 0.22, dark, 'snout'));
+  parts.push(part('jawLower', w * 0.40, bodyH * 0.18, l * 0.28, 0, bodyY - bodyH * 0.18, headZ + l * 0.30, belly, 'snout'));
+  for (let i = 0; i < 5; i++) {
+    const tx = -w * 0.18 + i * w * 0.09;
+    parts.push(part(`tooth${i}`, w * 0.045, h * 0.07, l * 0.07, tx, bodyY - bodyH * 0.12, headZ + l * 0.38, [0.90, 0.82, 0.60], 'snout'));
+  }
+  for (let i = 0; i < 6; i++) {
+    const t = i / 5;
+    parts.push(part(`scute${i}`, w * (0.11 + Math.sin(t * Math.PI) * 0.04), h * 0.12, l * 0.12, 0, bodyY + bodyH * 0.44, l * 0.28 - t * l * 0.72, [0.38, 0.31, 0.18], 'fin'));
+  }
   addEyes(parts, eyeNames, w * 0.55, bodyY + bodyH * 0.25, headZ + l * 0.05, w * 0.08, [0.85, 0.75, 0.15]);
   parts.push(part('tail', w * 0.55, bodyH * 0.55, l * 0.5, 0, bodyY - bodyH * 0.05, -l * 0.4, c, 'tail'));
   parts.push(part('tailTip', w * 0.25, bodyH * 0.25, l * 0.2, 0, bodyY - bodyH * 0.08, -l * 0.62, dark, 'tail'));
@@ -410,6 +446,64 @@ function layoutBoar(spec) {
   parts.push(part('tail', w * 0.08, h * 0.12, w * 0.08, 0, bodyY + bodyH * 0.15, -l * 0.4, dark, 'tail'));
   quadLegs(parts, legNames, w, h, l, legH, w * 0.18, 0, c, w * 0.32, l * 0.26);
   return { parts, legNames, wingNames, eyeNames };
+}
+
+function layoutPig(spec) {
+  const { w, h, l } = scaleOf(spec);
+  const c = baseCol(spec); const belly = accentColor(c, 'belly'); const dark = accentColor(c, 'dark');
+  const parts = []; const legNames = []; const eyeNames = [];
+  const legH = h * 0.30; const bodyH = h * 0.48; const bodyY = legH + bodyH * 0.5;
+  parts.push(part('body', w * 1.02, bodyH, l * 0.88, 0, bodyY, 0, c, 'body'));
+  parts.push(part('belly', w * 0.78, bodyH * 0.36, l * 0.6, 0, bodyY - bodyH * 0.12, 0, belly, 'body'));
+  const headS = w * 0.58; const headY = bodyY + bodyH * 0.14; const headZ = l * 0.43;
+  parts.push(part('head', headS, headS * 0.82, headS * 0.82, 0, headY, headZ, c, 'head'));
+  parts.push(part('snout', headS * 0.62, headS * 0.38, headS * 0.42, 0, headY - headS * 0.10, headZ + headS * 0.42, accentColor(c, 'light'), 'snout'));
+  parts.push(part('nostrilL', headS * 0.10, headS * 0.10, headS * 0.05, -headS * 0.18, headY - headS * 0.08, headZ + headS * 0.63, dark, 'snout'));
+  parts.push(part('nostrilR', headS * 0.10, headS * 0.10, headS * 0.05, headS * 0.18, headY - headS * 0.08, headZ + headS * 0.63, dark, 'snout'));
+  parts.push(part('earL', w * 0.16, h * 0.20, w * 0.10, -w * 0.30, headY + headS * 0.42, headZ - headS * 0.02, dark, 'ear'));
+  parts.push(part('earR', w * 0.16, h * 0.20, w * 0.10, w * 0.30, headY + headS * 0.42, headZ - headS * 0.02, dark, 'ear'));
+  addEyes(parts, eyeNames, headS, headY + headS * 0.12, headZ + headS * 0.25, w * 0.075, [0.06, 0.04, 0.04]);
+  parts.push(part('tail', w * 0.08, h * 0.25, w * 0.08, 0, bodyY + bodyH * 0.1, -l * 0.46, dark, 'tail'));
+  quadLegs(parts, legNames, w, h, l, legH, w * 0.17, 0, c, w * 0.32, l * 0.28);
+  return { parts, legNames, wingNames: [], eyeNames };
+}
+
+function layoutHorse(spec) {
+  const { w, h, l } = scaleOf(spec);
+  const c = baseCol(spec); const belly = accentColor(c, 'belly'); const dark = accentColor(c, 'dark'); const light = accentColor(c, 'light');
+  const parts = []; const legNames = []; const eyeNames = [];
+  const legH = h * 0.58; const bodyH = h * 0.30; const bodyY = legH + bodyH * 0.5;
+  parts.push(part('body', w * 0.82, bodyH, l * 0.92, 0, bodyY, 0, c, 'body'));
+  parts.push(part('belly', w * 0.62, bodyH * 0.42, l * 0.62, 0, bodyY - bodyH * 0.16, 0.02, belly, 'body'));
+  const neckH = h * 0.46; parts.push(part('neck', w * 0.28, neckH, w * 0.34, 0, bodyY + bodyH * 0.32 + neckH * 0.35, l * 0.30, c, 'body'));
+  parts.push(part('mane', w * 0.10, neckH * 0.9, w * 0.10, -w * 0.23, bodyY + bodyH * 0.35 + neckH * 0.35, l * 0.25, dark, 'mane'));
+  const headS = w * 0.48; const headY = bodyY + bodyH * 0.35 + neckH; const headZ = l * 0.48;
+  parts.push(part('head', headS, headS * 0.70, headS * 1.15, 0, headY, headZ, c, 'head'));
+  parts.push(part('muzzle', headS * 0.38, headS * 0.30, headS * 0.65, 0, headY - headS * 0.10, headZ + headS * 0.55, light, 'snout'));
+  parts.push(part('earL', w * 0.10, h * 0.22, w * 0.08, -w * 0.18, headY + headS * 0.55, headZ - headS * 0.1, dark, 'ear'));
+  parts.push(part('earR', w * 0.10, h * 0.22, w * 0.08, w * 0.18, headY + headS * 0.55, headZ - headS * 0.1, dark, 'ear'));
+  addEyes(parts, eyeNames, headS, headY + headS * 0.10, headZ + headS * 0.28, w * 0.07, [0.05, 0.04, 0.03]);
+  parts.push(part('tail', w * 0.10, h * 0.35, w * 0.10, 0, bodyY + bodyH * 0.2, -l * 0.48, dark, 'tail'));
+  quadLegs(parts, legNames, w, h, l, legH, w * 0.11, 0, c, w * 0.27, l * 0.30);
+  return { parts, legNames, wingNames: [], eyeNames };
+}
+
+function layoutSheep(spec) {
+  const { w, h, l } = scaleOf(spec);
+  const c = baseCol(spec); const wool = accentColor(c, 'light'); const dark = accentColor(c, 'dark');
+  const parts = []; const legNames = []; const eyeNames = [];
+  const legH = h * 0.36; const bodyH = h * 0.55; const bodyY = legH + bodyH * 0.5;
+  parts.push(part('woolBody', w * 1.06, bodyH, l * 0.9, 0, bodyY, 0, wool, 'body'));
+  parts.push(part('woolShoulder', w * 0.88, bodyH * 0.72, l * 0.36, 0, bodyY + bodyH * 0.10, l * 0.28, wool, 'body'));
+  const headS = w * 0.46; const headY = bodyY + bodyH * 0.16; const headZ = l * 0.46;
+  parts.push(part('head', headS, headS * 0.90, headS * 0.78, 0, headY, headZ, dark, 'head'));
+  parts.push(part('muzzle', headS * 0.42, headS * 0.30, headS * 0.42, 0, headY - headS * 0.10, headZ + headS * 0.38, dark, 'snout'));
+  parts.push(part('earL', w * 0.14, h * 0.12, w * 0.08, -w * 0.25, headY + headS * 0.25, headZ, dark, 'ear'));
+  parts.push(part('earR', w * 0.14, h * 0.12, w * 0.08, w * 0.25, headY + headS * 0.25, headZ, dark, 'ear'));
+  addEyes(parts, eyeNames, headS, headY + headS * 0.12, headZ + headS * 0.25, w * 0.075, [0.05, 0.05, 0.04]);
+  parts.push(part('tail', w * 0.18, w * 0.20, w * 0.12, 0, bodyY + bodyH * 0.2, -l * 0.46, wool, 'tail'));
+  quadLegs(parts, legNames, w, h, l, legH, w * 0.15, 0, dark, w * 0.31, l * 0.28);
+  return { parts, legNames, wingNames: [], eyeNames };
 }
 
 function layoutBat(spec) {
@@ -513,6 +607,11 @@ function layoutFallback(spec) {
   return { parts, legNames, wingNames, eyeNames };
 }
 
+function layoutAuthoredAlligator(spec) {
+  const layout = authoredAlligatorLayout(spec);
+  return { ...layout, legNames: (layout.legNames || []).filter(name => /^leg/.test(name)) };
+}
+
 const LAYOUTS = {
   hare: layoutHare,
   deer: layoutDeer,
@@ -522,14 +621,18 @@ const LAYOUTS = {
   chicken: layoutChicken,
   parrot: layoutBird,
   cow: layoutCow,
-  alligator: layoutAlligator,
+  pig: layoutPig,
+  horse: layoutHorse,
+  sheep: layoutSheep,
+  lamb: layoutSheep,
+  alligator: layoutAuthoredAlligator,
   fox: layoutFox,
   boar: layoutBoar,
   bat: layoutBat,
-  tropical_fish: layoutFish,
-  sea_turtle: layoutTurtle,
-  reef_shark: layoutShark,
-  crab: layoutCrab,
+  tropical_fish: authoredTropicalFishLayout,
+  sea_turtle: authoredSeaTurtleLayout,
+  reef_shark: authoredReefSharkLayout,
+  crab: authoredCrabLayout,
 };
 
 /**

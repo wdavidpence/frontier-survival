@@ -11,7 +11,7 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=287';
+} from './atlas-core.js?v=289';
 import { WATER_WAVE } from './water-material.js?v=1';
 
 export {
@@ -23,7 +23,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=287';
+} from './atlas-core.js?v=289';
 
 function rnd(seed) {
   let s = seed | 0;
@@ -1032,34 +1032,37 @@ function drawBlade(ctx, x0, y0, opts) {
 
 function drawKelp(ctx, x0, y0) {
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
-  const r = rnd(412);
-  for (let i = 0; i < 3; i++) {
-    const baseX = 4 + i * 10;
+  const r = rnd(612);
+  for (let i = 0; i < 4; i++) {
+    const baseX = 3 + i * 8;
     drawBlade(ctx, x0, y0, {
       baseX, top: 2 + Math.floor(r() * 3) * 2, bottom: 30,
-      sway: (r() * 8) - 4, width: 4,
-      dark: '#14603a', mid: '#1f8049', lit: '#2f9c5c',
+      sway: r() * 10 - 5, width: i % 2 ? 3 : 4,
+      dark: '#0d4c35', mid: '#1c8450', lit: '#49c878',
     });
-    // Frond flaps hanging off the stipe
-    ctx.fillStyle = '#1a6b3d';
-    for (let k = 0; k < 3; k++) {
-      const fy = 8 + k * 7;
-      const fx = Math.max(0, Math.min(TILE_PX - 4, baseX + (k % 2 ? 4 : -4)));
-      ctx.fillRect(x0 + fx, y0 + fy, 4, 2);
+    ctx.fillStyle = '#2ba761';
+    for (let k = 0; k < 4; k++) {
+      const fy = 7 + k * 6;
+      const fx = Math.max(0, Math.min(TILE_PX - 5, baseX + (k % 2 ? 4 : -5)));
+      ctx.fillRect(x0 + fx, y0 + fy, 5, 2);
     }
+    ctx.fillStyle = '#9ae58a';
+    ctx.fillRect(x0 + Math.max(0, Math.min(TILE_PX - 2, baseX + 1)), y0 + 2, 2, 4);
   }
 }
 
 function drawSeagrass(ctx, x0, y0) {
   ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
-  const r = rnd(413);
-  for (let i = 0; i < 7; i++) {
+  const r = rnd(613);
+  for (let i = 0; i < 9; i++) {
     drawBlade(ctx, x0, y0, {
-      baseX: 2 + i * 4, top: 4 + Math.floor(r() * 4) * 2, bottom: 30,
-      sway: (r() * 10) - 5, width: 2,
-      dark: '#2b8a48', mid: '#37a355', lit: '#4cbc6a',
+      baseX: 1 + i * 3, top: 3 + Math.floor(r() * 5) * 2, bottom: 30,
+      sway: r() * 12 - 6, width: i % 3 === 0 ? 3 : 2,
+      dark: '#17643f', mid: '#35ad5d', lit: '#79e07b',
     });
   }
+  ctx.fillStyle = 'rgba(140, 236, 149, 0.9)';
+  for (let i = 0; i < 5; i++) ctx.fillRect(x0 + 4 + i * 6, y0 + 6 + (i % 2) * 2, 2, 2);
 }
 
 function drawRoots(ctx, x0, y0) {
@@ -1097,6 +1100,104 @@ function drawMushroom(ctx, x0, y0) {
   ctx.fillStyle = '#e8cca4'; ctx.fillRect(x0 + 14, y0 + 17, 5, 12);
   ctx.fillStyle = '#cc382b'; ctx.beginPath(); ctx.arc(x0 + 16, y0 + 15, 9, Math.PI, 0); ctx.fill();
   ctx.fillStyle = '#f5ead8'; ctx.fillRect(x0 + 11, y0 + 12, 2, 2); ctx.fillRect(x0 + 19, y0 + 10, 2, 2);
+}
+
+function drawBamboo(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  const r = rnd(616);
+  for (let i = 0; i < 3; i++) {
+    const x = 5 + i * 10 + ((r() * 3) | 0);
+    const top = 2 + ((r() * 4) | 0) * 2;
+    ctx.fillStyle = i === 1 ? '#78b94d' : '#559b42';
+    ctx.fillRect(x0 + x, y0 + top, 5, 28 - top);
+    ctx.fillStyle = '#b9d86b'; ctx.fillRect(x0 + x + 1, y0 + top, 2, 28 - top);
+    ctx.fillStyle = '#2f7130';
+    for (let y = top + 6; y < 29; y += 8) {
+      ctx.fillRect(x0 + x - 1, y0 + y, 7, 2);
+      ctx.fillStyle = '#b9dc5c'; ctx.fillRect(x0 + x + 1, y0 + y, 3, 1);
+      ctx.fillStyle = '#2f7130';
+    }
+    ctx.fillStyle = '#72c74b';
+    ctx.fillRect(x0 + x + 5, y0 + top + 4, 8, 2);
+    ctx.fillRect(x0 + x - 7, y0 + top + 10, 7, 2);
+    ctx.fillStyle = '#c4e66a';
+    ctx.fillRect(x0 + x + 7, y0 + top + 2, 4, 2);
+  }
+}
+
+function drawVines(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  const r = rnd(617);
+  for (let i = 0; i < 4; i++) {
+    const x = 3 + i * 8;
+    const top = 2 + ((r() * 4) | 0) * 2;
+    drawBlade(ctx, x0, y0, {
+      baseX: x, top, bottom: 30, sway: r() * 8 - 4, width: 3,
+      dark: '#1f5934', mid: '#3d8e48', lit: '#62b253',
+    });
+    ctx.fillStyle = '#5fbd52';
+    ctx.fillRect(x0 + Math.max(0, x - 4), y0 + top + 8, 6, 3);
+    ctx.fillRect(x0 + Math.min(26, x + 2), y0 + top + 16, 5, 3);
+    ctx.fillStyle = '#b0e86d'; ctx.fillRect(x0 + Math.min(29, x + 3), y0 + top + 8, 2, 2);
+  }
+}
+
+function drawTallGrass(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  const r = rnd(618);
+  for (let i = 0; i < 9; i++) drawBlade(ctx, x0, y0, {
+    baseX: 1 + i * 3, top: 6 + ((r() * 6) | 0) * 2, bottom: 30, sway: r() * 12 - 6, width: i % 3 === 0 ? 3 : 2,
+    dark: '#2f6835', mid: '#4d933f', lit: '#79b94d',
+  });
+  ctx.fillStyle = '#d1e86a';
+  for (let i = 0; i < 5; i++) ctx.fillRect(x0 + 5 + i * 5, y0 + 6 + (i % 2) * 2, 2, 3);
+  ctx.fillStyle = 'rgba(39, 83, 34, 0.65)'; ctx.fillRect(x0 + 2, y0 + 28, 28, 2);
+}
+
+function drawWildflower(ctx, x0, y0) {
+  drawTallGrass(ctx, x0, y0);
+  const r = rnd(619);
+  const flowers = [
+    ['#ffd45a', '#fff2a6'], ['#ef6f72', '#ffd0a0'], ['#b891ef', '#f0d9ff'],
+    ['#ff9b45', '#ffe2a4'], ['#e9f07a', '#fffbd0'], ['#db73bb', '#ffd6ee'],
+  ];
+  for (let i = 0; i < flowers.length; i++) {
+    const x = 3 + ((r() * 25) | 0); const y = 5 + ((r() * 17) | 0);
+    const [petal, core] = flowers[i];
+    ctx.fillStyle = petal;
+    ctx.fillRect(x0 + x, y0 + y + 2, 6, 2);
+    ctx.fillRect(x0 + x + 2, y0 + y, 2, 6);
+    ctx.fillStyle = core; ctx.fillRect(x0 + x + 2, y0 + y + 2, 2, 2);
+  }
+}
+
+function drawFern(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  const r = rnd(620);
+  for (let i = 0; i < 7; i++) {
+    const base = 2 + i * 4;
+    drawBlade(ctx, x0, y0, {
+      baseX: base, top: 4 + ((r() * 5) | 0) * 2, bottom: 30,
+      sway: r() * 12 - 6, width: i % 2 ? 3 : 4,
+      dark: '#1f5634', mid: '#347d45', lit: '#5baa58',
+    });
+    ctx.fillStyle = '#7ec875';
+    for (let y = 10; y < 28; y += 6) {
+      ctx.fillRect(x0 + Math.max(0, Math.min(28, base + (y % 4 ? 3 : -4))), y0 + y, 4, 2);
+    }
+  }
+}
+
+function drawLilyPad(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.fillStyle = '#2f8d45';
+  ctx.beginPath(); ctx.arc(x0 + 16, y0 + 17, 12, 0.18, Math.PI * 2 - 0.18); ctx.lineTo(x0 + 16, y0 + 17); ctx.fill();
+  ctx.fillStyle = '#75c85d';
+  ctx.beginPath(); ctx.arc(x0 + 15, y0 + 16, 8, 0.25, Math.PI * 2 - 0.25); ctx.lineTo(x0 + 15, y0 + 16); ctx.fill();
+  ctx.fillStyle = '#b8e87a'; ctx.fillRect(x0 + 14, y0 + 7, 2, 12);
+  ctx.fillStyle = '#f3b2c8';
+  ctx.fillRect(x0 + 14, y0 + 11, 4, 2); ctx.fillRect(x0 + 15, y0 + 9, 2, 6);
+  ctx.fillStyle = '#fff0b5'; ctx.fillRect(x0 + 15, y0 + 11, 2, 2);
 }
 
 export function createBlockAtlas() {
@@ -1182,6 +1283,12 @@ export function createBlockAtlas() {
   paint(TILE.DIAMOND_ORE, drawDiamondOre);
   paint(TILE.MANGROVE_LOG_SIDE, drawMangroveLogSide);
   paint(TILE.MANGROVE_LEAVES, drawMangroveLeaves);
+  paint(TILE.BAMBOO, drawBamboo);
+  paint(TILE.VINES, drawVines);
+  paint(TILE.TALL_GRASS, drawTallGrass);
+  paint(TILE.WILDFLOWER, drawWildflower);
+  paint(TILE.FERN, drawFern);
+  paint(TILE.LILY_PAD, drawLilyPad);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = THREE.NearestFilter;
@@ -1259,6 +1366,11 @@ export function createBlockAtlas() {
         float lanternFalloff = max(0.0, 1.0 - distance(vWorldPos, lanternPos) / lanternRadius);
         lanternFalloff *= lanternFalloff * lanternStrength;
         light += lanternColor * lanternFalloff;
+        float foliage = smoothstep(0.30, 0.68, tex.g)
+          * step(tex.r * 1.12, tex.g)
+          * step(tex.b * 1.05, tex.g);
+        light += vec3(0.025, 0.032, 0.018) * foliage;
+        light = max(light, vec3(0.34));
         vec3 rgb = tex.rgb * max(vColor.rgb, vec3(0.25)) * light;
         // Named BVI coves get a restrained shallow-water response: a greener
         // shelf tint and a broken foam glint on upward-facing water tops. Deep

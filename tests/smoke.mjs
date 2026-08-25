@@ -304,7 +304,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=483/);
+  assert.match(gameSource, /world\.js\?v=486/);
 });
 
 test('BVI fresh spawns prefer the authored launch beach when clear', () => {
@@ -585,7 +585,7 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /float northSound/);
   assert.match(atlas, /float foamBand/);
   assert.match(atlas, /vTile - 5\.0/);
-  assert.match(game, /atlas\.js\?v=305/);
+  assert.match(game, /atlas\.js\?v=309/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -4508,6 +4508,62 @@ test('game mace smash wire', () => {
 
 
 // ── animal-visuals v1.12.11 ──────────────────────────────
+test('animal milestone adds Minecraft land fauna with authored layouts', () => {
+  for (const id of ['pig', 'horse', 'sheep', 'lamb']) {
+    const spec = SPECIES[id];
+    assert.ok(spec, `${id} species exists`);
+    assert.equal(spec.hostile, false, `${id} passive`);
+    assert.equal(spec.wideRange, true, `${id} wide-range spawn`);
+    assert.ok(spec.count >= 2, `${id} encounter count`);
+    const layout = animalPartLayout(id, spec);
+    assert.ok(layout.parts.length >= 10, `${id} authored silhouette`);
+    assert.ok(layout.legNames.length === 4, `${id} four-legged walk rig`);
+    assert.ok(layout.parts.some(p => p.name === 'catchL'), `${id} eye catchlight`);
+    assert.ok(layout.parts.some(p => p.name === 'mouth'), `${id} visible mouth`);
+  }
+  const game = fsText('js/game.js');
+  const main = fsText('js/main.js');
+  const visuals = fsText('js/animal-visuals.js');
+  const animals = fsText('js/animals.js');
+  assert.match(game, /animals\.js\?v=273/);
+  assert.match(game, /animal-visuals\.js\?v=249/);
+  assert.match(main, /game\.js\?v=711/);
+  assert.match(game, /FRIENDLY/);
+  assert.match(game, /trust \$\{Math\.round\(ah\.animal\._tame\)\}%/);
+  assert.match(game, /this\.fx\.burst\(ah\.animal\.x/);
+  for (const fn of ['layoutPig', 'layoutHorse', 'layoutSheep']) assert.match(visuals, new RegExp(`function ${fn}`));
+  for (const id of ['pig', 'horse', 'sheep', 'lamb']) assert.match(animals, new RegExp(`id: '${id}'`));
+  assert.doesNotMatch(animals.slice(animals.indexOf('  _make(spec'), animals.indexOf('  getSpec(type)')), /Math\.random\(\)/);
+  assert.match(animals, /motionSeed = hash2/);
+});
+
+
+test('animal interaction round: shearing, mounting, rooting, and nesting', () => {
+  assert.equal(ITEM.WOOL, 170);
+  assert.equal(ITEM.SHEARS, 171);
+  assert.equal(propsOf(ITEM.SHEARS).tool, 'hand');
+  const sheep = { type: 'sheep', dead: false, shearedT: 0 };
+  const shear = FaunaSystem.prototype.shearAnimal(sheep);
+  assert.deepEqual(shear.ok, true);
+  assert.equal(shear.wool, 2);
+  assert.ok(sheep.shearedT > 0);
+  assert.equal(FaunaSystem.prototype.shearAnimal(sheep).reason, 'fleece-regrowing');
+  assert.equal(canFeed({ type: 'horse' }, ITEM.BERRIES), true);
+  const animals = fsText('js/animals.js');
+  const game = fsText('js/game.js');
+  assert.match(animals, /shearAnimal\(animal\)/);
+  assert.match(animals, /a\.nesting/);
+  assert.match(animals, /spec\.id === 'pig'/);
+  assert.match(game, /_mountHorse\(animal\)/);
+  assert.match(game, /_dismountHorse\(\)/);
+  assert.match(game, /F — Shear/);
+  assert.match(game, /Mounted horse/);
+  assert.match(animals, /breedAnimal\(animal\)/);
+  assert.match(animals, /juvenileT/);
+  assert.match(game, /F — Breed/);
+});
+
+
 test('animal-visuals accentColor belly lightens', () => {
   const b = accentColor([0.4, 0.3, 0.2], 'belly');
   assert.ok(b[0] >= 0.4 && b[0] <= 1);
@@ -5155,6 +5211,41 @@ test('forest floor blocks have atlas tiles and expected solidity', () => {
   assert.equal(BLOCK.ROOTS < BLOCK.MUSHROOM, true);
 });
 
+test('plant sprint: v1.19 authored flora has harvestable identities', () => {
+  const flora = [BLOCK.BAMBOO, BLOCK.VINES, BLOCK.TALL_GRASS, BLOCK.WILDFLOWER, BLOCK.FERN, BLOCK.LILY_PAD, BLOCK.SEAGRASS, BLOCK.KELP];
+  for (const id of flora) {
+    assert.ok(BLOCK_PROPS[id], `missing flora props ${id}`);
+    assert.equal(BLOCK_PROPS[id].solid, false);
+    assert.equal(BLOCK_PROPS[id].transparent, true);
+    assert.notEqual(tileForBlock(id), undefined);
+    assert.notEqual(dropForBlock(id), undefined);
+  }
+  assert.equal(dropForBlock(BLOCK.BAMBOO), ITEM.BAMBOO);
+  assert.equal(dropForBlock(BLOCK.WILDFLOWER), ITEM.WILDFLOWER);
+  assert.equal(dropForBlock(BLOCK.VINES), ITEM.PLANT_FIBER);
+  assert.equal(dropForBlock(BLOCK.SEAGRASS), ITEM.PLANT_FIBER);
+  assert.ok(atlasTileCount() >= 68);
+});
+
+test('plant sprint: v1.19 sync and worker flora seams stay mirrored', () => {
+  const world = fsText('js/world.js');
+  const worker = fsText('js/chunk-worker.js');
+  const atlas = fsText('js/atlas.js');
+  const mesh = fsText('js/mesh-greedy.js');
+  for (const name of ['BAMBOO', 'VINES', 'TALL_GRASS', 'WILDFLOWER', 'FERN', 'LILY_PAD']) {
+    assert.match(world, new RegExp(`BLOCK\\.${name}`));
+    assert.match(worker, new RegExp(`BLOCK\\.${name}`));
+  }
+  assert.match(world, /_populateSurfaceFlora/);
+  assert.match(world, /buildPlantAccents/);
+  assert.match(worker, /populateSurfaceFlora/);
+  assert.match(world, /_drapeVines/);
+  assert.match(worker, /placeVines/);
+  assert.match(mesh, /tile === 64.*tile === 65.*tile === 66.*tile === 67/);
+  for (const fn of ['drawBamboo', 'drawVines', 'drawTallGrass', 'drawWildflower', 'drawFern', 'drawLilyPad']) assert.match(atlas, new RegExp(`function ${fn}`));
+  assert.match(atlas, /float foliage =/);
+});
+
 test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   const seed = 1884808540;
   const world = fsText('js/world.js');
@@ -5184,7 +5275,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker\.js\?v=335/);
+  assert.match(world, /chunk-worker\.js\?v=337/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
   assert.match(world, /Sparse mangrove-log ribs/);
@@ -5434,7 +5525,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.19.1'), 'HTML must expose v1.19.1');
+  assert.ok(html.includes('v1.21.0'), 'HTML must expose v1.21.0');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5603,7 +5694,7 @@ test('durability adapter cache and mining wear remain reachable', () => {
   const game = fsText('js/game.js');
   const durability = fsText('js/durability.js');
   assert.match(game, /from ['"]\.\/durability\.js\?v=223['"]/);
-  assert.match(durability, /from ['"]\.\/items\.js\?v=250['"]/);
+  assert.match(durability, /from ['"]\.\/items\.js\?v=253['"]/);
   assert.match(durability, /from ['"]\.\/tool-tiers\.js\?v=222['"]/);
   assert.match(game.slice(game.indexOf('  _handleMining(dt) {'), game.indexOf('  _handlePlace() {')), /wearTool\(this\.player\.slots, this\.player\.hotbarIndex, 1\)/);
   assert.match(game.slice(game.indexOf('  _handleCoopP2World(dt) {'), game.indexOf('  _spawnCoopP2(spawn) {')), /wearTool\(p\.slots, p\.hotbarIndex, 1\)/);

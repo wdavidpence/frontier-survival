@@ -7,8 +7,8 @@
  *
  * Uses existing BLOCK/ITEM IDs from blocks.js and items.js.
  */
-import { BLOCK } from './blocks.js?v=289';
-import { ITEM } from './items.js?v=250';
+import { BLOCK } from './blocks.js?v=293';
+import { ITEM } from './items.js?v=253';
 
 /**
  * @typedef {{ input: number, output: number, count?: number }} SmeltRecipe
