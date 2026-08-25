@@ -593,6 +593,10 @@ function mangroveApproachPlantClearance(x, z, biome) {
   return (biome === 'ocean' || biome === 'mangrove' || biome === 'tropical' || biome === 'shore')
     && x >= 48 && x <= 61 && z >= 54 && z <= 58;
 }
+function starterCoveSightlinePocket(x, z, biome) {
+  return (biome === 'shore' || biome === 'tropical' || biome === 'ocean' || biome === 'mangrove' || !biome)
+    && x >= 20 && x <= 28 && z >= 12 && z <= 16;
+}
 
 // ── Chunk generation (mirrors World._generateChunk) ─────────────────────────
 
@@ -614,6 +618,7 @@ function generateChunkData(cx, cz, seed) {
       const biome = biomeAt(x, z, seed);
       const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
       const starterCove = starterCoveAt(x, z);
+      const starterCoveSightline = starterCoveSightlinePocket(x, z, biome);
       const deepWater = bviDeepWaterAt(x, z);
       const baseHeight = starterCove ? SEA_LEVEL + 1 : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
         ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, seed);
@@ -694,7 +699,7 @@ function generateChunkData(cx, cz, seed) {
         const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
         if (mangroveLandmark) {
           _placeMangroveBridge(data, idx, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-        } else if (!villageColumn && !forestPocket && !beachApproach && !starterCove && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+        } else if (!villageColumn && !forestPocket && !beachApproach && !starterCove && !starterCoveSightline && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
           && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
           if (biome === 'mangrove') _placeMangrove(data, idx, lx, h + 1, lz);
           else if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);
@@ -712,7 +717,7 @@ function generateChunkData(cx, cz, seed) {
         data[idx(lx, SEA_LEVEL, lz)] = BLOCK.PLANKS;
         if (SEA_LEVEL + 1 < WORLD_HEIGHT) data[idx(lx, SEA_LEVEL + 1, lz)] = BLOCK.AIR;
       }
-      if (driftwood && h >= SEA_LEVEL && data[idx(lx, h + 1, lz)] === BLOCK.AIR) {
+      if (driftwood && !starterCoveSightline && h >= SEA_LEVEL && data[idx(lx, h + 1, lz)] === BLOCK.AIR) {
         data[idx(lx, h + 1, lz)] = BLOCK.LOG;
       }
       const saltScrub = bviSaltPondScrubAt(x, z);

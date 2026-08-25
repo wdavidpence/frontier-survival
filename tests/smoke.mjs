@@ -5,7 +5,7 @@ import { palmLeafDrop } from '../js/palm-drops.js';
 import { createFishingState, startCast, tickFishing, rollFishingCatch, FISHING_CAST_TRAVEL_SECONDS } from '../js/fishing-cast.js';
 import { createBoat, canPlaceBoat, mountBoat, dismountBoat, hasRider, stepBoat, degradeBoat, boatRepairPlan, repairBoat, pushBoat, buoyancyY, riderPosition, boatWaterFootprintClear } from '../js/boat-entity.js';
 import { schoolFishPose, schoolVisibility } from '../js/fish-school.js';
-import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviLocationAt, BVI_TENTH_SCALE, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt, bviDeepWaterAt, starterCoveAt, villageSitesForSeed, villageColumnAt, villageBlockAt, TORTOLA_VILLAGE_SITES } from '../js/gen.js';
+import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviLocationAt, BVI_TENTH_SCALE, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt, bviDeepWaterAt, starterCoveAt, starterCoveSightlinePocket, villageSitesForSeed, villageColumnAt, villageBlockAt, TORTOLA_VILLAGE_SITES } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
 import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
 import { seaTurtleLayout } from '../js/fauna-parts/turtle-layout.js';
@@ -732,6 +732,8 @@ test('BVI White Bay channel is a continuous water-safe route from starter launch
   assert.equal(bviDriftwoodAt(24, 14), null, 'driftwood stays sparse');
   assert.ok(heightAt(23, 14, seed) >= 16 && heightAt(29, 14, seed) >= 16, 'driftwood stays on dry shore');
   assert.equal(bviRouteCorridorAt(23, 14).influence, 0, 'driftwood stays off route');
+  assert.equal(starterCoveSightlinePocket(23, 14, 'shore'), true, 'foreground driftwood pocket is cleared for starter sightline');
+  assert.equal(starterCoveSightlinePocket(29, 14, 'shore'), false, 'east beach driftwood is preserved outside sightline pocket');
   const worker = fsText('js/chunk-worker.js');
   const world = fsText('js/world.js');
   assert.match(worker, /BVI_CHANNEL_BUOYS/);
@@ -774,6 +776,8 @@ test('BVI White Bay channel is a continuous water-safe route from starter launch
   assert.match(worker, /const starterRamp = bviStarterRampAt\(x, z\)/);
   assert.match(world, /const driftwood = bviDriftwoodAt\(x, z\)/);
   assert.match(worker, /const driftwood = bviDriftwoodAt\(x, z\)/);
+  assert.match(world, /driftwood\s*&&\s*!starterCoveSightline/);
+  assert.match(worker, /driftwood\s*&&\s*!starterCoveSightline/);
   assert.match(world, /data\[this\._idx\(lx, h \+ 1, lz\)\] = BLOCK\.LOG/);
   assert.match(worker, /data\[idx\(lx, h \+ 1, lz\)\] = BLOCK\.LOG/);
 });
@@ -4548,7 +4552,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals\.js\?v=275/);
   assert.match(game, /animal-visuals\.js\?v=250/);
-  assert.match(main, /game\.js\?v=730/);
+  assert.match(main, /game\.js\?v=733/);
   assert.match(game, /FRIENDLY/);
   assert.match(game, /trust \$\{Math\.round\(ah\.animal\._tame\)\}%/);
   assert.match(game, /this\.fx\.burst\(ah\.animal\.x/);
@@ -5296,7 +5300,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker\.js\?v=342/);
+  assert.match(world, /chunk-worker\.js\?v=343/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
   assert.match(world, /Sparse mangrove-log ribs/);
@@ -5546,7 +5550,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.23.0'), 'HTML must expose v1.23.0');
+  assert.ok(html.includes('v1.24.0'), 'HTML must expose v1.24.0');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

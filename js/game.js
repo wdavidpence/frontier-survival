@@ -75,7 +75,7 @@ import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX,
 import { underwaterFogStyle } from './underwater-fog.js?v=245';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=8';
-import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=315';
+import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=316';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=29';
 import {
   equipmentWarmth,
@@ -1489,7 +1489,7 @@ export class Game {
       return mesh;
     };
 
-    box('boat-hull', [1.78, 0.42, 3.15], [0, 0.28, 0.05], wood);
+    box('boat-hull', [1.78, 0.24, 3.15], [0, 0.16, 0.05], wood);
     const bow = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.15, 4), wood);
     bow.name = 'boat-bow';
     bow.rotation.x = Math.PI / 2;
@@ -1497,7 +1497,7 @@ export class Game {
     group.add(bow);
     box('boat-rim-left', [0.14, 0.17, 3.55], [-0.86, 0.55, 0.02], woodLight);
     box('boat-rim-right', [0.14, 0.17, 3.55], [0.86, 0.55, 0.02], woodLight);
-    box('boat-seat', [1.45, 0.13, 0.35], [0, 0.68, 0.45], woodLight);
+    box('boat-seat', [1.42, 0.09, 0.32], [0, 0.32, 0.45], woodLight);
     box('boat-keel', [0.32, 0.18, 2.9], [0, 0.02, 0.12], wood);
 
     const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.085, 2.55, 8), woodLight);
@@ -1540,13 +1540,13 @@ export class Game {
     oarB.position.set(1.12, 0.44, -0.5);
     group.add(oarB);
 
-    const crate = box('salvage-crate', [0.62, 0.58, 0.62], [0.36, 0.86, 0.92], woodLight);
+    const crate = box('salvage-crate', [0.28, 0.18, 0.28], [0.58, 0.48, 1.20], woodLight);
     crate.userData.salvage = true;
-    box('crate-band-a', [0.67, 0.06, 0.08], [0.36, 0.87, 0.62], metal);
-    box('crate-band-b', [0.08, 0.06, 0.67], [0.36, 0.87, 0.92], metal);
-    const bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 0.42, 8), new THREE.MeshStandardMaterial({ color: 0x78b9b3, roughness: 0.4, metalness: 0.05 }));
+    const bandA = box('crate-band-a', [0.31, 0.025, 0.04], [0.58, 0.49, 1.20], metal);
+    const bandB = box('crate-band-b', [0.04, 0.025, 0.31], [0.58, 0.49, 1.20], metal);
+    const bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.055, 0.18, 8), new THREE.MeshStandardMaterial({ color: 0x78b9b3, roughness: 0.4, metalness: 0.05 }));
     bottle.name = 'salvage-bottle';
-    bottle.position.set(-0.34, 0.91, 0.94);
+    bottle.position.set(0.38, 0.46, 1.20);
     group.add(bottle);
 
     const foamRing = new THREE.Mesh(new THREE.TorusGeometry(1.36, 0.035, 6, 28), foam);
@@ -1565,6 +1565,8 @@ export class Game {
     if (state.salvaged) {
       this._castawayCrate.visible = false;
       bottle.visible = false;
+      bandA.visible = false;
+      bandB.visible = false;
     }
     this.scene.add(group);
   }
@@ -1643,6 +1645,8 @@ export class Game {
     state.salvaged = true;
     if (this._castawayCrate) this._castawayCrate.visible = false;
     this._castawayGroup?.getObjectByName('salvage-bottle') && (this._castawayGroup.getObjectByName('salvage-bottle').visible = false);
+    this._castawayGroup?.getObjectByName('crate-band-a') && (this._castawayGroup.getObjectByName('crate-band-a').visible = false);
+    this._castawayGroup?.getObjectByName('crate-band-b') && (this._castawayGroup.getObjectByName('crate-band-b').visible = false);
     this.player.notify('Opened the dinghy locker · sticks, timber, and one dry ration recovered.', 4.5);
     this.audio.splash?.() || this.audio.ui();
     this._castawayCardT = Math.max(this._castawayCardT, 3.8);

@@ -345,6 +345,11 @@ export function starterCoveAt(x, z) {
   return x >= 20 && x <= 31 && z >= 14 && z <= 15;
 }
 
+export function starterCoveSightlinePocket(x, z, biome) {
+  return (biome === 'shore' || biome === 'tropical' || biome === 'ocean' || biome === 'mangrove' || !biome)
+    && x >= 20 && x <= 28 && z >= 12 && z <= 16;
+}
+
 export function heightAt(x, z, seed = 0) {
   const sx = x * 0.03 * WORLD_SCALE + seed * 17.1;
   const sz = z * 0.03 * WORLD_SCALE + seed * 9.7;

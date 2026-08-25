@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=293';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, bviDeepWaterAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=315';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveSightlinePocket, bviDeepWaterAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=316';
 import { biomeAt, BIOME } from './biomes.js?v=270';
 import { tileForBlock } from './atlas-core.js?v=289';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=247';
@@ -581,7 +581,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=342';
+    const workerUrl = './js/chunk-worker.js?v=343';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -644,6 +644,7 @@ export class World {
         const biome = biomeAt(x, z, this.seed);
         const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
         const starterCove = starterCoveAt(x, z);
+        const starterCoveSightline = starterCoveSightlinePocket(x, z, biome);
         const deepWater = bviDeepWaterAt(x, z);
         const baseHeight = starterCove ? SEA_LEVEL + 1 : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
           ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, this.seed);
@@ -724,7 +725,7 @@ export class World {
           const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
           if (mangroveLandmark) {
             this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-          } else if (!villageColumn && !forestPocket && !beachApproach && !starterCove && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+          } else if (!villageColumn && !forestPocket && !beachApproach && !starterCove && !starterCoveSightline && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
             && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -756,7 +757,7 @@ export class World {
           data[this._idx(lx, SEA_LEVEL, lz)] = BLOCK.PLANKS;
           if (SEA_LEVEL + 1 < WORLD_HEIGHT) data[this._idx(lx, SEA_LEVEL + 1, lz)] = BLOCK.AIR;
         }
-        if (driftwood && h >= SEA_LEVEL && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) {
+        if (driftwood && !starterCoveSightline && h >= SEA_LEVEL && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) {
           data[this._idx(lx, h + 1, lz)] = BLOCK.LOG;
         }
         const saltScrub = bviSaltPondScrubAt(x, z);
@@ -1195,6 +1196,7 @@ export class World {
         const biome = biomeAt(x, z, this.seed);
         const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
         const starterCove = starterCoveAt(x, z);
+        const starterCoveSightline = starterCoveSightlinePocket(x, z, biome);
         const deepWater = bviDeepWaterAt(x, z);
         const baseHeight = starterCove ? SEA_LEVEL + 1 : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
           ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, this.seed);
@@ -1282,7 +1284,7 @@ export class World {
           const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
           if (mangroveLandmark) {
             this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-          } else if (!villageColumn && !forestPocket && !beachApproach && !starterCove && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+          } else if (!villageColumn && !forestPocket && !beachApproach && !starterCove && !starterCoveSightline && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
             && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -1315,7 +1317,7 @@ export class World {
           data[this._idx(lx, SEA_LEVEL, lz)] = BLOCK.PLANKS;
           if (SEA_LEVEL + 1 < WORLD_HEIGHT) data[this._idx(lx, SEA_LEVEL + 1, lz)] = BLOCK.AIR;
         }
-        if (driftwood && h >= SEA_LEVEL && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) {
+        if (driftwood && !starterCoveSightline && h >= SEA_LEVEL && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) {
           data[this._idx(lx, h + 1, lz)] = BLOCK.LOG;
         }
         const saltScrub = bviSaltPondScrubAt(x, z);
