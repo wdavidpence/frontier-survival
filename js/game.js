@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=494';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=495';
 import { Player } from './player.js?v=240';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
@@ -70,12 +70,12 @@ import {
 } from './crafting.js?v=420';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=275';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=250';
-import { createBlockAtlas } from './atlas.js?v=316';
+import { createBlockAtlas } from './atlas.js?v=317';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=288';
 import { underwaterFogStyle } from './underwater-fog.js?v=245';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=8';
-import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=316';
+import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=317';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=31';
 import {
   equipmentWarmth,

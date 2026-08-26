@@ -322,7 +322,7 @@ function coastalGradeHeight(x, z, seed = 0) {
     if (heightAt(x + dx, z + dz, seed) < 16) nearestWater = Math.min(nearestWater, Math.abs(dx) + Math.abs(dz));
   }
   if (!Number.isFinite(nearestWater)) return raw;
-  return Math.min(raw, 16 + Math.floor(1 + nearestWater * 1.25));
+  return Math.min(raw, 16 + Math.max(1, nearestWater));
 }
 function sandyCoastHeight(x, z, seed, biome, gradedHeight, rocky = false) {
   if (rocky || (biome !== 'shore' && biome !== 'ocean')) return gradedHeight;

@@ -426,8 +426,9 @@ export function coastalGradeHeight(x, z, seed = 0) {
     if (heightAt(x + dx, z + dz, seed) < GEN_SEA_LEVEL) nearestWater = Math.min(nearestWater, Math.abs(dx) + Math.abs(dz));
   }
   if (!Number.isFinite(nearestWater)) return raw;
-  const allowedRise = 1 + nearestWater * 1.25;
-  return Math.min(raw, GEN_SEA_LEVEL + Math.floor(allowedRise));
+  // One-block stair from the waterline inland. Never drop land below sea.
+  const allowedRise = Math.max(1, nearestWater);
+  return Math.min(raw, GEN_SEA_LEVEL + allowedRise);
 }
 
 /**

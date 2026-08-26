@@ -1383,6 +1383,9 @@ export function createBlockAtlas() {
         vec3 material = tex.rgb * max(vColor.rgb, vec3(0.28));
         vec3 rgb = material * light;
         rgb = max(rgb, material * 0.28);
+        float contact = (1.0 - abs(N.y)) * (1.0 - smoothstep(16.0, 18.2, vWorldPos.y));
+        contact += smoothstep(0.78, 0.98, N.y) * (1.0 - ndl) * (1.0 - smoothstep(16.1, 17.8, vWorldPos.y)) * 0.55;
+        rgb *= 1.0 - clamp(contact * 0.26, 0.0, 0.28);
         // Named BVI coves get a restrained shallow-water response: a greener
         // shelf tint and a broken foam glint on upward-facing water tops. Deep
         // ocean and all non-water materials keep the existing atlas treatment.
@@ -1410,6 +1413,12 @@ export function createBlockAtlas() {
         float ripple = 0.5 + 0.5 * sin(waterTime * 1.05 + vWorldPos.x * 0.27 - vWorldPos.z * 0.38);
         rgb += vec3(${WATER_WAVE.tint.join(', ')}) * waterSurface * (0.16 + wave * 0.16);
         rgb += vec3(0.18, 0.28, 0.26) * waterSurface * ripple * 0.08;
+        float waterSide = waterFace * (1.0 - topFace);
+        rgb = mix(rgb, vec3(0.03, 0.13, 0.20), clamp(waterSide * 0.62, 0.0, 0.62));
+        rgb = mix(rgb, rgb * vec3(0.52, 0.76, 0.90), clamp(waterSurface * (1.0 - cove) * 0.32, 0.0, 0.32));
+        float shoreFoam = waterSurface * (1.0 - smoothstep(15.6, 16.9, vWorldPos.y))
+          * (0.40 + 0.60 * sin(vWorldPos.x * 2.1 + waterTime * 1.4 + vWorldPos.z * 1.6));
+        rgb += vec3(0.22, 0.32, 0.30) * shoreFoam * 0.30;
         vec3 viewDir = normalize(cameraPosition - vWorldPos);
         vec3 halfDir = normalize(L + viewDir);
         float glitter = pow(max(0.0, dot(N, halfDir)), 42.0);
