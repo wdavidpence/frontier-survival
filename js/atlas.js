@@ -1338,7 +1338,7 @@ export function createBlockAtlas() {
         float tx = mod(tile, ${ATLAS_N}.0);
         float ty = floor(tile / ${ATLAS_N}.0);
         vAuvBase = vec2(tx / ${ATLAS_N}.0, 1.0 - (ty + 1.0) / ${ATLAS_N}.0);
-        vNormal = normalize(normalMatrix * normal);
+        vNormal = normalize(normal);
         vWorldPos = position;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
@@ -1366,8 +1366,12 @@ export function createBlockAtlas() {
         vec2 auv = vAuvBase + vec2(tUv.x / ${ATLAS_N}.0, tUv.y / ${ATLAS_N}.0);
         vec4 tex = texture2D(atlas, auv);
         if (tex.a < 0.35) discard;
-        float ndl = max(0.0, abs(dot(normalize(vNormal), normalize(sunDir))));
-        vec3 light = ambientColor + sunColor * ndl * sunIntensity;
+        vec3 N = normalize(vNormal);
+        vec3 L = normalize(sunDir);
+        float ndl = max(0.0, dot(N, L));
+        float wrap = ndl * 0.72 + 0.28;
+        vec3 hemi = mix(vec3(0.28, 0.22, 0.16), vec3(0.46, 0.58, 0.74), clamp(N.y * 0.5 + 0.5, 0.0, 1.0));
+        vec3 light = ambientColor * hemi + sunColor * wrap * sunIntensity;
         float lanternFalloff = max(0.0, 1.0 - distance(vWorldPos, lanternPos) / lanternRadius);
         lanternFalloff *= lanternFalloff * lanternStrength;
         light += lanternColor * lanternFalloff;
@@ -1375,12 +1379,10 @@ export function createBlockAtlas() {
           * step(tex.r * 1.12, tex.g)
           * step(tex.b * 1.05, tex.g);
         light += vec3(0.025, 0.032, 0.018) * foliage;
-        light = max(light, vec3(0.38, 0.40, 0.44));
+        light = max(light, vec3(0.22, 0.24, 0.28));
         vec3 material = tex.rgb * max(vColor.rgb, vec3(0.28));
         vec3 rgb = material * light;
-        // Preserve hue in deep canopy shadows so the world reads as layered
-        // tropical material instead of collapsing into near-black silhouettes.
-        rgb = max(rgb, material * 0.36);
+        rgb = max(rgb, material * 0.28);
         // Named BVI coves get a restrained shallow-water response: a greener
         // shelf tint and a broken foam glint on upward-facing water tops. Deep
         // ocean and all non-water materials keep the existing atlas treatment.
@@ -1408,6 +1410,10 @@ export function createBlockAtlas() {
         float ripple = 0.5 + 0.5 * sin(waterTime * 1.05 + vWorldPos.x * 0.27 - vWorldPos.z * 0.38);
         rgb += vec3(${WATER_WAVE.tint.join(', ')}) * waterSurface * (0.16 + wave * 0.16);
         rgb += vec3(0.18, 0.28, 0.26) * waterSurface * ripple * 0.08;
+        vec3 viewDir = normalize(cameraPosition - vWorldPos);
+        vec3 halfDir = normalize(L + viewDir);
+        float glitter = pow(max(0.0, dot(N, halfDir)), 42.0);
+        rgb += sunColor * glitter * waterSurface * sunIntensity * 0.72;
         gl_FragColor = vec4(rgb, 1.0);
       }
     `,

@@ -251,8 +251,9 @@ export class SunDisc {
       cameraPos.z + sz * DIST
     );
     this._sunGlow.position.copy(this._sun.position);
-    this._sun.visible = false;
-    this._sunGlow.visible = false;
+    this._sun.visible = sy > 0.02 && nightMix < 0.82;
+    this._sunGlow.visible = this._sun.visible;
+    this._sunGlowMat.opacity = this._sun.visible ? (0.22 + elevT * 0.28) * (1.0 - nightMix) : 0;
 
     this._moon.position.set(
       cameraPos.x + mx * DIST,

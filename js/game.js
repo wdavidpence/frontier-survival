@@ -70,13 +70,13 @@ import {
 } from './crafting.js?v=420';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=275';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=250';
-import { createBlockAtlas } from './atlas.js?v=315';
+import { createBlockAtlas } from './atlas.js?v=316';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=288';
 import { underwaterFogStyle } from './underwater-fog.js?v=245';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=8';
 import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=316';
-import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=30';
+import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=31';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -5585,12 +5585,20 @@ export class Game {
     // Drive greedy shader lighting
     const mat = this.atlas?.greedyMaterial;
     if (mat?.uniforms) {
-      mat.uniforms.sunIntensity.value = 0.32 * nightMix + (0.46 + sunI * 0.58) * dayFactor;
+      mat.uniforms.sunIntensity.value = 0.32 * nightMix + (0.62 + sunI * 0.58) * dayFactor;
       if (mat.uniforms.waterTime) mat.uniforms.waterTime.value = this._animClock || 0;
+      if (mat.uniforms.sunDir) mat.uniforms.sunDir.value.set(_sdx, _sdy, _sdz);
+      if (mat.uniforms.sunColor) {
+        mat.uniforms.sunColor.value.set(
+          nightColors ? 0.62 : 1.0,
+          nightColors ? 0.70 : 0.93,
+          nightColors ? 0.92 : 0.78,
+        );
+      }
       mat.uniforms.ambientColor.value.set(
-        0.22 * nightMix + 0.74 * dayFactor,
-        0.24 * nightMix + 0.77 * dayFactor,
-        0.32 * nightMix + 0.86 * dayFactor,
+        0.18 * nightMix + 0.42 * dayFactor,
+        0.20 * nightMix + 0.46 * dayFactor,
+        0.28 * nightMix + 0.58 * dayFactor,
       );
       const lanternDistance = this.player
         ? Math.hypot(this.player.position.x - 50, this.player.position.z - 60)
