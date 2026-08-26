@@ -95,6 +95,8 @@ import {
   clearSaveStorage,
 } from './save.js?v=226';
 import { getMode } from './modes.js?v=243';
+import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=3';
+import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=3';
 
 const HARVEST_BASE_SECONDS = 4.2;
 
@@ -104,7 +106,7 @@ import {
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=221';
+} from './settings.js?v=224';
 import {
   emptyAchievements,
   unlockAchievement,
@@ -227,16 +229,25 @@ export class Game {
     this.mode = getMode(this.settings.mode).id;
     /** Local split-screen: when true, dual viewports/input path is active (MVP wires flag first). */
     this.coopMode = this.settings.playMode === 'coop';
+    this.graphicsQuality = normalizeGraphicsQuality(this.settings.graphicsQuality);
+    this._isMobile = typeof window !== 'undefined'
+      && (window.matchMedia?.('(pointer: coarse)')?.matches
+        || Math.min(window.innerWidth, window.innerHeight) < 640);
+    this.graphics = qualitySettings(this.graphicsQuality, { mobile: this._isMobile, coop: this.coopMode });
+    this._frameBudget = createFrameBudget(120);
+    this._cpuBudget = createFrameBudget(120);
+    this._perfReportAcc = 0;
+    this._perfPrimed = false;
     /** Which player owns open inventory UI: p1 | p2 */
     this._invOwner = 'p1';
     this._inventoryAssign = null;
     this.seed = (Math.random() * 1e6) | 0;
 
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.enabled = this.graphics.shadowMapSize > 0;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setClearColor(0x87b5ff, 0);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.graphics.pixelRatioCap));
     this.renderer.setSize(window.innerWidth, window.innerHeight, false);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     // Keep the starter island readable: ACES rolls back the sunlit sand
@@ -303,8 +314,10 @@ export class Game {
 
     this.ambient = new THREE.AmbientLight(0x7895b4, 0.58);
     this.sun = new THREE.DirectionalLight(0xffe4bd, 1.0);
-    this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(1024, 1024);
+    this.sun.castShadow = this.graphics.shadowMapSize > 0;
+    if (this.graphics.shadowMapSize > 0) {
+      this.sun.shadow.mapSize.set(this.graphics.shadowMapSize, this.graphics.shadowMapSize);
+    }
     this.sun.shadow.camera.near = 1;
     this.sun.shadow.camera.far = 180;
     this.sun.shadow.camera.left = -72;
@@ -822,6 +835,14 @@ export class Game {
         if (lab) lab.textContent = String(sens.value);
       });
     }
+    const quality = document.getElementById('quality-select');
+    if (quality) {
+      quality.value = this.graphicsQuality;
+      quality.addEventListener('change', () => {
+        this.settings.graphicsQuality = quality.value;
+        this._applyGraphicsQuality();
+      });
+    }
     const rd = document.getElementById('rd-slider');
     if (rd) {
       rd.value = String(this.settings.renderDistance ?? 5);
@@ -836,11 +857,35 @@ export class Game {
     }
   }
 
+  /** Apply current graphics preset to renderer and streaming policy. */
+  _applyGraphicsQuality() {
+    this.graphicsQuality = normalizeGraphicsQuality(this.settings.graphicsQuality);
+    this.settings.graphicsQuality = this.graphicsQuality;
+    this.graphics = qualitySettings(this.graphicsQuality, { mobile: this._isMobile, coop: this.coopMode });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.graphics.pixelRatioCap));
+    this.renderer.shadowMap.enabled = this.graphics.shadowMapSize > 0;
+    if (this.graphics.shadowMapSize > 0) {
+      this.sun.shadow.mapSize.set(this.graphics.shadowMapSize, this.graphics.shadowMapSize);
+    }
+    this._applyRenderDistance();
+    writeSettings(this.settings);
+  }
+
   _applyRenderDistance() {
     // See docs/roadmap/coop-perf-budget.md — dual pass needs lower effective RD
-    let rd = this.settings.renderDistance ?? 5;
+    let rd = Math.min(
+      this.settings.renderDistance ?? 5,
+      Math.max(2, Math.round(this.graphics.renderDistance / 16)),
+    );
     if (this.coopMode) rd = effectiveCoopRenderDistance(rd);
     const plan = terrainVisibilityPlan(rd);
+    const streamCap = Math.max(2, Math.min(plan.proxyChunks, this.graphics.streamRadius || plan.proxyChunks));
+    if (streamCap < plan.proxyChunks) {
+      plan.proxyChunks = streamCap;
+      plan.streamRadius = streamCap;
+      plan.fogFar = Math.max(plan.fogNear + 48, Math.round(streamCap * plan.chunkSize * 0.84));
+      plan.cameraFar = Math.max(plan.fogFar + 48, streamCap * plan.chunkSize + 64);
+    }
     this._visPlan = plan;
     if (this.scene.fog) {
       this.scene.fog.near = plan.fogNear;
@@ -1004,6 +1049,8 @@ export class Game {
       radiusChunks: this._terrainVisibilityPlan().fullChunks || this.worldRadius || 5,
       material: this.atlas.greedyMaterial || this.atlas.material,
     });
+    this.world.streamBudget = this.graphicsQuality === 'performance' ? 1
+      : this.graphicsQuality === 'balanced' ? 4 : 8;
 
     if (saveData?.edits?.length) {
       this.world.applyEdits(saveData.edits, { replace: true });
@@ -2970,9 +3017,34 @@ export class Game {
   _loop = () => {
     this._raf = requestAnimationFrame(this._loop);
     const now = performance.now();
-    let dt = (now - this._last) / 1000;
+    const cpuStart = now;
+    const frameMs = Math.max(0, now - this._last);
+    let dt = frameMs / 1000;
     this._last = now;
     dt = Math.min(0.05, dt);
+    if (this._frameBudget && this.started) {
+      if (!this._perfPrimed) {
+        this._perfPrimed = true;
+        this._perfReportAcc = 0;
+      } else {
+        recordFrameSample(this._frameBudget, frameMs);
+        this._perfReportAcc += frameMs;
+        if (this._perfReportAcc >= 1000) {
+          const stats = frameStats(this._frameBudget);
+          this._perfReportAcc = 0;
+          if (globalThis.__FS === this) {
+            globalThis.__FS.performance = {
+              ...stats,
+              cpu: frameStats(this._cpuBudget),
+              quality: this.graphicsQuality,
+              pixelRatio: this.renderer.getPixelRatio(),
+              worldMeshes: this.world?.group?.children?.length || 0,
+              workerCount: this.world?._workerPool?.length || 0,
+            };
+          }
+        }
+      }
+    }
     // Drop Esc leftovers from confirm() dialogs right after boot
     if (this._ignorePauseT > 0) {
       this._ignorePauseT -= dt;
@@ -3020,6 +3092,9 @@ export class Game {
     // ALWAYS paint the canvas — update() does not render. Missing this freezes the world
     // while DOM HUD (key debug) still updates — looks exactly like "WASD broken".
     this.render();
+    if (this._frameBudget && this.started && this._perfPrimed) {
+      recordFrameSample(this._cpuBudget, Math.max(0, performance.now() - cpuStart));
+    }
   };
 
   _applyHelpVisibility() {
@@ -5120,6 +5195,8 @@ export class Game {
 
   _syncAnimalMeshes() {
     if (!this.fauna) return;
+    this._animalSyncFrame = (this._animalSyncFrame || 0) + 1;
+    if (this.graphicsQuality === 'performance' && this._animalSyncFrame % 2 === 0) return;
     this._animClock = (this._animClock || 0) + 0.016;
     const living = this.fauna.living();
     const seen = new Set();
@@ -5143,6 +5220,9 @@ export class Game {
       mesh.rotation.y = a.yaw || 0;
       const dx = a.x - this.camera.position.x;
       const dz = a.z - this.camera.position.z;
+      const renderRadius = this.graphicsQuality === 'performance' ? 18
+        : this.graphicsQuality === 'balanced' ? 30 : 44;
+      mesh.visible = a.id === this._mountedAnimalId || dx * dx + dz * dz <= renderRadius * renderRadius;
       const nearGroundShadow = !spec.aquatic && !spec.nocturnal && !['bird', 'parrot', 'bat'].includes(a.type)
         && dx * dx + dz * dz < 26 * 26;
       mesh.userData.shadowActive = nearGroundShadow;

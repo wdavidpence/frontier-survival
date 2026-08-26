@@ -4552,7 +4552,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals\.js\?v=275/);
   assert.match(game, /animal-visuals\.js\?v=250/);
-  assert.match(main, /game\.js\?v=738/);
+  assert.match(main, /game\.js\?v=741/);
   assert.match(game, /FRIENDLY/);
   assert.match(game, /trust \$\{Math\.round\(ah\.animal\._tame\)\}%/);
   assert.match(game, /this\.fx\.burst\(ah\.animal\.x/);
@@ -5550,7 +5550,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.25.4'), 'HTML must expose v1.25.4');
+  assert.ok(html.includes('v1.25.5'), 'HTML must expose v1.25.5');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5753,6 +5753,21 @@ test('pause save menu wires confirmation and quit-to-title reset', () => {
   assert.match(quitBody, /getElementById\('title-screen'\)\?\.classList\.remove\('hidden'\)/);
   assert.doesNotMatch(quitBody, /clearSaveStorage/);
   assert.strictEqual(html, publicHtml, 'served HTML copies stay identical');
+});
+
+test('AAA quality policy and frame budget contracts are wired', () => {
+  const perf = fsText('js/perf-budget.js');
+  const quality = fsText('js/quality-policy.js');
+  const game = fsText('js/game.js');
+  assert.match(perf, /export const FRAME_BUDGET_MS/);
+  assert.match(perf, /export function createFrameBudget/);
+  assert.match(perf, /export function recordFrameSample/);
+  assert.match(perf, /export function frameStats/);
+  assert.match(quality, /export const GRAPHICS_QUALITY/);
+  assert.match(quality, /export function qualitySettings/);
+  assert.match(game, /__FS\.performance/);
+  assert.match(game, /this\.world\.streamBudget/);
+  assert.match(game, /quality-select/);
 });
 
 test('held item catalog uses authored family geometry at the camera seam', () => {

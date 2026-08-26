@@ -5,6 +5,8 @@
 export const SETTINGS_KEY = 'frontier_survival_settings_v1';
 
 export const DEFAULT_SETTINGS = {
+  /** @type {'performance'|'balanced'|'visual'} graphics quality preset */
+  graphicsQuality: 'balanced',
   mode: 'survival',
   /** @type {'solo'|'coop'} local split-screen play mode */
   playMode: 'solo',
@@ -52,6 +54,7 @@ export function parseSettings(raw) {
   if (!Number.isFinite(sensitivity)) sensitivity = DEFAULT_SETTINGS.sensitivity;
   sensitivity = Math.max(0.0006, Math.min(0.008, sensitivity));
   const helpVisible = data.helpVisible !== false;
+  const graphicsQuality = typeof data.graphicsQuality === 'string' ? data.graphicsQuality : DEFAULT_SETTINGS.graphicsQuality;
   let renderDistance = Number(data.renderDistance);
   if (!Number.isFinite(renderDistance)) renderDistance = DEFAULT_SETTINGS.renderDistance;
   renderDistance = Math.max(2, Math.min(16, Math.round(renderDistance)));
@@ -62,6 +65,7 @@ export function parseSettings(raw) {
       playMode,
       sensitivity,
       helpVisible,
+      graphicsQuality,
       renderDistance,
       friendlyFire: data.friendlyFire === true,
     },
@@ -74,6 +78,7 @@ export function serializeSettings(settings) {
     playMode: getPlayMode(settings.playMode),
     sensitivity: settings.sensitivity ?? DEFAULT_SETTINGS.sensitivity,
     helpVisible: settings.helpVisible !== false,
+    graphicsQuality: settings.graphicsQuality || DEFAULT_SETTINGS.graphicsQuality,
     renderDistance: settings.renderDistance ?? DEFAULT_SETTINGS.renderDistance,
     friendlyFire: settings.friendlyFire === true,
   });

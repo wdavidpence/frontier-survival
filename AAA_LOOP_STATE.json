@@ -1,0 +1,40 @@
+{
+  "project": "Frontier Survival",
+  "target_description": "AAA quality/performance sprint: measurable frame budget plus coherent graphics presets",
+  "overall_score": {
+    "static": "pass",
+    "automated": "192 smoke pass",
+    "runtime": "pass",
+    "performance_cpu": "balanced median 6.1ms p95 8.1ms; performance median 17.6ms p95 44.3ms",
+    "visual": "pass",
+    "mobile": "not run"
+  },
+  "checklist": {
+    "frame_budget_module": "completed",
+    "quality_policy_module": "completed",
+    "runtime_probe": "completed",
+    "graphics_presets": "completed",
+    "visual_start_frame": "completed",
+    "mobile_fallback": "pending",
+    "memory_stability": "pending"
+  },
+  "last_test_report": {
+    "release_candidate": "v1.25.5",
+    "base": "573302f",
+    "smoke": "192 passed",
+    "import_edges": 139,
+    "uncached": 0,
+    "html_parity": true,
+    "start_seed": 1884808540,
+    "started": true,
+    "runtime_errors": 0,
+    "balanced_cpu_ms": {"median": 6.1, "p95": 8.1, "max": 10.6},
+    "performance_cpu_ms": {"median": 17.6, "p95": 44.3},
+    "performance_draw_calls": 55,
+    "performance_world_meshes": 81
+  },
+  "last_commit": "ab330d7",
+  "next_action": "User approval required before push; next engineering phase is asynchronous worker meshing and GPU resource disposal",
+  "pass_count": 2,
+  "judge_review_due": false
+}
