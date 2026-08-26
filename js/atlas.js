@@ -1399,8 +1399,8 @@ export function createBlockAtlas() {
         float dampFace = 1.0 - smoothstep(0.5, 1.5, abs(vTile - 58.0));
         float topFace = smoothstep(0.78, 0.98, vNormal.y);
         float tidalBand = (sandFace + dampFace * 0.82) * topFace
-          * (1.0 - smoothstep(16.4, 18.2, vWorldPos.y));
-        rgb = mix(rgb, rgb * vec3(0.82, 0.94, 0.98), clamp(tidalBand * 0.34, 0.0, 0.34));
+          * (1.0 - smoothstep(16.2, 17.6, vWorldPos.y));
+        rgb = mix(rgb, rgb * vec3(0.62, 0.70, 0.76), clamp(tidalBand * 0.46, 0.0, 0.46));
         float wetRockFace = (1.0 - smoothstep(0.5, 1.5, abs(vTile - 3.0))) * topFace
           * (1.0 - smoothstep(16.0, 18.4, vWorldPos.y));
         rgb = mix(rgb, rgb * vec3(0.64, 0.82, 0.88) + vec3(0.025, 0.055, 0.065), clamp(wetRockFace * 0.48, 0.0, 0.48));
@@ -1416,12 +1416,12 @@ export function createBlockAtlas() {
         float waterSide = waterFace * (1.0 - topFace);
         rgb = mix(rgb, vec3(0.03, 0.13, 0.20), clamp(waterSide * 0.62, 0.0, 0.62));
         rgb = mix(rgb, rgb * vec3(0.52, 0.76, 0.90), clamp(waterSurface * (1.0 - cove) * 0.32, 0.0, 0.32));
-        float shoreFoam = waterSurface * (1.0 - smoothstep(15.6, 16.9, vWorldPos.y))
+        float shoreFoam = waterSurface * tidalBand
           * (0.40 + 0.60 * sin(vWorldPos.x * 2.1 + waterTime * 1.4 + vWorldPos.z * 1.6));
-        rgb += vec3(0.22, 0.32, 0.30) * shoreFoam * 0.30;
+        rgb += vec3(0.24, 0.34, 0.32) * shoreFoam * 0.38;
         vec3 viewDir = normalize(cameraPosition - vWorldPos);
         vec3 halfDir = normalize(L + viewDir);
-        float glitter = pow(max(0.0, dot(N, halfDir)), 42.0);
+        float glitter = pow(max(0.0, dot(N, halfDir)), 36.0) * max(0.18, ndl);
         rgb += sunColor * glitter * waterSurface * sunIntensity * 0.72;
         gl_FragColor = vec4(rgb, 1.0);
       }

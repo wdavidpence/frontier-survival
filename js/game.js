@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=495';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=496';
 import { Player } from './player.js?v=240';
 import { Input } from './input.js?v=412';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
@@ -70,12 +70,12 @@ import {
 } from './crafting.js?v=420';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=275';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=250';
-import { createBlockAtlas } from './atlas.js?v=317';
+import { createBlockAtlas } from './atlas.js?v=318';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=288';
 import { underwaterFogStyle } from './underwater-fog.js?v=245';
-import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
+import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=286';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=8';
-import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=317';
+import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=318';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=31';
 import {
   equipmentWarmth,
@@ -1555,6 +1555,15 @@ export class Game {
     foamRing.position.y = 0.08;
     foamRing.visible = !!state.water;
     group.add(foamRing);
+    const contact = new THREE.Mesh(
+      new THREE.CircleGeometry(1.55, 22),
+      new THREE.MeshBasicMaterial({ color: 0x1a140e, transparent: true, opacity: 0.30, depthWrite: false }),
+    );
+    contact.name = 'boat-contact';
+    contact.rotation.x = -Math.PI / 2;
+    contact.position.y = 0.012;
+    contact.scale.set(1.12, 1.72, 1);
+    group.add(contact);
     box('shore-driftwood', [0.22, 0.18, 1.25], [1.55, 0.17, 1.3], woodLight, [0.12, 0.35, -0.24]);
     box('shore-driftwood-small', [0.16, 0.14, 0.78], [-1.58, 0.13, -1.02], wood, [-0.08, -0.4, 0.2]);
 

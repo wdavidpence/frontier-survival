@@ -31,9 +31,9 @@ export function terrainVisibilityPlan(renderDistance, { chunkSize = 16 } = {}) {
   const fullBlocks = fullChunks * cs;
   const proxyBlocks = proxyChunks * cs;
 
-  // Push haze out so proxies remain readable before dissolving into sky fog.
-  const fogNear = Math.max(24, Math.round(fullBlocks * 0.55));
-  const fogFar = Math.max(fogNear + 48, Math.round(proxyBlocks * 0.95));
+  // Soft haze: near beach stays crisp, far islands recede. Never collapse to soup.
+  const fogNear = Math.max(28, Math.round(fullBlocks * 0.50));
+  const fogFar = Math.max(fogNear + 52, Math.round(proxyBlocks * 0.84));
   const cameraFar = Math.max(fogFar + 48, proxyBlocks + 64);
 
   return {
@@ -79,8 +79,8 @@ export function fogForSun(plan, sunIntensity = 1) {
   const far = plan.fogFar;
   // Slightly closer haze at night; clear midday still keeps far horizon.
   return {
-    near: Math.max(16, near * (0.72 + sunI * 0.28)),
-    far: Math.max(near + 32, far * (0.82 + sunI * 0.22)),
+    near: Math.max(20, near * (0.74 + sunI * 0.24)),
+    far: Math.max(near + 36, far * (0.78 + sunI * 0.18)),
   };
 }
 

@@ -318,7 +318,7 @@ function coastalGradeHeight(x, z, seed = 0) {
   const raw = heightAt(x, z, seed);
   if (raw < 16) return raw;
   let nearestWater = Infinity;
-  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2], [3, 0], [-3, 0], [0, 3], [0, -3], [4, 0], [-4, 0], [0, 4], [0, -4]]) {
+  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2], [3, 0], [-3, 0], [0, 3], [0, -3], [4, 0], [-4, 0], [0, 4], [0, -4], [5, 0], [-5, 0], [0, 5], [0, -5], [6, 0], [-6, 0], [0, 6], [0, -6]]) {
     if (heightAt(x + dx, z + dz, seed) < 16) nearestWater = Math.min(nearestWater, Math.abs(dx) + Math.abs(dz));
   }
   if (!Number.isFinite(nearestWater)) return raw;

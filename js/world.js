@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=293';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveSightlinePocket, bviDeepWaterAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=317';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveSightlinePocket, bviDeepWaterAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=318';
 import { biomeAt, BIOME } from './biomes.js?v=270';
 import { tileForBlock } from './atlas-core.js?v=289';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=247';
@@ -10,7 +10,7 @@ import {
   terrainVisibilityPlan,
   chunkDetailTier,
   buildTerrainProxyArrays,
-} from './terrain-visibility.js?v=285';
+} from './terrain-visibility.js?v=286';
 import { raycastVoxel } from './interaction-contract.js?v=4';
 import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=5';
 import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=1';
@@ -581,7 +581,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=344';
+    const workerUrl = './js/chunk-worker.js?v=345';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
