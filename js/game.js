@@ -98,6 +98,7 @@ import { getMode } from './modes.js?v=243';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=3';
 import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=3';
 import { createDisposalContext, disposeTree } from './resource-disposal.js?v=2';
+import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=2';
 
 const HARVEST_BASE_SECONDS = 4.2;
 
@@ -439,6 +440,7 @@ export class Game {
     this._crossingState = createCrossingState();
     this._pressureState = createPressureState();
     this._destinationLandmarkPlaced = false;
+    this._arrivalLandmarkGroup = null;
     // Shared, serializable station state; P1/P2 always address these same records.
     this._workshopState = createWorkshopState();
     this._furnaceOpen = null;
@@ -1037,6 +1039,7 @@ export class Game {
     this._resetFishingCast();
     this._boat = null;
     this._syncBoatVisual();
+    this._clearArrivalLandmarkVisual();
     if (this.world) {
       this.scene.remove(this.world.group);
       this.world.dispose?.();
@@ -1212,6 +1215,7 @@ export class Game {
 
     const hasSavedDestination = !!saveData?.destination?.destination || !!saveData?.destination?.position;
     this._ensureDestinationLandmark({ relocateIfTooClose: freshPlayer || !hasSavedDestination });
+    this._buildArrivalLandmarkVisual();
 
     if (this.coopMode && !this.player2 && this.player) {
       this._spawnCoopP2({
@@ -1380,6 +1384,45 @@ export class Game {
       if (!this.world.setBlock(destination.x + dx, destination.y + dy, destination.z + dz, id, { recordEdit: true })) return;
     }
     this._destinationLandmarkPlaced = true;
+  }
+
+  _clearArrivalLandmarkVisual() {
+    if (!this._arrivalLandmarkGroup) return;
+    this.scene.remove(this._arrivalLandmarkGroup);
+    disposeTree(this._arrivalLandmarkGroup, {
+      context: createDisposalContext(),
+      clearChildren: true,
+      disposeMaterials: true,
+    });
+    this._arrivalLandmarkGroup = null;
+  }
+
+  _findArrivalSignalPosition() {
+    if (!this._spawnPos || !this.player) return null;
+    const yaw = Number.isFinite(this.player.yaw) ? this.player.yaw : 0;
+    // Search the forward cove sightline for a safe elevated land patch. The
+    // visual signal is deliberately separate from the Iron Ravine interaction
+    // marker, which remains at the serialized destination coordinates.
+    for (let distance = 20; distance <= 34; distance += 2) {
+      for (let lateral = -8; lateral <= 8; lateral += 4) {
+        const x = Math.round(this._spawnPos.x - Math.sin(yaw) * distance + Math.cos(yaw) * lateral);
+        const z = Math.round(this._spawnPos.z - Math.cos(yaw) * distance - Math.sin(yaw) * lateral);
+        const h = Math.floor(heightAt(x, z, this.seed));
+        if (!Number.isFinite(h) || h < SEA_LEVEL + 1 || h > WORLD_HEIGHT - 7) continue;
+        return { x, y: h + 1, z };
+      }
+    }
+    return null;
+  }
+
+  _buildArrivalLandmarkVisual() {
+    const destination = this._destinationState?.destination;
+    if (!destination || !this.scene) return;
+    this._clearArrivalLandmarkVisual();
+    const signal = this._findArrivalSignalPosition() || destination;
+    this._arrivalLandmarkGroup = createArrivalLandmark(signal);
+    this._arrivalLandmarkGroup.userData.destination = { ...destination };
+    this.scene.add(this._arrivalLandmarkGroup);
   }
 
   _destinationRewardId(id) {
@@ -3988,6 +4031,7 @@ export class Game {
     this.fx.tick(dt);
     this.clouds?.update(dt, this.camera);
     this._lightScanAcc += dt;
+    updateArrivalLandmark(this._arrivalLandmarkGroup, dt);
     if (this._lightScanAcc > 0.5) {
       this._lightScanAcc = 0;
       this._scanLights(false);

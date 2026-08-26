@@ -4564,7 +4564,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals\.js\?v=275/);
   assert.match(game, /animal-visuals\.js\?v=250/);
-  assert.match(main, /game\.js\?v=742/);
+  assert.match(main, /game\.js\?v=744/);
   assert.match(game, /FRIENDLY/);
   assert.match(game, /trust \$\{Math\.round\(ah\.animal\._tame\)\}%/);
   assert.match(game, /this\.fx\.burst\(ah\.animal\.x/);
@@ -5562,7 +5562,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.25.6'), 'HTML must expose v1.25.6');
+  assert.ok(html.includes('v1.25.7'), 'HTML must expose v1.25.7');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5765,6 +5765,18 @@ test('pause save menu wires confirmation and quit-to-title reset', () => {
   assert.match(quitBody, /getElementById\('title-screen'\)\?\.classList\.remove\('hidden'\)/);
   assert.doesNotMatch(quitBody, /clearSaveStorage/);
   assert.strictEqual(html, publicHtml, 'served HTML copies stay identical');
+});
+
+test('Tidewatch arrival landmark is visual-only and lifecycle-wired', () => {
+  const game = fsText('js/game.js');
+  const landmark = fsText('js/arrival-landmark.js');
+  assert.match(game, /createArrivalLandmark/);
+  assert.match(game, /_buildArrivalLandmarkVisual\(\)/);
+  assert.match(game, /updateArrivalLandmark\(this\._arrivalLandmarkGroup, dt\)/);
+  assert.match(game, /_clearArrivalLandmarkVisual\(\)/);
+  assert.match(landmark, /tidewatch-beacon/);
+  assert.match(landmark, /tidewatch-flag/);
+  assert.match(landmark, /export function updateArrivalLandmark/);
 });
 
 test('AAA quality policy and frame budget contracts are wired', () => {
