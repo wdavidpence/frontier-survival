@@ -76,7 +76,7 @@ import { underwaterFogStyle } from './underwater-fog.js?v=245';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=285';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=8';
 import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=316';
-import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=29';
+import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=30';
 import {
   equipmentWarmth,
   equipmentArmor,

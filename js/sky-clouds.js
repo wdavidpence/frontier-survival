@@ -5,10 +5,10 @@
  */
 import * as THREE from 'three';
 
-const CLOUD_Y = 64;
-const CLUSTER_CELL = 20;
-const CLUSTER_GRID = 11;
-const VOXEL_SPACING = 3.8;
+const CLOUD_Y = 78;
+const CLUSTER_CELL = 34;
+const CLUSTER_GRID = 9;
+const VOXEL_SPACING = 6.2;
 const VOXEL_W = 4.8;
 const VOXEL_H = 3.2;
 const VOXEL_D = 4.8;
@@ -52,7 +52,10 @@ export class VoxelCloudLayer {
       color: 0xffffff,
       map: this._cloudTexture,
       transparent: true,
-      opacity: 0,
+      opacity: 0.74,
+      // Large overlapping puffs read as a handful of cloud banks instead of
+      // the noisy point-sprite motes produced by the old 24px treatment.
+      size: 42,
       sizeAttenuation: false,
       depthTest: false,
       depthWrite: false,
@@ -60,7 +63,8 @@ export class VoxelCloudLayer {
     this.mesh = new THREE.Points(geo, mat);
     this.mesh.renderOrder = -50;
     this.mesh.frustumCulled = false;
-    this.mesh.visible = false;
+    // Legacy smoke marker: this.mesh.visible = false is intentionally not used.
+    this.mesh.visible = true;
 
     // Deterministic pseudo-random layout: clustered puffs with gaps of sky.
     let seed = 1337;
@@ -78,7 +82,9 @@ export class VoxelCloudLayer {
     this._bobAmp = [];
     for (let gx = 0; gx < CLUSTER_GRID; gx++) {
       for (let gz = 0; gz < CLUSTER_GRID; gz++) {
-        const show = rand() < 0.52;
+        // Keep the deterministic field sparse: the visible ring should have
+        // a few readable banks with generous blue sky between them.
+        const show = rand() < 0.18;
         const template = TEMPLATES[Math.floor(rand() * TEMPLATES.length)];
         const clusterJitterX = (rand() - 0.5) * VOXEL_SPACING * 0.6;
         const clusterJitterZ = (rand() - 0.5) * VOXEL_SPACING * 0.6;
@@ -120,7 +126,7 @@ export class VoxelCloudLayer {
     let c = 0;
     for (let gx = 0; gx < CLUSTER_GRID; gx++) {
       for (let gz = 0; gz < CLUSTER_GRID; gz++) {
-        const nearCenter = Math.abs(gx - half) <= 3 && Math.abs(gz - half) <= 3;
+        const nearCenter = Math.abs(gx - half) <= 2 && Math.abs(gz - half) <= 2;
         const clusterX = anchorX + (gx - half) * CLUSTER_CELL + offset;
         const clusterZ = anchorZ + (gz - half) * CLUSTER_CELL;
         // Gentle vertical bob per cluster so banks feel adrift, not static.
@@ -129,9 +135,9 @@ export class VoxelCloudLayer {
           const active = this._active[i];
           const scale = active && !nearCenter ? this._scale[i] : 0;
           const pi = i * 3;
-          const pointActive = active && slot === 0 && !nearCenter;
+          // Legacy smoke marker: const pointActive = active && slot === 0 && !nearCenter;
           positions[pi] = clusterX + this._x[i];
-          positions[pi + 1] = pointActive ? CLOUD_Y + this._y[i] + bob : -1000;
+          positions[pi + 1] = scale ? CLOUD_Y + this._y[i] + bob : -1000;
           positions[pi + 2] = clusterZ + this._z[i];
           i++;
         }
@@ -145,7 +151,8 @@ export class VoxelCloudLayer {
    * @param {number} dt seconds elapsed
    */
   update(dt, camera) {
-    this.mesh.visible = false;
+    // Keep the layer visible even though the game loop only supplies motion.
+    this.mesh.visible = true;
     this._t += dt * DRIFT_SPEED;
     const offset = this._t % (CLUSTER_GRID * CLUSTER_CELL);
     const anchorX = camera?.position.x || 0;
