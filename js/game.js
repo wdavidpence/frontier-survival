@@ -97,6 +97,7 @@ import {
 import { getMode } from './modes.js?v=243';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=3';
 import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=3';
+import { createDisposalContext, disposeTree } from './resource-disposal.js?v=2';
 
 const HARVEST_BASE_SECONDS = 4.2;
 
@@ -342,6 +343,7 @@ export class Game {
     this.player = null;
     this.fauna = null;
     this._animalMeshes = new Map();
+    this._animalDisposalContext = createDisposalContext();
     this._mountedAnimalId = null;
     this.input = new Input(canvas);
     this.input.sensitivity = this.settings.sensitivity ?? DEFAULT_SETTINGS.sensitivity;
@@ -1037,11 +1039,7 @@ export class Game {
     this._syncBoatVisual();
     if (this.world) {
       this.scene.remove(this.world.group);
-      // dispose old meshes lightly
-      for (const m of this.world.meshes.values()) {
-        m.geometry?.dispose();
-        m.material?.dispose?.();
-      }
+      this.world.dispose?.();
     }
     this.world = new World({
       seed,
@@ -5157,12 +5155,10 @@ export class Game {
   _clearAnimalMeshes() {
     for (const mesh of this._animalMeshes.values()) {
       this.scene.remove(mesh);
-      mesh.traverse?.((c) => {
-        c.geometry?.dispose?.();
-        if (c.material) {
-          if (Array.isArray(c.material)) c.material.forEach((m) => m.dispose?.());
-          else c.material.dispose?.();
-        }
+      disposeTree(mesh, {
+        context: this._animalDisposalContext,
+        clearChildren: true,
+        disposeMaterials: true,
       });
     }
     this._animalMeshes.clear();

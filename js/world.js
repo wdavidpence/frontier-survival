@@ -14,6 +14,7 @@ import {
 import { raycastVoxel } from './interaction-contract.js?v=4';
 import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=5';
 import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=1';
+import { createDisposalContext, disposeGeometry, disposeTree } from './resource-disposal.js?v=2';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -535,9 +536,16 @@ export class World {
     this._streamCenter = { cx: 0, cz: 0 };
     this._streamQueue = [];
     this._streamQueued = new Set();
-    // Chunk generation/meshing is synchronous in the fallback path. Keep a
-    // generous per-frame budget so the visible ring catches up before the
-    // player can reach its edge, while still avoiding one huge blocking pass.
+    /** @type {Map<string,{cx:number,cz:number}>} */
+    this._streamPending = new Map();
+    /** @type {{cx:number,cz:number,data:Uint8Array|null}[]} */
+    this._streamReady = [];
+    /** @type {Map<string,{cx:number,cz:number,distance:number,tier:'full'|'lod'|'proxy'}>} */
+    this._streamDesired = new Map();
+    this._disposalContext = createDisposalContext();
+    // Worker-backed voxel jobs drain off-thread. The fallback path still
+    // materializes synchronously, so keep a generous per-frame budget so the
+    // visible ring catches up before the player can reach its edge.
     this.streamBudget = 16;
     this.chunks = new Map();
     this.meshes = new Map();
@@ -880,6 +888,26 @@ export class World {
       try { w.terminate(); } catch {}
     }
     this._workerPool = [];
+    this._workerReady = false;
+    this._streamPending.clear();
+    this._streamReady.length = 0;
+  }
+
+  /** Dispose worker pool and release owned world geometry safely. */
+  dispose() {
+    this.disposeWorkers();
+    disposeTree(this.group, {
+      context: this._disposalContext,
+      clearChildren: true,
+      disposeMaterials: false,
+    });
+    this.meshes.clear();
+    this.meshTiers.clear();
+    this.chunks.clear();
+    this.dirty.clear();
+    this.edits.clear();
+    this._streamQueue.length = 0;
+    this._streamQueued.clear();
   }
 
   key(cx, cz) {
@@ -996,6 +1024,12 @@ export class World {
       }
     }
 
+    this._streamDesired = desired;
+
+    let generated = 0;
+    const budget = Math.max(1, this.streamBudget | 0);
+    generated += this._drainStreamReady(desired, plan, budget);
+
     for (const [k, want] of desired) {
       const have = this.meshTiers.get(k);
       const needsVoxel = want.tier === 'full' || want.tier === 'lod';
@@ -1004,7 +1038,12 @@ export class World {
         !have ||
         have !== want.tier ||
         (needsVoxel && !this.chunks.has(k));
-      if (!needsWork || this._streamQueued.has(k)) continue;
+      if (
+        !needsWork ||
+        this._streamQueued.has(k) ||
+        this._streamPending.has(k) ||
+        this._streamReadyHas(k)
+      ) continue;
       this._streamQueued.add(k);
       this._streamQueue.push({ ...want, key: k });
     }
@@ -1013,14 +1052,18 @@ export class World {
     // remains in the same chunk (signature early-return used to starve the queue).
     const rank = (t) => this._tierRank(t);
     this._streamQueue.sort((a, b) => a.distance - b.distance || rank(b.tier) - rank(a.tier));
-    let generated = 0;
-    const budget = Math.max(1, this.streamBudget | 0);
     while (this._streamQueue.length && generated < budget) {
       const next = this._streamQueue.shift();
       const k = next.key || this.key(next.cx, next.cz);
       this._streamQueued.delete(k);
       const want = desired.get(k);
       if (!want) continue;
+      const needsVoxel = want.tier === 'full' || want.tier === 'lod';
+      if (needsVoxel && !this.chunks.has(k) && this._canUseChunkWorkers()) {
+        this._enqueueStreamChunkJob(want.cx, want.cz);
+        generated++;
+        continue;
+      }
       this._materializeChunk(want.cx, want.cz, want.tier, plan);
       generated++;
     }
@@ -1037,7 +1080,7 @@ export class World {
         }
         continue;
       }
-      mesh.geometry?.dispose();
+      disposeGeometry(mesh.geometry, this._disposalContext);
       this.group.remove(mesh);
       this.meshes.delete(k);
       this.meshTiers.delete(k);
@@ -1055,6 +1098,63 @@ export class World {
       lodChunks: plan.lodChunks,
       proxyChunks: plan.proxyChunks,
     };
+  }
+
+  _canUseChunkWorkers() {
+    this._ensureWorkers();
+    return !!(this._workerReady && this._workerPool.length);
+  }
+
+  _streamReadyHas(k) {
+    return this._streamReady.some((item) => this.key(item.cx, item.cz) === k);
+  }
+
+  _enqueueStreamChunkJob(cx, cz) {
+    const k = this.key(cx, cz);
+    if (this._streamPending.has(k) || this.chunks.has(k)) return;
+    this._streamPending.set(k, { cx, cz });
+    this.generateChunkAsync(cx, cz).then(
+      (data) => this._onStreamChunkJobDone(cx, cz, data),
+      () => this._onStreamChunkJobDone(cx, cz, null),
+    );
+  }
+
+  _onStreamChunkJobDone(cx, cz, data) {
+    const k = this.key(cx, cz);
+    if (!this._streamPending.has(k)) return;
+    this._streamPending.delete(k);
+    this._streamReady.push({ cx, cz, data: data || null });
+  }
+
+  _drainStreamReady(desired, plan, budget) {
+    if (!this._streamReady.length || budget <= 0) return 0;
+    const rank = (t) => this._tierRank(t);
+    this._streamReady.sort((a, b) => {
+      const wa = desired.get(this.key(a.cx, a.cz));
+      const wb = desired.get(this.key(b.cx, b.cz));
+      const da = wa?.distance ?? 1e9;
+      const db = wb?.distance ?? 1e9;
+      return da - db || rank(wb?.tier) - rank(wa?.tier);
+    });
+    let n = 0;
+    while (this._streamReady.length && n < budget) {
+      this._commitStreamedChunk(this._streamReady.shift(), desired, plan);
+      n++;
+    }
+    return n;
+  }
+
+  _commitStreamedChunk(item, desired, plan) {
+    if (!item) return;
+    const k = this.key(item.cx, item.cz);
+    const want = desired.get(k) || this._streamDesired.get(k);
+    if (!want) return;
+    if (!this.chunks.has(k) && item.data) {
+      const voxels = item.data instanceof Uint8Array ? item.data : new Uint8Array(item.data);
+      this.chunks.set(k, voxels);
+      this._restoreChunkEdits(item.cx, item.cz);
+    }
+    this._materializeChunk(item.cx, item.cz, want.tier, plan);
   }
 
   /** @param {'full'|'lod'|'proxy'} tier */
@@ -1142,7 +1242,7 @@ export class World {
 
     let mesh = this.meshes.get(k);
     if (mesh) {
-      mesh.geometry.dispose();
+      disposeGeometry(mesh.geometry, this._disposalContext);
       mesh.geometry = geo;
       mesh.material = this.material;
     } else {
@@ -1997,7 +2097,7 @@ export class World {
 
     let mesh = this.meshes.get(k);
     if (mesh) {
-      mesh.geometry.dispose();
+      disposeGeometry(mesh.geometry, this._disposalContext);
       mesh.geometry = geo;
       mesh.material = this.material;
     } else {
