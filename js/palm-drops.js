@@ -1,6 +1,6 @@
 /** Pure palm-leaf harvest rules; deterministic for smoke tests and runtime injection. */
-import { BLOCK } from './blocks.js?v=293';
-import { ITEM } from './items.js?v=253';
+import { BLOCK } from './blocks.js?v=295';
+import { ITEM } from './items.js?v=255';
 
 /**
  * Resolve a palm leaf break into an item drop.

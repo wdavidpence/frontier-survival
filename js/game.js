@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=496';
-import { Player } from './player.js?v=240';
-import { Input } from './input.js?v=412';
-import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=225';
-import { AudioBus } from './audio.js?v=238';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=500';
+import { Player } from './player.js?v=241';
+import { Input } from './input.js?v=413';
+import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=226';
+import { AudioBus } from './audio.js?v=239';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
@@ -12,9 +12,9 @@ import {
   applyDamage,
   formatTemperatureF,
   moveSpeedMultiplier,
-} from './survival.js?v=244';
+} from './survival.js?v=245';
 
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=293';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=295';
 import {
   ITEM,
   propsOf,
@@ -23,9 +23,9 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=253';
-import { iconDataUriForItem } from './item-icons.js?v=23';
-import { resolveBlockDrop, harvestDurationForBlock, workDurationForBlock } from './mine-tier.js?v=223';
+} from './items.js?v=255';
+import { iconDataUriForItem } from './item-icons.js?v=24';
+import { resolveBlockDrop, harvestDurationForBlock, workDurationForBlock } from './mine-tier.js?v=224';
 import {
   FURNACE,
   createWorkshopState,
@@ -38,15 +38,15 @@ import {
   insertStationFuel,
   tickFurnaceStation,
   takeStationOutput,
-} from './workshop-stations.js?v=1';
-import { renderFurnaceUi, bindFurnaceUi } from './furnace-ui.js?v=2';
-import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=220';
-import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=220';
-import { advanceCropGrowth } from './crop-growth.js?v=220';
-import { toggleDoor } from './door-hinge.js?v=220';
-import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=220';
-import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=220';
-import { maceSmashDamage } from './mace-smash.js?v=220';
+} from './workshop-stations.js?v=2';
+import { renderFurnaceUi, bindFurnaceUi } from './furnace-ui.js?v=3';
+import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=221';
+import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=221';
+import { advanceCropGrowth } from './crop-growth.js?v=221';
+import { toggleDoor } from './door-hinge.js?v=221';
+import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=221';
+import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=221';
+import { maceSmashDamage } from './mace-smash.js?v=221';
 import {
   addItems,
   removeItems,
@@ -58,7 +58,7 @@ import {
   emptySlots,
   splitStack,
   swapSlots,
-} from './inventory.js?v=222';
+} from './inventory.js?v=223';
 import {
   visibleRecipes,
   craftRecipe,
@@ -67,16 +67,16 @@ import {
   ingredientSummary,
   recipeProgress,
   nextProgressionRecipe,
-} from './crafting.js?v=420';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=277';
-import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=250';
-import { createBlockAtlas } from './atlas.js?v=318';
-import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=288';
-import { underwaterFogStyle } from './underwater-fog.js?v=245';
-import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=286';
-import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=8';
-import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=318';
-import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=31';
+} from './crafting.js?v=421';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=278';
+import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=251';
+import { createBlockAtlas } from './atlas.js?v=320';
+import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=289';
+import { underwaterFogStyle } from './underwater-fog.js?v=246';
+import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=287';
+import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=9';
+import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=320';
+import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=32';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -86,20 +86,20 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=220';
-import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=220';
+} from './equipment.js?v=221';
+import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=221';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=226';
-import { getMode } from './modes.js?v=243';
-import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=3';
-import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=3';
-import { createDisposalContext, disposeTree } from './resource-disposal.js?v=2';
-import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=2';
-import { createForestThreshold, updateForestThreshold, disposeForestThreshold } from './forest-threshold.js?v=2';
+} from './save.js?v=227';
+import { getMode } from './modes.js?v=244';
+import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=4';
+import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=4';
+import { createDisposalContext, disposeTree } from './resource-disposal.js?v=3';
+import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=3';
+import { createForestThreshold, updateForestThreshold, disposeForestThreshold } from './forest-threshold.js?v=3';
 
 const HARVEST_BASE_SECONDS = 4.2;
 
@@ -109,20 +109,20 @@ import {
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=224';
+} from './settings.js?v=225';
 import {
   emptyAchievements,
   unlockAchievement,
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=221';
-import { tickSpoilage } from './spoilage.js?v=222';
-import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=220';
-import { wearTool, durabilityRatio } from './durability.js?v=223';
-import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=220';
-import { tickLogic, COMPONENT } from './logic.js?v=220';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=270';
+} from './achievements.js?v=222';
+import { tickSpoilage } from './spoilage.js?v=223';
+import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=221';
+import { wearTool, durabilityRatio } from './durability.js?v=224';
+import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=221';
+import { tickLogic, COMPONENT } from './logic.js?v=221';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=272';
 import {
   chestKey,
   getChestSlots,
@@ -133,16 +133,16 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=222';
-import { checkTooltip, show as showTooltip } from './tooltips.js?v=220';
-import { splitViewport } from './viewport-split.js?v=220';
-import { readGamepad } from './input-coop.js?v=261';
-import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=220';
-import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=220';
-import { palmLeafDrop } from './palm-drops.js?v=2';
-import { createBoat, normalizeBoatState, mountBoat, dismountBoat, hasRider, stepBoat, degradeBoat, boatRepairPlan, repairBoat, pushBoat, buoyancyY, riderPosition, boatWaterFootprintClear, BOAT_CONFIG } from './boat-entity.js?v=5';
-import { boatAttachChest, createBoatChest } from './boat-chest.js?v=1';
-import { FISH_SCHOOL_COUNT, schoolFishPose, schoolVisibility } from './fish-school.js?v=2';
+} from './chests.js?v=223';
+import { checkTooltip, show as showTooltip } from './tooltips.js?v=221';
+import { splitViewport } from './viewport-split.js?v=221';
+import { readGamepad } from './input-coop.js?v=262';
+import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=221';
+import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=221';
+import { palmLeafDrop } from './palm-drops.js?v=3';
+import { createBoat, normalizeBoatState, mountBoat, dismountBoat, hasRider, stepBoat, degradeBoat, boatRepairPlan, repairBoat, pushBoat, buoyancyY, riderPosition, boatWaterFootprintClear, BOAT_CONFIG } from './boat-entity.js?v=6';
+import { boatAttachChest, createBoatChest } from './boat-chest.js?v=2';
+import { FISH_SCHOOL_COUNT, schoolFishPose, schoolVisibility } from './fish-school.js?v=3';
 import {
   FISHING_CAST_SECONDS,
   FISHING_CAST_TRAVEL_SECONDS,
@@ -152,7 +152,7 @@ import {
   startCast,
   tickFishing,
   rollFishingCatch,
-} from './fishing-cast.js?v=4';
+} from './fishing-cast.js?v=5';
 import {
   ITEM as DEST_ITEM,
   IRON_RAVINE,
@@ -166,20 +166,20 @@ import {
   returnDestination,
   claimDestinationReward,
   getDestinationHudSummary,
-} from './expedition-destination.js?v=1';
+} from './expedition-destination.js?v=2';
 import {
   createPressureState,
   deserializePressureState,
   triggerPressure,
   securePressure,
   getPressureHudSummary,
-} from './expedition-pressure.js?v=1';
+} from './expedition-pressure.js?v=2';
 import {
   createCrossingState,
   deserializeCrossingState,
   tickCrossing,
   crossingHudSummary,
-} from './expedition-crossing.js?v=1';
+} from './expedition-crossing.js?v=2';
 
 function setItemIcon(element, itemId, name, color, className) {
   element.querySelectorAll('.hb-glyph:not(.slot-icon)').forEach((oldIcon) => oldIcon.remove());
@@ -211,7 +211,7 @@ import {
   castawayObjective,
   createCastawayArrival,
   restoreCastawayArrival,
-} from './castaway-arrival.js?v=5';
+} from './castaway-arrival.js?v=6';
 
 export class Game {
   /**
@@ -2959,7 +2959,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=226').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=227').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -5927,7 +5927,7 @@ export class Game {
     if (this.coopMode && !this._coopRouter) {
       try {
         // Lazy import path already static at top for readGamepad; router from same module via dynamic if needed
-        import(`./input-coop.js?v=261`).then((mod) => {
+        import(`./input-coop.js?v=262`).then((mod) => {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);

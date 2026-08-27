@@ -1,7 +1,7 @@
 /**
  * Chest storage map helpers — pure.
  */
-import { emptySlots, cloneSlots, addItems } from './inventory.js?v=222';
+import { emptySlots, cloneSlots, addItems } from './inventory.js?v=223';
 
 export const CHEST_SIZE = 9;
 

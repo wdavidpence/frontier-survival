@@ -1,4 +1,4 @@
-import { isPrimaryBreakButton, combineBreakHeld, transitionBreakPointer } from './interaction-contract.js?v=4';
+import { isPrimaryBreakButton, combineBreakHeld, transitionBreakPointer } from './interaction-contract.js?v=5';
 
 /** Keyboard + mouse input (Minecraft-style). Bulletproof for browser quirks.
 

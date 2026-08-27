@@ -244,7 +244,7 @@ import {
   firstCraftableRecipe,
   nextProgressionRecipe,
 } from '../js/crafting.js';
-import { FaunaSystem, findStarterEncounterSpawn, meatDropCount, SPECIES, canFeed, tryFeed, hostileSpawnLimit } from '../js/animals.js?v=276';
+import { FaunaSystem, findStarterEncounterSpawn, meatDropCount, SPECIES, canFeed, tryFeed, hostileSpawnLimit } from '../js/animals.js?v=278';
 import { animalPartLayout, animalLimbPose, accentColor } from '../js/animal-visuals.js';
 import { tickLogic, isPowered, COMPONENT } from '../js/logic.js';
 import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
@@ -316,7 +316,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=496/);
+  assert.match(gameSource, /world\.js\?v=500/);
 });
 
 test('BVI fresh spawns prefer the authored launch beach when clear', () => {
@@ -474,11 +474,11 @@ test('heightAt finite', () => {
   assert.ok(h > 0 && h < 48);
 });
 
-test('mushroom dressing is deterministically halved in sync and worker paths', () => {
+test('mushroom dressing is deterministic and sparse in sync and worker paths', () => {
   const gen = fsText('js/gen.js');
   const worker = fsText('js/chunk-worker.js');
-  assert.match(gen, /roll > 0\.9875/);
-  assert.match(worker, /roll > 0\.9875/);
+  assert.match(gen, /roll > 0\.997/);
+  assert.match(worker, /roll > 0\.997/);
   assert.doesNotMatch(gen, /roll > 0\.975/);
   assert.doesNotMatch(worker, /roll > 0\.975/);
   let baseline = 0;
@@ -486,9 +486,9 @@ test('mushroom dressing is deterministically halved in sync and worker paths', (
   for (let i = 0; i < 10000; i++) {
     const roll = hash2(i * 29 + 1884808540 * 7, i * 31 + 1884808540 * 11);
     if (roll > 0.975) baseline++;
-    if (roll > 0.9875) reduced++;
+    if (roll > 0.997) reduced++;
   }
-  assert.ok(reduced > 0 && reduced < baseline && reduced / baseline > 0.35 && reduced / baseline < 0.65);
+  assert.ok(reduced > 0 && reduced < baseline && reduced / baseline < 0.25);
 });
 
 test('snow weather is climate-correct and Game passes context', () => {
@@ -597,7 +597,7 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /float northSound/);
   assert.match(atlas, /float foamBand/);
   assert.match(atlas, /vTile - 5\.0/);
-  assert.match(game, /atlas\.js\?v=318/);
+  assert.match(game, /atlas\.js\?v=320/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -3603,7 +3603,7 @@ test('offshore fishing has boardable skiff and lure-attracted school contracts',
   assert.match(game, /if \(this\._landfallNoticeT <= 0\) this\.player\.notify\(`Entered/);
   assert.match(game, /Landfall reached\. Follow the route inland\./);
   assert.match(audio, /landfall\(\)/);
-  assert.match(game, /import \{ boatAttachChest, createBoatChest \} from '\.\/boat-chest\.js\?v=1'/);
+  assert.match(game, /import \{ boatAttachChest, createBoatChest \} from '\.\/boat-chest\.js\?v=2'/);
   assert.match(game, /boat\.chest = boatAttachChest\(createBoatChest\(false\)\)/);
   assert.match(game, /_openBoatChest\(\)/);
   assert.match(game, /hasChest: !!this\._boat\.chest\?\.hasChest/);
@@ -4587,9 +4587,9 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const main = fsText('js/main.js');
   const visuals = fsText('js/animal-visuals.js');
   const animals = fsText('js/animals.js');
-  assert.match(game, /animals\.js\?v=277/);
-  assert.match(game, /animal-visuals\.js\?v=250/);
-  assert.match(main, /game\.js\?v=746/);
+  assert.match(game, /animals\.js\?v=278/);
+  assert.match(game, /animal-visuals\.js\?v=251/);
+  assert.match(main, /game\.js\?v=750/);
   assert.match(game, /FRIENDLY/);
   assert.match(game, /trust \$\{Math\.round\(ah\.animal\._tame\)\}%/);
   assert.match(game, /this\.fx\.burst\(ah\.animal\.x/);
@@ -5337,7 +5337,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker\.js\?v=345/);
+  assert.match(world, /chunk-worker\.js\?v=346/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
   assert.match(world, /Sparse mangrove-log ribs/);
@@ -5560,7 +5560,7 @@ test('forest understory correction reaches the exact tropical starter route', ()
   assert.ok(heightAt(x, z, seed) > 17, 'probe must be above the sea-level gate');
   assert.ok(hash2(x * 29 + seed * 7, z * 31 + seed * 11) > 0.70, 'probe must pass the visual roll');
   assert.match(world, /new Set\(\[BIOME\.FOREST, BIOME\.TROPICAL, BIOME\.MANGROVE, BIOME\.SHORE\]\)/);
-  assert.match(world, /FOREST_UNDERSTORY_ROLL = 0\.70/);
+  assert.match(world, /FOREST_UNDERSTORY_ROLL = 0\.995/);
 });
 
 test('castaway arrival candidate selection is deterministic and legacy-safe', () => {
@@ -5587,7 +5587,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.25.9'), 'HTML must expose v1.25.9');
+  assert.ok(html.includes('v1.26.0'), 'HTML must expose v1.26.0');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5731,7 +5731,7 @@ test('procedural item icons reach hotbars, inventory, and chest without dropping
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(game.includes("from './item-icons.js?v=23'"));
+  assert.ok(game.includes("from './item-icons.js?v=24'"));
   assert.match(game, /setItemIcon\(el, stack\.id, name, col, ['"]hb-glyph['"]\)/);
   assert.match(game, /el\.tabIndex = 0;/);
   assert.match(game, /setItemIcon\(el, s\.id, name, col, ['"]inv-icon['"]\)/);
@@ -5755,9 +5755,9 @@ test('procedural item icons reach hotbars, inventory, and chest without dropping
 test('durability adapter cache and mining wear remain reachable', () => {
   const game = fsText('js/game.js');
   const durability = fsText('js/durability.js');
-  assert.match(game, /from ['"]\.\/durability\.js\?v=223['"]/);
-  assert.match(durability, /from ['"]\.\/items\.js\?v=253['"]/);
-  assert.match(durability, /from ['"]\.\/tool-tiers\.js\?v=222['"]/);
+  assert.match(game, /from ['"]\.\/durability\.js\?v=224['"]/);
+  assert.match(durability, /from ['"]\.\/items\.js\?v=255['"]/, 'durability must use the current item catalog');
+  assert.match(durability, /from ['"]\.\/tool-tiers\.js\?v=223['"]/);
   assert.match(game.slice(game.indexOf('  _handleMining(dt) {'), game.indexOf('  _handlePlace() {')), /wearTool\(this\.player\.slots, this\.player\.hotbarIndex, 1\)/);
   assert.match(game.slice(game.indexOf('  _handleCoopP2World(dt) {'), game.indexOf('  _spawnCoopP2(spawn) {')), /wearTool\(p\.slots, p\.hotbarIndex, 1\)/);
 });
@@ -5868,6 +5868,22 @@ test('held item catalog uses authored family geometry at the camera seam', () =>
   assert.match(geomSrc, /palm\.material\.depthTest = false/);
   assert.match(geomSrc, /renderOrder = 10/);
   assert.match(geomSrc, /authoredGeometry/);
+});
+
+test('tropical ecology sprint exposes six additions, coconuts, and root foods', () => {
+  const blocks = fsText('js/blocks.js');
+  const items = fsText('js/items.js');
+  const atlasCore = fsText('js/atlas-core.js');
+  const world = fsText('js/world.js');
+  const ecology = fsText('js/tropical-ecology.js');
+  for (const name of ['BROMELIAD', 'HELICONIA', 'TARO', 'PANDANUS', 'PNEUMATOPHORE', 'BANYAN_ROOTS']) assert.match(blocks, new RegExp(`${name}:`));
+  for (const name of ['YUCA', 'YAUTIA', 'NYAME', 'BATATA']) assert.match(items, new RegExp(`${name}:`));
+  assert.match(world, /applyTropicalEcology/);
+  assert.match(world, /BROMELIAD/);
+  assert.match(world, /FOREST_UNDERSTORY_CAP = 1/);
+  assert.match(ecology, /mushroomChance: 0\.003/);
+  assert.match(ecology, /CASSAVA_TUBER/);
+  assert.match(atlasCore, /BROMELIAD: 70/);
 });
 
 if (process.exitCode) process.exit(1);

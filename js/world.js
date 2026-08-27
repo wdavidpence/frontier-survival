@@ -1,20 +1,21 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=293';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveSightlinePocket, bviDeepWaterAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=318';
-import { biomeAt, BIOME } from './biomes.js?v=270';
-import { tileForBlock } from './atlas-core.js?v=289';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=247';
-import { buildMushroomGeometry } from './mushroom-geometry.js?v=2';
-import { buildTorchGeometry } from './torch-geometry.js?v=1';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=295';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveSightlinePocket, bviDeepWaterAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=320';
+import { biomeAt, BIOME } from './biomes.js?v=272';
+import { tileForBlock } from './atlas-core.js?v=291';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=248';
+import { buildMushroomGeometry } from './mushroom-geometry.js?v=3';
+import { buildTorchGeometry } from './torch-geometry.js?v=2';
 import {
   terrainVisibilityPlan,
   chunkDetailTier,
   buildTerrainProxyArrays,
-} from './terrain-visibility.js?v=286';
-import { raycastVoxel } from './interaction-contract.js?v=4';
-import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=5';
-import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=1';
-import { createDisposalContext, disposeGeometry, disposeTree } from './resource-disposal.js?v=2';
+} from './terrain-visibility.js?v=287';
+import { raycastVoxel } from './interaction-contract.js?v=5';
+import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=6';
+import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=2';
+import { createDisposalContext, disposeGeometry, disposeTree } from './resource-disposal.js?v=3';
+import { applyTropicalEcology } from './tropical-ecology.js?v=4';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -79,15 +80,21 @@ const PLANT_FORM = new Map([
   [BLOCK.WILDFLOWER, 'flower'],
   [BLOCK.FERN, 'fern'],
   [BLOCK.LILY_PAD, 'lily'],
+  [BLOCK.BROMELIAD, 'bromeliad'],
+  [BLOCK.HELICONIA, 'heliconia'],
+  [BLOCK.TARO, 'taro'],
+  [BLOCK.PANDANUS, 'pandanus'],
+  [BLOCK.PNEUMATOPHORE, 'pneumatophore'],
+  [BLOCK.BANYAN_ROOTS, 'banyan'],
 ]);
 
 /** Worst-case guard: stop stamping plants once a chunk has this many. */
 const PLANT_BUDGET = 768;
 
 /** Visual-only understory guard: sparse, spaced mushroom silhouettes per chunk. */
-const FOREST_UNDERSTORY_CAP = 6;
-const FOREST_UNDERSTORY_SPACING = 4;
-const FOREST_UNDERSTORY_ROLL = 0.70;
+const FOREST_UNDERSTORY_CAP = 1;
+const FOREST_UNDERSTORY_SPACING = 8;
+const FOREST_UNDERSTORY_ROLL = 0.995;
 
 /**
  * Collect deterministic mushroom-standard understory without editing voxel data.
@@ -169,6 +176,12 @@ const PLANT_SHAPE = {
   flower: { blades: 5, segments: 3, height: [0.44, 0.78], reach: [0.10, 0.24], curve: [0.18, 0.42], width: [0.11, 0.17], lift: 0.02 },
   fern: { blades: 7, segments: 3, height: [0.42, 0.92], reach: [0.18, 0.38], curve: [0.30, 0.62], width: [0.13, 0.21], lift: 0.02 },
   lily: { blades: 3, segments: 2, height: [0.05, 0.12], reach: [0.22, 0.34], curve: [0.02, 0.08], width: [0.24, 0.34], lift: 0.03 },
+  bromeliad: { blades: 7, segments: 3, height: [0.22, 0.46], reach: [0.10, 0.24], curve: [0.16, 0.34], width: [0.13, 0.22], lift: 0.02 },
+  heliconia: { blades: 5, segments: 3, height: [0.46, 0.80], reach: [0.12, 0.28], curve: [0.18, 0.38], width: [0.12, 0.20], lift: 0.02 },
+  taro: { blades: 4, segments: 3, height: [0.42, 0.78], reach: [0.22, 0.38], curve: [0.22, 0.44], width: [0.22, 0.34], lift: 0.02 },
+  pandanus: { blades: 7, segments: 3, height: [0.62, 0.94], reach: [0.22, 0.42], curve: [0.24, 0.48], width: [0.14, 0.22], lift: 0.02 },
+  pneumatophore: { blades: 4, segments: 2, height: [0.20, 0.52], reach: [0.02, 0.08], curve: [0.04, 0.12], width: [0.08, 0.13], lift: 0.01 },
+  banyan: { blades: 4, segments: 3, height: [0.34, 0.72], reach: [0.28, 0.46], curve: [0.70, 0.92], width: [0.10, 0.17], lift: 0.03 },
   seagrass: { blades: 7, segments: 3, height: [0.30, 0.68], reach: [0.16, 0.34], curve: [0.38, 0.70], width: [0.09, 0.15], lift: 0.02 },
   kelp: { blades: 3, segments: 3, height: [0.82, 0.98], reach: [0.08, 0.20], curve: [0.10, 0.28], width: [0.13, 0.20], lift: 0.01 },
 };
@@ -192,6 +205,12 @@ const PLANT_TEXEL = {
   flower: { uMin: 0.25, uMax: 0.75, vBase: 0.28, vTip: 0.72 },
   fern: { uMin: 0.20, uMax: 0.80, vBase: 0.16, vTip: 0.88 },
   lily: { uMin: 0.18, uMax: 0.82, vBase: 0.30, vTip: 0.70 },
+  bromeliad: { uMin: 0.18, uMax: 0.82, vBase: 0.18, vTip: 0.82 },
+  heliconia: { uMin: 0.22, uMax: 0.78, vBase: 0.12, vTip: 0.82 },
+  taro: { uMin: 0.14, uMax: 0.86, vBase: 0.14, vTip: 0.86 },
+  pandanus: { uMin: 0.12, uMax: 0.88, vBase: 0.12, vTip: 0.88 },
+  pneumatophore: { uMin: 0.22, uMax: 0.78, vBase: 0.20, vTip: 0.72 },
+  banyan: { uMin: 0.26, uMax: 0.74, vBase: 0.18, vTip: 0.82 },
   seagrass: { uMin: 0.16, uMax: 0.84, vBase: 0.18, vTip: 0.88 },
   kelp: { uMin: 0.22, uMax: 0.78, vBase: 0.14, vTip: 0.90 },
 };
@@ -589,7 +608,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=345';
+    const workerUrl = './js/chunk-worker.js?v=346';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -631,7 +650,7 @@ export class World {
           return;
         }
         worker.removeEventListener('message', handler);
-        resolve(e.data.data); // Uint8Array (transferred)
+        resolve(applyTropicalEcology(e.data.data, { baseX: cx * CHUNK_SIZE, baseZ: cz * CHUNK_SIZE, seed: this.seed })); // Uint8Array (transferred)
       };
       worker.addEventListener('message', handler);
       worker.postMessage({ cx, cz, seed: this.seed, requestId });
@@ -817,7 +836,7 @@ export class World {
     }
 
     this._carveLavaTubesSync(data, baseX, baseZ);
-    return data;
+    return applyTropicalEcology(data, { baseX, baseZ, seed: this.seed });
   }
 
   /** Synchronous lava tube carving (fallback). */

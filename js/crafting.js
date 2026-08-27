@@ -1,7 +1,7 @@
 /** Crafting recipes — pure data + craft helper */
-import { BLOCK } from './blocks.js?v=293';
-import { ITEM } from './items.js?v=253';
-import { craftWith, countItems } from './inventory.js?v=222';
+import { BLOCK } from './blocks.js?v=295';
+import { ITEM } from './items.js?v=255';
+import { craftWith, countItems } from './inventory.js?v=223';
 
 /**
  * Recipe tiers gate progression by the material they need: 1 = wood tier

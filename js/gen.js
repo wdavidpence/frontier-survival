@@ -1,5 +1,5 @@
 /** Deterministic value noise for terrain */
-import { sandyBeachHeight, isSandyBeachSurface } from './shore-water.js?v=1';
+import { sandyBeachHeight, isSandyBeachSurface } from './shore-water.js?v=2';
 /** Deterministic 2D hash in [0,1). Integer-safe (float mul collapsed to ~0.5 for large coords). */
 export function hash2(x, z) {
   let n = Math.imul(x | 0, 374761393) + Math.imul(z | 0, 668265263);
@@ -329,7 +329,7 @@ export function forestFloorDetail(x, z, seed, biome, height, surfaceId, aboveId)
   if (biome !== 'forest' || height <= GEN_SEA_LEVEL + 1 || aboveId !== 0) return null;
   const roll = hash2(x * 29 + seed * 7, z * 31 + seed * 11);
   if (surfaceId !== 1 && surfaceId !== 2 && surfaceId !== 4) return null;
-  if (roll > 0.9875) return 'mushroom';
+  if (roll > 0.997) return 'mushroom';
   if (roll > 0.93) return 'roots';
   if (roll > 0.84) return 'sticks';
   if (roll > 0.74) return 'damp-soil';

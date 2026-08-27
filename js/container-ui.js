@@ -2,7 +2,7 @@
  * Shared container UI helpers for chest/barrel grids.
  * Rendering is DOM-only; transfer helpers stay deterministic for smoke tests.
  */
-import { addItems, cloneSlots } from './inventory.js?v=254';
+import { addItems, cloneSlots } from './inventory.js?v=255';
 
 export const CONTAINER_SIZE = Object.freeze({ chest: 9, barrel: 27 });
 

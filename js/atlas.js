@@ -11,8 +11,8 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=289';
-import { WATER_WAVE } from './water-material.js?v=1';
+} from './atlas-core.js?v=291';
+import { WATER_WAVE } from './water-material.js?v=2';
 
 export {
   TILE,
@@ -23,7 +23,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=289';
+} from './atlas-core.js?v=291';
 
 function rnd(seed) {
   let s = seed | 0;
@@ -1205,6 +1205,77 @@ function drawLilyPad(ctx, x0, y0) {
   ctx.fillStyle = '#fff0b5'; ctx.fillRect(x0 + 15, y0 + 11, 2, 2);
 }
 
+function drawTropicalRosette(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  const r = rnd(740);
+  const greens = ['#2d7a43', '#4ea052', '#72b85b', '#1f5e3a'];
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const cx = 16 + Math.round(Math.cos(angle) * (4 + (r() * 4)));
+    const cy = 20 + Math.round(Math.sin(angle) * (3 + (r() * 3)));
+    ctx.fillStyle = greens[i % greens.length];
+    ctx.fillRect(x0 + Math.max(1, cx - 3), y0 + Math.max(4, cy - 5), 6, 12);
+    ctx.fillStyle = '#9ed467'; ctx.fillRect(x0 + Math.max(1, cx - 1), y0 + Math.max(4, cy - 6), 2, 6);
+  }
+  ctx.fillStyle = '#e56355'; ctx.fillRect(x0 + 14, y0 + 14, 4, 4);
+  ctx.fillStyle = '#f6c45c'; ctx.fillRect(x0 + 15, y0 + 15, 2, 2);
+}
+
+function drawHeliconia(ctx, x0, y0) {
+  drawTallGrass(ctx, x0, y0);
+  ctx.fillStyle = '#d84c32';
+  for (const [x, y] of [[12, 9], [16, 13], [20, 17]]) {
+    ctx.fillRect(x0 + x, y0 + y, 8, 4);
+    ctx.fillStyle = '#f28a3d'; ctx.fillRect(x0 + x + 2, y0 + y - 2, 5, 2);
+    ctx.fillStyle = '#d84c32';
+  }
+  ctx.fillStyle = '#ffd36a'; ctx.fillRect(x0 + 18, y0 + 14, 2, 2);
+}
+
+function drawTaro(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  const leaves = [[8, 17, -1], [16, 12, 1], [23, 18, 1], [13, 21, -1]];
+  for (const [x, y, side] of leaves) {
+    ctx.fillStyle = '#245f3c';
+    ctx.fillRect(x0 + x - 2, y0 + y, 4, 12);
+    ctx.fillStyle = '#4b9b55';
+    ctx.fillRect(x0 + x + (side < 0 ? -7 : 1), y0 + y - 5, 8, 12);
+    ctx.fillStyle = '#77bd64';
+    ctx.fillRect(x0 + x + (side < 0 ? -5 : 2), y0 + y - 3, 3, 8);
+  }
+  ctx.fillStyle = '#b6dc78'; ctx.fillRect(x0 + 15, y0 + 15, 2, 12);
+}
+
+function drawPandanus(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.fillStyle = '#704b28'; ctx.fillRect(x0 + 14, y0 + 18, 4, 12);
+  ctx.fillStyle = '#b5d66b';
+  for (const [x, y, w, h] of [[3, 10, 15, 3], [14, 4, 15, 3], [17, 16, 13, 3], [1, 21, 14, 3], [9, 7, 3, 20]]) {
+    ctx.fillRect(x0 + x, y0 + y, w, h);
+  }
+  ctx.fillStyle = '#548f45'; ctx.fillRect(x0 + 5, y0 + 28, 22, 2);
+}
+
+function drawPneumatophore(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.fillStyle = '#5f472c';
+  for (const x of [6, 12, 18, 24]) {
+    ctx.fillRect(x0 + x, y0 + 12 + (x % 3), 3, 18 - (x % 4));
+    ctx.fillStyle = '#9a7442'; ctx.fillRect(x0 + x + 1, y0 + 11 + (x % 3), 1, 5);
+    ctx.fillStyle = '#5f472c';
+  }
+  ctx.fillStyle = '#3e5d38'; ctx.fillRect(x0 + 2, y0 + 28, 28, 3);
+}
+
+function drawBanyanRoots(ctx, x0, y0) {
+  ctx.clearRect(x0, y0, TILE_PX, TILE_PX);
+  ctx.strokeStyle = '#744526'; ctx.lineWidth = 4;
+  for (const [sx, ex] of [[3, 14], [11, 20], [20, 29]]) {
+    ctx.beginPath(); ctx.moveTo(x0 + sx, y0 + 29); ctx.lineTo(x0 + 16, y0 + 8); ctx.lineTo(x0 + ex, y0 + 29); ctx.stroke();
+  }
+  ctx.fillStyle = '#a26a3d'; ctx.fillRect(x0 + 14, y0 + 7, 4, 22);
+}
+
 export function createBlockAtlas() {
   const canvas = document.createElement('canvas');
   canvas.width = ATLAS_PX;
@@ -1294,6 +1365,12 @@ export function createBlockAtlas() {
   paint(TILE.WILDFLOWER, drawWildflower);
   paint(TILE.FERN, drawFern);
   paint(TILE.LILY_PAD, drawLilyPad);
+  paint(TILE.BROMELIAD, drawTropicalRosette);
+  paint(TILE.HELICONIA, drawHeliconia);
+  paint(TILE.TARO, drawTaro);
+  paint(TILE.PANDANUS, drawPandanus);
+  paint(TILE.PNEUMATOPHORE, drawPneumatophore);
+  paint(TILE.BANYAN_ROOTS, drawBanyanRoots);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = THREE.NearestFilter;

@@ -68,6 +68,16 @@ export const BLOCK = {
   WILDFLOWER: 65,
   FERN: 66,
   LILY_PAD: 67,
+  BROMELIAD: 68,
+  HELICONIA: 69,
+  TARO: 70,
+  PANDANUS: 71,
+  PNEUMATOPHORE: 72,
+  BANYAN_ROOTS: 73,
+  CASSAVA_TUBER: 74,
+  YAUTIA_CORM: 75,
+  YAM_TUBER: 76,
+  BATATA_TUBER: 77,
 };
 
 /** @type {Record<number, {
@@ -154,6 +164,16 @@ export const BLOCK_PROPS = {
   [BLOCK.WILDFLOWER]: { name: 'Wildflower', solid: false, transparent: true, hardness: 0.08, color: [0.3, 0.68, 0.25], drops: BLOCK.WILDFLOWER, replaceable: true },
   [BLOCK.FERN]: { name: 'Fern', solid: false, transparent: true, hardness: 0.08, color: [0.18, 0.56, 0.22], drops: BLOCK.FERN, replaceable: true },
   [BLOCK.LILY_PAD]: { name: 'Lily Pad', solid: false, transparent: true, hardness: 0.08, color: [0.22, 0.64, 0.25], drops: BLOCK.LILY_PAD, replaceable: true },
+  [BLOCK.BROMELIAD]: { name: 'Bromeliad', solid: false, transparent: true, hardness: 0.08, color: [0.22, 0.62, 0.28], drops: BLOCK.BROMELIAD, replaceable: true },
+  [BLOCK.HELICONIA]: { name: 'Heliconia', solid: false, transparent: true, hardness: 0.08, color: [0.18, 0.58, 0.22], drops: BLOCK.HELICONIA, replaceable: true },
+  [BLOCK.TARO]: { name: 'Taro Leaves', solid: false, transparent: true, hardness: 0.08, color: [0.16, 0.48, 0.22], drops: BLOCK.TARO, replaceable: true },
+  [BLOCK.PANDANUS]: { name: 'Pandanus', solid: false, transparent: true, hardness: 0.08, color: [0.24, 0.58, 0.20], drops: BLOCK.PANDANUS, replaceable: true },
+  [BLOCK.PNEUMATOPHORE]: { name: 'Mangrove Breathing Roots', solid: false, transparent: true, hardness: 0.10, color: [0.34, 0.24, 0.12], drops: BLOCK.PNEUMATOPHORE, replaceable: true },
+  [BLOCK.BANYAN_ROOTS]: { name: 'Banyan Roots', solid: false, transparent: true, hardness: 0.12, color: [0.40, 0.24, 0.12], drops: BLOCK.BANYAN_ROOTS, replaceable: true },
+  [BLOCK.CASSAVA_TUBER]: { name: 'Cassava Soil', solid: true, transparent: false, hardness: 0.55, color: [0.40, 0.28, 0.17], topColor: [0.48, 0.34, 0.20], drops: BLOCK.CASSAVA_TUBER },
+  [BLOCK.YAUTIA_CORM]: { name: 'Yautia Soil', solid: true, transparent: false, hardness: 0.55, color: [0.36, 0.27, 0.18], topColor: [0.44, 0.32, 0.20], drops: BLOCK.YAUTIA_CORM },
+  [BLOCK.YAM_TUBER]: { name: 'Yam Soil', solid: true, transparent: false, hardness: 0.55, color: [0.42, 0.30, 0.18], topColor: [0.50, 0.36, 0.21], drops: BLOCK.YAM_TUBER },
+  [BLOCK.BATATA_TUBER]: { name: 'Batata Soil', solid: true, transparent: false, hardness: 0.55, color: [0.46, 0.29, 0.16], topColor: [0.54, 0.35, 0.19], drops: BLOCK.BATATA_TUBER },
 };
 
 export function isSolid(id) {

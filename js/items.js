@@ -2,7 +2,7 @@
  * Unified item/block IDs for inventory stacks.
  * Blocks: 0–99 (see blocks.js). Items: 100+.
  */
-import { BLOCK, BLOCK_PROPS } from './blocks.js?v=293';
+import { BLOCK, BLOCK_PROPS } from './blocks.js?v=295';
 
 export const ITEM = {
   STICK: 100,
@@ -68,6 +68,14 @@ export const ITEM = {
   WILDFLOWER: 169,
   WOOL: 170,
   SHEARS: 171,
+  YUCA: 172,
+  COOKED_YUCA: 173,
+  YAUTIA: 174,
+  COOKED_YAUTIA: 175,
+  NYAME: 176,
+  COOKED_NYAME: 177,
+  BATATA: 178,
+  COOKED_BATATA: 179,
   WOOD_HOE: 149,
   STONE_HOE: 150,
   IRON_HOE: 151,
@@ -281,7 +289,15 @@ export const ITEM_PROPS = {
   [ITEM.WILDFLOWER]: { name: 'Wildflower', color: [0.92, 0.55, 0.72], maxStack: 64, placeable: true },
   [ITEM.WOOL]: { name: 'Wool', color: [0.88, 0.86, 0.78], maxStack: 32 },
   [ITEM.SHEARS]: { name: 'Shears', color: [0.72, 0.76, 0.84], tool: 'hand', maxStack: 1, durability: 80 },
-};
+  [ITEM.YUCA]: { name: 'Yuca (Cassava)', color: [0.78, 0.64, 0.42], edible: 16, eatDamage: 1, cookable: ITEM.COOKED_YUCA, maxStack: 16 },
+  [ITEM.COOKED_YUCA]: { name: 'Cooked Yuca', color: [0.92, 0.78, 0.50], edible: 34, maxStack: 16 },
+  [ITEM.YAUTIA]: { name: 'Yautia (Malanga)', color: [0.68, 0.54, 0.42], edible: 17, eatDamage: 1, cookable: ITEM.COOKED_YAUTIA, maxStack: 16 },
+  [ITEM.COOKED_YAUTIA]: { name: 'Cooked Yautia', color: [0.82, 0.68, 0.52], edible: 35, maxStack: 16 },
+  [ITEM.NYAME]: { name: 'Ñame (Yam)', color: [0.72, 0.55, 0.32], edible: 18, eatDamage: 1, cookable: ITEM.COOKED_NYAME, maxStack: 16 },
+  [ITEM.COOKED_NYAME]: { name: 'Cooked Ñame', color: [0.88, 0.70, 0.40], edible: 36, maxStack: 16 },
+  [ITEM.BATATA]: { name: 'Batata (Sweet Potato)', color: [0.76, 0.34, 0.22], edible: 20, cookable: ITEM.COOKED_BATATA, maxStack: 16 },
+  [ITEM.COOKED_BATATA]: { name: 'Cooked Batata', color: [0.94, 0.48, 0.26], edible: 38, maxStack: 16 },
+ };
 
 export function propsOf(id) {
   if (id == null) return null;
@@ -372,6 +388,11 @@ export function dropForBlock(blockId) {
   if (blockId === BLOCK.FENCE) return BLOCK.FENCE;
   if (blockId === BLOCK.SNARE) return BLOCK.SNARE;
   if (blockId === BLOCK.PUMPKIN) return ITEM.PUMPKIN;
+  if (blockId === BLOCK.BATATA_TUBER) return ITEM.BATATA;
+  if (blockId === BLOCK.CASSAVA_TUBER) return ITEM.YUCA;
+  if (blockId === BLOCK.YAUTIA_CORM) return ITEM.YAUTIA;
+  if (blockId === BLOCK.YAM_TUBER) return ITEM.NYAME;
+  if (blockId === BLOCK.BROMELIAD || blockId === BLOCK.HELICONIA || blockId === BLOCK.TARO || blockId === BLOCK.PANDANUS || blockId === BLOCK.PNEUMATOPHORE || blockId === BLOCK.BANYAN_ROOTS) return ITEM.PLANT_FIBER;
   if (blockId === BLOCK.COCONUT) return ITEM.COCONUT;
   if (blockId === BLOCK.BAMBOO) return ITEM.BAMBOO;
   if (blockId === BLOCK.WILDFLOWER) return ITEM.WILDFLOWER;

@@ -744,7 +744,7 @@ function generateChunkData(cx, cz, seed) {
       if (biome === 'forest' && h > SEA_LEVEL + 1 && aboveId === BLOCK.AIR) {
         const roll = hash2(x * 29 + seed * 7, z * 31 + seed * 11);
         if (surfaceId === BLOCK.GRASS || surfaceId === BLOCK.DIRT || surfaceId === BLOCK.SAND || surfaceId === BLOCK.MANGROVE_MUD) {
-          if (roll > 0.9875) data[idx(lx, h + 1, lz)] = BLOCK.MUSHROOM;
+          if (roll > 0.997) data[idx(lx, h + 1, lz)] = BLOCK.MUSHROOM;
           else if (roll > 0.93) data[idx(lx, h + 1, lz)] = BLOCK.ROOTS;
           else if (roll > 0.84) data[idx(lx, h + 1, lz)] = BLOCK.STICK_PILE;
           else if (roll > 0.74) data[idx(lx, h, lz)] = BLOCK.DAMP_SOIL;

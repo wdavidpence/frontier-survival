@@ -2,11 +2,11 @@
  * Procedural multi-box creature silhouettes + limb walk/fly poses.
  * Pure (no THREE / DOM). game.js builds Mesh groups from part lists.
  */
-import { alligatorLayout as authoredAlligatorLayout } from './fauna-parts/alligator-silhouette.js?v=1';
-import { crabLayout as authoredCrabLayout } from './fauna-parts/crab-layout.js?v=1';
-import { reefSharkLayout as authoredReefSharkLayout } from './fauna-parts/reef-shark-layout.js?v=1';
-import { seaTurtleLayout as authoredSeaTurtleLayout } from './fauna-parts/turtle-layout.js?v=1';
-import { tropicalFishLayout as authoredTropicalFishLayout } from './fauna-parts/tropical-fish-layout.js?v=1';
+import { alligatorLayout as authoredAlligatorLayout } from './fauna-parts/alligator-silhouette.js?v=2';
+import { crabLayout as authoredCrabLayout } from './fauna-parts/crab-layout.js?v=2';
+import { reefSharkLayout as authoredReefSharkLayout } from './fauna-parts/reef-shark-layout.js?v=2';
+import { seaTurtleLayout as authoredSeaTurtleLayout } from './fauna-parts/turtle-layout.js?v=2';
+import { tropicalFishLayout as authoredTropicalFishLayout } from './fauna-parts/tropical-fish-layout.js?v=2';
 
 export function accentColor(baseRgb, kind) {
   const r = Number(baseRgb?.[0]) || 0.5;

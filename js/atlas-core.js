@@ -1,7 +1,7 @@
 /**
  * Pure atlas tile math — no DOM/Three (unit-testable).
  */
-import { BLOCK } from './blocks.js?v=293';
+import { BLOCK } from './blocks.js?v=295';
 
 export const TILE_PX = 32;
 export const ATLAS_N = 9;
@@ -78,6 +78,16 @@ export const TILE = {
   WILDFLOWER: 67,
   FERN: 68,
   LILY_PAD: 69,
+  BROMELIAD: 70,
+  HELICONIA: 71,
+  TARO: 72,
+  PANDANUS: 73,
+  PNEUMATOPHORE: 74,
+  BANYAN_ROOTS: 75,
+  CASSAVA_TUBER: 76,
+  YAUTIA_CORM: 77,
+  YAM_TUBER: 78,
+  BATATA_TUBER: 79,
 };
 
 /** UV corners: bl, tl, tr, br in atlas space */
@@ -220,6 +230,23 @@ export function tileForBlock(blockId, faceDir) {
       return TILE.WILDFLOWER;
     case BLOCK.FERN:
       return TILE.FERN;
+    case BLOCK.BATATA_TUBER:
+    case BLOCK.YAM_TUBER:
+    case BLOCK.YAUTIA_CORM:
+    case BLOCK.CASSAVA_TUBER:
+      return TILE.DIRT;
+    case BLOCK.BROMELIAD:
+      return TILE.BROMELIAD;
+    case BLOCK.HELICONIA:
+      return TILE.HELICONIA;
+    case BLOCK.TARO:
+      return TILE.TARO;
+    case BLOCK.PANDANUS:
+      return TILE.PANDANUS;
+    case BLOCK.PNEUMATOPHORE:
+      return TILE.PNEUMATOPHORE;
+    case BLOCK.BANYAN_ROOTS:
+      return TILE.BANYAN_ROOTS;
     case BLOCK.LILY_PAD:
       return TILE.LILY_PAD;
     default:

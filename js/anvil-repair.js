@@ -2,8 +2,8 @@
  * Pure anvil repair helper (MC-breadth). Combines two tool stacks' durability.
  * Additive — no world/anvil block required for pure tests.
  */
-import { maxDurability } from './durability.js?v=220';
-import { propsOf } from './items.js?v=253';
+import { maxDurability } from './durability.js?v=221';
+import { propsOf } from './items.js?v=255';
 
 /**
  * @typedef {{ id: number, count: number, dur?: number }} ToolStack

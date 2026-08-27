@@ -11,8 +11,8 @@ import {
   insertInput as furnaceInsertInput,
   tickFurnace,
   takeOutput as furnaceTakeOutput,
-} from './furnace-tick.js?v=232';
-import { fuelValue, smeltRecipe } from './smelting.js?v=220';
+} from './furnace-tick.js?v=233';
+import { fuelValue, smeltRecipe } from './smelting.js?v=221';
 
 export const WORKBENCH = 'workbench';
 export const FURNACE = 'furnace';

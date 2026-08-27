@@ -2,9 +2,9 @@
  * Wildlife simulation — pure movement/AI helpers + manager.
  * Prey flee; predators hunt (worse at night). Meat drops on death.
  */
-import { isSolid, BLOCK } from './blocks.js?v=293';
-import { hash2 } from './gen.js?v=317';
-import { biomeAt, BIOME } from './biomes.js?v=270';
+import { isSolid, BLOCK } from './blocks.js?v=295';
+import { hash2 } from './gen.js?v=320';
+import { biomeAt, BIOME } from './biomes.js?v=272';
 
 export const SPECIES = {
   hare: {

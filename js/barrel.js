@@ -1,4 +1,4 @@
-import { generateId, pickRandomColor } from './utils.js?v=260';
+import { generateId, pickRandomColor } from './utils.js?v=261';
 
 // Keep this optional breadth module loadable in isolation; the main game does
 // not provide the UI framework's BaseComponent global.
