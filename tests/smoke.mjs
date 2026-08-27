@@ -244,7 +244,7 @@ import {
   firstCraftableRecipe,
   nextProgressionRecipe,
 } from '../js/crafting.js';
-import { FaunaSystem, findStarterEncounterSpawn, meatDropCount, SPECIES, canFeed, tryFeed } from '../js/animals.js';
+import { FaunaSystem, findStarterEncounterSpawn, meatDropCount, SPECIES, canFeed, tryFeed, hostileSpawnLimit } from '../js/animals.js?v=276';
 import { animalPartLayout, animalLimbPose, accentColor } from '../js/animal-visuals.js';
 import { tickLogic, isPowered, COMPONENT } from '../js/logic.js';
 import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
@@ -1412,6 +1412,31 @@ test('save roundtrip preserves seed inventory edits', () => {
   const bad = parseSavePayload('{"v":999}');
   assert.ok(!bad.ok);
 });
+
+test('rare wildlife policy: harmless has none and other modes cap hostile species', () => {
+  for (const type of ['wolf', 'boar', 'bear', 'alligator', 'reef_shark']) {
+    assert.equal(hostileSpawnLimit(SPECIES[type], { enabled: false, rare: true }), 0);
+    assert.ok(hostileSpawnLimit(SPECIES[type], { enabled: true, rare: true }) <= 1);
+  }
+  assert.equal(hostileSpawnLimit(SPECIES.hare, { enabled: true, rare: true }), 0);
+
+  const world = {
+    radiusChunks: 4,
+    getBlock() { return 1; },
+  };
+  const harmless = new FaunaSystem(world, 1884808540, { hostileEnabled: false, rareHostiles: true });
+  assert.equal(harmless.animals.filter((a) => SPECIES[a.type]?.hostile).length, 0);
+  harmless.importState([
+    { id: 1, type: 'wolf', x: 40, y: 18, z: 40 },
+    { id: 2, type: 'wolf', x: 44, y: 18, z: 44 },
+  ]);
+  assert.equal(harmless.animals.filter((a) => SPECIES[a.type]?.hostile).length, 0);
+
+  const survival = new FaunaSystem(world, 1884808540, { hostileEnabled: true, rareHostiles: true });
+  assert.ok(survival.animals.filter((a) => SPECIES[a.type]?.hostile).every((a, _, all) =>
+    all.filter((b) => b.type === a.type).length <= 1));
+});
+
 
 test('difficulty modes defined', () => {
   assert.ok(isValidMode('survival'));
@@ -4562,9 +4587,9 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const main = fsText('js/main.js');
   const visuals = fsText('js/animal-visuals.js');
   const animals = fsText('js/animals.js');
-  assert.match(game, /animals\.js\?v=276/);
+  assert.match(game, /animals\.js\?v=277/);
   assert.match(game, /animal-visuals\.js\?v=250/);
-  assert.match(main, /game\.js\?v=745/);
+  assert.match(main, /game\.js\?v=746/);
   assert.match(game, /FRIENDLY/);
   assert.match(game, /trust \$\{Math\.round\(ah\.animal\._tame\)\}%/);
   assert.match(game, /this\.fx\.burst\(ah\.animal\.x/);
@@ -5562,7 +5587,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.25.8'), 'HTML must expose v1.25.8');
+  assert.ok(html.includes('v1.25.9'), 'HTML must expose v1.25.9');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

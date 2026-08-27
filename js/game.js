@@ -68,7 +68,7 @@ import {
   recipeProgress,
   nextProgressionRecipe,
 } from './crafting.js?v=420';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=276';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=277';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=250';
 import { createBlockAtlas } from './atlas.js?v=318';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=288';
@@ -1062,7 +1062,10 @@ export class Game {
     this.scene.add(this.world.group);
 
     this._clearAnimalMeshes();
-    this.fauna = new FaunaSystem(this.world, seed);
+    this.fauna = new FaunaSystem(this.world, seed, {
+      hostileEnabled: this.modeDef().hostilePolicy !== 'off',
+      rareHostiles: true,
+    });
     if (saveData?.animals?.length) {
       this.fauna.importState(saveData.animals);
     }

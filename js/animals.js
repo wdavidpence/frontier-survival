@@ -366,6 +366,12 @@ export function meatDropCount(spec, rng = Math.random) {
   return a + Math.floor(rng() * (b - a + 1));
 }
 
+export function hostileSpawnLimit(spec, { enabled = true, rare = true } = {}) {
+  if (!spec?.hostile || !enabled) return 0;
+  const catalogCount = Math.max(0, spec.count | 0);
+  return rare ? Math.min(1, catalogCount) : catalogCount;
+}
+
 /** Fair Minecraft-like early wolf: readable alert, slow bite, explicit leash. */
 export const WOLF_THREAT = Object.freeze({
   daySense: 8,
@@ -565,9 +571,11 @@ export function resolveWolfThreat(input = {}) {
  * @param {import('./world.js').World} world
  */
 export class FaunaSystem {
-  constructor(world, seed = 1) {
+  constructor(world, seed = 1, { hostileEnabled = true, rareHostiles = true } = {}) {
     this.world = world;
     this.seed = seed;
+    this.hostileEnabled = hostileEnabled !== false;
+    this.rareHostiles = rareHostiles !== false;
     /** @type {Array<object>} */
     this.animals = [];
     this._nextId = 1;
@@ -581,9 +589,12 @@ export class FaunaSystem {
     const r = this.world.radiusChunks * 16 - 4;
     let n = 0;
     for (const spec of Object.values(SPECIES)) {
+      const desiredCount = spec.hostile
+        ? hostileSpawnLimit(spec, { enabled: this.hostileEnabled, rare: this.rareHostiles })
+        : spec.count;
       let placed = 0;
       let attempts = 0;
-      while (placed < spec.count && attempts < spec.count * 12) {
+      while (placed < desiredCount && attempts < Math.max(1, desiredCount * 12)) {
         attempts++;
         const ang = hash2(this.seed + n + attempts, placed * 17 + spec.id.length) * Math.PI * 2;
         // predators prefer outer ring
@@ -1162,9 +1173,14 @@ export class FaunaSystem {
     if (!Array.isArray(list) || !list.length) return;
     this.animals = [];
     let maxId = 1;
+    const importedHostiles = new Set();
     for (const s of list) {
       const spec = this.getSpec(s.type);
       if (!spec) continue;
+      if (spec.hostile) {
+        if (!this.hostileEnabled || (this.rareHostiles && importedHostiles.has(spec.id))) continue;
+        importedHostiles.add(spec.id);
+      }
       const a = this._make(spec, s.x, s.y, s.z);
       a.id = s.id || a.id;
       a.hp = s.hp ?? spec.hp;
