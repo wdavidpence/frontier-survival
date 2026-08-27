@@ -68,7 +68,7 @@ import {
   recipeProgress,
   nextProgressionRecipe,
 } from './crafting.js?v=420';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=275';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=276';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=250';
 import { createBlockAtlas } from './atlas.js?v=318';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=288';
@@ -99,6 +99,7 @@ import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.
 import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=3';
 import { createDisposalContext, disposeTree } from './resource-disposal.js?v=2';
 import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=2';
+import { createForestThreshold, updateForestThreshold, disposeForestThreshold } from './forest-threshold.js?v=2';
 
 const HARVEST_BASE_SECONDS = 4.2;
 
@@ -441,6 +442,7 @@ export class Game {
     this._pressureState = createPressureState();
     this._destinationLandmarkPlaced = false;
     this._arrivalLandmarkGroup = null;
+    this._forestThresholdGroup = null;
     // Shared, serializable station state; P1/P2 always address these same records.
     this._workshopState = createWorkshopState();
     this._furnaceOpen = null;
@@ -1040,6 +1042,7 @@ export class Game {
     this._boat = null;
     this._syncBoatVisual();
     this._clearArrivalLandmarkVisual();
+    this._clearForestThresholdVisual();
     if (this.world) {
       this.scene.remove(this.world.group);
       this.world.dispose?.();
@@ -1216,6 +1219,7 @@ export class Game {
     const hasSavedDestination = !!saveData?.destination?.destination || !!saveData?.destination?.position;
     this._ensureDestinationLandmark({ relocateIfTooClose: freshPlayer || !hasSavedDestination });
     this._buildArrivalLandmarkVisual();
+    this._buildForestThresholdVisual();
 
     if (this.coopMode && !this.player2 && this.player) {
       this._spawnCoopP2({
@@ -1423,6 +1427,41 @@ export class Game {
     this._arrivalLandmarkGroup = createArrivalLandmark(signal);
     this._arrivalLandmarkGroup.userData.destination = { ...destination };
     this.scene.add(this._arrivalLandmarkGroup);
+  }
+
+  _clearForestThresholdVisual() {
+    if (!this._forestThresholdGroup) return;
+    this.scene.remove(this._forestThresholdGroup);
+    disposeForestThreshold(this._forestThresholdGroup);
+    this._forestThresholdGroup = null;
+  }
+
+  _findForestThresholdPosition() {
+    if (!this._spawnPos || !this.player) return null;
+    const yaw = Number.isFinite(this.player.yaw) ? this.player.yaw : 0;
+    for (let distance = 32; distance <= 48; distance += 2) {
+      for (let lateral = -8; lateral <= 8; lateral += 4) {
+        const x = Math.round(this._spawnPos.x - Math.sin(yaw) * distance + Math.cos(yaw) * lateral);
+        const z = Math.round(this._spawnPos.z - Math.cos(yaw) * distance - Math.sin(yaw) * lateral);
+        const h = Math.floor(heightAt(x, z, this.seed));
+        if (!Number.isFinite(h) || h < SEA_LEVEL + 2 || h > WORLD_HEIGHT - 8) continue;
+        return { x, y: h + 1, z };
+      }
+    }
+    return null;
+  }
+
+  _buildForestThresholdVisual() {
+    if (!this.scene || !this.player) return;
+    const position = this._findForestThresholdPosition();
+    if (!position) return;
+    this._clearForestThresholdVisual();
+    this._forestThresholdGroup = createForestThreshold(position, {
+      seed: this.seed,
+      scale: 0.85,
+      enableAnimation: this.graphicsQuality !== 'performance',
+    });
+    this.scene.add(this._forestThresholdGroup);
   }
 
   _destinationRewardId(id) {
@@ -4032,6 +4071,7 @@ export class Game {
     this.clouds?.update(dt, this.camera);
     this._lightScanAcc += dt;
     updateArrivalLandmark(this._arrivalLandmarkGroup, dt);
+    updateForestThreshold(this._forestThresholdGroup, dt);
     if (this._lightScanAcc > 0.5) {
       this._lightScanAcc = 0;
       this._scanLights(false);

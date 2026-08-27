@@ -50,11 +50,11 @@ export const SPECIES = {
     speed: 4.8,
     hostile: true,
     fleeRange: 0,
-    senseRange: 9,
-    nightSense: 18,
+    senseRange: 8,
+    nightSense: 12,
     damage: 10,
     attackRange: 1.4,
-    attackCd: 1.35,
+    attackCd: 1.85,
     meatMin: 1,
     meatMax: 2,
     feedItem: 'raw_meat', // ITEM.RAW_MEAT (hostile — never tameable)
@@ -366,6 +366,201 @@ export function meatDropCount(spec, rng = Math.random) {
   return a + Math.floor(rng() * (b - a + 1));
 }
 
+/** Fair Minecraft-like early wolf: readable alert, slow bite, explicit leash. */
+export const WOLF_THREAT = Object.freeze({
+  daySense: 8,
+  nightSense: 12,
+  alertHold: 0.85,
+  attackWindup: 0.4,
+  attackCd: 1.85,
+  attackRange: 1.4,
+  leashRange: 16,
+  losePad: 4,
+  reengageCd: 1.2,
+  starterSafeRadius: 16,
+  starterEngageCap: 1,
+  alertSpeedMult: 0.32,
+  attackSpeedMult: 0.12,
+  aggroSensePad: 10,
+  attackWhiffPad: 1.4,
+});
+
+function _clampTimer(t) {
+  return Math.max(0, Number.isFinite(t) ? t : 0);
+}
+
+/** Day/night wolf notice radius after senseMult. */
+export function wolfSenseRange(isNight = false, senseMult = 1) {
+  const base = isNight ? WOLF_THREAT.nightSense : WOLF_THREAT.daySense;
+  const mult = Number.isFinite(senseMult) ? senseMult : 1;
+  return base * mult;
+}
+
+/** Recover a telegraph phase from runtime fields or a saved state string. */
+export function inferWolfThreatPhase(animal) {
+  if (!animal) return 'idle';
+  if ((animal.aggro || animal._aggro) && animal.state === 'chase') {
+    if (animal.threatPhase === 'attack') return 'attack';
+    return 'chase';
+  }
+  const phase = animal.threatPhase;
+  if (phase === 'idle' || phase === 'alert' || phase === 'chase' || phase === 'attack') return phase;
+  if (animal.state === 'alert' || animal.state === 'chase' || animal.state === 'attack') return animal.state;
+  return 'idle';
+}
+
+export function wolfThreatAttention(phase) {
+  return phase === 'alert' || phase === 'chase' || phase === 'attack' ? 'alert' : 'idle';
+}
+
+export function wolfThreatMoveState(phase) {
+  if (phase === 'alert' || phase === 'chase' || phase === 'attack') return phase;
+  return 'wander';
+}
+
+/**
+ * Pure wolf telegraph / leash / starter-cap resolver. Does not mutate.
+ * @param {object} input
+ * @returns {{
+ *   phase: 'idle'|'alert'|'chase'|'attack',
+ *   attention: 'idle'|'alert',
+ *   state: 'wander'|'alert'|'chase'|'attack',
+ *   alertT: number,
+ *   windupT: number,
+ *   attackTimer: number,
+ *   reengageT: number,
+ *   dealDamage: boolean,
+ *   setLeash: boolean,
+ *   clearLeash: boolean,
+ *   disengage: boolean,
+ *   speedMult: number,
+ * }}
+ */
+export function resolveWolfThreat(input = {}) {
+  const dt = _clampTimer(input.dt);
+  let phase = input.phase === 'alert' || input.phase === 'chase' || input.phase === 'attack'
+    ? input.phase
+    : 'idle';
+  let alertT = _clampTimer(input.alertT);
+  let windupT = _clampTimer(input.windupT);
+  let attackTimer = _clampTimer(input.attackTimer);
+  let reengageT = Math.max(0, _clampTimer(input.reengageT) - dt);
+  const hasTarget = Number.isFinite(input.dist);
+  const dist = hasTarget ? input.dist : Infinity;
+  const homeDist = Number.isFinite(input.homeDist) ? input.homeDist : 0;
+  const originDist = Number.isFinite(input.originDist) ? input.originDist : Infinity;
+  const playerOriginDist = Number.isFinite(input.playerOriginDist) ? input.playerOriginDist : Infinity;
+  const starterEngaging = Number.isFinite(input.starterEngaging) ? input.starterEngaging : 0;
+  const attackRange = Number.isFinite(input.attackRange) ? input.attackRange : WOLF_THREAT.attackRange;
+  const policy = input.hostilePolicy || 'hunt';
+  const aggro = !!input.aggro;
+  const tamed = !!input.tamed;
+  const calm = !!input.calm;
+  const isNight = !!input.isNight;
+  const senseMult = Number.isFinite(input.senseMult) ? input.senseMult : 1;
+  const damageMult = Number.isFinite(input.damageMult) ? input.damageMult : 1;
+  const legacyInstantAttack = !!input.legacyInstantAttack;
+  const sense = wolfSenseRange(isNight, senseMult);
+  const personal = Math.max(2.1, attackRange * 1.6);
+  const loseDist = sense + (aggro ? 14 : WOLF_THREAT.losePad);
+  const leashLimit = WOLF_THREAT.leashRange + (aggro ? 4 : 0);
+  const disabled = tamed || policy === 'off' || damageMult <= 0 || senseMult <= 0;
+  const inStarter = originDist <= WOLF_THREAT.starterSafeRadius
+    || playerOriginDist <= WOLF_THREAT.starterSafeRadius;
+
+  let want = false;
+  if (!disabled && hasTarget) {
+    if (aggro && dist < sense + WOLF_THREAT.aggroSensePad) want = true;
+    else if (calm || reengageT > 0) want = false;
+    else if (policy === 'provoke') want = false;
+    else if (policy === 'cautious') want = (isNight && dist < sense * 0.38) || dist < personal;
+    else if (policy === 'hunt') want = dist < sense;
+  }
+  if (want && !aggro && phase === 'idle' && inStarter) want = false;
+  if (want && !aggro && phase === 'idle'
+    && playerOriginDist <= WOLF_THREAT.starterSafeRadius
+    && starterEngaging >= WOLF_THREAT.starterEngageCap) {
+    want = false;
+  }
+
+  const lost = !hasTarget || dist > loseDist;
+  const leashedOut = phase !== 'idle' && homeDist > leashLimit;
+  let dealDamage = false;
+  let setLeash = false;
+  let clearLeash = false;
+  let disengage = false;
+
+  if (disabled || lost || leashedOut) {
+    if (phase !== 'idle') {
+      disengage = true;
+      clearLeash = true;
+      if (!disabled) reengageT = Math.max(reengageT, WOLF_THREAT.reengageCd);
+    }
+    phase = 'idle';
+    alertT = 0;
+    windupT = 0;
+    want = false;
+  }
+
+  if (!disabled && (want || (phase !== 'idle' && !lost && !leashedOut))) {
+    if (phase === 'idle') {
+      setLeash = true;
+      if (aggro || legacyInstantAttack) {
+        phase = 'chase';
+        alertT = 0;
+      } else {
+        phase = 'alert';
+        alertT = WOLF_THREAT.alertHold;
+      }
+      windupT = 0;
+    } else if (phase === 'alert') {
+      alertT = Math.max(0, alertT - dt);
+      if (alertT <= 0) phase = 'chase';
+    }
+
+    if (phase === 'chase' && hasTarget && dist <= attackRange && attackTimer <= 0) {
+      if (legacyInstantAttack) {
+        dealDamage = damageMult > 0;
+        attackTimer = WOLF_THREAT.attackCd;
+      } else {
+        phase = 'attack';
+        windupT = WOLF_THREAT.attackWindup;
+      }
+    } else if (phase === 'attack') {
+      windupT = Math.max(0, windupT - dt);
+      if (!hasTarget || dist > attackRange * WOLF_THREAT.attackWhiffPad) {
+        phase = 'chase';
+        windupT = 0;
+      } else if (windupT <= 0) {
+        dealDamage = damageMult > 0;
+        attackTimer = WOLF_THREAT.attackCd;
+        phase = 'chase';
+      }
+    }
+  }
+
+  const speedMult = phase === 'alert'
+    ? WOLF_THREAT.alertSpeedMult
+    : phase === 'attack'
+      ? WOLF_THREAT.attackSpeedMult
+      : 1;
+
+  return {
+    phase,
+    attention: wolfThreatAttention(phase),
+    state: wolfThreatMoveState(phase),
+    alertT,
+    windupT,
+    attackTimer,
+    reengageT,
+    dealDamage,
+    setLeash,
+    clearLeash,
+    disengage,
+    speedMult,
+  };
+}
+
 /**
  * @param {import('./world.js').World} world
  */
@@ -377,6 +572,8 @@ export class FaunaSystem {
     this.animals = [];
     this._nextId = 1;
     this._respawnAcc = 0;
+    this._starterX = 0;
+    this._starterZ = 0;
     this._spawnInitial();
   }
 
@@ -421,6 +618,8 @@ export class FaunaSystem {
 
   /** Ensure one passive route encounter is available around an actual player start. */
   ensureStarterEncounterNear(x = 0, z = 0) {
+    this._starterX = Number.isFinite(x) ? x : 0;
+    this._starterZ = Number.isFinite(z) ? z : 0;
     const hasPassive = this.animals.some((a) => {
       const spec = this.getSpec(a.type);
       return !a.dead && !spec.hostile && Math.hypot(a.x - x, a.z - z) >= STARTER_ENCOUNTER_MIN_RADIUS
@@ -560,8 +759,70 @@ export class FaunaSystem {
         }
       }
       const sense = (isNight && spec.nightSense ? spec.nightSense : spec.senseRange) * senseMult;
+      let wolfDeal = false;
+      let wolfSpeedMult = 1;
 
-      if (spec.hostile) {
+      if (spec.id === 'wolf') {
+        if (a._calmT > 0) a._calmT = Math.max(0, a._calmT - dt);
+        const hadPhase = typeof a.threatPhase === 'string';
+        const phase = inferWolfThreatPhase(a);
+        const originDist = Math.hypot(a.x - this._starterX, a.z - this._starterZ);
+        const playerOriginDist = nearest
+          ? Math.hypot(nearest.x - this._starterX, nearest.z - this._starterZ)
+          : Infinity;
+        let starterEngaging = 0;
+        if (playerOriginDist <= WOLF_THREAT.starterSafeRadius) {
+          for (const other of this.animals) {
+            if (other === a || other.dead || other.type !== 'wolf') continue;
+            const otherPhase = inferWolfThreatPhase(other);
+            if (otherPhase === 'alert' || otherPhase === 'chase' || otherPhase === 'attack') starterEngaging++;
+          }
+        }
+        const leashX = Number.isFinite(a._leashX) ? a._leashX : a.x;
+        const leashZ = Number.isFinite(a._leashZ) ? a._leashZ : a.z;
+        const next = resolveWolfThreat({
+          phase,
+          dist: nearest ? dist : undefined,
+          homeDist: Math.hypot(a.x - leashX, a.z - leashZ),
+          originDist,
+          playerOriginDist,
+          starterEngaging,
+          attackRange: spec.attackRange,
+          hostilePolicy,
+          aggro: !!(a.aggro || a._aggro),
+          tamed: !!a.tamed,
+          calm: (a._calmT || 0) > 0,
+          isNight,
+          senseMult,
+          damageMult,
+          alertT: a._alertT,
+          windupT: a._windupT,
+          attackTimer: a.attackTimer,
+          reengageT: a._wolfReengageT,
+          dt,
+          legacyInstantAttack: !hadPhase && a.state === 'chase',
+        });
+        a.threatPhase = next.phase;
+        a.state = next.state;
+        a.attention = next.attention;
+        a._alertT = next.alertT;
+        a._windupT = next.windupT;
+        a.attackTimer = next.attackTimer;
+        a._wolfReengageT = next.reengageT;
+        if (next.setLeash) {
+          a._leashX = a.x;
+          a._leashZ = a.z;
+        }
+        if (next.clearLeash || next.disengage) {
+          a._leashX = undefined;
+          a._leashZ = undefined;
+          a._chaseTarget = null;
+        }
+        if (next.phase === 'idle') a._chaseTarget = null;
+        else a._chaseTarget = targetId;
+        wolfDeal = next.dealDamage;
+        wolfSpeedMult = next.speedMult;
+      } else if (spec.hostile) {
         const aggro = !!(a.aggro || a._aggro);
         let wantChase = false;
         if (hostilePolicy === 'off' || damageMult <= 0 || senseMult <= 0) {
@@ -605,7 +866,7 @@ export class FaunaSystem {
       // renderer's speed01 signal; flee/chase retain their existing speeds.
       if (a.state === 'flee') {
         a.attention = 'flee';
-      } else if (a.state === 'chase') {
+      } else if (a.state === 'chase' || a.state === 'alert' || a.state === 'attack') {
         a.attention = 'alert';
       } else if (!spec.hostile) {
         if (a.attention === 'flee' || a.attention === 'alert') {
@@ -634,18 +895,27 @@ export class FaunaSystem {
         wishX = dx / len;
         wishZ = dz / len;
         speed *= 1.15;
-      } else if (a.state === 'chase' && nearest) {
+      } else if ((a.state === 'chase' || a.state === 'alert' || a.state === 'attack') && nearest) {
         const dx = px - a.x;
         const dz = pz - a.z;
         const len = Math.hypot(dx, dz) || 1;
         wishX = dx / len;
         wishZ = dz / len;
-        if (isNight) speed *= 1.12;
-        if (dist < spec.attackRange && a.attackTimer <= 0) {
-          const amt = spec.damage * damageMult;
-          if (targetId === 'p2') player2Damage += amt;
-          else playerDamage += amt;
-          a.attackTimer = spec.attackCd;
+        if (spec.id === 'wolf') {
+          speed *= wolfSpeedMult;
+          if (wolfDeal) {
+            const amt = spec.damage * damageMult;
+            if (targetId === 'p2') player2Damage += amt;
+            else playerDamage += amt;
+          }
+        } else {
+          if (isNight) speed *= 1.12;
+          if (dist < spec.attackRange && a.attackTimer <= 0) {
+            const amt = spec.damage * damageMult;
+            if (targetId === 'p2') player2Damage += amt;
+            else playerDamage += amt;
+            a.attackTimer = spec.attackCd;
+          }
         }
       } else {
         // wander

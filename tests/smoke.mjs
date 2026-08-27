@@ -4562,9 +4562,9 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const main = fsText('js/main.js');
   const visuals = fsText('js/animal-visuals.js');
   const animals = fsText('js/animals.js');
-  assert.match(game, /animals\.js\?v=275/);
+  assert.match(game, /animals\.js\?v=276/);
   assert.match(game, /animal-visuals\.js\?v=250/);
-  assert.match(main, /game\.js\?v=744/);
+  assert.match(main, /game\.js\?v=745/);
   assert.match(game, /FRIENDLY/);
   assert.match(game, /trust \$\{Math\.round\(ah\.animal\._tame\)\}%/);
   assert.match(game, /this\.fx\.burst\(ah\.animal\.x/);
@@ -5562,7 +5562,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.25.7'), 'HTML must expose v1.25.7');
+  assert.ok(html.includes('v1.25.8'), 'HTML must expose v1.25.8');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5765,6 +5765,26 @@ test('pause save menu wires confirmation and quit-to-title reset', () => {
   assert.match(quitBody, /getElementById\('title-screen'\)\?\.classList\.remove\('hidden'\)/);
   assert.doesNotMatch(quitBody, /clearSaveStorage/);
   assert.strictEqual(html, publicHtml, 'served HTML copies stay identical');
+});
+
+test('wildlife threats remain grounded, readable, and zombie/pirate-free', () => {
+  const animals = fsText('js/animals.js');
+  assert.match(animals, /export const WOLF_THREAT/);
+  assert.match(animals, /export function resolveWolfThreat/);
+  assert.match(animals, /starterEngageCap/);
+  assert.match(animals, /attackWindup/);
+  assert.doesNotMatch(animals, /zombie|pirate/i);
+});
+
+test('forest threshold is lifecycle-wired into the real game', () => {
+  const game = fsText('js/game.js');
+  const forest = fsText('js/forest-threshold.js');
+  assert.match(game, /createForestThreshold/);
+  assert.match(game, /_buildForestThresholdVisual\(\)/);
+  assert.match(game, /updateForestThreshold\(this\._forestThresholdGroup, dt\)/);
+  assert.match(game, /disposeForestThreshold/);
+  assert.match(forest, /forest-threshold-module/);
+  assert.match(forest, /export function updateForestThreshold/);
 });
 
 test('Tidewatch arrival landmark is visual-only and lifecycle-wired', () => {
