@@ -11,7 +11,7 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=291';
+} from './atlas-core.js?v=292';
 import { WATER_WAVE } from './water-material.js?v=2';
 
 export {
@@ -23,7 +23,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=291';
+} from './atlas-core.js?v=292';
 
 function rnd(seed) {
   let s = seed | 0;
@@ -845,6 +845,22 @@ function drawBricks(ctx, x0, y0) {
   applyMicroTexture(ctx, x0, y0, 3);
 }
 
+function drawCraftingTable(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [135, 78, 34], 0.16, 95, 255, 2);
+  ctx.fillStyle = '#e0a052';
+  ctx.fillRect(x0 + 2, y0 + 2, TILE_PX - 4, 5);
+  ctx.fillStyle = 'rgba(70, 35, 18, 0.72)';
+  ctx.fillRect(x0 + 2, y0 + 9, TILE_PX - 4, 2);
+  ctx.fillRect(x0 + 5, y0 + 15, TILE_PX - 10, 2);
+  ctx.fillRect(x0 + 5, y0 + 22, TILE_PX - 10, 2);
+  ctx.fillStyle = '#8f4f25';
+  ctx.fillRect(x0 + 4, y0 + 27, 5, 5);
+  ctx.fillRect(x0 + 23, y0 + 27, 5, 5);
+  ctx.strokeStyle = 'rgba(255, 205, 112, 0.58)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x0 + 3.5, y0 + 3.5, TILE_PX - 7, TILE_PX - 7);
+}
+
 function drawFurnace(ctx, x0, y0) {
   fillNoise(ctx, x0, y0, [65, 60, 55], 0.2, 88, 255, 2);
   ctx.strokeStyle = '#4a3a2a';
@@ -1371,6 +1387,7 @@ export function createBlockAtlas() {
   paint(TILE.PANDANUS, drawPandanus);
   paint(TILE.PNEUMATOPHORE, drawPneumatophore);
   paint(TILE.BANYAN_ROOTS, drawBanyanRoots);
+  paint(TILE.CRAFTING_TABLE, drawCraftingTable);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = THREE.NearestFilter;
@@ -1456,10 +1473,11 @@ export function createBlockAtlas() {
           * step(tex.r * 1.12, tex.g)
           * step(tex.b * 1.05, tex.g);
         light += vec3(0.025, 0.032, 0.018) * foliage;
-        light = max(light, vec3(0.22, 0.24, 0.28));
+        // Keep shaded tropical terrain readable without flattening the warm key.
+        light = max(light, vec3(0.30, 0.33, 0.38));
         vec3 material = tex.rgb * max(vColor.rgb, vec3(0.28));
         vec3 rgb = material * light;
-        rgb = max(rgb, material * 0.28);
+        rgb = max(rgb, material * 0.36);
         float contact = (1.0 - abs(N.y)) * (1.0 - smoothstep(16.0, 18.2, vWorldPos.y));
         contact += smoothstep(0.78, 0.98, N.y) * (1.0 - ndl) * (1.0 - smoothstep(16.1, 17.8, vWorldPos.y)) * 0.55;
         rgb *= 1.0 - clamp(contact * 0.26, 0.0, 0.28);
@@ -1470,6 +1488,7 @@ export function createBlockAtlas() {
         float whiteBay = exp(-pow((vWorldPos.x + 42.0) / 14.0, 2.0) - pow((vWorldPos.z - 8.0) / 6.0, 2.0));
         float northSound = exp(-pow((vWorldPos.x - 52.0) / 10.0, 2.0) - pow((vWorldPos.z + 2.0) / 5.0, 2.0));
         float cove = max(whiteBay, northSound) * waterFace;
+        float starterCove = exp(-pow((vWorldPos.x - 26.0) / 13.0, 2.0) - pow((vWorldPos.z - 8.0) / 11.0, 2.0)) * waterFace;
         // Shoreline material response: lower sand/damp-soil faces catch a cool
         // tidal stain while the dry upper lip keeps its warm sunlit identity.
         float sandFace = 1.0 - smoothstep(0.5, 1.5, abs(vTile - 4.0));
@@ -1490,6 +1509,13 @@ export function createBlockAtlas() {
         float ripple = 0.5 + 0.5 * sin(waterTime * 1.05 + vWorldPos.x * 0.27 - vWorldPos.z * 0.38);
         rgb += vec3(${WATER_WAVE.tint.join(', ')}) * waterSurface * (0.16 + wave * 0.16);
         rgb += vec3(0.18, 0.28, 0.26) * waterSurface * ripple * 0.08;
+        // The opening cove gets a broad, low-frequency surface response so the
+        // water reads as a shallow place rather than a repeated dark atlas tile.
+        float broadWave = 0.5 + 0.5 * sin(waterTime * 0.65 + vWorldPos.x * 0.11 + vWorldPos.z * 0.07);
+        vec3 coveTint = vec3(0.045, 0.24, 0.30) + vec3(0.015, 0.05, 0.055) * broadWave;
+        rgb = mix(rgb, mix(rgb, coveTint, 0.20), starterCove * waterSurface * 0.86);
+        float coveFoam = 0.5 + 0.5 * sin(vWorldPos.x * 0.62 - vWorldPos.z * 0.48 + waterTime * 1.1);
+        rgb += vec3(0.14, 0.30, 0.30) * starterCove * waterSurface * coveFoam * 0.12;
         float waterSide = waterFace * (1.0 - topFace);
         rgb = mix(rgb, vec3(0.03, 0.13, 0.20), clamp(waterSide * 0.62, 0.0, 0.62));
         rgb = mix(rgb, rgb * vec3(0.52, 0.76, 0.90), clamp(waterSurface * (1.0 - cove) * 0.32, 0.0, 0.32));

@@ -1,6 +1,7 @@
 /** Crafting recipes — pure data + craft helper */
 import { BLOCK } from './blocks.js?v=295';
 import { ITEM } from './items.js?v=255';
+import { CRAFTING_TABLE } from './crafting-table.js?v=1';
 import { craftWith, countItems } from './inventory.js?v=223';
 
 /**
@@ -66,6 +67,15 @@ const ALL_RECIPES = [
       { id: ITEM.COAL, count: 1 },
     ],
     results: [{ id: BLOCK.TORCH, count: 4 }],
+  },
+  {
+    id: 'crafting_table',
+    name: 'Crafting Table',
+    desc: '4 Logs → Crafting Table',
+    category: 'building',
+    tier: 1,
+    ingredients: [{ id: BLOCK.LOG, count: 4 }],
+    results: [{ id: CRAFTING_TABLE, count: 1 }],
   },
   {
     id: 'torch_plank',

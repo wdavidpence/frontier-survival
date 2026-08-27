@@ -261,6 +261,16 @@ function starterCoastBlend(x, z) {
 function starterCoveAt(x, z) {
   return x >= 20 && x <= 31 && z >= 14 && z <= 15;
 }
+function starterCoveChannelAt(x, z) {
+  if (z < -7 || z > 13) return false;
+  const depth = Math.abs((z - 3) / 10);
+  const halfWidth = 11 - depth * 4.5;
+  return Math.abs(x - 26) <= halfWidth;
+}
+function starterCoveEdgeHeightAt(x, z) {
+  if (z < -18 || z >= -7 || Math.abs(x - 26) > 6) return null;
+  return 15 + Math.floor((-z - 7) * 2.1);
+}
 function heightAt(x, z, seed = 0) {
   const sx = x * 0.03 * WORLD_SCALE + seed * 17.1;
   const sz = z * 0.03 * WORLD_SCALE + seed * 9.7;
@@ -305,6 +315,9 @@ function heightAt(x, z, seed = 0) {
   if (beachLanding.influence > 0) y = Math.max(y, 16 + 1);
   if (authoredWetland) y = Math.max(y, 16 + 2);
   if (starterCoveAt(x, z)) y = 16 + 1;
+  if (starterCoveChannelAt(x, z)) y = Math.min(y, 16 - 1);
+  const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
+  if (starterEdgeHeight != null) y = Math.min(y, starterEdgeHeight);
   if (Math.hypot(x, z) < 18 && route.influence <= 0) y = Math.max(y, 16);
   if (Math.hypot(x - 26, z - 22) < 9) y = Math.max(y, 16);
   if (Math.hypot(x - 42, z - 51) < 8) y = Math.max(y, 16 + 2);
@@ -675,7 +688,8 @@ function generateChunkData(cx, cz, seed) {
         if (h + 1 < WORLD_HEIGHT && data[idx(lx, h + 1, lz)] === BLOCK.AIR) data[idx(lx, h + 1, lz)] = BLOCK.STONE;
       }
       const channelBuoy = bviChannelBuoyAt(x, z);
-      if (channelBuoy && h < SEA_LEVEL) {
+      const starterLaunchCorridor = x >= 30 && x <= 46 && z >= 4 && z <= 14;
+      if (channelBuoy && h < SEA_LEVEL && !starterLaunchCorridor) {
         data[idx(lx, SEA_LEVEL, lz)] = BLOCK.LOG;
         data[idx(lx, SEA_LEVEL + 1, lz)] = channelBuoy.id === 'red' ? BLOCK.CORAL : BLOCK.BUSH;
       }

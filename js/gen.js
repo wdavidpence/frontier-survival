@@ -345,6 +345,20 @@ export function starterCoveAt(x, z) {
   return x >= 20 && x <= 31 && z >= 14 && z <= 15;
 }
 
+/** Tapered authored launch channel that keeps the first expedition route open. */
+export function starterCoveChannelAt(x, z) {
+  if (z < -7 || z > 13) return false;
+  const depth = Math.abs((z - 3) / 10);
+  const halfWidth = 11 - depth * 4.5;
+  return Math.abs(x - 26) <= halfWidth;
+}
+
+/** Bounded stepped shore edge that grades the channel into the natural island. */
+export function starterCoveEdgeHeightAt(x, z) {
+  if (z < -18 || z >= -7 || Math.abs(x - 26) > 6) return null;
+  return 15 + Math.floor((-z - 7) * 2.1);
+}
+
 export function starterCoveSightlinePocket(x, z, biome) {
   return (biome === 'shore' || biome === 'tropical' || biome === 'ocean' || biome === 'mangrove' || !biome)
     && x >= 20 && x <= 28 && z >= 12 && z <= 16;
@@ -399,6 +413,9 @@ export function heightAt(x, z, seed = 0) {
   if (beachLanding.influence > 0) y = Math.max(y, GEN_SEA_LEVEL + 1);
   if (authoredWetland) y = Math.max(y, GEN_SEA_LEVEL + 2);
   if (starterCoveAt(x, z)) y = GEN_SEA_LEVEL + 1;
+  if (starterCoveChannelAt(x, z)) y = Math.min(y, GEN_SEA_LEVEL - 1);
+  const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
+  if (starterEdgeHeight != null) y = Math.min(y, starterEdgeHeight);
   // Safe, buildable starter island and the existing authored shore destination.
   if (Math.hypot(x, z) < 18 && route.influence <= 0) y = Math.max(y, GEN_SEA_LEVEL);
   if (Math.hypot(x - 26, z - 22) < 9) y = Math.max(y, GEN_SEA_LEVEL);

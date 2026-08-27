@@ -2,6 +2,7 @@
  * Pure atlas tile math — no DOM/Three (unit-testable).
  */
 import { BLOCK } from './blocks.js?v=295';
+import { CRAFTING_TABLE } from './crafting-table.js?v=1';
 
 export const TILE_PX = 32;
 export const ATLAS_N = 9;
@@ -88,6 +89,7 @@ export const TILE = {
   YAUTIA_CORM: 77,
   YAM_TUBER: 78,
   BATATA_TUBER: 79,
+  CRAFTING_TABLE: 80,
 };
 
 /** UV corners: bl, tl, tr, br in atlas space */
@@ -247,6 +249,8 @@ export function tileForBlock(blockId, faceDir) {
       return TILE.PNEUMATOPHORE;
     case BLOCK.BANYAN_ROOTS:
       return TILE.BANYAN_ROOTS;
+    case CRAFTING_TABLE:
+      return TILE.CRAFTING_TABLE;
     case BLOCK.LILY_PAD:
       return TILE.LILY_PAD;
     default:

@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=295';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveSightlinePocket, bviDeepWaterAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=320';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=323';
 import { biomeAt, BIOME } from './biomes.js?v=272';
-import { tileForBlock } from './atlas-core.js?v=291';
+import { tileForBlock } from './atlas-core.js?v=292';
+import { CRAFTING_TABLE } from './crafting-table.js?v=1';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=248';
 import { buildMushroomGeometry } from './mushroom-geometry.js?v=3';
 import { buildTorchGeometry } from './torch-geometry.js?v=2';
@@ -608,7 +609,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=346';
+    const workerUrl = './js/chunk-worker.js?v=349';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -671,13 +672,26 @@ export class World {
         const biome = biomeAt(x, z, this.seed);
         const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
         const starterCove = starterCoveAt(x, z);
+        const starterChannel = starterCoveChannelAt(x, z);
+        const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
         const starterCoveSightline = starterCoveSightlinePocket(x, z, biome);
         const deepWater = bviDeepWaterAt(x, z);
-        const baseHeight = starterCove ? SEA_LEVEL + 1 : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
-          ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, this.seed);
+        const baseHeight = starterCove
+          ? SEA_LEVEL + 1
+          : starterChannel
+            ? SEA_LEVEL - 1
+            : starterEdgeHeight != null
+              ? starterEdgeHeight
+              : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+                ? SEA_LEVEL - 1
+                : coastalGradeHeight(x, z, this.seed);
         const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
         const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
-        const h = starterCove ? SEA_LEVEL + 1 : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
+        const h = starterCove
+          ? SEA_LEVEL + 1
+          : starterChannel || starterEdgeHeight != null
+            ? baseHeight
+            : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
         const sandySurface = !deepWater && (starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
@@ -729,7 +743,8 @@ export class World {
           if (h + 1 < WORLD_HEIGHT && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) data[this._idx(lx, h + 1, lz)] = BLOCK.STONE;
         }
         const channelBuoy = bviChannelBuoyAt(x, z);
-        if (channelBuoy && h < SEA_LEVEL) {
+        const starterLaunchCorridor = x >= 30 && x <= 46 && z >= 4 && z <= 14;
+        if (channelBuoy && h < SEA_LEVEL && !starterLaunchCorridor) {
           data[this._idx(lx, SEA_LEVEL, lz)] = BLOCK.LOG;
           data[this._idx(lx, SEA_LEVEL + 1, lz)] = channelBuoy.id === 'red' ? BLOCK.CORAL : BLOCK.BUSH;
         }
@@ -1315,13 +1330,26 @@ export class World {
         const biome = biomeAt(x, z, this.seed);
         const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
         const starterCove = starterCoveAt(x, z);
+        const starterChannel = starterCoveChannelAt(x, z);
+        const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
         const starterCoveSightline = starterCoveSightlinePocket(x, z, biome);
         const deepWater = bviDeepWaterAt(x, z);
-        const baseHeight = starterCove ? SEA_LEVEL + 1 : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
-          ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, this.seed);
+        const baseHeight = starterCove
+          ? SEA_LEVEL + 1
+          : starterChannel
+            ? SEA_LEVEL - 1
+            : starterEdgeHeight != null
+              ? starterEdgeHeight
+              : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+                ? SEA_LEVEL - 1
+                : coastalGradeHeight(x, z, this.seed);
         const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
         const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
-        const h = starterCove ? SEA_LEVEL + 1 : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
+        const h = starterCove
+          ? SEA_LEVEL + 1
+          : starterChannel || starterEdgeHeight != null
+            ? baseHeight
+            : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
         const sandySurface = !deepWater && (starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
@@ -1379,7 +1407,8 @@ export class World {
           if (h + 1 < WORLD_HEIGHT && data[this._idx(lx, h + 1, lz)] === BLOCK.AIR) data[this._idx(lx, h + 1, lz)] = BLOCK.STONE;
         }
         const channelBuoy = bviChannelBuoyAt(x, z);
-        if (channelBuoy && h < SEA_LEVEL) {
+        const starterLaunchCorridor = x >= 30 && x <= 46 && z >= 4 && z <= 14;
+        if (channelBuoy && h < SEA_LEVEL && !starterLaunchCorridor) {
           data[this._idx(lx, SEA_LEVEL, lz)] = BLOCK.LOG;
           data[this._idx(lx, SEA_LEVEL + 1, lz)] = channelBuoy.id === 'red' ? BLOCK.CORAL : BLOCK.BUSH;
         }

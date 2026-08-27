@@ -2,6 +2,7 @@
  * Pure crafting-station catalog (MC-breadth). Tags only — no UI/game tick.
  */
 import { BLOCK } from './blocks.js?v=295';
+import { CRAFTING_TABLE } from './crafting-table.js?v=1';
 
 /**
  * @typedef {{ id: string, name: string, blockId: number|null, recipeTags: string[], notes?: string }} Station
@@ -19,9 +20,9 @@ export const STATIONS = [
   {
     id: 'workbench',
     name: 'Workbench',
-    blockId: BLOCK.PLANKS, // placeholder until dedicated bench block exists
+    blockId: CRAFTING_TABLE,
     recipeTags: ['basic', 'tools_wood', 'tools_stone', 'building'],
-    notes: 'Uses planks as interim bench marker; dedicated block follow-up',
+    notes: 'Open the table with F to craft from its 3D work surface.',
   },
   {
     id: 'furnace',

@@ -5,7 +5,7 @@ import { palmLeafDrop } from '../js/palm-drops.js';
 import { createFishingState, startCast, tickFishing, rollFishingCatch, FISHING_CAST_TRAVEL_SECONDS } from '../js/fishing-cast.js';
 import { createBoat, canPlaceBoat, mountBoat, dismountBoat, hasRider, stepBoat, degradeBoat, boatRepairPlan, repairBoat, pushBoat, buoyancyY, riderPosition, boatWaterFootprintClear } from '../js/boat-entity.js';
 import { schoolFishPose, schoolVisibility } from '../js/fish-school.js';
-import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviLocationAt, BVI_TENTH_SCALE, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt, bviDeepWaterAt, starterCoveAt, starterCoveSightlinePocket, villageSitesForSeed, villageColumnAt, villageBlockAt, TORTOLA_VILLAGE_SITES } from '../js/gen.js';
+import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviLocationAt, BVI_TENTH_SCALE, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt, bviDeepWaterAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, villageSitesForSeed, villageColumnAt, villageBlockAt, TORTOLA_VILLAGE_SITES } from '../js/gen.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
 import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
 import { seaTurtleLayout } from '../js/fauna-parts/turtle-layout.js';
@@ -219,8 +219,9 @@ import {
   formatTemperatureF,
   fallDamageFromSpeed,
 } from '../js/survival.js';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js';
-import { ITEM, mineMultiplier, dropForBlock, isPlaceable, propsOf } from '../js/items.js';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js?v=295';
+import { ITEM, mineMultiplier, dropForBlock, isPlaceable, placeBlockId, propsOf } from '../js/items.js';
+import { CRAFTING_TABLE } from '../js/crafting-table.js';
 import {
   createStarterInventory,
   addItems,
@@ -316,7 +317,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=500/);
+  assert.match(gameSource, /world\.js\?v=501/);
 });
 
 test('BVI fresh spawns prefer the authored launch beach when clear', () => {
@@ -597,7 +598,7 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /float northSound/);
   assert.match(atlas, /float foamBand/);
   assert.match(atlas, /vTile - 5\.0/);
-  assert.match(game, /atlas\.js\?v=320/);
+  assert.match(game, /atlas\.js\?v=323/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -640,6 +641,12 @@ test('BVI White Bay has a deterministic sand landing between shelf and island', 
 test('Deep Blue BVI water tiers and sea-level starter cove stay deterministic', () => {
   assert.equal(starterCoveAt(26, 15), true);
   assert.equal(starterCoveAt(26, 13), false, 'launch ramp remains water');
+  assert.equal(starterCoveChannelAt(26, 3), true, 'starter channel remains open');
+  assert.equal(starterCoveChannelAt(26, -9), false, 'channel tapers into natural shore');
+  assert.equal(starterCoveEdgeHeightAt(26, -8), 17, 'channel edge grades up one step');
+  assert.equal(starterCoveEdgeHeightAt(26, -13), 27, 'channel edge stays bounded');
+  assert.equal(starterCoveEdgeHeightAt(26, -19), null, 'channel edge returns to natural terrain');
+  assert.ok(heightAt(26, 3, 1884808540) < 16, 'starter channel is below sea level');
   assert.ok(heightAt(26, 15, 1884808540) >= 17 && heightAt(26, 15, 1884808540) <= 18);
   assert.equal(heightAt(26, 13, 1884808540) < 16, true);
   const deepSamples = [];
@@ -1049,6 +1056,21 @@ test('coal ore drops coal item', () => {
   assert.strictEqual(dropForBlock(BLOCK.COAL_ORE), ITEM.COAL);
   assert.ok(isPlaceable(BLOCK.TORCH));
   assert.ok(!isPlaceable(ITEM.STICK));
+});
+
+test('crafting table is a real craftable placeable building block', () => {
+  assert.equal(BLOCK.CRAFTING_TABLE, CRAFTING_TABLE);
+  assert.equal(BLOCK_PROPS[CRAFTING_TABLE].name, 'Crafting Table');
+  assert.equal(BLOCK_PROPS[CRAFTING_TABLE].solid, true);
+  assert.ok(isPlaceable(CRAFTING_TABLE));
+  assert.equal(placeBlockId(CRAFTING_TABLE), CRAFTING_TABLE);
+  assert.equal(dropForBlock(CRAFTING_TABLE), CRAFTING_TABLE);
+  assert.equal(tileForBlock(CRAFTING_TABLE), TILE.CRAFTING_TABLE);
+  const slots = addItems(createStarterInventory(), BLOCK.LOG, 4).slots;
+  const crafted = craftRecipe(slots, 'crafting_table');
+  assert.equal(crafted.ok, true);
+  assert.equal(countItems(crafted.slots, CRAFTING_TABLE), 1);
+  assert.equal(stationById('workbench').blockId, CRAFTING_TABLE);
 });
 
 test('raw meat cookable and risky', () => {
@@ -3288,7 +3310,7 @@ test('crafting lists shape building recipes', () => {
 test('crafting progression metadata is complete and reachable', () => {
   const categories = new Set(RECIPE_CATEGORIES.map((c) => c.id));
   const tiers = new Set(RECIPE_TIERS.map((t) => t.tier));
-  assert.equal(RECIPES.length, 60);
+  assert.equal(RECIPES.length, 61);
   for (const recipe of RECIPES) {
     assert.ok(categories.has(recipe.category), `${recipe.id} category`);
     assert.ok(tiers.has(recipe.tier), `${recipe.id} tier`);
@@ -4589,7 +4611,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals\.js\?v=278/);
   assert.match(game, /animal-visuals\.js\?v=251/);
-  assert.match(main, /game\.js\?v=750/);
+  assert.match(main, /game\.js\?v=762/);
   assert.match(game, /FRIENDLY/);
   assert.match(game, /trust \$\{Math\.round\(ah\.animal\._tame\)\}%/);
   assert.match(game, /this\.fx\.burst\(ah\.animal\.x/);
@@ -5337,7 +5359,8 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker\.js\?v=346/);
+  assert.match(world, /chunk-worker\.js\?v=349/);
+  assert.match(world, /starterLaunchCorridor/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
   assert.match(world, /Sparse mangrove-log ribs/);
@@ -5583,11 +5606,19 @@ test('castaway arrival candidate selection is deterministic and legacy-safe', ()
   assert.match(world, /findCastawaySpawn\(\)/);
 });
 
+test('fresh arrival camera uses the authored water-facing yaw', () => {
+  const game = fsText('js/game.js');
+  assert.match(
+    game,
+    /this\.player\.yaw = freshPlayer \? \(Number\.isFinite\(arrival\.yaw\) \? arrival\.yaw : 0\.92\)/,
+  );
+});
+
 test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.26.1'), 'HTML must expose v1.26.1');
+  assert.ok(html.includes('v1.26.2'), 'HTML must expose v1.26.2');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5855,7 +5886,15 @@ test('held item catalog uses authored family geometry at the camera seam', () =>
   assert.match(gameSrc, /this\._heldSwingT = Math\.max\(0, this\._heldSwingT -/);
   assert.match(gameSrc, /if \(this\.input\.breakHeld && heldTool && this\._heldSwingT <= 0\)/);
   assert.match(geomSrc, /export function buildHeldItemGeometry/);
-  for (const family of ['pick', 'axe', 'weapon', 'bow']) assert.match(geomSrc, new RegExp(`['"]${family}['"]`));
+  for (const family of ['block', 'pick', 'axe', 'hoe', 'spade', 'weapon', 'shield', 'bow']) assert.match(geomSrc, new RegExp(`['"]${family}['"]`));
+  assert.match(geomSrc, /if \(props\?\.placeable\) return 'block'/);
+  assert.match(geomSrc, /function addShield/);
+  assert.match(geomSrc, /function addHoe/);
+  assert.match(geomSrc, /function addSpade/);
+  assert.match(gameSrc, /family === 'block' \? -1\.25/);
+  assert.match(gameSrc, /family === 'block' \? 0\.52/);
+  assert.match(gameSrc, /family === 'shield' \? 0\.78/);
+  assert.match(gameSrc, /const mobileHeld = !!this\._isMobile/);
   assert.match(geomSrc, /CylinderGeometry/);
   assert.match(geomSrc, /CylinderGeometry\(0\.07, 0\.07, 0\.72, 8\)/);
   assert.match(geomSrc, /CylinderGeometry\(0\.09, 0\.02, 0\.42, 6\)/);

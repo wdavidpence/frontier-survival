@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=500';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=501';
 import { Player } from './player.js?v=241';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=226';
@@ -67,15 +67,16 @@ import {
   ingredientSummary,
   recipeProgress,
   nextProgressionRecipe,
-} from './crafting.js?v=421';
+} from './crafting.js?v=422';
+import { CRAFTING_TABLE } from './crafting-table.js?v=1';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=278';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=251';
-import { createBlockAtlas } from './atlas.js?v=320';
-import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=289';
+import { createBlockAtlas } from './atlas.js?v=323';
+import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=290';
 import { underwaterFogStyle } from './underwater-fog.js?v=246';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=287';
-import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=9';
-import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=320';
+import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=10';
+import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=323';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=32';
 import {
   equipmentWarmth,
@@ -1103,8 +1104,8 @@ export class Game {
       this.player = new Player(spawn, { starterRations: this.modeDef().starterRations });
       // Fresh arrivals open toward the authored channel so the first frame sells
       // the expedition route; saved worlds preserve the player's stored heading.
-      this.player.yaw = freshPlayer ? 0.92 : (Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI));
-      this.player.pitch = freshPlayer ? 0.0 : 0;
+      this.player.yaw = freshPlayer ? (Number.isFinite(arrival.yaw) ? arrival.yaw : 0.92) : (Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI));
+      this.player.pitch = freshPlayer ? 0.06 : 0;
       this.input.lookX = this.player.yaw;
       this.input.lookY = this.player.pitch;
       if (spawn.landmark) {
@@ -2172,9 +2173,14 @@ export class Game {
     if (key !== this._heldItemKey) {
       if (this._heldItemView) this.camera.remove(this._heldItemView);
       this._heldItemView = buildHeldItemGeometry(THREE, family, props?.color);
-      this._heldItemView.position.set(0.5, -0.5, -0.82);
-      this._heldItemView.rotation.set(-0.3, 0.14, -0.34);
-      this._heldItemView.scale.setScalar(0.82);
+      const mobileHeld = !!this._isMobile;
+      this._heldItemView.position.set(
+        mobileHeld ? (family === 'shield' ? 0.18 : family === 'block' ? 0.22 : 0.20) : (family === 'shield' ? 0.55 : family === 'block' ? 0.68 : 0.62),
+        mobileHeld ? -0.54 : (family === 'block' ? -0.64 : -0.6),
+        mobileHeld ? -0.98 : (family === 'block' ? -1.25 : -1.04),
+      );
+      this._heldItemView.rotation.set(family === 'block' ? -0.16 : -0.3, family === 'block' ? 0.30 : 0.14, family === 'block' ? -0.18 : -0.34);
+      this._heldItemView.scale.setScalar(mobileHeld ? (family === 'block' ? 0.46 : family === 'shield' ? 0.62 : 0.56) : (family === 'block' ? 0.52 : family === 'shield' ? 0.78 : 0.68));
       this.camera.add(this._heldItemView);
       this._heldItemKey = key;
     }
@@ -2183,15 +2189,20 @@ export class Game {
     const swayY = Math.cos(this._heldMotionT * 1.35) * 0.006;
     const swingProgress = this._heldSwingT > 0 ? 1 - Math.min(1, this._heldSwingT / 0.26) : 0;
     const swing = Math.sin(swingProgress * Math.PI);
+    const blockHeld = family === 'block';
+    const mobileHeld = !!this._isMobile;
+    const baseX = mobileHeld ? (family === 'shield' ? 0.18 : blockHeld ? 0.22 : 0.20) : (family === 'shield' ? 0.55 : blockHeld ? 0.68 : 0.62);
+    const baseY = mobileHeld ? -0.54 : (blockHeld ? -0.64 : -0.6);
+    const baseZ = mobileHeld ? -0.98 : (blockHeld ? -1.25 : -1.04);
     this._heldItemView.position.set(
-      0.5 + swayX + swing * 0.035,
-      -0.5 + swayY - swing * 0.08,
-      -0.82 + swing * 0.08,
+      baseX + swayX + swing * 0.035,
+      baseY + swayY - swing * 0.08,
+      baseZ + swing * 0.08,
     );
     this._heldItemView.rotation.set(
-      -0.3 - swing * 0.55,
-      0.14 + swayX * 1.5,
-      -0.34 + swayY * 2.4,
+      (blockHeld ? -0.16 : -0.3) - swing * 0.55,
+      (blockHeld ? 0.30 : 0.14) + swayX * 1.5,
+      (blockHeld ? -0.18 : -0.34) + swayY * 2.4,
     );
   }
 
@@ -3504,6 +3515,9 @@ export class Game {
           const hit = this._raycastInteraction(origin, dir, 6);
           if (this._handleDestinationUse(hit, 'p2')) {
             // Destination state is shared; P2 uses the same transition owner path.
+          } else if (hit && hit.id === CRAFTING_TABLE) {
+            this.setInventoryOpen(true, 'p2');
+            this.player2.notify('Crafting table opened.', 1.8);
           } else if (hit && hit.id === BLOCK.FURNACE) {
             const stationId = this._getOrCreateFurnaceStation(hit.x, hit.y, hit.z);
             this._openFurnace(stationId, 'p2');
@@ -4253,6 +4267,9 @@ export class Game {
     if (!text && held?.id === ITEM.BOAT && this._findBoatWaterTarget()) {
       text = 'F — Launch skiff into clear water';
     }
+    if (hit && hit.id === CRAFTING_TABLE) {
+      text = 'F — Use crafting table';
+    }
     if (hit && hit.id === BLOCK.CHEST) {
       const cn = BLOCK_PROPS[hit.id]?.name || '';
       text = `F — Open chest [${cn}]`;
@@ -4717,6 +4734,10 @@ export class Game {
       this._placeT = 0.38;
       this.audio.placeBlock();
       this._showActionCue(`Placed ${displayName(blockId)}`);
+      if (blockId === CRAFTING_TABLE) {
+        this.player.notify('Crafting table placed. Look at it and press F to craft.', 2.4);
+        this._unlock('first_crafting_table');
+      }
       if (blockId === BLOCK.FURNACE) {
         this._getOrCreateFurnaceStation(px, py, pz);
         this.player.notify('Furnace placed. Look and press F to open.', 2.2);
@@ -4934,6 +4955,13 @@ export class Game {
     }
 
     if (this._handleDestinationUse(hit, 'p1')) return;
+
+    // Open crafting table
+    if (hit && hit.id === CRAFTING_TABLE) {
+      this.setInventoryOpen(true, 'p1');
+      this.player.notify('Crafting table opened.', 1.8);
+      return;
+    }
 
     // Open chest
     if (hit && hit.id === BLOCK.CHEST) {

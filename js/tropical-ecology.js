@@ -5,7 +5,7 @@
  */
 import { BLOCK } from './blocks.js?v=295';
 import { biomeAt, BIOME } from './biomes.js?v=272';
-import { hash2 } from './gen.js?v=320';
+import { hash2 } from './gen.js?v=323';
 
 export const TROPICAL_ECOLOGY = Object.freeze({
   mushroomChance: 0.003,
