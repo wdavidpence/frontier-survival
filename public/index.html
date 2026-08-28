@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.26.2</title>
+  <title>Frontier Survival v1.26.4</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -270,6 +270,7 @@
     }
     body.coop-mode #coop-pad-prompt.show { display: block; }
     body.coop-mode #coop-pad-prompt .sub { font-size: 0.72em; color: #9ab; margin-top: 8px; }
+    #coop-pad-prompt strong { display: block; }
 
     body.coop-mode #p1-tag {
       display: block;
@@ -478,6 +479,21 @@
     }
     #destination-hud.hidden { display: none; }
     #destination-hud strong { display: block; color: #9de0ef; letter-spacing: .08em; text-transform: uppercase; }
+    #destination-hud .destination-progress {
+      height: 5px; margin-top: 6px; overflow: hidden;
+      border: 1px solid rgba(157,224,239,0.26); border-radius: 999px;
+      background: rgba(3,12,20,0.58);
+    }
+    #destination-hud [data-destination-progress] {
+      display: block; width: 0%; height: 100%; border-radius: inherit;
+      background: linear-gradient(90deg, #58a8b8, #f1d29c);
+      box-shadow: 0 0 9px rgba(157,224,239,0.34);
+      transition: width .28s ease-out;
+    }
+    #destination-hud [data-destination-progress-label] {
+      display: block; margin-top: 3px; color: #b9d4dc;
+      font-size: 9px; letter-spacing: .04em;
+    }
     #destination-hud [data-destination-next] { display: block; margin-top: 3px; color: #f1d29c; font-size: 10px; letter-spacing: .03em; }
     body.coop-mode #destination-hud { right: 12px; max-width: 30vw; }
     #message {
@@ -1233,6 +1249,13 @@
       transition: transform .18s ease, filter .18s ease, box-shadow .18s ease;
     }
     #title-screen .panel > button:hover { transform: translateY(-1px); filter: brightness(1.08); box-shadow: 0 12px 26px rgba(0,0,0,0.28); }
+    #title-screen .title-actions {
+      position: sticky; bottom: -1px; z-index: 3;
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+      margin: 12px -8px -10px; padding: 10px 8px 2px;
+      background: linear-gradient(180deg, rgba(9,15,23,0), rgba(9,15,23,0.96) 28%);
+    }
+    #title-screen .title-actions > button { margin: 0; }
     #title-screen #btn-start {
       display: block; width: min(350px, 100%); margin: 20px auto 0;
       padding: 14px 24px; border: 1px solid rgba(255,245,218,0.35);
@@ -1255,7 +1278,7 @@
       #hotbar { bottom: 18px; }
     }
     @media (max-width: 620px) {
-      #title-screen { align-items: flex-start; padding: 12px; }
+      #title-screen { align-items: flex-start; padding: 12px; overflow-y: auto; }
       #title-screen .panel { width: 100%; margin: auto 0; padding: 28px 16px 22px; border-radius: 18px; }
       #title-screen .panel::before { top: 17px; right: 19px; width: 32px; height: 32px; }
       #title-screen .panel h1 { font-size: clamp(30px, 10vw, 42px); }
@@ -1610,7 +1633,7 @@
     <div id="crosshair"></div>
     <div id="tooltip-box" class="hidden"></div>
     <div id="status-line">Frontier Survival</div>
-    <div id="destination-hud" class="hidden" role="status" aria-live="polite"><strong>Iron Ravine</strong><span data-destination-status>Find an Iron Pick</span><small data-destination-next>NEXT · Craft an Iron Pick, then return to campfire</small></div>
+    <div id="destination-hud" class="hidden" role="status" aria-live="polite"><strong>Iron Ravine</strong><span data-destination-status>Find an Iron Pick</span><div class="destination-progress" role="progressbar" aria-label="Expedition route progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span data-destination-progress></span></div><small data-destination-progress-label>Route not started</small><small data-destination-next>NEXT · Craft an Iron Pick, then return to campfire</small></div>
     <div id="workshop-hud" class="hidden" role="status" aria-live="polite"><strong>Workshop</strong><span data-workshop-status>Furnace nearby</span></div>
     <div id="spawn-marker" class="hidden"><div class="marker-icon"></div><span class="marker-label">SPAWN</span></div>
     <div id="bleed-tag">Bleeding</div>
@@ -1624,10 +1647,10 @@
     </div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.26.2</div>
+    <div id="version-badge">v1.26.4</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
-    <div id="coop-pad-prompt" aria-live="polite"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
+    <div id="coop-pad-prompt" role="status" aria-live="polite" aria-atomic="true"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
     <div id="crosshair-p2"></div>
     <div id="meters-p2">
       <div class="meter"><span>Health</span><div class="track"><div id="bar-health-p2" class="fill"></div></div></div>
@@ -1712,7 +1735,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.26.2</div>
+      <div class="tag">Browser survival sandbox · v1.26.4</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1733,20 +1756,22 @@
         </div>
       </div>
       <div class="setup-rail">
-        <div id="seed-row">World seed <input id="seed-input" type="text" placeholder="random" maxlength="12" /></div>
+        <div id="seed-row"><label for="seed-input">World seed</label> <input id="seed-input" type="text" placeholder="random" maxlength="12" aria-label="World seed" /></div>
         <div class="sens-row">Mouse sensitivity <span id="title-sens-label">5</span>
-          <br/><input id="title-sens-slider" type="range" min="1" max="10" step="1" value="5" />
+          <br/><input id="title-sens-slider" type="range" min="1" max="10" step="1" value="5" aria-label="Mouse sensitivity" />
         </div>
         <div class="sens-row">Render distance <span id="title-rd-label">8</span>
-          <br/><input id="title-rd-slider" type="range" min="2" max="16" step="1" value="8" />
+          <br/><input id="title-rd-slider" type="range" min="2" max="16" step="1" value="8" aria-label="Render distance" />
         </div>
       </div>
       <p style="font-size:12px;color:#8a8378">Progress auto-saves. Continue resumes seed, builds, inventory, and body state.</p>
-      <button id="btn-continue" type="button" style="display:none">Continue save</button>
-      <button id="btn-start" type="button">Start surviving</button>
-      <button id="btn-new-world" type="button" style="display:none;margin-left:8px;background:linear-gradient(180deg,#8a909a,#5a6068);color:#f0f0f0">New world</button>
-      <button id="btn-instructions" class="setup-link" type="button">TV + PS5 setup</button>
-      <button class="setup-link" type="button" data-open-controls>Controller controls</button>
+      <div class="title-actions">
+        <button id="btn-continue" type="button" style="display:none">Continue save</button>
+        <button id="btn-start" type="button">Start surviving</button>
+        <button id="btn-new-world" type="button" style="display:none;margin-left:8px;background:linear-gradient(180deg,#8a909a,#5a6068);color:#f0f0f0">New world</button>
+        <button id="btn-instructions" class="setup-link" type="button">TV + PS5 setup</button>
+        <button class="setup-link" type="button" data-open-controls>Controller controls</button>
+      </div>
     </div>
   </div>
 
@@ -1823,17 +1848,17 @@
       <h1>Take a breath</h1>
       <p>Mode: <span id="pause-mode">Survival</span></p>
       <div class="sens-row">Mouse sensitivity <span id="sens-label">5</span>
-        <br/><input id="sens-slider" type="range" min="1" max="10" step="1" value="5" />
+        <br/><input id="sens-slider" type="range" min="1" max="10" step="1" value="5" aria-label="Mouse sensitivity" />
       </div>
       <div class="sens-row">Graphics quality
-        <br/><select id="quality-select">
+        <br/><label for="quality-select" class="sr-only">Graphics quality</label><select id="quality-select" aria-label="Graphics quality">
           <option value="performance">Performance</option>
           <option value="balanced">Balanced</option>
           <option value="visual">Visual</option>
         </select>
       </div>
       <div class="sens-row">Render distance <span id="rd-label">5</span>
-        <br/><input id="rd-slider" type="range" min="2" max="16" step="1" value="8" />
+        <br/><input id="rd-slider" type="range" min="2" max="16" step="1" value="8" aria-label="Render distance" />
       </div>
       <button id="btn-resume" type="button">Resume</button>
       <button id="btn-pause-save" type="button" class="secondary">Save now</button>
@@ -1843,6 +1868,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=781"></script>
+  <script type="module" src="./js/main.js?v=783"></script>
 </body>
 </html>

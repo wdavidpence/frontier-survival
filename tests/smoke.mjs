@@ -1,4 +1,5 @@
 import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
+import './platform-polish.mjs';
 import { chooseCastawayCandidate, createCastawayArrival, restoreCastawayArrival, castawayObjective } from '../js/castaway-arrival.js';
 
 import { palmLeafDrop } from '../js/palm-drops.js';
@@ -598,7 +599,7 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /float northSound/);
   assert.match(atlas, /float foamBand/);
   assert.match(atlas, /vTile - 5\.0/);
-  assert.match(game, /atlas\.js\?v=323/);
+  assert.match(game, /atlas\.js\?v=324/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -4611,7 +4612,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals\.js\?v=278/);
   assert.match(game, /animal-visuals\.js\?v=251/);
-  assert.match(main, /game\.js\?v=762/);
+  assert.match(main, /game\.js\?v=764/);
   assert.match(game, /FRIENDLY/);
   assert.match(game, /trust \$\{Math\.round\(ah\.animal\._tame\)\}%/);
   assert.match(game, /this\.fx\.burst\(ah\.animal\.x/);
@@ -5618,7 +5619,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.26.2'), 'HTML must expose v1.26.2');
+  assert.ok(html.includes('v1.26.4'), 'HTML must expose v1.26.4');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

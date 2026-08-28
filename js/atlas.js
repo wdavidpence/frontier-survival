@@ -1296,7 +1296,7 @@ export function createBlockAtlas() {
   const canvas = document.createElement('canvas');
   canvas.width = ATLAS_PX;
   canvas.height = ATLAS_PX;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   ctx.imageSmoothingEnabled = false;
   ctx.clearRect(0, 0, ATLAS_PX, ATLAS_PX);
 

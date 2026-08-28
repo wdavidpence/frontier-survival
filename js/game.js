@@ -71,7 +71,7 @@ import {
 import { CRAFTING_TABLE } from './crafting-table.js?v=1';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=278';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=251';
-import { createBlockAtlas } from './atlas.js?v=323';
+import { createBlockAtlas } from './atlas.js?v=324';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=290';
 import { underwaterFogStyle } from './underwater-fog.js?v=246';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=287';
@@ -434,9 +434,13 @@ export class Game {
     this._heldItemView = null;
     this._heldItemKey = '';
     this._fishSchoolMeshes = [];
+    this._marineSighting = null;
+    this._marineSightingT = 0;
+    this._marineSightingShown = false;
     this._boat = null;
     this._boatMesh = null;
     this._boatClock = 0;
+    this._boatWake = [];
     this._campFuel = new Map(); // "x,y,z" -> fuel 0..100
     this._destinationState = createDestinationState();
     this._crossingState = createCrossingState();
@@ -2257,6 +2261,28 @@ export class Game {
     boat.visible = false;
     this._boatMesh = boat;
     this.scene.add(boat);
+
+    // A tiny pooled wake keeps the first crossing readable without adding
+    // particle allocations or another world mesh per frame.
+    for (let i = 0; i < 3; i++) {
+      const wake = new THREE.Mesh(
+        new THREE.RingGeometry(0.16, 0.3, 18),
+        new THREE.MeshBasicMaterial({
+          color: 0xa9e7e5,
+          transparent: true,
+          opacity: 0,
+          depthTest: false,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          side: THREE.DoubleSide,
+        }),
+      );
+      wake.rotation.x = -Math.PI / 2;
+      wake.visible = false;
+      wake.renderOrder = 4;
+      this.scene.add(wake);
+      this._boatWake.push(wake);
+    }
   }
 
   _syncBoatVisual() {
@@ -2310,21 +2336,85 @@ export class Game {
   }
 
   _updateFishSchoolVisual() {
-    const visible = this._fishTarget && schoolVisibility(this._fishState?.phase);
+    const fishingVisible = this._fishTarget && schoolVisibility(this._fishState?.phase);
+    const marineVisible = !fishingVisible && this._marineSighting && this._marineSightingT > 0;
+    const target = fishingVisible ? this._fishTarget : marineVisible ? this._marineSighting : null;
+    const phase = fishingVisible ? this._fishState?.phase : 'waiting';
+    const clock = fishingVisible ? this._fishClock : this._boatClock;
+    const visible = !!target;
     if (!visible) {
       for (const fish of this._fishSchoolMeshes) fish.visible = false;
       return;
     }
     for (let i = 0; i < this._fishSchoolMeshes.length; i++) {
       const fish = this._fishSchoolMeshes[i];
-      const pose = schoolFishPose(this._fishTarget, this._fishClock, i, this._fishState.phase);
+      const pose = schoolFishPose(target, clock, i, phase);
       fish.visible = true;
       fish.position.set(pose.x, pose.y, pose.z);
       fish.rotation.y = pose.yaw;
-      const pulse = this._fishState.phase === 'bite'
+      const pulse = phase === 'bite'
         ? 1 + Math.max(0, Math.sin(this._fishClock * FISHING_BITE_FLASH_HZ)) * 0.18
         : 1;
       fish.scale.setScalar(pose.scale * pulse);
+    }
+  }
+
+  _updateMarineSighting(speed, dt) {
+    const boat = this._boat;
+    if (!boat?.mounted || speed <= 0.18) {
+      if (!boat?.mounted) {
+        this._marineSighting = null;
+        this._marineSightingT = 0;
+        this._marineSightingShown = false;
+      }
+      return;
+    }
+    if (!this._marineSightingShown) {
+      const yaw = Number(boat.yaw) || 0;
+      const side = (Math.abs(this.seed | 0) & 1) === 0 ? -1 : 1;
+      const ahead = 4.2;
+      const lateral = side * 1.7;
+      this._marineSighting = {
+        x: boat.x - Math.sin(yaw) * ahead + Math.cos(yaw) * lateral,
+        y: boat.y + 0.18,
+        z: boat.z - Math.cos(yaw) * ahead - Math.sin(yaw) * lateral,
+      };
+      this._marineSightingT = 5.5;
+      this._marineSightingShown = true;
+      this.player?.notify('Marine life · reef fish below', 3.2);
+      this.audio?.splash?.() || this.audio?.ui?.();
+    }
+    this._marineSightingT = Math.max(0, this._marineSightingT - Math.max(0, Number(dt) || 0));
+  }
+
+  _updateBoatWake(speed) {
+    const boat = this._boat;
+    const active = !!boat?.mounted && speed > 0.18;
+    if (!active) {
+      for (const wake of this._boatWake) {
+        wake.visible = false;
+        wake.material.opacity = 0;
+      }
+      return;
+    }
+    const yaw = Number(boat.yaw) || 0;
+    const forwardX = -Math.sin(yaw);
+    const forwardZ = -Math.cos(yaw);
+    const rightX = Math.cos(yaw);
+    const rightZ = -Math.sin(yaw);
+    for (let i = 0; i < this._boatWake.length; i++) {
+      const wake = this._boatWake[i];
+      const phase = (this._boatClock * (0.75 + speed * 0.08) + i * 0.72) % 2.2;
+      const trail = 0.9 + phase * 1.05;
+      const spread = (i - 1) * 0.28;
+      wake.visible = true;
+      wake.position.set(
+        boat.x - forwardX * trail + rightX * spread,
+        boat.y - 0.04,
+        boat.z - forwardZ * trail + rightZ * spread,
+      );
+      wake.scale.setScalar(0.7 + phase * 0.42);
+      wake.material.opacity = Math.max(0, 0.3 * (1 - phase / 2.2));
     }
   }
 
@@ -2566,7 +2656,11 @@ export class Game {
   }
 
   _tickBoat(dt) {
-    if (!this._boat) return;
+    if (!this._boat) {
+      this._updateMarineSighting(0, dt);
+      this._updateBoatWake(0);
+      return;
+    }
     this._boatClock += Math.max(0, Number(dt) || 0);
     if (this._boat.mounted) {
       const previousSpeed = Math.hypot(this._boat.vx || 0, this._boat.vz || 0);
@@ -2597,6 +2691,9 @@ export class Game {
     } else {
       this._boatCameraSurge = 0;
     }
+    const boatSpeed = Math.hypot(this._boat.vx || 0, this._boat.vz || 0);
+    this._updateMarineSighting(boatSpeed, dt);
+    this._updateBoatWake(boatSpeed);
     this._crossingState = tickCrossing(this._crossingState, {
       boat: this._boat,
       destination: this._destinationState?.destination,
@@ -6003,8 +6100,24 @@ export class Game {
     if (!relevant) return;
     const title = hud.querySelector('strong');
     const status = hud.querySelector('[data-destination-status]');
+    const progressBar = hud.querySelector('[role="progressbar"]');
+    const progressFill = hud.querySelector('[data-destination-progress]');
+    const progressLabel = hud.querySelector('[data-destination-progress-label]');
     const next = hud.querySelector('[data-destination-next]');
     if (!title || !status || !next) return;
+    const origin = this._spawnPos || this.player.position;
+    const totalDistance = Math.max(1, Math.hypot(origin.x - destination.x, origin.z - destination.z));
+    const progress = Math.max(0, Math.min(100, ((totalDistance - distance) / totalDistance) * 100));
+    const progressValue = state.phase === 'claimed' ? 100 : progress;
+    if (progressFill) progressFill.style.width = `${Math.round(progressValue)}%`;
+    if (progressBar) progressBar.setAttribute('aria-valuenow', String(Math.round(progressValue)));
+    if (progressLabel) {
+      progressLabel.textContent = state.phase === 'unprepared'
+        ? 'Route not started'
+        : state.phase === 'claimed'
+          ? '100% · Expedition complete'
+          : `${Math.round(progressValue)}% route · ${Math.max(0, Math.round(distance))}m remaining`;
+    }
     if (mountedSkiff) {
       const boatSpeed = Math.hypot(this._boat.vx || 0, this._boat.vz || 0);
       const underway = boatSpeed > 0.18;
@@ -6505,5 +6618,17 @@ const hbName = document.getElementById('hotbar-name');
     this.input.unbind();
     this.fx?.dispose?.();
     this.weatherFx?.dispose?.();
-  }
+    for (const wake of this._boatWake) {
+      this.scene.remove(wake);
+      wake.geometry?.dispose?.();
+      wake.material?.dispose?.();
+    }
+    for (const fish of this._fishSchoolMeshes) {
+      this.scene.remove(fish);
+      fish.traverse((child) => {
+        child.geometry?.dispose?.();
+        child.material?.dispose?.();
+      });
+    }
+    }
 }
