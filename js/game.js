@@ -78,7 +78,7 @@ import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=287'
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=10';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
 import { placementState } from './placement-preview.js?v=1';
-import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=326';
+import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=327';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=32';
 import {
   equipmentWarmth,

@@ -47,10 +47,10 @@ const ARCHIPELAGO_ISLAND_THRESHOLD = 0.68;
 // Legacy coast < 0.56 / isle > 0.54 was tightened into the constants above.
 const EXPOSED_ORE = Object.freeze({ COAL: 13, IRON: 18, COPPER: 56, DIAMOND: 57 });
 const BVI_MAJOR_LANDFORMS = Object.freeze([
-  { name: 'tortola', cx: 22, cz: -20, rx: 52, rz: 18, peak: 20 },
+  { name: 'tortola', cx: 22, cz: -22, rx: 60, rz: 22, peak: 20 },
   { name: 'virgin-gorda', cx: 82, cz: -4, rx: 28, rz: 16, peak: 16 },
   { name: 'jost-van-dyke', cx: -42, cz: 20, rx: 22, rz: 12, peak: 13 },
-  { name: 'anegada', cx: 96, cz: 48, rx: 48, rz: 20, peak: 5 },
+  { name: 'anegada', cx: 96, cz: 48, rx: 40, rz: 18, peak: 5 },
 ]);
 const BVI_SPARSE_CAYS = Object.freeze([
   { name: 'peter-island', cx: 28, cz: 18, rx: 8, rz: 5, peak: 6 },
@@ -58,14 +58,14 @@ const BVI_SPARSE_CAYS = Object.freeze([
   { name: 'great-camanoe', cx: 52, cz: -27, rx: 7, rz: 4, peak: 5 },
 ]);
 const BVI_TENTH_ISLANDS = Object.freeze([
-  { name: 'beef-island', cx: 116, cz: -4, rx: 28, rz: 10, peak: 10 },
-  { name: 'virgin-gorda-east', cx: 170, cz: -4, rx: 46, rz: 16, peak: 20 },
-  { name: 'norman-island', cx: -8, cz: 64, rx: 32, rz: 13, peak: 14 },
-  { name: 'salt-island', cx: 76, cz: 62, rx: 16, rz: 9, peak: 8 },
-  { name: 'scrub-island', cx: 140, cz: -28, rx: 20, rz: 9, peak: 9 },
+  { name: 'beef-island', cx: 116, cz: -4, rx: 24, rz: 8, peak: 10 },
+  { name: 'virgin-gorda-east', cx: 170, cz: -4, rx: 42, rz: 12, peak: 20 },
+  { name: 'norman-island', cx: -8, cz: 64, rx: 27, rz: 10, peak: 14 },
+  { name: 'salt-island', cx: 76, cz: 62, rx: 13, rz: 7, peak: 8 },
+  { name: 'scrub-island', cx: 140, cz: -28, rx: 16, rz: 7, peak: 9 },
   { name: 'anegada-east', cx: 260, cz: 44, rx: 60, rz: 22, peak: 5 },
-  { name: 'ginger-island', cx: 82, cz: 34, rx: 11, rz: 6, peak: 6 },
-  { name: 'marina-cay', cx: 101, cz: -20, rx: 9, rz: 4, peak: 4 },
+  { name: 'ginger-island', cx: 82, cz: 34, rx: 9, rz: 4, peak: 6 },
+  { name: 'marina-cay', cx: 101, cz: -20, rx: 6, rz: 3, peak: 4 },
 ]);
 const BVI_SHELTERED_COVES = Object.freeze([
   { name: 'white-bay', cx: -42, cz: 8, rx: 14, rz: 6 },
