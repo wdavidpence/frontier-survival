@@ -11,8 +11,8 @@ Compat junction: `/mnt/c/Users/wdavi/Projects/SurvivalCraftMobile` → same repo
 Board: `frontier-survival`
 Live: https://wdavidpence.github.io/frontier-survival/
 Local static: `http://127.0.0.1:8767/`
-HEAD: `b39e5c5` on `origin/main` — published v1.26.7
-Last feature ship: **v1.26.7** — expanded authored island bodies with the Cane Garden Bay tropical start
+HEAD: `1a3fee0` on `origin/main` — published v1.26.8
+Last feature ship: **v1.26.8** — expanded Tortola to a 120×44-cell authored body with the Cane Garden Bay tropical start
 Next release candidate: use a fresh clean worktree from `origin/main`; do not use the dirty canonical checkout
 
 ---
@@ -77,11 +77,11 @@ Example: `opencode run --model localoss/gpt-oss-20b '...'` from repo root.
 ## Verification snapshot (2026-08-29)
 
 ```text
-node tests/smoke.mjs  → PASS on v1.26.7 release lane
+node tests/smoke.mjs  → PASS on v1.26.8 release lane
 git diff --check result: no errors
 browser local/live fresh New World → started=true, title hidden, zero page-owned errors
-live tropical proximity → 171 palms, 16 coconuts, 23 vines, 159 bamboo within 80 world units
-local landmass probe → largest loaded body 173×49 cells / 4,804 surface cells; second 93×44 / 3,012
+live fresh-start stream → 410 palms, 36 coconuts, 73 vines, 502 bamboo across 145 chunks
+authored Tortola body → 120×44 cells, with open-water ratio 76.57% on the fixed-seed terrain contract
 cleanup → integrated-clean historical worktrees/branches removed; dirty/divergent salvage preserved
 ```
 
