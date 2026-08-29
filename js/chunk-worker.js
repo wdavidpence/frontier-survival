@@ -70,12 +70,12 @@ const BVI_TENTH_ISLANDS = Object.freeze([
 const BVI_SHELTERED_COVES = Object.freeze([
   { name: 'white-bay', cx: -42, cz: 8, rx: 14, rz: 6 },
   { name: 'north-sound', cx: 52, cz: -2, rx: 10, rz: 5 },
-  { name: 'cane-garden-bay', cx: -10, cz: -36, rx: 10, rz: 4 },
+  { name: 'cane-garden-bay', cx: -10, cz: -43, rx: 36, rz: 14 },
 ]);
 const BVI_BEACH_LANDINGS = Object.freeze([
   { name: 'white-bay-landing', cx: -42, cz: 9, rx: 12, rz: 1 },
   { name: 'north-sound-landing', cx: 52, cz: -5, rx: 8, rz: 1 },
-  { name: 'cane-garden-bay-landing', cx: -10, cz: -34, rx: 8, rz: 1 },
+  { name: 'cane-garden-bay-landing', cx: -10, cz: -28, rx: 36, rz: 2 },
 ]);
 const BVI_ROUTE_CORRIDORS = Object.freeze([
   { name: 'white-bay-channel', x1: 18, z1: 8, x2: -42, z2: 8, width: 3 },
@@ -129,6 +129,19 @@ function bviBeachLandingAt(x, z) {
     if (influence > landing.influence) landing = { influence, name: candidate.name };
   }
   return landing;
+}
+function caneGardenBayWaterAt(x, z) {
+  const nx = (x + 10) / 36;
+  const nz = (z + 43) / 14;
+  return nx * nx + nz * nz < 1 && z <= -30;
+}
+function caneGardenBayBeachAt(x, z) {
+  const nx = (x + 10) / 36;
+  const nz = (z + 28) / 5;
+  return nx * nx + nz * nz < 1 && z >= -30 && z <= -25;
+}
+function caneGardenBayVillagePadAt(x, z) {
+  return x >= -24 && x <= 12 && z >= -28 && z <= 4;
 }
 const BVI_CHANNEL_BUOYS = Object.freeze([
   { x: 12, z: 6, id: 'green' },
@@ -312,10 +325,13 @@ function heightAt(x, z, seed = 0) {
   }
   if (cove.influence > 0) y = Math.max(y, Math.min(16 - 1, 16 - 2 + Math.floor(cove.influence)));
   if (route.influence > 0) y = Math.min(y, 16 - 1);
-  if (beachLanding.influence > 0) y = Math.max(y, 16 + 1);
+  if (beachLanding.influence > 0) y = Math.max(y, 16);
   if (authoredWetland) y = Math.max(y, 16 + 2);
   if (starterCoveAt(x, z)) y = 16 + 1;
   if (starterCoveChannelAt(x, z)) y = Math.min(y, 16 - 1);
+  if (caneGardenBayWaterAt(x, z)) y = Math.min(y, 16 - 1);
+  else if (caneGardenBayBeachAt(x, z)) y = 16;
+  else if (caneGardenBayVillagePadAt(x, z)) y = 16;
   const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
   if (starterEdgeHeight != null) y = Math.min(y, starterEdgeHeight);
   if (Math.hypot(x, z) < 18 && route.influence <= 0) y = Math.max(y, 16);
@@ -341,10 +357,10 @@ function sandyCoastHeight(x, z, seed, biome, gradedHeight, rocky = false) {
   if (rocky || (biome !== 'shore' && biome !== 'ocean')) return gradedHeight;
   const adjacentWater = [[1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2]]
     .some(([dx, dz]) => heightAt(x + dx, z + dz, seed) < 16);
-  return adjacentWater ? Math.min(gradedHeight, 15) : gradedHeight;
+  return adjacentWater ? Math.min(gradedHeight, 16) : gradedHeight;
 }
 function isSandyBeachSurface(height, biome, rocky = false) {
-  return !rocky && (biome === 'shore' || biome === 'ocean') && height <= 15;
+  return !rocky && (biome === 'shore' || biome === 'ocean') && height <= 16;
 }
 function mountainFaceAt(x, z, seed = 0) {
   const center = heightAt(x, z, seed);
@@ -419,7 +435,7 @@ function tropicalCliffAt(x, z, seed = 0) {
 // gen.js so worker and synchronous fallback produce identical islands.
 const TORTOLA_VILLAGE_SITES = [
   { name: 'Road Town · Tortola', x: 22, z: 1, activation: 0.70 },
-  { name: 'Cane Garden Bay · Tortola', x: -10, z: -34, activation: 0.70 },
+  { name: 'Cane Garden Bay · Tortola', x: 0, z: -12, activation: 0.0, authored: true },
   { name: 'East End · Tortola', x: 82, z: -10, activation: 0.74 },
   { name: 'West End · Tortola', x: -55, z: -10, activation: 0.82 },
 ];
@@ -434,7 +450,7 @@ function villageSiteIsFlat(cx, cz, seed, ground) {
   }
   return true;
 }
-function villageSpotIsBuildable(cx, cz, ox, oz, seed) {
+function villageSpotIsBuildable(cx, cz, ox, oz, seed, minimumGround = 20) {
   let min = Infinity;
   let max = -Infinity;
   for (let dx = -3; dx <= 3; dx++) {
@@ -444,7 +460,7 @@ function villageSpotIsBuildable(cx, cz, ox, oz, seed) {
       max = Math.max(max, height);
     }
   }
-  return min >= 20 && max - min <= 10;
+  return min >= minimumGround && max - min <= 10;
 }
 function villageSitesForSeed(seed = 0) {
   const sites = [];
@@ -452,11 +468,14 @@ function villageSitesForSeed(seed = 0) {
     const roll = hash2(anchor.x * 97 + seed * 11, anchor.z * 89 + seed * 17);
     if (roll < anchor.activation) continue;
     const ground = heightAt(anchor.x, anchor.z, seed);
-    if (ground < 20 || ground > 36 || !villageSiteIsFlat(anchor.x, anchor.z, seed, ground)) continue;
-    const spots = VILLAGE_SPOTS.filter(([ox, oz]) => villageSpotIsBuildable(anchor.x, anchor.z, ox, oz, seed));
+    const minimumGround = anchor.authored ? 16 : 20;
+    if (ground < minimumGround || ground > 36 || !villageSiteIsFlat(anchor.x, anchor.z, seed, ground)) continue;
+    const spots = VILLAGE_SPOTS.filter(([ox, oz]) => villageSpotIsBuildable(anchor.x, anchor.z, ox, oz, seed, minimumGround));
     if (spots.length < 4) continue;
     const countRoll = hash2(anchor.x * 131 + seed * 19, anchor.z * 137 + seed * 23);
-    sites.push({ ...anchor, cx: anchor.x, cz: anchor.z, ground, spots, structureCount: 4 + Math.floor(countRoll * Math.min(9, spots.length - 3)), seed });
+    sites.push({ ...anchor, cx: anchor.x, cz: anchor.z, ground, spots, structureCount: anchor.authored
+      ? Math.max(8, 4 + Math.floor(countRoll * Math.min(9, spots.length - 3)))
+      : 4 + Math.floor(countRoll * Math.min(9, spots.length - 3)), seed });
   }
   return sites;
 }
@@ -631,14 +650,20 @@ function generateChunkData(cx, cz, seed) {
       const biome = biomeAt(x, z, seed);
       const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
       const starterCove = starterCoveAt(x, z);
+      const caneBayWater = caneGardenBayWaterAt(x, z);
+      const caneBayBeach = caneGardenBayBeachAt(x, z);
       const starterCoveSightline = starterCoveSightlinePocket(x, z, biome);
       const deepWater = bviDeepWaterAt(x, z);
-      const baseHeight = starterCove ? SEA_LEVEL + 1 : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
-        ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, seed);
+      const baseHeight = caneBayWater ? SEA_LEVEL - 1
+        : caneBayBeach ? SEA_LEVEL
+          : starterCove ? SEA_LEVEL + 1 : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+            ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, seed);
       const cliff = biome === 'tropical' && tropicalCliffAt(x, z, seed);
       const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
-      const h = starterCove ? SEA_LEVEL + 1 : sandyCoastHeight(x, z, seed, biome, baseHeight, rockyCoast);
-      const sandySurface = !deepWater && (starterCove || isSandyBeachSurface(h, biome, rockyCoast));
+      const h = caneBayWater ? SEA_LEVEL - 1
+        : caneBayBeach ? SEA_LEVEL
+          : starterCove ? SEA_LEVEL + 1 : sandyCoastHeight(x, z, seed, biome, baseHeight, rockyCoast);
+      const sandySurface = !deepWater && (caneBayBeach || starterCove || isSandyBeachSurface(h, biome, rockyCoast));
 
       for (let y = 0; y < WORLD_HEIGHT; y++) {
         let id = BLOCK.AIR;
@@ -713,7 +738,7 @@ function generateChunkData(cx, cz, seed) {
         const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
         if (mangroveLandmark) {
           _placeMangroveBridge(data, idx, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-        } else if (!villageColumn && !forestPocket && !beachApproach && !starterCove && !starterCoveSightline && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+        } else if (!villageColumn && !forestPocket && !beachApproach && !caneBayBeach && !caneBayWater && !starterCove && !starterCoveSightline && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
           && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
           if (biome === 'mangrove') _placeMangrove(data, idx, lx, h + 1, lz);
           else if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);

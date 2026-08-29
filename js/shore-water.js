@@ -18,14 +18,17 @@ export function sandyBeachHeight({ height, biome, seaLevel = 16, adjacentWater =
   const safeHeight = Math.floor(finite(height, seaLevel - 1));
   const safeSea = Math.floor(finite(seaLevel, 16));
   if (!adjacentWater || rocky || !isCoastalSandBiome(biome)) return safeHeight;
-  return Math.min(safeHeight, safeSea - 1);
+  // The top of a land cell is one unit above its integer y. A sandy cell at
+  // seaLevel therefore has the same walkable top as adjacent water, while
+  // seaLevel - 1 creates the raised lip players have to jump onto.
+  return Math.min(safeHeight, safeSea);
 }
 
 /** Surface material contract: sand never occupies the raised shoreline band. */
 export function isSandyBeachSurface({ height, biome, seaLevel = 16, rocky = false } = {}) {
   const safeHeight = Math.floor(finite(height, seaLevel - 1));
   const safeSea = Math.floor(finite(seaLevel, 16));
-  return !rocky && isCoastalSandBiome(biome) && safeHeight <= safeSea - 1;
+  return !rocky && isCoastalSandBiome(biome) && safeHeight <= safeSea;
 }
 
 function key(x, y, z) {

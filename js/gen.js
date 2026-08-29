@@ -1,5 +1,5 @@
 /** Deterministic value noise for terrain */
-import { sandyBeachHeight, isSandyBeachSurface } from './shore-water.js?v=2';
+import { sandyBeachHeight, isSandyBeachSurface } from './shore-water.js?v=3';
 /** Deterministic 2D hash in [0,1). Integer-safe (float mul collapsed to ~0.5 for large coords). */
 export function hash2(x, z) {
   let n = Math.imul(x | 0, 374761393) + Math.imul(z | 0, 668265263);
@@ -91,7 +91,7 @@ const BVI_TENTH_ISLANDS = Object.freeze([
 const BVI_TENTH_LOCATIONS = Object.freeze([
   { name: 'Road Town · Tortola', x: 22, z: 4, radius: 10 },
   { name: 'West End · Tortola', x: -55, z: -10, radius: 9 },
-  { name: 'Cane Garden Bay · Tortola', x: -10, z: -34, radius: 8 },
+  { name: 'Cane Garden Bay · Tortola', x: -10, z: -28, radius: 36 },
   { name: 'East End · Tortola', x: 82, z: -8, radius: 10 },
   { name: 'Spanish Town · Virgin Gorda', x: 170, z: -4, radius: 12 },
   { name: 'Beef Island · Trellis Bay', x: 116, z: -4, radius: 12 },
@@ -104,12 +104,12 @@ const BVI_TENTH_LOCATIONS = Object.freeze([
 const BVI_SHELTERED_COVES = Object.freeze([
   { name: 'white-bay', cx: -42, cz: 8, rx: 14, rz: 6 },
   { name: 'north-sound', cx: 52, cz: -2, rx: 10, rz: 5 },
-  { name: 'cane-garden-bay', cx: -10, cz: -36, rx: 10, rz: 4 },
+  { name: 'cane-garden-bay', cx: -10, cz: -43, rx: 36, rz: 14 },
 ]);
 const BVI_BEACH_LANDINGS = Object.freeze([
   { name: 'white-bay-landing', cx: -42, cz: 9, rx: 12, rz: 1 },
   { name: 'north-sound-landing', cx: 52, cz: -5, rx: 8, rz: 1 },
-  { name: 'cane-garden-bay-landing', cx: -10, cz: -34, rx: 8, rz: 1 },
+  { name: 'cane-garden-bay-landing', cx: -10, cz: -28, rx: 36, rz: 2 },
 ]);
 const BVI_ROUTE_CORRIDORS = Object.freeze([
   { name: 'white-bay-channel', x1: 18, z1: 8, x2: -42, z2: 8, width: 3 },
@@ -185,6 +185,37 @@ export function bviBeachLandingAt(x, z) {
     if (influence > landing.influence) landing = { influence, name: candidate.name };
   }
   return landing;
+}
+
+// Cane Garden Bay reference: OSM places the developed bay/road cluster around
+// 18.4288N, 64.6513W. At the existing 1:10 horizontal convention, model the
+// roughly 720 m beach as a 72-cell arc with an 18-cell sheltered-water reach.
+export const CANE_GARDEN_BAY_SCALE = Object.freeze({
+  metersPerCell: 10,
+  beachLengthMeters: 720,
+  beachLengthCells: 72,
+  bayDepthMeters: 180,
+  bayDepthCells: 18,
+  reference: 'OpenStreetMap Cane Garden Bay, Tortola',
+});
+
+/** Water bowl south of the Cane Garden Bay beach arc, including its mouth. */
+export function caneGardenBayWaterAt(x, z) {
+  const nx = (x + 10) / 36;
+  const nz = (z + 43) / 14;
+  return nx * nx + nz * nz < 1 && z <= -30;
+}
+
+/** Five-cell sand shelf where the bay water meets the developed shoreline. */
+export function caneGardenBayBeachAt(x, z) {
+  const nx = (x + 10) / 36;
+  const nz = (z + 28) / 5;
+  return nx * nx + nz * nz < 1 && z >= -30 && z <= -25;
+}
+
+/** Flat, low beach-side pad reserved for the authored Cane Garden Bay village. */
+export function caneGardenBayVillagePadAt(x, z) {
+  return x >= -24 && x <= 12 && z >= -28 && z <= 4;
 }
 
 const BVI_CHANNEL_BUOYS = Object.freeze([
@@ -410,10 +441,13 @@ export function heightAt(x, z, seed = 0) {
   }
   if (cove.influence > 0) y = Math.max(y, Math.min(GEN_SEA_LEVEL - 1, GEN_SEA_LEVEL - 2 + Math.floor(cove.influence)));
   if (route.influence > 0) y = Math.min(y, GEN_SEA_LEVEL - 1);
-  if (beachLanding.influence > 0) y = Math.max(y, GEN_SEA_LEVEL + 1);
+  if (beachLanding.influence > 0) y = Math.max(y, GEN_SEA_LEVEL);
   if (authoredWetland) y = Math.max(y, GEN_SEA_LEVEL + 2);
   if (starterCoveAt(x, z)) y = GEN_SEA_LEVEL + 1;
   if (starterCoveChannelAt(x, z)) y = Math.min(y, GEN_SEA_LEVEL - 1);
+  if (caneGardenBayWaterAt(x, z)) y = Math.min(y, GEN_SEA_LEVEL - 1);
+  else if (caneGardenBayBeachAt(x, z)) y = GEN_SEA_LEVEL;
+  else if (caneGardenBayVillagePadAt(x, z)) y = GEN_SEA_LEVEL;
   const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
   if (starterEdgeHeight != null) y = Math.min(y, starterEdgeHeight);
   // Safe, buildable starter island and the existing authored shore destination.
@@ -507,7 +541,7 @@ export function tropicalCliffAt(x, z, seed = 0) {
  */
 export const TORTOLA_VILLAGE_SITES = Object.freeze([
   { name: 'Road Town · Tortola', x: 22, z: 1, activation: 0.70 },
-  { name: 'Cane Garden Bay · Tortola', x: -10, z: -34, activation: 0.70 },
+  { name: 'Cane Garden Bay · Tortola', x: 0, z: -12, activation: 0.0, authored: true },
   { name: 'East End · Tortola', x: 82, z: -10, activation: 0.74 },
   { name: 'West End · Tortola', x: -55, z: -10, activation: 0.82 },
 ]);
@@ -535,7 +569,7 @@ function villageSiteIsFlat(cx, cz, seed, ground) {
   return true;
 }
 
-function villageSpotIsBuildable(cx, cz, ox, oz, seed) {
+function villageSpotIsBuildable(cx, cz, ox, oz, seed, minimumGround = GEN_SEA_LEVEL + 4) {
   let min = Infinity;
   let max = -Infinity;
   for (let dx = -3; dx <= 3; dx++) {
@@ -545,7 +579,7 @@ function villageSpotIsBuildable(cx, cz, ox, oz, seed) {
       max = Math.max(max, height);
     }
   }
-  return min >= GEN_SEA_LEVEL + 4 && max - min <= 10;
+  return min >= minimumGround && max - min <= 10;
 }
 
 /** Return the active, buildable settlement descriptors for one world seed. */
@@ -555,10 +589,12 @@ export function villageSitesForSeed(seed = 0) {
     const roll = hash2(anchor.x * 97 + seed * 11, anchor.z * 89 + seed * 17);
     if (roll < anchor.activation) continue;
     const ground = heightAt(anchor.x, anchor.z, seed);
-    // Villages belong on low, buildable land—not water, beach lips, or cliffs.
-    if (ground < GEN_SEA_LEVEL + 4 || ground > GEN_SEA_LEVEL + 20) continue;
+    // Villages belong on low, buildable land—not water or cliffs. The authored
+    // Cane Garden Bay site is intentionally allowed onto the beach-side pad.
+    const minimumGround = anchor.authored ? GEN_SEA_LEVEL : GEN_SEA_LEVEL + 4;
+    if (ground < minimumGround || ground > GEN_SEA_LEVEL + 20) continue;
     if (!villageSiteIsFlat(anchor.x, anchor.z, seed, ground)) continue;
-    const spots = VILLAGE_SPOTS.filter(([ox, oz]) => villageSpotIsBuildable(anchor.x, anchor.z, ox, oz, seed));
+    const spots = VILLAGE_SPOTS.filter(([ox, oz]) => villageSpotIsBuildable(anchor.x, anchor.z, ox, oz, seed, minimumGround));
     if (spots.length < 4) continue;
     const countRoll = hash2(anchor.x * 131 + seed * 19, anchor.z * 137 + seed * 23);
     sites.push({
@@ -567,7 +603,9 @@ export function villageSitesForSeed(seed = 0) {
       cz: anchor.z,
       ground,
       spots,
-      structureCount: 4 + Math.floor(countRoll * Math.min(9, spots.length - 3)),
+      structureCount: anchor.authored
+        ? Math.max(8, 4 + Math.floor(countRoll * Math.min(9, spots.length - 3)))
+        : 4 + Math.floor(countRoll * Math.min(9, spots.length - 3)),
       seed,
     });
   }

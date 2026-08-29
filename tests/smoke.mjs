@@ -1,5 +1,6 @@
 import { biomeAt, ambientTempOffset, BIOME } from '../js/biomes.js';
 import './platform-polish.mjs';
+import { sandyBeachHeight } from '../js/shore-water.js';
 import { chooseCastawayCandidate, createCastawayArrival, restoreCastawayArrival, castawayObjective } from '../js/castaway-arrival.js';
 
 import { palmLeafDrop } from '../js/palm-drops.js';
@@ -320,7 +321,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=501/);
+  assert.match(gameSource, /world\.js\?v=502/);
 });
 
 test('BVI fresh spawns prefer the authored launch beach when clear', () => {
@@ -332,13 +333,36 @@ test('BVI fresh spawns prefer the authored launch beach when clear', () => {
   assert.match(source, /const launchCandidates = \[/);
   assert.match(source, /\(preferred \? 10000 : 0\)/);
   assert.match(source, /const clearRadius = preferred \? 1 : 4/);
-  assert.match(source, /if \(h < SEA_LEVEL \+ \(preferred \? 1 : 2\)/);
+  assert.match(source, /const cgbPreferred = !!preferred/);
   assert.match(source, /if \(preferred\) \{\s*return \{\s*x: x \+ 0\.5/);
-  assert.ok(heightAt(-10, -34, seed) >= 17, 'Cane Garden Bay landing stays above sea level');
-  assert.equal(bviBeachLandingAt(-10, -34).name, 'cane-garden-bay-landing');
+  assert.ok(heightAt(-10, -28, seed) >= 16, 'Cane Garden Bay landing stays at the walkable waterline');
+  assert.equal(bviBeachLandingAt(-10, -28).name, 'cane-garden-bay-landing');
   assert.match(source, /Cane Garden Bay · Tortola/);
   assert.match(fsText('js/chunk-worker.js'), /cane-garden-bay-landing/);
   assert.match(source, /Number\.isFinite\(preferred\[3\]\)/);
+});
+
+test('Cane Garden Bay is a large authored 1:10 beach start with a sand village', () => {
+  const seed = 1884808540;
+  const gen = fsText('js/gen.js');
+  const worker = fsText('js/chunk-worker.js');
+  const sites = villageSitesForSeed(seed);
+  const cane = sites.find((site) => site.name === 'Cane Garden Bay · Tortola');
+  assert.ok(cane, 'fixed starter seed must expose the Cane Garden Bay village');
+  assert.ok(cane.structureCount >= 8, 'Cane Garden Bay needs a recognizable beach village footprint');
+  assert.ok(heightAt(-10, -28, seed) >= 16 && heightAt(-10, -28, seed) <= 18, 'starter beach stays at the walkable waterline');
+  assert.match(gen, /CANE_GARDEN_BAY_SCALE/);
+  assert.match(gen, /caneGardenBayWaterAt/);
+  assert.match(gen, /caneGardenBayBeachAt/);
+  assert.match(worker, /caneGardenBayWaterAt/);
+  assert.match(worker, /caneGardenBayBeachAt/);
+});
+
+test('sandy shoreline cells meet the waterline instead of creating a one-block lip', () => {
+  assert.equal(sandyBeachHeight({ height: 17, biome: 'shore', seaLevel: 16, adjacentWater: true }), 16);
+  assert.equal(sandyBeachHeight({ height: 17, biome: 'ocean', seaLevel: 16, adjacentWater: true }), 16);
+  assert.equal(sandyBeachHeight({ height: 17, biome: 'shore', seaLevel: 16, adjacentWater: true, rocky: true }), 17);
+  assert.equal(sandyBeachHeight({ height: 17, biome: 'tropical', seaLevel: 16, adjacentWater: true }), 17);
 });
 
 test('skiff footprint stays in water and refuses shore/dock overlap', () => {
@@ -626,8 +650,8 @@ test('BVI White Bay has a deterministic sand landing between shelf and island', 
   assert.ok(bviBeachLandingAt(52, -5).influence > 0.9);
   assert.ok(heightAt(-42, 8, seed) >= 14 && heightAt(-42, 8, seed) < 16, 'White Bay water must stay shallow');
   assert.ok(heightAt(52, -4, seed) >= 14 && heightAt(52, -4, seed) < 16, 'North Sound water must stay shallow');
-  assert.equal(heightAt(-42, 9, seed), 17, 'White Bay landing must be a one-block beach lip');
-  assert.equal(heightAt(52, -5, seed), 17, 'North Sound landing must be a one-block beach lip');
+  assert.equal(heightAt(-42, 9, seed), 16, 'White Bay landing must meet the waterline');
+  assert.equal(heightAt(52, -5, seed), 16, 'North Sound landing must meet the waterline');
   assert.equal(biomeAt(-42, 9, seed), BIOME.SHORE, 'White Bay landing must classify as shore');
   assert.equal(biomeAt(52, -5, seed), BIOME.SHORE, 'North Sound landing must classify as shore');
   assert.equal(bviBeachLandingAt(52, -7).influence, 0, 'North Sound landing must stay bounded');
@@ -679,7 +703,7 @@ test('BVI White Bay channel is a continuous water-safe route from starter launch
   for (let x = 18; x >= -42; x -= 2) {
     const route = bviRouteCorridorAt(x, 8);
     assert.ok(route.influence >= 0, `route sample at ${x}`);
-    if (route.influence > 0.9) assert.ok(heightAt(x, 8, seed) <= 15, `water-safe height at ${x}`);
+    if (route.influence > 0.9) assert.ok(heightAt(x, 8, seed) <= 16, `water-safe height at ${x}`);
     else assert.ok(heightAt(x, 8, seed) <= 16, `bounded launch transition at ${x}`);
   }
   for (let x = 32; x <= 52; x += 2) {
@@ -691,8 +715,8 @@ test('BVI White Bay channel is a continuous water-safe route from starter launch
     assert.ok(heightAt(52, z, seed) <= 15, `North Sound approach water at ${z}`);
   }
   assert.equal(bviRouteCorridorAt(52, 10).influence, 1, 'North Sound route junction remains continuous');
-  assert.equal(heightAt(52, -5, seed), 17, 'North Sound route terminates at the landing');
-  assert.equal(heightAt(-42, 9, seed), 17, 'White Bay route terminates at the landing');
+  assert.equal(heightAt(52, -5, seed), 16, 'North Sound route terminates at the walkable landing');
+  assert.equal(heightAt(-42, 9, seed), 16, 'White Bay route terminates at the walkable landing');
   assert.ok(bviReefShelfAt(0, 7) > 0, 'route margin gets reef shelf');
   assert.equal(bviReefShelfAt(0, 8), 0, 'center sailing lane stays clear');
   assert.equal(bviReefShelfAt(0, 12), 0, 'reef fringe stays bounded');
@@ -5406,7 +5430,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker\.js\?v=349/);
+  assert.match(world, /chunk-worker\.js\?v=350/);
   assert.match(world, /starterLaunchCorridor/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
@@ -5665,7 +5689,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.26.5'), 'HTML must expose v1.26.5');
+  assert.ok(html.includes('v1.26.6'), 'HTML must expose v1.26.6');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5704,9 +5728,11 @@ test('Tortola villages are rare, anchored, compact, and deterministic', () => {
   const buildingColumn = villageColumnAt(site.cx - 18, site.cz - 3, sites);
   assert.ok(buildingColumn, 'first compact home must have a deterministic footprint');
   const ids = new Set();
-  for (let y = 1; y < 48; y++) {
-    const id = villageBlockAt(site.cx - 18, y, site.cz - 3, sites);
-    if (id !== null) ids.add(id);
+  for (let dx = -4; dx <= 4; dx++) for (let dz = -3; dz <= 3; dz++) {
+    for (let y = 1; y < 48; y++) {
+      const id = villageBlockAt(site.cx - 18 + dx, y, site.cz - 3 + dz, sites);
+      if (id !== null) ids.add(id);
+    }
   }
   assert.ok(ids.has(BLOCK.COBBLE), 'village foundation uses authored cobble only');
   assert.ok(ids.has(BLOCK.PLANKS), 'village walls/roof use authored planks only');

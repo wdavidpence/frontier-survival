@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=295';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=323';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=324';
 import { biomeAt, BIOME } from './biomes.js?v=272';
 import { tileForBlock } from './atlas-core.js?v=292';
 import { CRAFTING_TABLE } from './crafting-table.js?v=1';
@@ -14,7 +14,7 @@ import {
 } from './terrain-visibility.js?v=287';
 import { raycastVoxel } from './interaction-contract.js?v=5';
 import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=6';
-import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=2';
+import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=3';
 import { createDisposalContext, disposeGeometry, disposeTree } from './resource-disposal.js?v=3';
 import { applyTropicalEcology } from './tropical-ecology.js?v=4';
 
@@ -609,7 +609,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=349';
+    const workerUrl = './js/chunk-worker.js?v=350';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -673,26 +673,36 @@ export class World {
         const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
         const starterCove = starterCoveAt(x, z);
         const starterChannel = starterCoveChannelAt(x, z);
+        const caneBayWater = caneGardenBayWaterAt(x, z);
+        const caneBayBeach = caneGardenBayBeachAt(x, z);
         const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
         const starterCoveSightline = starterCoveSightlinePocket(x, z, biome);
         const deepWater = bviDeepWaterAt(x, z);
-        const baseHeight = starterCove
-          ? SEA_LEVEL + 1
-          : starterChannel
-            ? SEA_LEVEL - 1
-            : starterEdgeHeight != null
-              ? starterEdgeHeight
-              : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+        const baseHeight = caneBayWater
+          ? SEA_LEVEL - 1
+          : caneBayBeach
+            ? SEA_LEVEL
+            : starterCove
+              ? SEA_LEVEL + 1
+              : starterChannel
                 ? SEA_LEVEL - 1
-                : coastalGradeHeight(x, z, this.seed);
+                : starterEdgeHeight != null
+                  ? starterEdgeHeight
+                  : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+                    ? SEA_LEVEL - 1
+                    : coastalGradeHeight(x, z, this.seed);
         const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
         const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
-        const h = starterCove
-          ? SEA_LEVEL + 1
-          : starterChannel || starterEdgeHeight != null
-            ? baseHeight
-            : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
-        const sandySurface = !deepWater && (starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
+        const h = caneBayWater
+          ? SEA_LEVEL - 1
+          : caneBayBeach
+            ? SEA_LEVEL
+            : starterCove
+              ? SEA_LEVEL + 1
+              : starterChannel || starterEdgeHeight != null
+                ? baseHeight
+                : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
+        const sandySurface = !deepWater && (caneBayBeach || starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
           let id = BLOCK.AIR;
@@ -767,7 +777,7 @@ export class World {
           const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
           if (mangroveLandmark) {
             this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-          } else if (!villageColumn && !forestPocket && !beachApproach && !starterCove && !starterCoveSightline && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+          } else if (!villageColumn && !forestPocket && !beachApproach && !caneBayBeach && !caneBayWater && !starterCove && !starterCoveSightline && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
             && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -1331,26 +1341,36 @@ export class World {
         const beachApproach = bviBeachLandingAt(x, z).influence > 0 || bviBeachLandingAt(x, z - 1).influence > 0;
         const starterCove = starterCoveAt(x, z);
         const starterChannel = starterCoveChannelAt(x, z);
+        const caneBayWater = caneGardenBayWaterAt(x, z);
+        const caneBayBeach = caneGardenBayBeachAt(x, z);
         const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
         const starterCoveSightline = starterCoveSightlinePocket(x, z, biome);
         const deepWater = bviDeepWaterAt(x, z);
-        const baseHeight = starterCove
-          ? SEA_LEVEL + 1
-          : starterChannel
-            ? SEA_LEVEL - 1
-            : starterEdgeHeight != null
-              ? starterEdgeHeight
-              : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+        const baseHeight = caneBayWater
+          ? SEA_LEVEL - 1
+          : caneBayBeach
+            ? SEA_LEVEL
+            : starterCove
+              ? SEA_LEVEL + 1
+              : starterChannel
                 ? SEA_LEVEL - 1
-                : coastalGradeHeight(x, z, this.seed);
+                : starterEdgeHeight != null
+                  ? starterEdgeHeight
+                  : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
+                    ? SEA_LEVEL - 1
+                    : coastalGradeHeight(x, z, this.seed);
         const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
         const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
-        const h = starterCove
-          ? SEA_LEVEL + 1
-          : starterChannel || starterEdgeHeight != null
-            ? baseHeight
-            : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
-        const sandySurface = !deepWater && (starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
+        const h = caneBayWater
+          ? SEA_LEVEL - 1
+          : caneBayBeach
+            ? SEA_LEVEL
+            : starterCove
+              ? SEA_LEVEL + 1
+              : starterChannel || starterEdgeHeight != null
+                ? baseHeight
+                : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
+        const sandySurface = !deepWater && (caneBayBeach || starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
           let id = BLOCK.AIR;
@@ -1432,7 +1452,7 @@ export class World {
           const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
           if (mangroveLandmark) {
             this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-          } else if (!villageColumn && !forestPocket && !beachApproach && !starterCove && !starterCoveSightline && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+          } else if (!villageColumn && !forestPocket && !beachApproach && !caneBayBeach && !caneBayWater && !starterCove && !starterCoveSightline && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
             && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -2221,17 +2241,18 @@ export class World {
       BLOCK.SEQUOIA_LOG, BLOCK.SEQUOIA_LEAVES, BLOCK.PALM_LEAVES, BLOCK.BUSH,
     ]);
 
-    const authoredCoveCandidates = [[26, 15], [25, 15], [27, 15], [26, 14]];
+    const authoredCoveCandidates = [[-10, -28], [-14, -28], [-6, -28], [-10, -27], [26, 15], [25, 15], [27, 15], [26, 14]];
     for (let i = 0; i < 2200; i++) {
       const authored = authoredCoveCandidates[i] || null;
       const x = authored ? authored[0] : Math.floor((hash2(i + this.seed * 3, this.seed + 17) - 0.5) * radius * 2);
       const z = authored ? authored[1] : Math.floor((hash2(this.seed + 31, i * 5 + 9) - 0.5) * radius * 2);
       const h = heightAt(x, z, this.seed);
-      if (h < SEA_LEVEL + 1 || h > SEA_LEVEL + 3 || h >= WORLD_HEIGHT - 6) continue;
+      const cgbAuthored = !!authored && caneGardenBayBeachAt(x, z);
+      if (h < SEA_LEVEL + (cgbAuthored ? 0 : 1) || h > SEA_LEVEL + 3 || h >= WORLD_HEIGHT - 6) continue;
       const chunk = this.worldToChunk(x, z);
       this.ensureChunk(chunk.cx, chunk.cz);
       const surface = this.getBlock(x, h, z);
-      const authoredSurface = !!authored && starterCoveAt(x, z);
+      const authoredSurface = !!authored && (starterCoveAt(x, z) || cgbAuthored);
       if (!authoredSurface && surface !== BLOCK.SAND) continue;
       if (!authoredSurface && (this.getBlock(x, h + 1, z) !== BLOCK.AIR || this.getBlock(x, h + 2, z) !== BLOCK.AIR)) continue;
 
@@ -2289,15 +2310,22 @@ export class World {
         clearance: clear + 4,
         horizon,
         authored: !!authored,
+        landmark: cgbAuthored ? 'Cane Garden Bay · Tortola' : '',
         inland,
       });
     }
 
-    const chosen = chooseCastawayCandidate(candidates);
+    // The authored Cane Garden Bay start is the product contract for fresh
+    // worlds now. Keep the scored fallback for seeds where the authored cells
+    // are unavailable, but do not let a legacy Road Town tie steal this start.
+    const chosen = candidates.find((candidate) => candidate.landmark === 'Cane Garden Bay · Tortola')
+      || chooseCastawayCandidate(candidates);
     if (!chosen) return null;
     const dirX = Number(chosen.waterDirX) || 0;
     const dirZ = Number(chosen.waterDirZ) || 1;
-    const yaw = Math.atan2(-dirX, -dirZ);
+    const yaw = chosen.landmark === 'Cane Garden Bay · Tortola'
+      ? Math.atan2(dirX, dirZ)
+      : Math.atan2(-dirX, -dirZ);
     const beachOffset = Math.min(9.0, Math.max(chosen.authored ? 6.5 : 2.8, Number(chosen.waterDistance) + 0.6));
     let boatX = chosen.x + dirX * beachOffset;
     let boatZ = chosen.z + dirZ * beachOffset;
@@ -2327,8 +2355,9 @@ export class World {
     // the authored launch ramp, driftwood, and channel without a lucky random
     // spawn on a distant cay. The normal clearance checks below still apply.
     const launchCandidates = [
+      [-10, -28, 'Cane Garden Bay · Tortola', Math.PI],
       [26, 15, 'Road Town · Tortola', Math.PI],
-      [-10, -34, 'Cane Garden Bay · Tortola', Math.PI], [25, 15], [27, 15], [24, 15], [28, 15],
+      [-10, -27, 'Cane Garden Bay · Tortola', Math.PI], [25, 15], [27, 15], [24, 15], [28, 15],
       [26, 14], [25, 14], [27, 14],
     ];
     // Tropical/coastal seeds can have sparse clearings; sample deeply enough
@@ -2343,7 +2372,8 @@ export class World {
         ? preferred[1]
         : Math.floor((hash2(this.seed, i + 9) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.6);
       const h = heightAt(x, z, this.seed);
-      if (h < SEA_LEVEL + (preferred ? 1 : 2) || (preferred && h > SEA_LEVEL + 3) || h >= WORLD_HEIGHT - 6) continue;
+      const cgbPreferred = !!preferred && preferred[2] === 'Cane Garden Bay · Tortola';
+      if (h < SEA_LEVEL + (preferred ? (cgbPreferred ? 0 : 1) : 2) || (preferred && h > SEA_LEVEL + 3) || h >= WORLD_HEIGHT - 6) continue;
       const spawnChunk = this.worldToChunk(x, z);
       this.ensureChunk(spawnChunk.cx, spawnChunk.cz);
       // surface must be solid non-water

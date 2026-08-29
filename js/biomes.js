@@ -1,5 +1,5 @@
 /** Pure biome classifier — no game.js coupling. */
-import { heightAt, fbm, WORLD_SCALE, starterCoastBlend, bviLandformAt, ARCHIPELAGO_COAST_THRESHOLD, ARCHIPELAGO_ISLAND_THRESHOLD } from './gen.js?v=323';
+import { heightAt, fbm, WORLD_SCALE, starterCoastBlend, bviLandformAt, ARCHIPELAGO_COAST_THRESHOLD, ARCHIPELAGO_ISLAND_THRESHOLD } from './gen.js?v=324';
 
 export const BIOME = {
   OCEAN: 'ocean',
