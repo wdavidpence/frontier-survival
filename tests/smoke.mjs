@@ -321,7 +321,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=502/);
+  assert.match(gameSource, /world\.js\?v=503/);
 });
 
 test('BVI fresh spawns prefer the authored launch beach when clear', () => {
@@ -564,6 +564,8 @@ test('BVI macro chain favors major islands, channels, and sparse cays', () => {
   assert.equal(channel.influence, 0, 'Drake Channel must remain open between major islands');
   assert.equal(peter.cayName, 'peter-island');
   assert.ok(heightAt(52, 8, seed) < 16, 'channel sample must remain water');
+  assert.equal(bviLandformAt(70, -20).majorName, 'tortola', 'Tortola body extends beyond the old tiny-island edge');
+  assert.ok(heightAt(70, -20, seed) >= 16, 'expanded Tortola edge remains playable land');
   const worker = fsText('js/chunk-worker.js');
   assert.match(worker, /BVI_MAJOR_LANDFORMS/);
   assert.match(worker, /bviLandformAt/);
@@ -4682,7 +4684,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals\.js\?v=278/);
   assert.match(game, /animal-visuals\.js\?v=251/);
-  assert.match(main, /game\.js\?v=764/);
+  assert.match(main, /game\.js\?v=765/);
   assert.match(game, /FRIENDLY/);
   assert.match(game, /trust \$\{Math\.round\(ah\.animal\._tame\)\}%/);
   assert.match(game, /this\.fx\.burst\(ah\.animal\.x/);
@@ -5689,7 +5691,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.26.6'), 'HTML must expose v1.26.6');
+  assert.ok(html.includes('v1.26.7'), 'HTML must expose v1.26.7');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

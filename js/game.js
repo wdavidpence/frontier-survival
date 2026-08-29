@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=502';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=503';
 import { Player } from './player.js?v=241';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=226';
@@ -78,7 +78,7 @@ import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=287'
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=10';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
 import { placementState } from './placement-preview.js?v=1';
-import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=324';
+import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=326';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=32';
 import {
   equipmentWarmth,
