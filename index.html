@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.26.4</title>
+  <title>Frontier Survival v1.26.5</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -373,6 +373,29 @@
       display: flex; flex-direction: column; gap: 8px;
       max-height: 420px; overflow: auto;
     }
+    #workbench-panel {
+      margin: 0 0 16px;
+      padding: 12px;
+      border: 1px solid rgba(212,165,116,0.28);
+      border-radius: 10px;
+      background: linear-gradient(145deg, rgba(91,57,34,0.25), rgba(255,255,255,0.035));
+    }
+    .workbench-head { display:flex; justify-content:space-between; gap:12px; align-items:baseline; margin-bottom:10px; }
+    .workbench-head strong { color:#e6b777; font-size:11px; letter-spacing:.12em; text-transform:uppercase; }
+    .workbench-head span { color:#9b958b; font-size:10px; }
+    .workbench-layout { display:grid; grid-template-columns:minmax(190px, 1fr) minmax(150px, .8fr); gap:14px; align-items:stretch; }
+    #workbench-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:5px; max-width:210px; }
+    .workbench-cell { min-height:48px; aspect-ratio:1; display:flex; align-items:center; justify-content:center; position:relative; border:1px solid rgba(255,255,255,.12); border-radius:6px; background:rgba(0,0,0,.26); }
+    .workbench-cell.empty { opacity:.45; }
+    .workbench-cell .inv-icon { width:76%; height:76%; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,.7)); }
+    .workbench-cell .wb-count { position:absolute; right:4px; bottom:2px; color:#fff; font-size:10px; text-shadow:0 1px 2px #000; }
+    .workbench-output { display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:150px; border-left:1px solid rgba(255,255,255,.1); padding-left:14px; text-align:center; }
+    .workbench-output-label { color:#8b857c; font-size:9px; letter-spacing:.12em; text-transform:uppercase; }
+    #workbench-output { width:72px; height:72px; margin:8px 0 5px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(224,184,136,.35); border-radius:8px; background:rgba(224,184,136,.1); }
+    #workbench-output .inv-icon { width:80%; height:80%; object-fit:contain; }
+    #workbench-output-name { color:#e8e0d4; font-size:12px; font-weight:700; }
+    #workbench-status { margin-top:5px; color:#a08f6e; font-size:10px; line-height:1.35; }
+    @media (max-width: 520px) { .workbench-layout { grid-template-columns:1fr; } .workbench-output { border-left:0; border-top:1px solid rgba(255,255,255,.1); padding:12px 0 0; min-height:100px; } #workbench-grid { max-width:none; } }
     .recipe-btn {
       pointer-events: auto;
       cursor: pointer;
@@ -423,7 +446,8 @@
     .recipe-btn.can strong { color: var(--accent); }
     .recipe-btn.can .recipe-meta { color: #9fc2d8; }
     .recipe-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-    .inv-actions { margin-top: 16px; display: flex; justify-content: flex-end; gap: 10px; }
+    .inv-actions { margin-top: 16px; display: flex; justify-content: flex-end; gap: 10px; position: sticky; bottom: -1px; z-index: 2; padding: 10px 0 0; background: linear-gradient(180deg, rgba(10,14,20,0), rgba(10,14,20,.98) 22%); }
+    @media (max-width: 520px) { .inv-actions { flex-wrap: wrap; } .inv-actions button { flex: 1 1 120px; } }
     .inv-actions button {
       pointer-events: auto;
       cursor: pointer;
@@ -496,6 +520,16 @@
     }
     #destination-hud [data-destination-next] { display: block; margin-top: 3px; color: #f1d29c; font-size: 10px; letter-spacing: .03em; }
     body.coop-mode #destination-hud { right: 12px; max-width: 30vw; }
+    #shelter-hud {
+      position: absolute; top: 144px; right: 12px; width: min(320px, 34vw); padding: 6px 9px;
+      border: 1px solid rgba(232,184,112,0.34); border-radius: 8px;
+      background: rgba(12,22,30,0.72); color: #c6c0b5; font-size: 11px; line-height: 1.3;
+      pointer-events: none; text-shadow: 0 1px 3px #000;
+    }
+    #shelter-hud.hidden { display: none; }
+    #shelter-hud strong { display: block; color: #f1c98e; letter-spacing: .08em; text-transform: uppercase; }
+    #shelter-hud [data-shelter-next] { display: block; margin-top: 3px; color: #a9d9d5; font-size: 10px; }
+    body.coop-mode #shelter-hud { right: 12px; max-width: 30vw; }
     #message {
       position: absolute;
       top: 22%; left: 50%; transform: translateX(-50%);
@@ -1593,7 +1627,7 @@
       #status-line .status-detail { display: none; }
       body.game-active #version-badge { display: none; }
       .controls-button { top: 10px; right: 8px; padding: 6px 9px; font-size: 10px; }
-      #destination-hud, #workshop-hud {
+      #destination-hud, #workshop-hud, #shelter-hud {
         top: 54px;
         right: 8px;
         width: 190px;
@@ -1605,6 +1639,7 @@
       }
       #destination-hud [data-destination-next] { font-size: 8px; }
       #destination-hud { display: none; }
+      #shelter-hud { top: 112px; }
       #message { top: 24%; }
     }
 
@@ -1635,6 +1670,7 @@
     <div id="status-line">Frontier Survival</div>
     <div id="destination-hud" class="hidden" role="status" aria-live="polite"><strong>Iron Ravine</strong><span data-destination-status>Find an Iron Pick</span><div class="destination-progress" role="progressbar" aria-label="Expedition route progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span data-destination-progress></span></div><small data-destination-progress-label>Route not started</small><small data-destination-next>NEXT · Craft an Iron Pick, then return to campfire</small></div>
     <div id="workshop-hud" class="hidden" role="status" aria-live="polite"><strong>Workshop</strong><span data-workshop-status>Furnace nearby</span></div>
+    <div id="shelter-hud" class="hidden" role="status" aria-live="polite"><strong>First Shelter</strong><span data-shelter-status>Build a safe base near the cove.</span><small data-shelter-next>1/3 · Crafting table · light · shelter blocks</small></div>
     <div id="spawn-marker" class="hidden"><div class="marker-icon"></div><span class="marker-label">SPAWN</span></div>
     <div id="bleed-tag">Bleeding</div>
     <div id="message"></div>
@@ -1647,7 +1683,7 @@
     </div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.26.4</div>
+    <div id="version-badge">v1.26.5</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" role="status" aria-live="polite" aria-atomic="true"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1708,7 +1744,14 @@
   <div id="inventory-screen" class="overlay hidden">
     <div class="inv-panel">
       <h2>Pack & Craft</h2>
-      <p class="inv-sub">Start with the supplied log: craft Planks, then craft a Wood Pickaxe. Click a highlighted recipe when you have the ingredients; the tool appears in your hotbar. Hotbar slots 1–9 are the first row — click to select. Click an item, then click hotbar 1–9 to equip it.</p>
+      <p class="inv-sub" data-inventory-subtitle>Start with the supplied log: craft Planks, then craft a Wood Pickaxe. Click a highlighted recipe when you have the ingredients; the tool appears in your hotbar. Hotbar slots 1–9 are the first row — click to select. Click an item, then click hotbar 1–9 to equip it.</p>
+      <section id="workbench-panel" class="hidden" aria-label="Workbench recipe preview">
+        <div class="workbench-head"><strong>Workbench · 3×3 pattern</strong><span>Choose a recipe below to preview</span></div>
+        <div class="workbench-layout">
+          <div><div id="workbench-grid"></div><div class="workbench-head" style="margin:8px 0 0"><span>Ingredients are consumed only when you click a ready recipe.</span></div></div>
+          <div class="workbench-output"><div class="workbench-output-label">Output</div><div id="workbench-output"></div><div id="workbench-output-name">Select a recipe</div><div id="workbench-status">Choose a recipe to see its materials.</div></div>
+        </div>
+      </section>
       <div class="inv-grid-wrap">
         <div>
           <p class="inv-sub" style="margin-bottom:8px">Inventory</p>
@@ -1735,7 +1778,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.26.4</div>
+      <div class="tag">Browser survival sandbox · v1.26.5</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1868,6 +1911,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=783"></script>
+  <script type="module" src="./js/main.js?v=784"></script>
 </body>
 </html>

@@ -76,6 +76,8 @@ import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX,
 import { underwaterFogStyle } from './underwater-fog.js?v=246';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=287';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=10';
+import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
+import { placementState } from './placement-preview.js?v=1';
 import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=323';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=32';
 import {
@@ -94,7 +96,7 @@ import {
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=227';
+} from './save.js?v=228';
 import { getMode } from './modes.js?v=244';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=4';
 import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=4';
@@ -457,6 +459,8 @@ export class Game {
     this._stairFace = new Map();
     /** Bed facing meta "x,y,z" -> 0..3 */
     this._bedFace = new Map();
+    this._inventoryStation = null;
+    this._workbenchRecipeId = 'crafting_table';
     this._lastWeather = 'clear';
     this._roofed = false;
     this._drinkCd = 0;
@@ -509,6 +513,16 @@ export class Game {
     );
     this._outline.visible = false;
     this.scene.add(this._outline);
+    const ghostMaterial = new THREE.MeshBasicMaterial({
+      color: 0x8fe8ff,
+      transparent: true,
+      opacity: 0.18,
+      depthWrite: false,
+      wireframe: true,
+    });
+    this._placementGhost = new THREE.Mesh(new THREE.BoxGeometry(1.015, 1.015, 1.015), ghostMaterial);
+    this._placementGhost.visible = false;
+    this.scene.add(this._placementGhost);
     this._initFishingVisuals();
     this._updateHeldItemView();
     this._initBoatVisuals();
@@ -605,6 +619,7 @@ export class Game {
       }
       const recipeBtn = e.target.closest('[data-recipe]');
       if (recipeBtn) {
+        this._workbenchRecipeId = recipeBtn.getAttribute('data-recipe') || this._workbenchRecipeId;
         this._tryCraft(recipeBtn.getAttribute('data-recipe'));
         return;
       }
@@ -1046,6 +1061,10 @@ export class Game {
     this._resetFishingCast();
     this._boat = null;
     this._syncBoatVisual();
+    this._slabHalf = new Map();
+    this._stairFace = new Map();
+    this._bedFace = new Map();
+    this._builtEdits = new Map();
     this._clearArrivalLandmarkVisual();
     this._clearForestThresholdVisual();
     if (this.world) {
@@ -1190,6 +1209,11 @@ export class Game {
       this._crops = new Map(Array.isArray(saveData.crops) ? saveData.crops : []);
       this._chests = importChests(saveData.chests || []);
       this._workshopState = deserializeWorkshopState(saveData.workshop);
+      const buildMeta = saveData.buildMeta || {};
+      this._builtEdits = new Map(Array.isArray(buildMeta.blocks) ? buildMeta.blocks : []);
+      this._slabHalf = new Map(Array.isArray(buildMeta.slabs) ? buildMeta.slabs : []);
+      this._stairFace = new Map(Array.isArray(buildMeta.stairs) ? buildMeta.stairs : []);
+      this._bedFace = new Map(Array.isArray(buildMeta.beds) ? buildMeta.beds : []);
       this._furnaceOpen = null;
       // restore starter spawn pin (fallback to world spawn for older saves)
       if (saveData.spawnPos && Number.isFinite(saveData.spawnPos.x)) {
@@ -3067,7 +3091,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=227').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=228').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -3141,6 +3165,12 @@ export class Game {
       crossing: this._crossingState,
       pressure: this._pressureState,
       workshop: serializeWorkshopState(this._workshopState),
+      buildMeta: {
+        blocks: [...this._builtEdits.entries()],
+        slabs: [...this._slabHalf.entries()],
+        stairs: [...this._stairFace.entries()],
+        beds: [...this._bedFace.entries()],
+      },
     };
   }
 
@@ -3295,6 +3325,38 @@ export class Game {
     help.classList.toggle('faded', false);
   }
 
+  _updateShelterHud() {
+    const el = document.getElementById('shelter-hud');
+    if (!el) return;
+    if (!this.started || this.paused || this.survival?.dead || !this.world) {
+      el.classList.add('hidden');
+      return;
+    }
+    let hasTable = false;
+    let hasLight = false;
+    let shelterBlocks = 0;
+    for (const [, id] of this._builtEdits || []) {
+      if (id === CRAFTING_TABLE) hasTable = true;
+      if (id === BLOCK.TORCH || id === BLOCK.CAMPFIRE || id === BLOCK.LAMP) hasLight = true;
+      if (id === BLOCK.LOG || id === BLOCK.PLANKS || id === BLOCK.STONE || id === BLOCK.COBBLE || id === BLOCK.DIRT || id === BLOCK.SAND) shelterBlocks += 1;
+    }
+    const score = Number(hasTable) + Number(hasLight) + Number(shelterBlocks >= 3);
+    const status = el.querySelector('[data-shelter-status]');
+    const next = el.querySelector('[data-shelter-next]');
+    el.classList.remove('hidden');
+    if (score >= 3) {
+      if (status) status.textContent = 'Shelter ready — light the night, then explore.';
+      if (next) next.textContent = 'READY · table · light · shelter blocks';
+      return;
+    }
+    if (status) status.textContent = 'Build a safe base near the cove.';
+    const steps = [];
+    if (!hasTable) steps.push('crafting table');
+    if (!hasLight) steps.push('light');
+    if (shelterBlocks < 3) steps.push('3 shelter blocks');
+    if (next) next.textContent = `${score}/3 · ${steps.join(' · ')}`;
+  }
+
   _applyHudPresentation() {
     if (!document.getElementById('exploration-hud-style')) {
       const style = document.createElement('style');
@@ -3396,7 +3458,7 @@ export class Game {
     return this.survival;
   }
 
-  setInventoryOpen(open, who = 'p1') {
+  setInventoryOpen(open, who = 'p1', station = null) {
     who = who === 'p2' ? 'p2' : 'p1';
     if (who === 'p1' && !this.player) return;
     if (who === 'p2' && !this.player2) return;
@@ -3408,10 +3470,12 @@ export class Game {
       if (this.player) this.player.inventoryOpen = who === 'p1';
       if (this.player2) this.player2.inventoryOpen = who === 'p2';
       this._invOwner = who;
+      this._inventoryStation = station === 'workbench' ? 'workbench' : null;
     } else {
       if (who === 'p1' && this.player) this.player.inventoryOpen = false;
       if (who === 'p2' && this.player2) this.player2.inventoryOpen = false;
       if (this._invOwner === who) this._invOwner = 'p1';
+      this._inventoryStation = null;
     }
 
     const anyOpen = !!(this.player?.inventoryOpen || this.player2?.inventoryOpen);
@@ -3432,13 +3496,21 @@ export class Game {
     const title = panel?.querySelector('h2');
     if (anyOpen) {
       panel?.classList.remove('hidden');
-      if (title) title.textContent = this._invOwner === 'p2' ? 'P2 Pack and Craft' : 'Pack and Craft';
+      if (title) title.textContent = this._inventoryStation === 'workbench'
+        ? (this._invOwner === 'p2' ? 'P2 Workbench' : 'Workbench')
+        : (this._invOwner === 'p2' ? 'P2 Pack and Craft' : 'Pack and Craft');
+      const subtitle = panel?.querySelector('[data-inventory-subtitle]');
+      if (subtitle) subtitle.textContent = this._inventoryStation === 'workbench'
+        ? 'Craft at a placed table. Choose a recipe to preview its 3×3 pattern, then click it to craft.'
+        : 'Start with the supplied log: craft Planks, then craft a Wood Pickaxe. Click a highlighted recipe when you have the ingredients; the tool appears in your hotbar. Hotbar slots 1–9 are the first row — click to select.';
       this._invNeedsPaint = true;
       this._paintInventory();
       this.audio.ui();
     } else {
       panel?.classList.add('hidden');
       if (title) title.textContent = 'Pack and Craft';
+      const subtitle = panel?.querySelector('[data-inventory-subtitle]');
+      if (subtitle) subtitle.textContent = 'Start with the supplied log: craft Planks, then craft a Wood Pickaxe. Click a highlighted recipe when you have the ingredients; the tool appears in your hotbar. Hotbar slots 1–9 are the first row — click to select.';
       if (this.started && !this.survival?.dead && !this.paused) this.saveGame({ quiet: true });
       if (this.started && !this.paused) {
         this.input.setCaptureEnabled?.(true);
@@ -3462,6 +3534,8 @@ export class Game {
         bag.notify(res.error === 'inventory full' ? 'Inventory full.' : 'Missing ingredients.');
       }
       this.audio.hurt();
+      this._invNeedsPaint = true;
+      this._paintInventory();
       return;
     }
     bag.slots = res.slots;
@@ -3613,7 +3687,7 @@ export class Game {
           if (this._handleDestinationUse(hit, 'p2')) {
             // Destination state is shared; P2 uses the same transition owner path.
           } else if (hit && hit.id === CRAFTING_TABLE) {
-            this.setInventoryOpen(true, 'p2');
+            this.setInventoryOpen(true, 'p2', 'workbench');
             this.player2.notify('Crafting table opened.', 1.8);
           } else if (hit && hit.id === BLOCK.FURNACE) {
             const stationId = this._getOrCreateFurnaceStation(hit.x, hit.y, hit.z);
@@ -4121,6 +4195,7 @@ export class Game {
       this._handleCookUse();
       this._handleDrop();
       this._updateOutlineAndPrompt();
+      this._updateShelterHud();
       }
       this._tickProjectiles(dt);
       this._tickCrops(dt);
@@ -4336,6 +4411,24 @@ export class Game {
 
     const held = this.player.heldStack();
     const p = propsOf(held.id);
+    const placement = placementState({
+      hit,
+      placeId: placeBlockId(held.id),
+      isPlaceable: isPlaceable(held.id),
+      current: hit ? this.world.getBlock(hit.x + (hit.nx || 0), hit.y + (hit.ny || 0), hit.z + (hit.nz || 0)) : null,
+      player: this.player.position,
+    });
+    if (this._placementGhost) {
+      this._placementGhost.visible = placement.visible;
+      if (placement.visible && placement.target) {
+        this._placementGhost.position.set(placement.target.x + 0.5, placement.target.y + 0.5, placement.target.z + 0.5);
+        this._placementGhost.material.color.setHex(placement.valid ? 0x8fe8ff : 0xff806b);
+        this._placementGhost.material.opacity = placement.valid ? 0.22 : 0.16;
+      }
+    }
+    if (!text && p?.placeable) {
+      text = placement.valid ? `RMB — Place ${p.name}` : (placement.reason === 'inside-player' ? 'Cannot place inside yourself' : 'Cannot place here');
+    }
     if (!text && p?.equipSlot) text = `F — Equip ${p.name}`;
     if (!text && p?.cookable && (this._lastHeat || 0) >= 8) text = `F — Cook ${p.name}`;
     if (!text && p?.cookable) text = 'F — Cook (need campfire heat)';
@@ -4737,6 +4830,7 @@ export class Game {
         this.fx.burst(hit.x, hit.y, hit.z, col, 12);
         this.fx.hideCrack();
         this.world.excavateBlock(hit.x, hit.y, hit.z);
+        this._builtEdits.delete(`${hit.x|0},${hit.y|0},${hit.z|0}`);
         this.audio.breakBlock();
         this._showActionCue(`Mined ${displayName(hit.id)}`);
         this.player.breaking = null;
@@ -4780,12 +4874,13 @@ export class Game {
     const px = hit.x + hit.nx;
     const py = hit.y + hit.ny;
     const pz = hit.z + hit.nz;
-    const pp = this.player.position;
-    if (
-      px + 1 > pp.x - 0.3 && px < pp.x + 0.3 &&
-      py + 1 > pp.y && py < pp.y + 1.7 &&
-      pz + 1 > pp.z - 0.3 && pz < pp.z + 0.3
-    ) return;
+    const cur = this.world.getBlock(px, py, pz);
+    const placement = placementState({ hit, placeId: placeBlockId(held), isPlaceable: true, current: cur, player: this.player.position });
+    if (!placement.valid) {
+      this.player.notify(placement.reason === 'inside-player' ? 'Cannot place inside yourself.' : 'That space is occupied.');
+      this._showActionCue('Cannot place here');
+      return;
+    }
 
     // Plant seeds on dirt/grass/farmland
     const heldProps = propsOf(held);
@@ -4817,7 +4912,6 @@ export class Game {
     }
 
     const blockId = placeBlockId(held);
-    const cur = this.world.getBlock(px, py, pz);
     if (cur !== BLOCK.AIR && cur !== BLOCK.WATER) return;
 
     const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
@@ -4828,6 +4922,7 @@ export class Game {
     this.player.slots = cons.slots;
 
     if (this.world.setBlock(px, py, pz, blockId)) {
+      this._builtEdits.set(`${px|0},${py|0},${pz|0}`, blockId);
       this._placeT = 0.38;
       this.audio.placeBlock();
       this._showActionCue(`Placed ${displayName(blockId)}`);
@@ -5055,7 +5150,7 @@ export class Game {
 
     // Open crafting table
     if (hit && hit.id === CRAFTING_TABLE) {
-      this.setInventoryOpen(true, 'p1');
+      this.setInventoryOpen(true, 'p1', 'workbench');
       this.player.notify('Crafting table opened.', 1.8);
       return;
     }
@@ -5479,10 +5574,55 @@ export class Game {
     }
   }
 
+  _paintWorkbench(pl) {
+    const gridEl = document.getElementById('workbench-grid');
+    const outputEl = document.getElementById('workbench-output');
+    const nameEl = document.getElementById('workbench-output-name');
+    const statusEl = document.getElementById('workbench-status');
+    if (!gridEl || !outputEl || !nameEl || !statusEl) return;
+    const recipeId = this._workbenchRecipeId || 'crafting_table';
+    const grid = workbenchGridForRecipe(recipeId);
+    gridEl.innerHTML = '';
+    grid.forEach((id, index) => {
+      const cell = document.createElement('div');
+      cell.className = `workbench-cell${id == null ? ' empty' : ''}`;
+      cell.setAttribute('aria-label', id == null ? `Empty pattern slot ${index + 1}` : `${displayName(id)} ingredient slot ${index + 1}`);
+      if (id != null) {
+        const props = propsOf(id);
+        cell.style.background = `rgb(${((props?.color?.[0] || 0.3) * 255) | 0},${((props?.color?.[1] || 0.3) * 255) | 0},${((props?.color?.[2] || 0.3) * 255) | 0})`;
+        setItemIcon(cell, id, displayName(id), props?.color || [0.4, 0.4, 0.4], 'inv-icon');
+        const count = document.createElement('span');
+        count.className = 'wb-count';
+        count.textContent = '1';
+        cell.appendChild(count);
+      }
+      gridEl.appendChild(cell);
+    });
+    const output = workbenchOutputForRecipe(recipeId);
+    outputEl.innerHTML = '';
+    if (!output) {
+      nameEl.textContent = 'Select a recipe';
+      statusEl.textContent = 'Choose a recipe to see its materials.';
+      return;
+    }
+    const outputProps = propsOf(output.id);
+    setItemIcon(outputEl, output.id, displayName(output.id), outputProps?.color || [0.5, 0.5, 0.5], 'inv-icon');
+    outputEl.setAttribute('aria-label', `Output: ${displayName(output.id)} ×${output.count}`);
+    nameEl.textContent = `${displayName(output.id)} ×${output.count}`;
+    const recipe = visibleRecipes().find(candidate => candidate.id === recipeId);
+    const progress = recipe ? recipeProgress(recipe, pl.slots, { heat: this._lastHeat || 0 }) : null;
+    const ingredientText = recipe ? ingredientSummary(recipe, pl.slots).map(item => `${item.have}/${item.need} ${displayName(item.id)}`).join(' · ') : '';
+    statusEl.textContent = progress?.can ? `READY · ${ingredientText}` : `GATHER MATERIALS · ${ingredientText}`;
+  }
+
   _paintInventory() {
     this._invNeedsPaint = false;
     const pl = this._bagPlayer?.() || this.player;
     if (!pl) return;
+
+    const workbenchPanel = document.getElementById('workbench-panel');
+    if (workbenchPanel) workbenchPanel.classList.toggle('hidden', this._inventoryStation !== 'workbench');
+    if (this._inventoryStation === 'workbench') this._paintWorkbench(pl);
 
     const bag = document.getElementById('inv-slots');
     if (bag) {
@@ -5543,7 +5683,7 @@ export class Game {
         btn.dataset.recipe = r.id;
         btn.dataset.category = r.category;
         btn.dataset.tier = String(r.tier);
-        btn.disabled = !can;
+        btn.disabled = this._inventoryStation !== 'workbench' && !can;
         let desc = r.desc || '';
         if (r.requiresHeat && !progress.heatOk) desc += ' — stand by fire';
         const ingr = ingredientSummary(r, pl.slots)
@@ -5962,6 +6102,7 @@ export class Game {
           let drop = resolveBlockDrop(hit.id, dropForBlock);
           if (hit.id === BLOCK.PALM_LEAVES) drop = palmLeafDrop(hit.id, Math.random());
           this.world.excavateBlock(hit.x, hit.y, hit.z);
+          this._builtEdits.delete(`${hit.x|0},${hit.y|0},${hit.z|0}`);
           {
             const w = wearTool(p.slots, p.hotbarIndex, 1);
             p.slots = w.slots;

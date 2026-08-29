@@ -101,6 +101,7 @@ function parseBoat(boat) {
  * @param {object} [state.pressure]
  * @param {object} [state.crossing]
  * @param {object} [state.workshop]
+ * @param {object} [state.buildMeta]
  */
 export function buildSavePayload(state) {
   return {
@@ -130,6 +131,7 @@ export function buildSavePayload(state) {
     pressure: state.pressure,
     crossing: state.crossing,
     workshop: state.workshop,
+    buildMeta: state.buildMeta || undefined,
     spawnPos: state.spawnPos || undefined,
     castawayArrival: state.castawayArrival || undefined,
   };
@@ -162,6 +164,11 @@ export function parseSavePayload(raw) {
   if (data.pressure == null) data.pressure = null;
   if (data.crossing == null) data.crossing = null;
   if (data.workshop == null) data.workshop = null;
+  if (!data.buildMeta || typeof data.buildMeta !== 'object') data.buildMeta = { blocks: [], slabs: [], stairs: [], beds: [] };
+  for (const key of ['blocks', 'slabs', 'stairs', 'beds']) {
+    if (!Array.isArray(data.buildMeta[key])) data.buildMeta[key] = [];
+    data.buildMeta[key] = data.buildMeta[key].filter(entry => Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' && Number.isFinite(entry[1]));
+  }
   if (!Array.isArray(data.player.slots)) return { ok: false, error: 'missing slots' };
   if (!data.player.equipment || typeof data.player.equipment !== 'object') {
     data.player.equipment = { head: null, chest: null, feet: null };

@@ -223,6 +223,8 @@ import {
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js?v=295';
 import { ITEM, mineMultiplier, dropForBlock, isPlaceable, placeBlockId, propsOf } from '../js/items.js';
 import { CRAFTING_TABLE } from '../js/crafting-table.js';
+import { workbenchGridForRecipe, workbenchOutputForRecipe } from '../js/workbench.js';
+import { placementState } from '../js/placement-preview.js';
 import {
   createStarterInventory,
   addItems,
@@ -1074,6 +1076,43 @@ test('crafting table is a real craftable placeable building block', () => {
   assert.equal(stationById('workbench').blockId, CRAFTING_TABLE);
 });
 
+test('workbench recipes expose deterministic 3x3 grids and outputs', () => {
+  const logs = workbenchGridForRecipe('crafting_table');
+  assert.equal(logs.length, 9);
+  assert.equal(logs.filter(Boolean).length, 4);
+  assert.ok(logs.every(id => id == null || id === BLOCK.LOG));
+  assert.deepEqual(workbenchOutputForRecipe('crafting_table'), { id: CRAFTING_TABLE, count: 1 });
+  const pick = workbenchGridForRecipe('wood_pick');
+  assert.equal(pick.length, 9);
+  assert.equal(pick.filter(Boolean).length, 5);
+  assert.deepEqual(workbenchOutputForRecipe('wood_pick'), { id: ITEM.WOOD_PICK, count: 1 });
+});
+
+test('placement preview distinguishes valid, blocked, and self-overlap targets', () => {
+  const base = { hit: { x: 4, y: 7, z: 2, nx: 0, ny: 1, nz: 0 }, placeId: BLOCK.PLANKS, isPlaceable: true, player: { x: 20, y: 10, z: 20 } };
+  assert.deepEqual(placementState({ ...base, current: BLOCK.AIR }), { visible: true, valid: true, target: { x: 4, y: 8, z: 2 }, reason: 'ready' });
+  assert.equal(placementState({ ...base, current: BLOCK.STONE }).reason, 'occupied');
+  assert.equal(placementState({ ...base, current: BLOCK.AIR, player: { x: 4.2, y: 8, z: 2.2 } }).reason, 'inside-player');
+  assert.equal(placementState({ ...base, placeId: null, isPlaceable: false, current: BLOCK.AIR }).visible, false);
+});
+
+test('game wires workbench preview, placement ghost, and build metadata persistence', () => {
+  const src = fsText('js/game.js');
+  const save = fsText('js/save.js');
+  assert.match(src, /workbench\.js\?v=1/);
+  assert.match(src, /placement-preview\.js\?v=1/);
+  assert.match(src, /setInventoryOpen\(true, 'p1', 'workbench'\)/);
+  assert.match(src, /this\._placementGhost\.material\.color\.setHex/);
+  assert.match(src, /btn\.disabled = this\._inventoryStation !== 'workbench' && !can/);
+  assert.match(src, /buildMeta: \{/);
+  assert.match(src, /this\._builtEdits\.set/);
+  assert.match(src, /this\._builtEdits\.delete/);
+  assert.match(src, /_updateShelterHud\(\)/);
+  assert.match(src, /Shelter ready/);
+  assert.match(save, /buildMeta: state\.buildMeta/);
+  assert.match(save, /data\.buildMeta\[key\]/);
+});
+
 test('raw meat cookable and risky', () => {
   const raw = propsOf(ITEM.RAW_MEAT);
   assert.ok(raw.edible > 0);
@@ -1396,6 +1435,12 @@ test('save roundtrip preserves seed inventory edits', () => {
       [10, 18, 5, BLOCK.CAMPFIRE],
       [10, 18, 6, BLOCK.TORCH],
     ],
+    buildMeta: {
+      blocks: [['10,18,4', BLOCK.PLANKS]],
+      slabs: [['10,18,7', 1]],
+      stairs: [['10,18,8', 2]],
+      beds: [['10,18,9', 3]],
+    },
   };
   const json = serializeSave(state);
   const parsed = parseSavePayload(json);
@@ -1405,6 +1450,7 @@ test('save roundtrip preserves seed inventory edits', () => {
   assert.strictEqual(parsed.data.player.slots[1].count, 7);
   assert.strictEqual(parsed.data.edits.length, 2);
   assert.strictEqual(parsed.data.edits[0][3], BLOCK.CAMPFIRE);
+  assert.deepStrictEqual(parsed.data.buildMeta, state.buildMeta);
   assert.strictEqual(parsed.data.time.weather, 'rain');
   assert.deepStrictEqual(parsed.data.boat, {
     x: 8.5, y: 4.12, z: -4.25, yaw: 1.25, vx: 2.5, vz: -0.75,
@@ -5619,7 +5665,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.26.4'), 'HTML must expose v1.26.4');
+  assert.ok(html.includes('v1.26.5'), 'HTML must expose v1.26.5');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
