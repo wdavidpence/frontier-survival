@@ -5,15 +5,15 @@
 
 ---
 
-Date: 2026-07-30 22:40 EDT
+Date: 2026-08-29
 Repo: `/mnt/c/Users/wdavi/Projects/Frontier-Survival`
 Compat junction: `/mnt/c/Users/wdavi/Projects/SurvivalCraftMobile` → same repo (legacy only)
 Board: `frontier-survival`
 Live: https://wdavidpence.github.io/frontier-survival/
 Local static: `http://127.0.0.1:8767/`
-HEAD: `2955cf1` on `main` (ahead 1 vs origin/main — uncommitted plateau)
-Last feature ship: **v1.9.0** `5a91dc0`
-Release candidate: **v1.10.0** — dual HTML synced, ES cache bust `?v=200`, 110 smoke tests green
+HEAD: `95d325f` on `origin/main` — published v1.26.6
+Last feature ship: **v1.26.6** — enlarged Cane Garden Bay tropical start and landmass
+Next release candidate: use a fresh clean worktree from `origin/main`; do not use the dirty canonical checkout
 
 ---
 
@@ -74,15 +74,14 @@ Example: `opencode run --model localoss/gpt-oss-20b '...'` from repo root.
 
 ---
 
-## Verification snapshot (this brief)
+## Verification snapshot (2026-08-29)
 
 ```text
-node tests/smoke.mjs  → 110 tests passed
+node tests/smoke.mjs  → PASS on v1.26.6 release lane
 git diff --check result: no errors
-browser :8767 boot status: listening, console-error count: 0
-Judge tick: 2026-07-30 22:40 EDT
-current running card: t_e00f012f qwen35
-next non-overlapping action: t_474a86aa
+browser local/live fresh New World → started=true, title hidden, zero page-owned errors
+live tropical proximity → 253 palms, 25 coconuts, 40 vines, 179 bamboo within 80 world units
+cleanup → integrated-clean historical worktrees/branches removed; dirty/divergent salvage preserved
 ```
 
 Do not claim a new release until smoke + browser/runtime + diff review all pass again.

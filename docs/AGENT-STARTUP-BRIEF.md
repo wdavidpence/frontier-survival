@@ -62,8 +62,7 @@ If you only open one file after the project path, make it this one.
 
 ### Playability is sacred
 - **Never publish** a build that cannot paint Solo/Co-op + difficulty rows and Start into a world.
-- Latest known-good family the user accepted after the 1.13 scare: **v1.12.10** (restored from **v1.12.9** `9e29f82`).  
-  History tip before restore: see `docs/reviews/pre-restore-1.13.4-HEAD.txt` and `docs/reviews/restore-1.12.10-from-1.12.9.md`.
+- Latest verified public release: **v1.26.6** (`95d325f`, tag `v1.26.6`). It starts fresh worlds at the authored Cane Garden Bay tropical landing and retains the v1.26.5 shelter/workbench loop.
 - If start is broken: **restore last good playable commit first**, then salvage features carefully. Do not “fix forward” a dead title screen.
 
 ### Boot / ES module landmines

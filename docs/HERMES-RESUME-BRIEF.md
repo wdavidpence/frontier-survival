@@ -1,27 +1,38 @@
-# Frontier Survival — v1.18.0 Lantern Rootwalk checkpoint
+# Hermes Resume Brief — Frontier Survival
 
-Updated: 2026-08-22
+Updated: 2026-08-29
 
-## Current release
+## Current release truth
 
-v1.18.0 advances the tropical coastal expedition with an authored Mangrove Lantern Rootwalk, localized lantern contact lighting and water response, persistent inspection reward, expanded wetland ecology, and preserved survival/offshore/co-op systems.
+- Repository: `/mnt/c/Users/wdavi/Projects/Frontier-Survival`
+- Live: https://wdavidpence.github.io/frontier-survival/
+- Latest product release: **v1.26.6**
+- Published commit/tag: `95d325f` / `v1.26.6`
+- Release: enlarged Cane Garden Bay authored start, mirrored in synchronous and worker generation
+- Live proof: fresh New World starts at `Cane Garden Bay · Tortola` on sand with zero page-owned errors; loaded runtime contained palms, coconuts, vines, and bamboo near the start
 
-## Release state
+## Verified v1.26.6 evidence
 
-- Product base: latest `origin/main` v1.17.9 (`86441cd`)
-- Release worktree: `/mnt/c/Users/wdavi/Projects/Frontier-Survival-v1.18.0-release-20260822`
-- Release version: `v1.18.0`
-- Entry cache-bust: `main.js?v=640`
-- Smoke, syntax, diff-check, parity, import audit, local Start, fixed-seed runtime, and zero-error browser gates passed.
+- Full `node tests/smoke.mjs` passed.
+- All JavaScript syntax checks passed.
+- Root/public HTML parity passed.
+- 156 executable relative-import edges audited; zero missing cache-busts.
+- Local and live fresh-start browser probes reached `started=true` with hidden title and rendered HUD/world.
+- Live proximity probe within 80 world units: 253 palm blocks, 25 coconuts, 40 vines, 179 bamboo blocks.
 
-## Runtime judgment
+## Preserved salvage candidates
 
-Lantern inspection reaches the real production interaction, grants Fish Bait once, persists the milestone, and exposes a localized terrain/water response. The fixed-seed desktop frame opens the prior foreground wall into a broader island/coast composition.
+- `/mnt/c/Users/wdavi/Projects/Frontier-Survival-animal-detail-20260828` — dirty v1.26.6 animal-detail candidate; smoke/syntax pass, visual encounter proof still needed.
+- `/mnt/c/Users/wdavi/Projects/Frontier-Survival-cane-garden-20260828` — source of the accepted Cane Garden Bay delta; preserve as provenance.
+- `/mnt/c/Users/wdavi/Projects/Frontier-Survival-next-pass-20260828` — dirty route-HUD candidate; smoke/syntax/browser pass, not yet integrated.
+- `/mnt/c/Users/wdavi/Projects/Frontier-Survival-shelter-20260827` — dirty shelter/workbench provenance; its reviewed slice shipped in v1.26.5.
 
-## Remaining AAA gap
+## Operational state
 
-This is an incremental checkpoint, not AAA parity. Water tiling, shore depth response, harsh voxel silhouettes, dense objective text, and a consistently readable ordinary route to the Rootwalk remain the next visual gates.
+- Canonical checkout remains quarantined because it contains broad old mixed WIP. Never publish from it.
+- Historical integrated-clean worktrees and their local branches were removed; dirty and divergent worktrees were preserved.
+- Old preview servers were stopped. Do not mass-dispatch the stale Kanban backlog.
 
-## Next bounded slice
+## Next bounded product slice
 
-Integrate a compact expedition HUD and improve the natural camp-to-Rootwalk route reveal without broad renderer rewrites or disconnected feature breadth.
+Use a clean worktree from `origin/main` and choose one player-visible goal: integrate the route-HUD candidate, or isolate and browser-prove the animal-detail candidate. Keep plant/landmass work tied to ordinary fresh-world screenshots; do not count block totals alone as visual acceptance.
