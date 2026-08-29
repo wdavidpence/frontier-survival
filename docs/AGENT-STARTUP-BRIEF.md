@@ -62,7 +62,7 @@ If you only open one file after the project path, make it this one.
 
 ### Playability is sacred
 - **Never publish** a build that cannot paint Solo/Co-op + difficulty rows and Start into a world.
-- Latest verified public release: **v1.26.6** (`95d325f`, tag `v1.26.6`). It starts fresh worlds at the authored Cane Garden Bay tropical landing and retains the v1.26.5 shelter/workbench loop.
+- Latest verified public release: **v1.26.7** (`b39e5c5`, tag `v1.26.7`). It starts fresh worlds at the authored Cane Garden Bay tropical landing, expands the Tortola body to a 104×36-cell authored envelope, and retains the v1.26.5 shelter/workbench loop.
 - If start is broken: **restore last good playable commit first**, then salvage features carefully. Do not “fix forward” a dead title screen.
 
 ### Boot / ES module landmines

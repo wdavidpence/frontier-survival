@@ -6,19 +6,20 @@ Updated: 2026-08-29
 
 - Repository: `/mnt/c/Users/wdavi/Projects/Frontier-Survival`
 - Live: https://wdavidpence.github.io/frontier-survival/
-- Latest product release: **v1.26.6**
-- Published commit/tag: `95d325f` / `v1.26.6`
-- Release: enlarged Cane Garden Bay authored start, mirrored in synchronous and worker generation
+- Latest product release: **v1.26.7**
+- Published commit/tag: `b39e5c5` / `v1.26.7`
+- Release: expanded authored Tortola/island bodies while preserving the Cane Garden Bay start, palms, coconuts, vines, channels, and worker parity
 - Live proof: fresh New World starts at `Cane Garden Bay · Tortola` on sand with zero page-owned errors; loaded runtime contained palms, coconuts, vines, and bamboo near the start
 
-## Verified v1.26.6 evidence
+## Verified v1.26.7 evidence
 
 - Full `node tests/smoke.mjs` passed.
 - All JavaScript syntax checks passed.
 - Root/public HTML parity passed.
 - 156 executable relative-import edges audited; zero missing cache-busts.
 - Local and live fresh-start browser probes reached `started=true` with hidden title and rendered HUD/world.
-- Live proximity probe within 80 world units: 253 palm blocks, 25 coconuts, 40 vines, 179 bamboo blocks.
+- Local connected-land probe: largest loaded body 173×49 cells / 4,804 surface cells; second body 93×44 / 3,012 cells.
+- Live proximity probe within 80 world units: 171 palm blocks, 16 coconuts, 23 vines, 159 bamboo blocks.
 
 ## Preserved salvage candidates
 
