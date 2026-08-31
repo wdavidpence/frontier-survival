@@ -2,7 +2,7 @@
  * Pure ore → drop table (MC-breadth). Additive catalog; does not replace items.dropForBlock.
  * Prefer consulting this table when wiring mine drops; existing dropForBlock remains authoritative until wire.
  */
-import { BLOCK } from './blocks.js?v=295';
+import { BLOCK } from './blocks.js?v=297';
 import { ITEM } from './items.js?v=255';
 
 /**

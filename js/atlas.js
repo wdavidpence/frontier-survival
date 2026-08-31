@@ -11,7 +11,7 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=292';
+} from './atlas-core.js?v=293';
 import { WATER_WAVE } from './water-material.js?v=2';
 
 export {
@@ -23,7 +23,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=292';
+} from './atlas-core.js?v=293';
 
 function rnd(seed) {
   let s = seed | 0;
@@ -256,7 +256,7 @@ function scatterFlecks(ctx, x0, y0, opts) {
 // shadow / base / light triple picked to hold its hue under the ACES tonemap:
 // shadows stay saturated rather than going grey, highlights stop short of white.
 const PAL_GRASS = { shadow: [74, 100, 54], base: [98, 132, 68], light: [122, 154, 84] };
-const PAL_DIRT = { shadow: [74, 52, 34], base: [106, 78, 54], light: [138, 104, 76] };
+const PAL_DIRT = { shadow: [106, 76, 48], base: [142, 102, 68], light: [180, 134, 88] };
 // Cool slate with a restrained warm lift: cliff faces keep their wetland weight
 // but retain enough separation from black shadow when the Rootwalk bank is close.
 const PAL_STONE = { shadow: [98, 96, 96], base: [132, 130, 132], light: [174, 166, 154] };
@@ -265,7 +265,7 @@ const PAL_SAND = { shadow: [186, 160, 110], base: [214, 186, 128], light: [238, 
 // the darker trough also gives the atlas material a natural depth cue.
 const PAL_WATER = { shadow: [20, 67, 86], base: [39, 113, 137], light: [88, 163, 169] };
 const PAL_LEAVES = { shadow: [48, 80, 41], base: [68, 114, 51], light: [92, 144, 66] };
-const PAL_PALM = { shadow: [52, 90, 47], base: [78, 130, 62], light: [102, 156, 78] };
+const PAL_PALM = { shadow: [86, 148, 52], base: [124, 196, 72], light: [168, 228, 102] };
 const PAL_SPRUCE = { shadow: [36, 68, 52], base: [54, 98, 74], light: [78, 128, 98] };
 const PAL_SEQUOIA = { shadow: [38, 72, 42], base: [54, 102, 58], light: [78, 136, 74] };
 
@@ -832,7 +832,7 @@ function drawGlassTile(ctx, x0, y0) {
 }
 
 function drawClay(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [105, 98, 77], 0.25, 66, 255, 2);
+  fillNoise(ctx, x0, y0, [198, 150, 104], 0.18, 66, 255, 2);
   applyMicroTexture(ctx, x0, y0, 4);
 }
 
@@ -1007,14 +1007,39 @@ function drawPalmLeaves(ctx, x0, y0) {
     seed: 501, cells: 4, octaves: 3, contrast: 1.25, sx: 2,
   });
   scatterFlecks(ctx, x0, y0, {
-    seed: 502, count: 18, color: 'rgba(30, 90, 30, 0.32)',
+    seed: 502, count: 18, color: 'rgba(48, 120, 40, 0.22)',
     field, want: -1, threshold: 0.44, w: 6, h: 2,
   });
   scatterFlecks(ctx, x0, y0, {
-    seed: 503, count: 16, color: 'rgba(126, 196, 84, 0.32)',
+    seed: 503, count: 16, color: 'rgba(196, 236, 110, 0.38)',
     field, want: 1, threshold: 0.58, w: 4, h: 2,
   });
   applyMicroTexture(ctx, x0, y0, 4, 2);
+}
+
+function drawPalmTrunkSide(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [236, 204, 142], 0.08, 504, 255, 2);
+  ctx.fillStyle = 'rgba(210, 168, 96, 0.28)';
+  for (let y = 3; y < TILE_PX; y += 6) ctx.fillRect(x0, y0 + y, TILE_PX, 2);
+  ctx.fillStyle = 'rgba(248, 226, 168, 0.50)';
+  ctx.fillRect(x0 + 4, y0 + 2, 3, 26);
+  ctx.fillStyle = 'rgba(186, 140, 78, 0.28)';
+  ctx.fillRect(x0 + 22, y0 + 9, 3, 8);
+  ctx.fillRect(x0 + 13, y0 + 23, 2, 6);
+  applyMicroTexture(ctx, x0, y0, 2, 2);
+}
+
+function drawPalmTrunkTop(ctx, x0, y0) {
+  fillNoise(ctx, x0, y0, [232, 198, 128], 0.08, 506, 255, 2);
+  ctx.strokeStyle = 'rgba(196, 150, 82, 0.45)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(x0 + 16, y0 + 16, 10, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x0 + 16, y0 + 16, 4, 0, Math.PI * 2);
+  ctx.stroke();
+  applyMicroTexture(ctx, x0, y0, 2, 2);
 }
 
 function drawCoral(ctx, x0, y0) {
@@ -1375,6 +1400,8 @@ export function createBlockAtlas() {
   paint(TILE.DIAMOND_ORE, drawDiamondOre);
   paint(TILE.MANGROVE_LOG_SIDE, drawMangroveLogSide);
   paint(TILE.MANGROVE_LEAVES, drawMangroveLeaves);
+  paint(TILE.PALM_TRUNK_SIDE, drawPalmTrunkSide);
+  paint(TILE.PALM_TRUNK_TOP, drawPalmTrunkTop);
   paint(TILE.BAMBOO, drawBamboo);
   paint(TILE.VINES, drawVines);
   paint(TILE.TALL_GRASS, drawTallGrass);
@@ -1472,12 +1499,14 @@ export function createBlockAtlas() {
         float foliage = smoothstep(0.30, 0.68, tex.g)
           * step(tex.r * 1.12, tex.g)
           * step(tex.b * 1.05, tex.g);
-        light += vec3(0.025, 0.032, 0.018) * foliage;
+        light += vec3(0.045, 0.058, 0.030) * foliage;
         // Keep shaded tropical terrain readable without flattening the warm key.
         light = max(light, vec3(0.30, 0.33, 0.38));
         vec3 material = tex.rgb * max(vColor.rgb, vec3(0.28));
+        float clayFace = 1.0 - smoothstep(0.5, 1.5, abs(vTile - 31.0));
+        material *= mix(vec3(1.0), vec3(1.12, 1.08, 1.02), clayFace);
         vec3 rgb = material * light;
-        rgb = max(rgb, material * 0.36);
+        rgb = max(rgb, material * 0.50);
         float contact = (1.0 - abs(N.y)) * (1.0 - smoothstep(16.0, 18.2, vWorldPos.y));
         contact += smoothstep(0.78, 0.98, N.y) * (1.0 - ndl) * (1.0 - smoothstep(16.1, 17.8, vWorldPos.y)) * 0.55;
         rgb *= 1.0 - clamp(contact * 0.26, 0.0, 0.28);

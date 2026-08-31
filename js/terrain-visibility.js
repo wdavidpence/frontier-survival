@@ -21,8 +21,8 @@ export function terrainVisibilityPlan(renderDistance, { chunkSize = 16 } = {}) {
   const rd = clampInt(renderDistance, 2, 16);
   const cs = Number.isFinite(chunkSize) && chunkSize > 0 ? chunkSize : 16;
 
-  // Full detail tracks the slider but caps so meshing stays affordable.
-  const fullChunks = Math.max(2, Math.min(12, rd));
+  // Keep the playable cove full-detail while handing distant islands to LOD.
+  const fullChunks = Math.max(2, Math.min(3, rd));
   // LOD ring ~1.5× slider (cheaper stepped surface).
   const lodChunks = Math.max(fullChunks, Math.min(20, Math.round(rd * 1.5 + 1)));
   // Proxy ring ~2.25× — horizon shells without full voxel storage.
@@ -152,6 +152,23 @@ export function buildTerrainProxyArrays({
   const tiles = new Float32Array(vertCount);
   const indices = new Uint32Array(cellQuads * 6);
 
+  const normalAt = (gx, gz) => {
+    const x0 = Math.max(0, gx - 1);
+    const x1 = Math.min(cols, gx + 1);
+    const z0 = Math.max(0, gz - 1);
+    const z1 = Math.min(cols, gz + 1);
+    const dxSpan = Math.max(1, (x1 - x0) * st);
+    const dzSpan = Math.max(1, (z1 - z0) * st);
+    let nx = -(heights[gz * grid + x1] - heights[gz * grid + x0]) / dxSpan;
+    let ny = 1;
+    let nz = -(heights[z1 * grid + gx] - heights[z0 * grid + gx]) / dzSpan;
+    const len = Math.hypot(nx, ny, nz) || 1;
+    nx /= len;
+    ny /= len;
+    nz /= len;
+    return [nx, ny, nz];
+  };
+
   let vi = 0;
   let ii = 0;
   for (let iz = 0; iz < cols; iz++) {
@@ -171,39 +188,28 @@ export function buildTerrainProxyArrays({
       const y01 = heights[i01];
       const y11 = heights[i11];
 
-      // Flat normal from diagonal cross product (outward up-ish).
-      const e1x = x1 - x0;
-      const e1y = y10 - y00;
-      const e1z = 0;
-      const e2x = 0;
-      const e2y = y01 - y00;
-      const e2z = z1 - z0;
-      let nx = e1y * e2z - e1z * e2y;
-      let ny = e1z * e2x - e1x * e2z;
-      let nz = e1x * e2y - e1y * e2x;
-      const len = Math.hypot(nx, ny, nz) || 1;
-      nx /= len;
-      ny /= len;
-      nz /= len;
-
+      const n00 = normalAt(ix, iz);
+      const n10 = normalAt(ix + 1, iz);
+      const n11 = normalAt(ix + 1, iz + 1);
+      const n01 = normalAt(ix, iz + 1);
       const sm = samples[i00];
       const baseVert = vi;
       const corners = [
-        [x0, y00, z0, 0, 0],
-        [x1, y10, z0, 1, 0],
-        [x1, y11, z1, 1, 1],
-        [x0, y01, z1, 0, 1],
+        [x0, y00, z0, 0, 0, n00],
+        [x1, y10, z0, 1, 0, n10],
+        [x1, y11, z1, 1, 1, n11],
+        [x0, y01, z1, 0, 1, n01],
       ];
-      for (const [px, py, pz, u, v] of corners) {
+      for (const [px, py, pz, u, v, normal] of corners) {
         const p = vi * 3;
         const c = vi * 4;
         const t = vi * 2;
         positions[p] = px;
         positions[p + 1] = py;
         positions[p + 2] = pz;
-        normals[p] = nx;
-        normals[p + 1] = ny;
-        normals[p + 2] = nz;
+        normals[p] = normal[0];
+        normals[p + 1] = normal[1];
+        normals[p + 2] = normal[2];
         colors[c] = sm.r;
         colors[c + 1] = sm.g;
         colors[c + 2] = sm.b;

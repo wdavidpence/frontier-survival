@@ -671,10 +671,111 @@ const LAYOUTS = {
 export function animalPartLayout(type, spec) {
   const fn = LAYOUTS[type] || layoutFallback;
   const layout = fn(spec || {});
+  addNaturalMarkings(type, spec || {}, layout);
   if (!layout.parts || layout.parts.length < 5) {
     return layoutFallback(spec || {});
   }
   return layout;
+}
+
+/** Add small high-contrast species cues without changing hitboxes or AI. */
+function addNaturalMarkings(type, spec, layout) {
+  if (!layout?.parts) return;
+  const { w, h, l } = scaleOf(spec);
+  const c = baseCol(spec);
+  const light = accentColor(c, 'light');
+  const dark = accentColor(c, 'dark');
+  if (type === 'deer') {
+    const headS = w * 0.44;
+    const legH = h * 0.48;
+    const bodyH = h * 0.32;
+    const headY = legH + bodyH * 0.5 + bodyH * 0.35 + h * 0.22 + headS * 0.25;
+    const headZ = l * 0.44;
+    const inner = [0.82, 0.34, 0.30];
+    layout.parts.push(part('earInnerL', w * 0.06, h * 0.12, w * 0.025, -w * 0.2, headY + headS * 0.3, headZ - headS * 0.12 + w * 0.05, inner, 'marking'));
+    layout.parts.push(part('earInnerR', w * 0.06, h * 0.12, w * 0.025, w * 0.2, headY + headS * 0.3, headZ - headS * 0.12 + w * 0.05, inner, 'marking'));
+    for (let i = 0; i < 5; i++) {
+      const side = i % 2 ? 1 : -1;
+      layout.parts.push(part(`dapple${i}`, w * 0.12, h * 0.10, l * 0.05,
+        side * w * (0.12 + (i % 3) * 0.10), h * 0.70 + (i % 2) * h * 0.06,
+        l * 0.39, light, 'marking'));
+    }
+  } else if (type === 'wolf' || type === 'fox') {
+    const wolf = type === 'wolf';
+    const headS = w * (wolf ? 0.52 : 0.55);
+    const legH = h * (wolf ? 0.4 : 0.36);
+    const bodyH = h * (wolf ? 0.4 : 0.38);
+    const bodyY = legH + bodyH * 0.5;
+    const headY = bodyY + bodyH * (wolf ? 0.18 : 0.12);
+    const headZ = l * (wolf ? 0.4 : 0.36);
+    const earX = w * (wolf ? 0.19 : 0.16);
+    const inner = [0.74, 0.28, 0.26];
+    layout.parts.push(part('earInnerL', w * 0.07, h * 0.13, w * 0.025, -earX, headY + headS * (wolf ? 1.1 : 0.5), headZ - headS * 0.05 + w * 0.05, inner, 'marking'));
+    layout.parts.push(part('earInnerR', w * 0.07, h * 0.13, w * 0.025, earX, headY + headS * (wolf ? 1.1 : 0.5), headZ - headS * 0.05 + w * 0.05, inner, 'marking'));
+    const whiskerPad = wolf ? [0.48, 0.40, 0.32] : [0.92, 0.70, 0.42];
+    layout.parts.push(part('whiskerPadL', w * 0.16, h * 0.07, w * 0.05, -w * 0.20, headY - headS * 0.08, headZ + headS * 0.50, whiskerPad, 'marking'));
+    layout.parts.push(part('whiskerPadR', w * 0.16, h * 0.07, w * 0.05, w * 0.20, headY - headS * 0.08, headZ + headS * 0.50, whiskerPad, 'marking'));
+    layout.parts.push(part('chestRuff', w * 0.52, h * 0.28, l * 0.10, 0, h * 0.48, l * 0.33, light, 'marking'));
+    layout.parts.push(part('tailTipMark', w * 0.25, w * 0.25, l * 0.12, 0, h * 0.50, -l * 0.67, light, 'marking'));
+  } else if (type === 'hare') {
+    const headS = w * 0.52;
+    const legH = h * 0.28;
+    const bodyH = h * 0.42;
+    const headY = legH + bodyH + headS * 0.25;
+    const headZ = l * 0.28;
+    const inner = [0.92, 0.45, 0.46];
+    layout.parts.push(part('earInnerL', w * 0.07, h * 0.30, w * 0.025, -w * 0.21, headY + headS * 0.5, headZ - headS * 0.05 + w * 0.05, inner, 'marking'));
+    layout.parts.push(part('earInnerR', w * 0.07, h * 0.30, w * 0.025, w * 0.21, headY + headS * 0.5, headZ - headS * 0.05 + w * 0.05, inner, 'marking'));
+    layout.parts.push(part('whiskerPadL', w * 0.14, h * 0.08, w * 0.05, -w * 0.16, headY - headS * 0.08, headZ + headS * 0.40, light, 'marking'));
+    layout.parts.push(part('whiskerPadR', w * 0.14, h * 0.08, w * 0.05, w * 0.16, headY - headS * 0.08, headZ + headS * 0.40, light, 'marking'));
+    layout.parts.push(part('cheekL', w * 0.18, h * 0.16, w * 0.06, -w * 0.25, h * 0.78, l * 0.42, light, 'marking'));
+    layout.parts.push(part('cheekR', w * 0.18, h * 0.16, w * 0.06, w * 0.25, h * 0.78, l * 0.42, light, 'marking'));
+  } else if (type === 'bird' || type === 'parrot') {
+    layout.parts.push(part('wingBarL', w * 0.14, h * 0.06, l * 0.42, -w * 0.55, h * 0.48, 0.02, light, 'marking'));
+    layout.parts.push(part('wingBarR', w * 0.14, h * 0.06, l * 0.42, w * 0.55, h * 0.48, 0.02, dark, 'marking'));
+  } else if (type === 'bear') {
+    const headS = w * 0.58;
+    const legH = h * 0.32;
+    const bodyH = h * 0.52;
+    const bodyY = legH + bodyH * 0.5;
+    const headY = bodyY + bodyH * 0.18;
+    const headZ = l * 0.42;
+    const inner = [0.58, 0.22, 0.20];
+    layout.parts.push(part('earInnerL', w * 0.08, h * 0.07, w * 0.025, -w * 0.3, headY + headS * 0.44, headZ - headS * 0.05 + w * 0.05, inner, 'marking'));
+    layout.parts.push(part('earInnerR', w * 0.08, h * 0.07, w * 0.025, w * 0.3, headY + headS * 0.44, headZ - headS * 0.05 + w * 0.05, inner, 'marking'));
+  } else if (type === 'horse') {
+    const headS = w * 0.48;
+    const legH = h * 0.58;
+    const bodyH = h * 0.30;
+    const bodyY = legH + bodyH * 0.5;
+    const neckH = h * 0.46;
+    const headY = bodyY + bodyH * 0.35 + neckH;
+    const headZ = l * 0.48;
+    const blaze = [0.98, 0.88, 0.66];
+    const nostril = [0.08, 0.035, 0.02];
+    const maneGold = [0.92, 0.58, 0.22];
+    layout.parts.push(part('faceBlaze', w * 0.16, h * 0.24, w * 0.08, 0, headY + headS * 0.04, headZ + headS * 0.60, blaze, 'marking'));
+    layout.parts.push(part('nostrilL', w * 0.06, h * 0.06, w * 0.035, -w * 0.11, headY - headS * 0.12, headZ + headS * 0.78, nostril, 'marking'));
+    layout.parts.push(part('nostrilR', w * 0.06, h * 0.06, w * 0.035, w * 0.11, headY - headS * 0.12, headZ + headS * 0.78, nostril, 'marking'));
+    layout.parts.push(part('maneGlint0', w * 0.05, h * 0.18, w * 0.05, -w * 0.23, bodyY + bodyH * 0.35 + neckH * 0.35 - h * 0.06, l * 0.25, maneGold, 'mane'));
+    layout.parts.push(part('maneGlint1', w * 0.05, h * 0.18, w * 0.05, -w * 0.23, bodyY + bodyH * 0.35 + neckH * 0.35 + h * 0.08, l * 0.25, maneGold, 'mane'));
+  } else if (type === 'sheep' || type === 'lamb') {
+    layout.parts.push(part('woolHighlight', w * 0.72, h * 0.15, l * 0.28, 0, h * 0.70, l * 0.10, light, 'marking'));
+    layout.parts.push(part('woolCrest', w * 0.42, h * 0.12, w * 0.20, 0, h * 0.92, l * 0.25, light, 'marking'));
+  } else if (type === 'cow') {
+    layout.parts.push(part('muzzlePatch', w * 0.52, h * 0.12, l * 0.08, 0, h * 0.52, l * 0.60, light, 'marking'));
+  } else if (type === 'pig' || type === 'boar') {
+    const boar = type === 'boar';
+    const whiskerPad = boar ? [0.54, 0.42, 0.28] : [0.96, 0.72, 0.48];
+    const cheekW = boar ? w * 0.16 : w * 0.18;
+    const cheekH = boar ? h * 0.14 : h * 0.16;
+    const cheekX = boar ? w * 0.34 : w * 0.32;
+    const cheekZ = boar ? l * 0.42 : l * 0.40;
+    layout.parts.push(part('whiskerPadL', w * 0.15, h * 0.08, w * 0.05, -w * 0.22, h * 0.62, l * 0.55, whiskerPad, 'marking'));
+    layout.parts.push(part('whiskerPadR', w * 0.15, h * 0.08, w * 0.05, w * 0.22, h * 0.62, l * 0.55, whiskerPad, 'marking'));
+    layout.parts.push(part('cheekL', cheekW, cheekH, w * 0.06, -cheekX, h * 0.72, cheekZ, light, 'marking'));
+    layout.parts.push(part('cheekR', cheekW, cheekH, w * 0.06, cheekX, h * 0.72, cheekZ, light, 'marking'));
+  }
 }
 
 /**

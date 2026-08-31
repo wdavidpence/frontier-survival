@@ -78,6 +78,7 @@ export const BLOCK = {
   YAUTIA_CORM: 75,
   YAM_TUBER: 76,
   BATATA_TUBER: 77,
+  PALM_TRUNK: 79,
 };
 
 /** @type {Record<number, {
@@ -124,7 +125,7 @@ export const BLOCK_PROPS = {
   [BLOCK.DOOR_CLOSED]: { name: 'Door', solid: true, transparent: true, hardness: 0.8, color: [0.62, 0.45, 0.25], door: true, drops: BLOCK.DOOR_CLOSED },
   [BLOCK.DOOR_OPEN]: { name: 'Open Door', solid: false, transparent: true, hardness: 0.8, color: [0.62, 0.45, 0.25], door: true, drops: BLOCK.DOOR_CLOSED },
   [BLOCK.GLASS]: { name: 'Glass', solid: true, transparent: true, hardness: 0.3, color: [0.68, 0.78, 0.9], drops: BLOCK.GLASS },
-  [BLOCK.CLAY]: { name: 'Clay', solid: true, transparent: false, hardness: 0.5, color: [0.42, 0.38, 0.3] },
+  [BLOCK.CLAY]: { name: 'Clay', solid: true, transparent: false, hardness: 0.5, color: [0.62, 0.48, 0.34] },
   [BLOCK.BRICKS]: { name: 'Bricks', solid: true, transparent: false, hardness: 1.6, color: [0.7, 0.3, 0.2], drops: BLOCK.BRICKS },
   [BLOCK.FURNACE]: { name: 'Furnace', solid: true, transparent: true, hardness: 1.5, color: [0.28, 0.26, 0.24], heat: 12, light: 8, drops: BLOCK.FURNACE },
   [BLOCK.WIRE]: { name: 'Wire', solid: false, transparent: true, hardness: 0.1, color: [0.65, 0.45, 0.12], drops: BLOCK.WIRE },
@@ -145,7 +146,7 @@ export const BLOCK_PROPS = {
   [BLOCK.CORAL]: { name: 'Coral', solid: true, transparent: false, hardness: 0.8, color: [0.92, 0.38, 0.42], drops: BLOCK.CORAL },
   [BLOCK.KELP]: { name: 'Kelp', solid: false, transparent: true, hardness: 0.1, color: [0.08, 0.38, 0.2], drops: BLOCK.KELP, replaceable: true },
   [BLOCK.SEAGRASS]: { name: 'Seagrass', solid: false, transparent: true, hardness: 0.1, color: [0.12, 0.55, 0.28], drops: BLOCK.SEAGRASS, replaceable: true },
-  [BLOCK.PALM_LEAVES]: { name: 'Palm Leaves', solid: true, transparent: true, hardness: 0.2, color: [0.28, 0.58, 0.2], drops: BLOCK.PALM_LEAVES },
+  [BLOCK.PALM_LEAVES]: { name: 'Palm Leaves', solid: true, transparent: true, hardness: 0.2, color: [0.52, 0.84, 0.34], drops: BLOCK.PALM_LEAVES },
   // Forest-floor accents need a brighter vertex tint so the custom atlas
   // shader does not multiply their dark-brown textures into black silhouettes.
   [BLOCK.ROOTS]: { name: 'Tree Roots', solid: false, transparent: true, hardness: 0.12, color: [0.52, 0.32, 0.15], drops: BLOCK.ROOTS, replaceable: true },
@@ -174,6 +175,7 @@ export const BLOCK_PROPS = {
   [BLOCK.YAUTIA_CORM]: { name: 'Yautia Soil', solid: true, transparent: false, hardness: 0.55, color: [0.36, 0.27, 0.18], topColor: [0.44, 0.32, 0.20], drops: BLOCK.YAUTIA_CORM },
   [BLOCK.YAM_TUBER]: { name: 'Yam Soil', solid: true, transparent: false, hardness: 0.55, color: [0.42, 0.30, 0.18], topColor: [0.50, 0.36, 0.21], drops: BLOCK.YAM_TUBER },
   [BLOCK.BATATA_TUBER]: { name: 'Batata Soil', solid: true, transparent: false, hardness: 0.55, color: [0.46, 0.29, 0.16], topColor: [0.54, 0.35, 0.19], drops: BLOCK.BATATA_TUBER },
+  [BLOCK.PALM_TRUNK]: { name: 'Palm Trunk', solid: true, transparent: false, hardness: 1.0, color: [0.94, 0.82, 0.56], topColor: [0.99, 0.90, 0.68], drops: BLOCK.LOG },
 };
 
 export function isSolid(id) {

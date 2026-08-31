@@ -1,22 +1,23 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=295';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=297';
 import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=327';
 import { biomeAt, BIOME } from './biomes.js?v=272';
-import { tileForBlock } from './atlas-core.js?v=292';
+import { tileForBlock } from './atlas-core.js?v=293';
 import { CRAFTING_TABLE } from './crafting-table.js?v=1';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=248';
 import { buildMushroomGeometry } from './mushroom-geometry.js?v=3';
 import { buildTorchGeometry } from './torch-geometry.js?v=2';
+import { buildPalmTrunkGeometry } from './palm-trunk-geometry.js?v=1';
 import {
   terrainVisibilityPlan,
   chunkDetailTier,
   buildTerrainProxyArrays,
-} from './terrain-visibility.js?v=287';
+} from './terrain-visibility.js?v=291';
 import { raycastVoxel } from './interaction-contract.js?v=5';
 import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=6';
 import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=3';
 import { createDisposalContext, disposeGeometry, disposeTree } from './resource-disposal.js?v=3';
-import { applyTropicalEcology } from './tropical-ecology.js?v=4';
+import { applyTropicalEcology } from './tropical-ecology.js?v=19';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -87,13 +88,14 @@ const PLANT_FORM = new Map([
   [BLOCK.PANDANUS, 'pandanus'],
   [BLOCK.PNEUMATOPHORE, 'pneumatophore'],
   [BLOCK.BANYAN_ROOTS, 'banyan'],
+  [BLOCK.PALM_LEAVES, 'palm-frond'],
 ]);
 
 /** Worst-case guard: stop stamping plants once a chunk has this many. */
 const PLANT_BUDGET = 768;
 
 /** Visual-only understory guard: sparse, spaced mushroom silhouettes per chunk. */
-const FOREST_UNDERSTORY_CAP = 1;
+const FOREST_UNDERSTORY_CAP = 2;
 const FOREST_UNDERSTORY_SPACING = 8;
 const FOREST_UNDERSTORY_ROLL = 0.995;
 
@@ -185,6 +187,7 @@ const PLANT_SHAPE = {
   banyan: { blades: 4, segments: 3, height: [0.34, 0.72], reach: [0.28, 0.46], curve: [0.70, 0.92], width: [0.10, 0.17], lift: 0.03 },
   seagrass: { blades: 7, segments: 3, height: [0.30, 0.68], reach: [0.16, 0.34], curve: [0.38, 0.70], width: [0.09, 0.15], lift: 0.02 },
   kelp: { blades: 3, segments: 3, height: [0.82, 0.98], reach: [0.08, 0.20], curve: [0.10, 0.28], width: [0.13, 0.20], lift: 0.01 },
+  'palm-frond': { blades: 8, segments: 4, height: [0.18, 0.52], reach: [1.15, 1.85], curve: [0.58, 0.88], width: [0.22, 0.40], lift: 0.28 },
 };
 
 /**
@@ -214,13 +217,14 @@ const PLANT_TEXEL = {
   banyan: { uMin: 0.26, uMax: 0.74, vBase: 0.18, vTip: 0.82 },
   seagrass: { uMin: 0.16, uMax: 0.84, vBase: 0.18, vTip: 0.88 },
   kelp: { uMin: 0.22, uMax: 0.78, vBase: 0.14, vTip: 0.90 },
+  'palm-frond': { uMin: 0.12, uMax: 0.88, vBase: 0.12, vTip: 0.90 },
 };
 
 const PLANT_TAU = Math.PI * 2;
 const plantClamp01 = v => Math.max(0, Math.min(1, v));
 const plantLerp = (a, b, t) => a + (b - a) * t;
 /** Keep a plant vertex inside its own voxel footprint. */
-const plantSpan = (value, centre) => Math.max(centre - 0.47, Math.min(centre + 0.47, value));
+const plantSpan = (value, centre, pad = 0.47) => Math.max(centre - pad, Math.min(centre + pad, value));
 /** hash2 truncates its arguments, so fold coordinates into integers first. */
 const plantHash = (x, y, z, salt) => hash2(x * 131 + y * 3 + salt * 17, z * 197 + y * 7 + salt * 41);
 
@@ -248,7 +252,10 @@ export function buildPlantGeometry(instances, seed = 0) {
       const s = i / b.segments;
       const rise = Math.max(0, b.height * (s - b.curve * s * s));
       const sweep = b.offset + b.reach * (0.45 * s + 0.55 * s * s);
-      const y = Math.min(b.cellY + 0.98, b.cellY + b.lift + rise);
+      const yUnclamped = b.cellY + b.lift + rise;
+      const y = b.spanPad > 0.5
+        ? Math.max(b.cellY - 0.35, Math.min(b.cellY + (b.yMax || 1.35), yUnclamped))
+        : Math.min(b.cellY + 0.98, yUnclamped);
       // Geometric normal of the strip: upright blades face outward, flattened
       // twigs face up. The atlas shader lights with abs(dot(n, sun)) and the
       // material is DoubleSide, so the sign never darkens a back face.
@@ -277,9 +284,9 @@ export function buildPlantGeometry(instances, seed = 0) {
       const offZ = ca * half;
       for (let side = -1; side <= 1; side += 2) {
         positions.push(
-          plantSpan(midX - offX * side, b.cellX),
+          plantSpan(midX - offX * side, b.cellX, b.spanPad || 0.47),
           y,
-          plantSpan(midZ + offZ * side, b.cellZ),
+          plantSpan(midZ + offZ * side, b.cellZ, b.spanPad || 0.47),
         );
         normals.push(nx, ny, nz);
         colors.push(r, g, bl, 1);
@@ -309,9 +316,12 @@ export function buildPlantGeometry(instances, seed = 0) {
     const texel = PLANT_TEXEL[form];
     const tile = tileForBlock(instance.id);
     const color = getColor(instance.id);
+    const tropicalFoliage = ['fan', 'fern', 'bromeliad', 'heliconia', 'taro', 'pandanus', 'vine', 'palm-frond'].includes(form);
     const renderColor = form === 'bamboo'
       ? [color[0] * 0.68, color[1] * 0.76, color[2] * 0.70]
-      : color;
+      : tropicalFoliage
+        ? [Math.min(1, color[0] * 1.10 + 0.035), Math.min(1, color[1] * 1.12 + 0.045), Math.min(1, color[2] * 1.08 + 0.025)]
+        : color;
     const cellX = instance.x + 0.5;
     const cellZ = instance.z + 0.5;
     const spin = plantHash(instance.x, instance.y, instance.z, seed + 3) * PLANT_TAU;
@@ -338,6 +348,8 @@ export function buildPlantGeometry(instances, seed = 0) {
         width: plantLerp(shape.width[0], shape.width[1], r3) * grow,
         lift: shape.lift,
         segments: shape.segments,
+        spanPad: form === 'palm-frond' ? 1.65 : 0.47,
+        yMax: form === 'palm-frond' ? 1.35 : 0.98,
         u: plantLerp(texel.uMin, texel.uMax, r2),
         vBase: texel.vBase,
         vTip: texel.vTip,
@@ -409,9 +421,41 @@ export function buildPlantAccents(instances, seed = 0) {
     } else if (instance.id === BLOCK.FERN) {
       addBillboard(instance, instance.y + 0.58, 0.34, 0.26, roll * PLANT_TAU, tile, [0.82, 1, 0.70]);
       addBillboard(instance, instance.y + 0.52, 0.30, 0.22, roll * PLANT_TAU + 1.8, tile, [0.68, 0.94, 0.58]);
+    } else if (instance.id === BLOCK.BROMELIAD) {
+      addBillboard(instance, instance.y + 0.28, 0.34, 0.20, roll * PLANT_TAU, tile, [0.58, 0.92, 0.38]);
+      addBillboard(instance, instance.y + 0.34, 0.30, 0.18, roll * PLANT_TAU + 1.05, tile, [0.76, 1, 0.48]);
+      addPad(instance, instance.y + 0.06, 0.18 + roll * 0.05, tile, [0.42, 0.78, 0.28], roll * PLANT_TAU);
+    } else if (instance.id === BLOCK.HELICONIA) {
+      addBillboard(instance, instance.y + 0.30, 0.08, 0.54, roll * PLANT_TAU, tile, [0.28, 0.62, 0.18]);
+      addBillboard(instance, instance.y + 0.62, 0.26, 0.42, roll * PLANT_TAU, tile, [1, 0.48, 0.16]);
+      addBillboard(instance, instance.y + 0.72, 0.22, 0.34, roll * PLANT_TAU + 1.15, tile, [0.92, 0.18, 0.10]);
+      addBillboard(instance, instance.y + 0.68, 0.07, 0.22, roll * PLANT_TAU + 0.10, tile, [1, 0.82, 0.24]);
+    } else if (instance.id === BLOCK.TARO) {
+      addBillboard(instance, instance.y + 0.26, 0.10, 0.48, roll * PLANT_TAU + 0.4, tile, [0.30, 0.64, 0.22]);
+      addBillboard(instance, instance.y + 0.52, 0.46, 0.32, roll * PLANT_TAU, tile, [0.54, 0.88, 0.42]);
+      addBillboard(instance, instance.y + 0.60, 0.40, 0.28, roll * PLANT_TAU + 1.28, tile, [0.72, 1, 0.52]);
+      addBillboard(instance, instance.y + 0.82, 0.34, 0.24, roll * PLANT_TAU + 2.35, tile, [0.46, 0.82, 0.30]);
+      addBillboard(instance, instance.y + 0.52, 0.045, 0.25, roll * PLANT_TAU, tile, [0.82, 1, 0.64]);
+      addBillboard(instance, instance.y + 0.60, 0.040, 0.22, roll * PLANT_TAU + 1.28, tile, [0.88, 1, 0.70]);
+      addBillboard(instance, instance.y + 0.82, 0.034, 0.19, roll * PLANT_TAU + 2.35, tile, [0.76, 0.96, 0.58]);
+      addPad(instance, instance.y + 0.08, 0.16 + roll * 0.04, tile, [0.38, 0.72, 0.26], roll * PLANT_TAU + 0.6);
+    } else if (instance.id === BLOCK.PANDANUS) {
+      addBillboard(instance, instance.y + 0.34, 0.10, 0.62, roll * PLANT_TAU + 0.7, tile, [0.36, 0.66, 0.22]);
+      addBillboard(instance, instance.y + 0.68, 0.42, 0.18, roll * PLANT_TAU, tile, [0.62, 0.92, 0.42]);
+      addBillboard(instance, instance.y + 0.78, 0.36, 0.16, roll * PLANT_TAU + 1.4, tile, [0.82, 1, 0.56]);
+      addBillboard(instance, instance.y + 0.92, 0.28, 0.14, roll * PLANT_TAU + 2.55, tile, [0.48, 0.82, 0.30]);
+      addBillboard(instance, instance.y + 0.68, 0.035, 0.14, roll * PLANT_TAU, tile, [0.92, 1, 0.70]);
+      addBillboard(instance, instance.y + 0.78, 0.032, 0.12, roll * PLANT_TAU + 1.4, tile, [0.94, 1, 0.74]);
+      addBillboard(instance, instance.y + 0.92, 0.026, 0.10, roll * PLANT_TAU + 2.55, tile, [0.84, 0.98, 0.64]);
+      addBillboard(instance, instance.y + 0.18, 0.08, 0.28, roll * PLANT_TAU + 0.15, tile, [0.30, 0.54, 0.18]);
+      addBillboard(instance, instance.y + 0.18, 0.08, 0.28, roll * PLANT_TAU + 2.25, tile, [0.34, 0.60, 0.20]);
+      addBillboard(instance, instance.y + 0.16, 0.07, 0.24, roll * PLANT_TAU + 4.35, tile, [0.26, 0.48, 0.16]);
     } else if (instance.id === BLOCK.LILY_PAD) {
       addPad(instance, instance.y + 0.04, 0.42 + roll * 0.08, tile, [0.72, 1, 0.62], roll * PLANT_TAU);
       addBillboard(instance, instance.y + 0.20, 0.12, 0.18, roll * PLANT_TAU, tile, [1, 0.80, 0.88]);
+    } else if (instance.id === BLOCK.PALM_LEAVES) {
+      // A pale central rib gives each frond a readable midline at distance.
+      addBillboard(instance, instance.y + 0.52, 0.72, 0.09, roll * PLANT_TAU, tile, [0.74, 0.95, 0.58]);
     }
   }
   return { positions, normals, colors, uvs, tiles, indices, quadCount: indices.length / 6 };
@@ -609,7 +653,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=350';
+    const workerUrl = './js/chunk-worker.js?v=353';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -1268,7 +1312,7 @@ export class World {
       g,
       b,
       a: h < SEA_LEVEL ? 0.85 : 1,
-      tile: tileForBlock(id) || 0,
+      tile: tileForBlock(id, 'top') || 0,
     };
   }
 
@@ -1540,7 +1584,7 @@ export class World {
     // Lava tube generation — carve tubular passages deep underground, fill with lava
     this._carveLavaTubes(data, baseX, baseZ);
 
-    this.chunks.set(this.key(cx, cz), data);
+    this.chunks.set(this.key(cx, cz), applyTropicalEcology(data, { baseX, baseZ, seed: this.seed }));
   }
 
   /**
@@ -1743,18 +1787,25 @@ export class World {
   }
 
 
-  /** Tropical palm: tapered trunk, small root flare, and drooping frond crown. */
+  /** Tropical palm: sun-bleached trunk, broad lean, and layered frond crown. */
   _placePalm(data, lx, y, lz) {
     const trunkH = 6 + Math.floor(hash2(lx + 21, lz + 13) * 4);
-    const lean = hash2(lx + 27, lz + 31) > 0.5 ? 1 : -1;
+    const axis = hash2(lx + 27, lz + 31) > 0.5 ? 'x' : 'z';
+    const sign = hash2(lx + 29, lz + 37) > 0.5 ? 1 : -1;
+    const maxLean = 2;
+    const offsetAt = (i) => Math.round(Math.pow(i / Math.max(1, trunkH - 1), 1.55) * maxLean) * sign;
+    const trunkAt = (i) => ({
+      x: lx + (axis === 'x' ? offsetAt(i) : 0),
+      z: lz + (axis === 'z' ? offsetAt(i) : 0),
+    });
     for (let i = 0; i < trunkH; i++) {
       const ty = y + i;
       if (ty >= WORLD_HEIGHT) break;
-      const ox = i >= trunkH - 2 ? (i - trunkH + 2) * lean : 0;
-      this._setAir(data, lx + ox, ty, lz, BLOCK.LOG);
+      const trunk = trunkAt(i);
+      this._setAir(data, trunk.x, ty, trunk.z, BLOCK.PALM_TRUNK);
     }
-    for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) this._setAir(data, lx + dx, y, lz + dz, BLOCK.LOG);
     const top = y + trunkH - 1;
+    const crown = trunkAt(trunkH - 1);
     const fronds = [
       [0, 0], [1, 0], [-1, 0], [0, 1], [0, -1],
       [2, 0], [-2, 0], [0, 2], [0, -2],
@@ -1762,29 +1813,26 @@ export class World {
       [1, 2], [-1, 2], [1, -2], [-1, -2],
     ];
     for (const [dx, dz] of fronds) {
-      const tx = lx + dx;
-      const tz = lz + dz;
       const distance = Math.abs(dx) + Math.abs(dz);
-      const ty = top + (distance >= 2 ? -1 : 1);
-      this._setAir(data, tx, ty, tz, BLOCK.PALM_LEAVES);
+      this._setAir(data, crown.x + dx, top + (distance >= 2 ? -1 : 0), crown.z + dz, BLOCK.PALM_LEAVES);
     }
     const fruitRoll = hash2(lx * 13 + 77, lz * 17 + 91);
     if (fruitRoll > 0.42) {
       for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1]]) {
-        const tx = lx + dx; const tz = lz + dz; const ty = top - 1;
+        const tx = crown.x + dx; const tz = crown.z + dz; const ty = top - 1;
         if (tx >= 0 && tx < CHUNK_SIZE && tz >= 0 && tz < CHUNK_SIZE && ty >= 0 && ty < WORLD_HEIGHT) {
           const i = this._idx(tx, ty, tz);
           if (data[i] === BLOCK.AIR) data[i] = BLOCK.COCONUT;
         }
       }
-      const gx = lx + (fruitRoll > 0.72 ? 2 : -2);
-      const gz = lz + (fruitRoll > 0.72 ? 1 : -1);
+      const gx = crown.x + (fruitRoll > 0.72 ? 2 : -2);
+      const gz = crown.z + (fruitRoll > 0.72 ? 1 : -1);
       if (gx >= 0 && gx < CHUNK_SIZE && gz >= 0 && gz < CHUNK_SIZE) {
         const ground = this._idx(gx, y, gz);
         if (data[ground] === BLOCK.AIR) data[ground] = BLOCK.COCONUT;
       }
     }
-    this._drapeVines(data, lx, y, lz, trunkH, 1);
+    this._drapeVines(data, crown.x, y, crown.z, trunkH, 1);
   }
 
   /** Place the authored Lantern Rootwalk destination in the wetland. */
@@ -2086,7 +2134,7 @@ export class World {
       getBlock,
       tileFor: tileForBlock,
       colorFor: getColor,
-      isTransparent,
+      isTransparent: (id) => id === BLOCK.PALM_TRUNK || isTransparent(id),
       isSolid,
       baseX,
       baseY: 0,
@@ -2097,13 +2145,14 @@ export class World {
       waterId: BLOCK.WATER,
       // Authored props are appended below so small objects do not inherit the
       // six-face cube treatment used by full blocks.
-      skipBlock: id => id === BLOCK.MUSHROOM || id === BLOCK.TORCH || id === BLOCK.COCONUT || PLANT_FORM.has(id),
+      skipBlock: id => id === BLOCK.MUSHROOM || id === BLOCK.TORCH || id === BLOCK.COCONUT || id === BLOCK.PALM_TRUNK || PLANT_FORM.has(id),
     });
     const arrays = quadsToArrays(quads);
     const mushrooms = [];
     const torches = [];
     const plants = [];
     const coconuts = [];
+    const palmTrunks = [];
     for (let lz = 0; lz < CHUNK_SIZE; lz++) {
       for (let ly = 0; ly < WORLD_HEIGHT; ly++) {
         for (let lx = 0; lx < CHUNK_SIZE; lx++) {
@@ -2114,6 +2163,8 @@ export class World {
             if (mushrooms.length < PLANT_BUDGET) mushrooms.push({ x: baseX + lx, y: ly, z: baseZ + lz });
           } else if (id === BLOCK.TORCH) {
             if (torches.length < PLANT_BUDGET) torches.push({ x: baseX + lx, y: ly, z: baseZ + lz });
+          } else if (id === BLOCK.PALM_TRUNK) {
+            if (palmTrunks.length < PLANT_BUDGET) palmTrunks.push({ x: baseX + lx, y: ly, z: baseZ + lz });
           } else if (PLANT_FORM.has(id) && plants.length < PLANT_BUDGET) {
             plants.push({ x: baseX + lx, y: ly, z: baseZ + lz, id });
           }
@@ -2136,6 +2187,17 @@ export class World {
           tileForBlock(BLOCK.LOG, 'side'),
           tileForBlock(BLOCK.TORCH),
           getColor(BLOCK.TORCH),
+          this.seed,
+        ),
+      );
+    }
+    if (palmTrunks.length) {
+      appendGeometryPart(
+        arrays,
+        buildPalmTrunkGeometry(
+          palmTrunks,
+          tileForBlock(BLOCK.PALM_TRUNK, 'side'),
+          getColor(BLOCK.PALM_TRUNK),
           this.seed,
         ),
       );
@@ -2241,7 +2303,7 @@ export class World {
       BLOCK.SEQUOIA_LOG, BLOCK.SEQUOIA_LEAVES, BLOCK.PALM_LEAVES, BLOCK.BUSH,
     ]);
 
-    const authoredCoveCandidates = [[-10, -28], [-14, -28], [-6, -28], [-10, -27], [26, 15], [25, 15], [27, 15], [26, 14]];
+    const authoredCoveCandidates = [[-10, -28], [-10, -29], [-14, -28], [-6, -28], [-10, -27], [26, 15], [25, 15], [27, 15], [26, 14]];
     for (let i = 0; i < 2200; i++) {
       const authored = authoredCoveCandidates[i] || null;
       const x = authored ? authored[0] : Math.floor((hash2(i + this.seed * 3, this.seed + 17) - 0.5) * radius * 2);
@@ -2324,7 +2386,7 @@ export class World {
     const dirX = Number(chosen.waterDirX) || 0;
     const dirZ = Number(chosen.waterDirZ) || 1;
     const yaw = chosen.landmark === 'Cane Garden Bay · Tortola'
-      ? Math.atan2(dirX, dirZ)
+      ? Math.PI / 2
       : Math.atan2(-dirX, -dirZ);
     const beachOffset = Math.min(9.0, Math.max(chosen.authored ? 6.5 : 2.8, Number(chosen.waterDistance) + 0.6));
     let boatX = chosen.x + dirX * beachOffset;
@@ -2355,7 +2417,7 @@ export class World {
     // the authored launch ramp, driftwood, and channel without a lucky random
     // spawn on a distant cay. The normal clearance checks below still apply.
     const launchCandidates = [
-      [-10, -28, 'Cane Garden Bay · Tortola', Math.PI],
+      [-10, -28, 'Cane Garden Bay · Tortola', Math.PI / 2],
       [26, 15, 'Road Town · Tortola', Math.PI],
       [-10, -27, 'Cane Garden Bay · Tortola', Math.PI], [25, 15], [27, 15], [24, 15], [28, 15],
       [26, 14], [25, 14], [27, 14],

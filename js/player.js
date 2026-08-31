@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { isSolid, BLOCK, BLOCK_PROPS } from './blocks.js?v=295';
+import { isSolid, BLOCK, BLOCK_PROPS } from './blocks.js?v=297';
 import { canSprint, moveSpeedMultiplier, fallDamageFromSpeed } from './survival.js?v=222';
 import { honeyMoveMult, honeyJumpMult } from './honey-slide.js?v=221';
 import { powderSnowSinkVy } from './powder-snow.js?v=221';

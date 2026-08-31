@@ -2,7 +2,7 @@
  * Pure mine-tier helper wrapping tool-tiers for harvest checks / speed.
  * Additive — does not change game mine path until a wire card imports it.
  */
-import { BLOCK } from './blocks.js?v=295';
+import { BLOCK } from './blocks.js?v=297';
 import {
   BLOCK_CLASS,
   WORK_CLASS,

@@ -221,7 +221,7 @@ import {
   formatTemperatureF,
   fallDamageFromSpeed,
 } from '../js/survival.js';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js?v=295';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js?v=297';
 import { ITEM, mineMultiplier, dropForBlock, isPlaceable, placeBlockId, propsOf } from '../js/items.js';
 import { CRAFTING_TABLE } from '../js/crafting-table.js';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from '../js/workbench.js';
@@ -264,6 +264,7 @@ import { ambientMix } from '../js/audio.js';
 import { greedyMeshChunk, quadsToArrays, countNaiveFaces } from '../js/mesh-greedy.js';
 import { buildMushroomGeometry } from '../js/mushroom-geometry.js';
 import { buildTorchGeometry } from '../js/torch-geometry.js';
+import { buildPalmTrunkGeometry } from '../js/palm-trunk-geometry.js';
 import {
   buildSavePayload,
   parseSavePayload,
@@ -321,7 +322,12 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(gameSource, /world\.js\?v=503/);
+  assert.match(source, /Cane Garden Bay · Tortola', Math\.PI \/ 2/);
+  assert.match(source, /\[\[-10, -28\], \[-10, -29\]/);
+  assert.doesNotMatch(source, /Math\.PI \/ 4/, 'Cane Garden Bay must look along the beach, not a diagonal into buildings');
+  assert.match(source, /chosen\.landmark === 'Cane Garden Bay · Tortola'/);
+  assert.match(gameSource, /world\.js\?v=545/);
+  assert.match(gameSource, /this\.player\.pitch = 0;/);
 });
 
 test('BVI fresh spawns prefer the authored launch beach when clear', () => {
@@ -384,6 +390,7 @@ test('skiff footprint stays in water and refuses shore/dock overlap', () => {
 test('terrain visibility plan extends fog and proxy beyond full mesh', () => {
   const plan = terrainVisibilityPlan(8);
   assert.ok(plan.fullChunks >= 2);
+  assert.ok(plan.fullChunks <= 3, 'distant islands leave the full-detail ring');
   assert.ok(plan.lodChunks >= plan.fullChunks);
   assert.ok(plan.proxyChunks > plan.lodChunks, 'proxy ring should exceed LOD');
   assert.ok(plan.fogFar > plan.fogNear);
@@ -425,11 +432,18 @@ test('terrain proxy heightfield emits deterministic quads', () => {
   assert.strictEqual(a.positions.length, b.positions.length);
   assert.deepStrictEqual(Array.from(a.positions), Array.from(b.positions));
   assert.ok(a.indices.length === a.quadCount * 6);
+  assert.ok(Array.from(a.normals).every((v, i) => i % 3 !== 1 || v >= 0), 'proxy normals face upward');
+  const visibilitySource = readFileSync(new URL('../js/terrain-visibility.js', import.meta.url), 'utf8');
+  assert.match(visibilitySource, /const normalAt =/);
 });
 
 test('game wires terrain visibility plan into fog and streaming', () => {
   const game = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
+  const world = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
   assert.match(game, /terrainVisibilityPlan/);
+  assert.match(game, /terrain-visibility\.js\?v=291/);
+  assert.match(world, /terrain-visibility\.js\?v=291/);
+  assert.match(world, /tile: tileForBlock\(id, 'top'\) \|\| 0/);
   assert.match(game, /fogForSun/);
   assert.match(game, /proxyRadius:\s*vis\.proxyChunks/);
   assert.match(game, /this\.worldRadius = plan\.proxyChunks/);
@@ -625,9 +639,14 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /varying float vTile/);
   assert.match(atlas, /float whiteBay/);
   assert.match(atlas, /float northSound/);
+  assert.match(atlas, /const PAL_DIRT = \{ shadow: \[106, 76, 48\], base: \[142, 102, 68\], light: \[180, 134, 88\] \}/);
+  assert.match(atlas, /float clayFace/);
+  assert.match(atlas, /\[198, 150, 104\]/);
   assert.match(atlas, /float foamBand/);
+  assert.match(atlas, /const k = clamp01\(0\.35 \+ n \* 0\.8\)/);
+  assert.match(atlas, /0\.5\)`;/);
   assert.match(atlas, /vTile - 5\.0/);
-  assert.match(game, /atlas\.js\?v=324/);
+  assert.match(game, /atlas\.js\?v=344/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -1390,6 +1409,48 @@ test('mushroom geometry is bounded, opaque, and has stem plus cap depth', () => 
   assert.deepEqual([...uvPairs].sort(), ['0.5,0.24', '0.5,0.75']);
 });
 
+test('tropical palms use light bark, deliberate lean, authored fronds, and fauna markings', () => {
+  const blocks = readFileSync(new URL('../js/blocks.js', import.meta.url), 'utf8');
+  const world = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
+  const worker = readFileSync(new URL('../js/chunk-worker.js', import.meta.url), 'utf8');
+  assert.equal(BLOCK.PALM_TRUNK, 79);
+  assert.equal(BLOCK_PROPS[BLOCK.PALM_TRUNK].name, 'Palm Trunk');
+  assert.ok(BLOCK_PROPS[BLOCK.PALM_TRUNK].color[0] > BLOCK_PROPS[BLOCK.LOG].color[0], 'palm bark is lighter than hardwood');
+  assert.equal(tileForBlock(BLOCK.PALM_TRUNK, 'side'), TILE.PALM_TRUNK_SIDE);
+  assert.equal(tileForBlock(BLOCK.PALM_TRUNK, 'top'), TILE.PALM_TRUNK_TOP);
+  assert.match(blocks, /PALM_TRUNK: 79/);
+  assert.match(world, /BLOCK\.PALM_TRUNK/);
+  assert.match(world, /\[BLOCK\.PALM_LEAVES, 'palm-frond'\]/);
+  assert.match(world, /'palm-frond': \{ blades: 8/);
+  assert.match(world, /reach: \[1\.15, 1\.85\]/);
+  assert.match(worker, /BLOCK\.PALM_TRUNK/);
+  assert.match(worker, /const maxLean = 2/);
+  assert.doesNotMatch(world, /distance >= 2 \? -1 : 1/, 'world palm fronds must not float one cell above the trunk');
+  assert.doesNotMatch(worker, /distance >= 2 \? -1 : 1/, 'worker palm fronds must not float one cell above the trunk');
+  assert.match(world, /distance >= 2 \? -1 : 0/);
+  assert.match(worker, /distance >= 2 \? -1 : 0/);
+  const deer = animalPartLayout('deer', SPECIES.deer);
+  const wolf = animalPartLayout('wolf', SPECIES.wolf);
+  const hare = animalPartLayout('hare', SPECIES.hare);
+  assert.ok(deer.parts.filter(part => part.role === 'marking').length >= 5, 'deer has visible dapples');
+  assert.ok(wolf.parts.some(part => part.name === 'chestRuff'), 'wolf has a readable chest ruff');
+  assert.ok(deer.parts.some(part => part.name === 'earInnerL'), 'deer has inner ear detail');
+  assert.ok(wolf.parts.some(part => part.name === 'earInnerR'), 'wolf has inner ear detail');
+  assert.ok(hare.parts.some(part => part.name === 'earInnerL'), 'hare has inner ear detail');
+  assert.ok(wolf.parts.some(part => part.name === 'whiskerPadL'), 'wolf has whisker pads');
+  assert.ok(hare.parts.some(part => part.name === 'whiskerPadR'), 'hare has whisker pads');
+  const horse = animalPartLayout('horse', SPECIES.horse);
+  const sheep = animalPartLayout('sheep', SPECIES.sheep);
+  const pig = animalPartLayout('pig', SPECIES.pig);
+  assert.ok(pig.parts.some(part => part.name === 'whiskerPadL'), 'pig has whisker pads');
+  const boar = animalPartLayout('boar', SPECIES.boar);
+  assert.ok(horse.parts.some(part => part.name === 'faceBlaze'), 'horse has a readable face blaze');
+  assert.ok(horse.parts.some(part => part.name === 'nostrilL'), 'horse has muzzle nostril detail');
+  assert.ok(sheep.parts.some(part => part.name === 'woolHighlight'), 'sheep has layered fleece highlights');
+  assert.ok(pig.parts.some(part => part.name === 'cheekL'), 'pig has visible cheek accents');
+  assert.ok(boar.parts.some(part => part.name === 'cheekR'), 'boar has visible cheek accents');
+});
+
 test('torch geometry is centered, deterministic, and uses authored shaft/flame materials', () => {
   const worldSource = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
   const geometry = buildTorchGeometry(
@@ -1421,6 +1482,38 @@ test('torch geometry is centered, deterministic, and uses authored shaft/flame m
   assert.match(worldSource, /buildTorchGeometry\(/);
   assert.strictEqual(tileForBlock(BLOCK.LOG, 'side'), TILE.LOG_SIDE);
   assert.strictEqual(tileForBlock(BLOCK.LOG, 'top'), TILE.LOG_TOP);
+});
+
+test('palm trunks render as slim authored poles, not full voxel cubes', () => {
+  const worldSource = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
+  const geometry = buildPalmTrunkGeometry(
+    [{ x: -21, y: 17, z: -26 }],
+    TILE.PALM_TRUNK_SIDE,
+    [0.94, 0.82, 0.56],
+    1884808540,
+  );
+  const repeat = buildPalmTrunkGeometry(
+    [{ x: -21, y: 17, z: -26 }],
+    TILE.PALM_TRUNK_SIDE,
+    [0.94, 0.82, 0.56],
+    1884808540,
+  );
+  const xs = geometry.positions.filter((_, i) => i % 3 === 0);
+  const ys = geometry.positions.filter((_, i) => i % 3 === 1);
+  const zs = geometry.positions.filter((_, i) => i % 3 === 2);
+  const cx = -21 + 0.5;
+  const cz = -26 + 0.5;
+  const maxR = Math.max(...xs.map((x, i) => Math.hypot(x - cx, zs[i] - cz)));
+  assert.ok(maxR < 0.28, `palm trunk radius must stay slim, got ${maxR}`);
+  assert.ok(maxR > 0.10, 'palm trunk must have readable thickness');
+  assert.ok(Math.min(...ys) >= 17 && Math.max(...ys) <= 18.02, 'shaft stays within one voxel height');
+  assert.ok(Math.max(...ys) - Math.min(...ys) > 0.9, 'shaft fills the cell so stacked trunks join');
+  assert.deepEqual(geometry.positions, repeat.positions, 'same cell and seed rebuild identically');
+  assert.deepEqual([...new Set(geometry.tiles)].sort((a, b) => a - b), [TILE.PALM_TRUNK_SIDE]);
+  assert.ok(geometry.indices.length > 0 && geometry.colors.every((value, i) => i % 4 !== 3 || value === 1));
+  assert.match(worldSource, /BLOCK\.PALM_TRUNK/);
+  assert.match(worldSource, /buildPalmTrunkGeometry\(/);
+  assert.match(worldSource, /skipBlock:[\s\S]*PALM_TRUNK/);
 });
 
 
@@ -4683,11 +4776,16 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const visuals = fsText('js/animal-visuals.js');
   const animals = fsText('js/animals.js');
   assert.match(game, /animals\.js\?v=278/);
-  assert.match(game, /animal-visuals\.js\?v=251/);
-  assert.match(main, /game\.js\?v=765/);
+  assert.match(game, /animal-visuals\.js\?v=258/);
+  assert.match(main, /game\.js\?v=830/);
+  assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
+  assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
+  assert.match(game, /name = 'groundShadow'/);
   assert.match(game, /FRIENDLY/);
   assert.match(game, /trust \$\{Math\.round\(ah\.animal\._tame\)\}%/);
   assert.match(game, /this\.fx\.burst\(ah\.animal\.x/);
+  assert.match(visuals, /const blaze = \[0\.98, 0\.88, 0\.66\]/);
+  assert.match(visuals, /const nostril = \[0\.08, 0\.035, 0\.02\]/);
   for (const fn of ['layoutPig', 'layoutHorse', 'layoutSheep']) assert.match(visuals, new RegExp(`function ${fn}`));
   for (const id of ['pig', 'horse', 'sheep', 'lamb']) assert.match(animals, new RegExp(`id: '${id}'`));
   assert.doesNotMatch(animals.slice(animals.indexOf('  _make(spec'), animals.indexOf('  getSpec(type)')), /Math\.random\(\)/);
@@ -5394,7 +5492,11 @@ test('plant sprint: v1.19 sync and worker flora seams stay mirrored', () => {
     assert.match(worker, new RegExp(`BLOCK\\.${name}`));
   }
   assert.match(world, /_populateSurfaceFlora/);
-  assert.match(world, /buildPlantAccents/);
+  assert.match(world, /function buildPlantAccents/);
+  assert.match(world, /instance\.y \+ 0\.68, 0\.07, 0\.22/);
+  assert.match(world, /instance\.y \+ 0\.52, 0\.045, 0\.25/);
+  assert.match(world, /instance\.y \+ 0\.68, 0\.035, 0\.14/);
+  assert.match(world, /const tropicalFoliage =/);
   assert.match(worker, /populateSurfaceFlora/);
   assert.match(world, /_drapeVines/);
   assert.match(worker, /placeVines/);
@@ -5432,7 +5534,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker\.js\?v=350/);
+  assert.match(world, /chunk-worker\.js\?v=353/);
   assert.match(world, /starterLaunchCorridor/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
@@ -5691,7 +5793,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.26.8'), 'HTML must expose v1.26.8');
+  assert.ok(html.includes('v1.26.9'), 'HTML must expose v1.26.9');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5992,12 +6094,26 @@ test('tropical ecology sprint exposes six additions, coconuts, and root foods', 
   const ecology = fsText('js/tropical-ecology.js');
   for (const name of ['BROMELIAD', 'HELICONIA', 'TARO', 'PANDANUS', 'PNEUMATOPHORE', 'BANYAN_ROOTS']) assert.match(blocks, new RegExp(`${name}:`));
   for (const name of ['YUCA', 'YAUTIA', 'NYAME', 'BATATA']) assert.match(items, new RegExp(`${name}:`));
-  assert.match(world, /applyTropicalEcology/);
+  assert.match(world, /this\.chunks\.set\(this\.key\(cx, cz\), applyTropicalEcology/);
   assert.match(world, /BROMELIAD/);
-  assert.match(world, /FOREST_UNDERSTORY_CAP = 1/);
+  assert.match(world, /FOREST_UNDERSTORY_CAP = 2/);
+  assert.match(world, /tropical-ecology\.js\?v=19/);
+  assert.match(ecology, /STARTER_COVE_SHOWCASE/);
+  assert.match(ecology, /const clusterRoll = hash2/);
+  assert.match(ecology, /BLOCK\.BROMELIAD\], \[2, 1, BLOCK\.HELICONIA/);
+  assert.match(ecology, /y >= SEA_LEVEL/);
+  assert.match(ecology, /lz \* WORLD_HEIGHT/);
   assert.match(ecology, /mushroomChance: 0\.003/);
   assert.match(ecology, /CASSAVA_TUBER/);
   assert.match(atlasCore, /BROMELIAD: 70/);
+  assert.match(world, /instance\.id === BLOCK\.BROMELIAD/);
+  assert.match(world, /instance\.id === BLOCK\.HELICONIA/);
+  assert.match(world, /instance\.id === BLOCK\.TARO/);
+  assert.match(world, /instance\.id === BLOCK\.PANDANUS/);
+  assert.match(world, /instance\.y \+ 0\.30, 0\.08, 0\.54/);
+  assert.match(world, /instance\.y \+ 0\.82, 0\.34, 0\.24/);
+  assert.match(world, /instance\.y \+ 0\.92, 0\.28, 0\.14/);
+  assert.match(world, /instance\.y \+ 0\.18, 0\.08, 0\.28/);
 });
 
 if (process.exitCode) process.exit(1);

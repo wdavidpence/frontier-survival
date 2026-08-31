@@ -1,7 +1,7 @@
 /**
  * Pure crafting-station catalog (MC-breadth). Tags only — no UI/game tick.
  */
-import { BLOCK } from './blocks.js?v=295';
+import { BLOCK } from './blocks.js?v=297';
 import { CRAFTING_TABLE } from './crafting-table.js?v=1';
 
 /**

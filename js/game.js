@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=503';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=545';
 import { Player } from './player.js?v=241';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=226';
@@ -14,7 +14,7 @@ import {
   moveSpeedMultiplier,
 } from './survival.js?v=245';
 
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=295';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=297';
 import {
   ITEM,
   propsOf,
@@ -70,11 +70,11 @@ import {
 } from './crafting.js?v=422';
 import { CRAFTING_TABLE } from './crafting-table.js?v=1';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=278';
-import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=251';
-import { createBlockAtlas } from './atlas.js?v=324';
+import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=258';
+import { createBlockAtlas } from './atlas.js?v=344';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=290';
 import { underwaterFogStyle } from './underwater-fog.js?v=246';
-import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=287';
+import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=291';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=10';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
 import { placementState } from './placement-preview.js?v=1';
@@ -1125,10 +1125,9 @@ export class Game {
       this._boat.mast = 0.58;
       this._boat.sail = 0.46;
       this.player = new Player(spawn, { starterRations: this.modeDef().starterRations });
-      // Fresh arrivals open toward the authored channel so the first frame sells
-      // the expedition route; saved worlds preserve the player's stored heading.
+      // Fresh arrivals open seaward so the first frame shows water and flanking palms, not the village wall.
       this.player.yaw = freshPlayer ? (Number.isFinite(arrival.yaw) ? arrival.yaw : 0.92) : (Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI));
-      this.player.pitch = freshPlayer ? 0.06 : 0;
+      this.player.pitch = 0;
       this.input.lookX = this.player.yaw;
       this.input.lookY = this.player.pitch;
       if (spawn.landmark) {
@@ -5476,11 +5475,16 @@ export class Game {
     const layout = animalPartLayout(type, spec);
     const g = new THREE.Group();
     for (const part of layout.parts) {
+      const baseColor = new THREE.Color(part.color[0], part.color[1], part.color[2]);
+      const detailRole = /^(marking|eye|mouth|mane|horn|tusk|beak|snout|ear)$/.test(part.role || part.name);
       const mat = new THREE.MeshLambertMaterial({
-        color: new THREE.Color(part.color[0], part.color[1], part.color[2]),
+        color: baseColor,
+        emissive: detailRole ? baseColor.clone().multiplyScalar(0.12) : 0x000000,
+        emissiveIntensity: detailRole ? 0.35 : 0,
       });
+      const detailScale = part.role === 'marking' ? 1.18 : 1;
       const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(part.sx, part.sy, part.sz),
+        new THREE.BoxGeometry(part.sx * detailScale, part.sy * detailScale, part.sz * detailScale),
         mat,
       );
       mesh.position.set(part.x, part.y, part.z);
@@ -5488,6 +5492,20 @@ export class Game {
       mesh.userData.role = part.role || part.name;
       mesh.userData.baseColor = [part.color[0], part.color[1], part.color[2]];
       g.add(mesh);
+    }
+    const grounded = !spec.aquatic && !spec.nocturnal && !['bird', 'parrot', 'bat'].includes(type);
+    if (grounded) {
+      const shadow = new THREE.Mesh(
+        new THREE.CircleGeometry(Math.max(0.18, Math.min(0.62, (spec.scale?.[0] || 0.5) * 0.72)), 12),
+        new THREE.MeshBasicMaterial({ color: 0x1a1712, transparent: true, opacity: 0.20, depthWrite: false }),
+      );
+      shadow.rotation.x = -Math.PI * 0.5;
+      shadow.position.y = 0.018;
+      shadow.scale.set(1.35, 0.72, 1);
+      shadow.name = 'groundShadow';
+      shadow.userData.role = 'ground-shadow';
+      shadow.renderOrder = -1;
+      g.add(shadow);
     }
     g.userData.type = type;
     g.userData.legNames = layout.legNames || [];
@@ -5531,6 +5549,11 @@ export class Game {
       mesh.userData.shadowActive = nearGroundShadow;
       mesh.traverse((c) => {
         if (c.isMesh) {
+          if (c.userData.role === 'ground-shadow') {
+            c.castShadow = false;
+            c.receiveShadow = false;
+            return;
+          }
           c.castShadow = nearGroundShadow;
           c.receiveShadow = false;
         }
@@ -5552,6 +5575,7 @@ export class Game {
       const fleeceHidden = (a.type === 'sheep' || a.type === 'lamb') && (a.shearedT || 0) > 0;
       mesh.userData.tamed = !!a.tamed;
       mesh.traverse((c) => {
+        if (c.userData.role === 'ground-shadow') return;
         if (c.isMesh && (c.name === 'woolBody' || c.name === 'woolShoulder' || c.name === 'tail') && (a.type === 'sheep' || a.type === 'lamb')) {
           c.visible = !fleeceHidden;
         }

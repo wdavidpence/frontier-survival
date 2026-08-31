@@ -592,6 +592,7 @@ const BLOCK = {
   VINES: 63,
   TALL_GRASS: 64,
   WILDFLOWER: 65,
+  PALM_TRUNK: 79,
 };
 
 const CHUNK_SIZE = 16;
@@ -855,25 +856,32 @@ function placeVines(data, idx, lx, y, lz, trunkH) {
 
 function _placePalm(data, idx, lx, y, lz) {
   const trunkH = 6 + Math.floor(hash2(lx + 21, lz + 13) * 4);
-  const lean = hash2(lx + 27, lz + 31) > 0.5 ? 1 : -1;
+  const axis = hash2(lx + 27, lz + 31) > 0.5 ? 'x' : 'z';
+  const sign = hash2(lx + 29, lz + 37) > 0.5 ? 1 : -1;
+  const maxLean = 2;
+  const offsetAt = (i) => Math.round(Math.pow(i / Math.max(1, trunkH - 1), 1.55) * maxLean) * sign;
+  const trunkAt = (i) => ({
+    x: lx + (axis === 'x' ? offsetAt(i) : 0),
+    z: lz + (axis === 'z' ? offsetAt(i) : 0),
+  });
   const set = (x, yy, z, id) => {
     if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE || yy < 0 || yy >= WORLD_HEIGHT) return;
     if (data[idx(x, yy, z)] === BLOCK.AIR) data[idx(x, yy, z)] = id;
   };
-  for (let i = 0; i < trunkH; i++) set(lx + (i >= trunkH - 2 ? (i - trunkH + 2) * lean : 0), y + i, lz, BLOCK.LOG);
-  for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) set(lx + dx, y, lz + dz, BLOCK.LOG);
+  for (let i = 0; i < trunkH; i++) { const trunk = trunkAt(i); set(trunk.x, y + i, trunk.z, BLOCK.PALM_TRUNK); }
   const top = y + trunkH - 1;
+  const crown = trunkAt(trunkH - 1);
   const fronds = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [2, 0], [-2, 0], [0, 2], [0, -2], [2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [-1, 2], [1, -2], [-1, -2]];
   for (const [dx, dz] of fronds) {
     const distance = Math.abs(dx) + Math.abs(dz);
-    set(lx + dx, top + (distance >= 2 ? -1 : 1), lz + dz, BLOCK.PALM_LEAVES);
+    set(crown.x + dx, top + (distance >= 2 ? -1 : 0), crown.z + dz, BLOCK.PALM_LEAVES);
   }
   const fruitRoll = hash2(lx * 13 + 77, lz * 17 + 91);
   if (fruitRoll > 0.42) {
-    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1]]) set(lx + dx, top - 1, lz + dz, BLOCK.COCONUT);
-    set(lx + (fruitRoll > 0.72 ? 2 : -2), y, lz + (fruitRoll > 0.72 ? 1 : -1), BLOCK.COCONUT);
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1]]) set(crown.x + dx, top - 1, crown.z + dz, BLOCK.COCONUT);
+    set(crown.x + (fruitRoll > 0.72 ? 2 : -2), y, crown.z + (fruitRoll > 0.72 ? 1 : -1), BLOCK.COCONUT);
   }
-  placeVines(data, idx, lx, y, lz, trunkH);
+  placeVines(data, idx, crown.x, y, crown.z, trunkH);
 }
 
 function _placeMangroveBridge(data, idx, lx, y, lz, clearApproachPlants = false) {

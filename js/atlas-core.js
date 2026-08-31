@@ -1,11 +1,11 @@
 /**
  * Pure atlas tile math — no DOM/Three (unit-testable).
  */
-import { BLOCK } from './blocks.js?v=295';
+import { BLOCK } from './blocks.js?v=297';
 import { CRAFTING_TABLE } from './crafting-table.js?v=1';
 
 export const TILE_PX = 32;
-export const ATLAS_N = 9;
+export const ATLAS_N = 10;
 export const ATLAS_PX = TILE_PX * ATLAS_N;
 
 export const TILE = {
@@ -90,6 +90,8 @@ export const TILE = {
   YAM_TUBER: 78,
   BATATA_TUBER: 79,
   CRAFTING_TABLE: 80,
+  PALM_TRUNK_SIDE: 81,
+  PALM_TRUNK_TOP: 82,
 };
 
 /** UV corners: bl, tl, tr, br in atlas space */
@@ -249,6 +251,8 @@ export function tileForBlock(blockId, faceDir) {
       return TILE.PNEUMATOPHORE;
     case BLOCK.BANYAN_ROOTS:
       return TILE.BANYAN_ROOTS;
+    case BLOCK.PALM_TRUNK:
+      return faceDir === 'top' || faceDir === 'bottom' ? TILE.PALM_TRUNK_TOP : TILE.PALM_TRUNK_SIDE;
     case CRAFTING_TABLE:
       return TILE.CRAFTING_TABLE;
     case BLOCK.LILY_PAD:
