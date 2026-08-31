@@ -451,19 +451,19 @@ function drawWater(ctx, x0, y0) {
 
 function drawLogSide(ctx, x0, y0) {
   const field = fillMaterial(ctx, x0, y0, {
-    shadow: [76, 50, 32], base: [110, 74, 46], light: [138, 96, 62]
+    shadow: [118, 78, 44], base: [168, 118, 68], light: [214, 164, 102]
   }, {
-    seed: 77, cells: 4, octaves: 3, contrast: 1.2, sy: 6,
+    seed: 77, cells: 4, octaves: 3, contrast: 1.05, sy: 6,
   });
   scatterFlecks(ctx, x0, y0, {
-    seed: 78, count: 18, color: 'rgba(52, 34, 20, 0.4)',
+    seed: 78, count: 14, color: 'rgba(92, 58, 28, 0.28)',
     field, want: -1, threshold: 0.42, w: 2, h: 6,
   });
   scatterFlecks(ctx, x0, y0, {
-    seed: 79, count: 12, color: 'rgba(154, 108, 70, 0.35)',
+    seed: 79, count: 12, color: 'rgba(232, 188, 118, 0.32)',
     field, want: 1, threshold: 0.6, w: 2, h: 4,
   });
-  applyMicroTexture(ctx, x0, y0, 4, 2);
+  applyMicroTexture(ctx, x0, y0, 3, 2);
 }
 
 function drawMangroveLogSide(ctx, x0, y0) {
@@ -548,25 +548,17 @@ function drawMangroveLeaves(ctx, x0, y0) {
 }
 
 function drawPlanks(ctx, x0, y0) {
-  // Sun-warmed boards with a restrained tidal stain: the lower edge reads wet
-  // beside the Rootwalk water without turning ordinary wood into black bands.
-  fillNoise(ctx, x0, y0, [201, 155, 93], 0.14, 15, 255, 2);
-  ctx.fillStyle = 'rgba(110, 75, 35, 0.6)';
+  fillNoise(ctx, x0, y0, [228, 186, 118], 0.10, 15, 255, 2);
+  ctx.fillStyle = 'rgba(168, 118, 62, 0.38)';
   for (let y = 0; y < TILE_PX; y += 8) {
-    ctx.fillRect(x0, y0 + y, TILE_PX, 2);
+    ctx.fillRect(x0, y0 + y, TILE_PX, 1);
   }
-  ctx.fillStyle = 'rgba(48, 70, 58, 0.22)';
-  ctx.fillRect(x0, y0 + 26, TILE_PX, 4);
-  ctx.fillStyle = 'rgba(232, 194, 125, 0.28)';
+  ctx.fillStyle = 'rgba(248, 220, 164, 0.28)';
   ctx.fillRect(x0, y0 + 2, TILE_PX, 2);
-  const r = rnd(151);
-  ctx.fillStyle = 'rgba(72, 104, 78, 0.28)';
-  for (let i = 0; i < 5; i++) {
-    const bx = Math.floor(r() * 14) * 2;
-    const by = 24 + Math.floor(r() * 3) * 2;
-    ctx.fillRect(x0 + bx, y0 + by, 2, 2);
-  }
-  applyMicroTexture(ctx, x0, y0, 3);
+  ctx.fillStyle = 'rgba(196, 142, 78, 0.18)';
+  ctx.fillRect(x0 + 8, y0, 1, TILE_PX);
+  ctx.fillRect(x0 + 22, y0, 1, TILE_PX);
+  applyMicroTexture(ctx, x0, y0, 2);
 }
 
 function drawCobble(ctx, x0, y0) {

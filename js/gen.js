@@ -557,9 +557,12 @@ const VILLAGE_BLOCK = Object.freeze({
   LOG: 6,
   PLANKS: 8,
   COBBLE: 9,
+  FENCE: 24,
   CHEST: 22,
   DOOR: 27,
+  GLASS: 29,
   BRICKS: 31,
+  SLAB: 47,
 });
 
 function villageSiteIsFlat(cx, cz, seed, ground) {
@@ -627,7 +630,7 @@ export function villageColumnAt(x, z, sites = []) {
       const halfD = type === 'store' ? 3 : 2;
       const dx = x - (site.cx + ox);
       const dz = z - (site.cz + oz);
-      if (Math.abs(dx) <= halfW && Math.abs(dz) <= halfD) return { site, index, type, dx, dz, halfW, halfD, ox, oz };
+      if (Math.abs(dx) <= halfW + 1 && Math.abs(dz) <= halfD + 1) return { site, index, type, dx, dz, halfW, halfD, ox, oz };
     }
   }
   return null;
@@ -645,24 +648,37 @@ export function villageBlockAt(x, y, z, sites = []) {
   const ground = heightAt(site.cx + ox, site.cz + oz, site.seed);
   const wallHeight = type === 'church' ? 4 : 3;
   const roofY = ground + wallHeight + 1;
+  const absx = Math.abs(dx);
+  const absz = Math.abs(dz);
+  const eave = absx === halfW + 1 || absz === halfD + 1;
+  const corner = absx === halfW && absz === halfD;
+  const boundary = absx === halfW || absz === halfD;
   const frontDoor = dz === halfD && dx === 0;
-  const boundary = Math.abs(dx) === halfW || Math.abs(dz) === halfD;
+  const porchPost = eave && ((absx === halfW + 1 && absz === halfD + 1)
+    || (absz === halfD + 1 && absx === halfW && dx !== 0));
+  const sideWindow = boundary && !corner && !frontDoor && y === ground + 2;
   if (y < ground) return null;
+  if (eave) {
+    if (y === ground && porchPost) return VILLAGE_BLOCK.LOG;
+    if (y > ground && y < roofY && porchPost) return VILLAGE_BLOCK.FENCE;
+    if (y === ground && dz === halfD + 1 && absx <= 1) return VILLAGE_BLOCK.PLANKS;
+    if (y === roofY) return VILLAGE_BLOCK.SLAB;
+    return VILLAGE_BLOCK.AIR;
+  }
   if (y === ground) return VILLAGE_BLOCK.COBBLE;
   if (y <= ground + wallHeight) {
-    if (frontDoor && y <= ground + 2) return y === ground + 1 ? VILLAGE_BLOCK.DOOR : VILLAGE_BLOCK.AIR;
+    if (frontDoor && (y === ground + 1 || y === ground + 2)) return VILLAGE_BLOCK.DOOR;
+    if (sideWindow) return VILLAGE_BLOCK.GLASS;
     return boundary
-      ? (Math.abs(dx) === halfW && Math.abs(dz) === halfD ? VILLAGE_BLOCK.LOG : VILLAGE_BLOCK.PLANKS)
+      ? (corner ? VILLAGE_BLOCK.LOG : VILLAGE_BLOCK.PLANKS)
       : (type === 'store' && dx === 0 && dz === 0 && y === ground + 1 ? VILLAGE_BLOCK.CHEST : VILLAGE_BLOCK.AIR);
   }
   if (y === roofY) {
-    if (type === 'church' && Math.abs(dx) <= 1 && dz <= 0) return VILLAGE_BLOCK.BRICKS;
-    if (type === 'store' && Math.abs(dz) === halfD + 1 && Math.abs(dx) <= halfW) return VILLAGE_BLOCK.PLANKS;
+    if (type === 'church' && absx <= 1 && dz <= 0) return VILLAGE_BLOCK.BRICKS;
     return VILLAGE_BLOCK.PLANKS;
   }
-  // A compact church tower gives the settlement a readable landmark without
-  // turning the village into a town-scale monument.
-  if (type === 'church' && Math.abs(dx) <= 1 && dz <= 0 && y <= roofY + 3) {
+  if (y === roofY + 1 && absx === 0) return VILLAGE_BLOCK.PLANKS;
+  if (type === 'church' && absx <= 1 && dz <= 0 && y <= roofY + 3) {
     return y === roofY + 3 ? VILLAGE_BLOCK.BRICKS : VILLAGE_BLOCK.COBBLE;
   }
   return VILLAGE_BLOCK.AIR;

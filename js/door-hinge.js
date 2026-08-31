@@ -27,6 +27,19 @@ export function toggleDoor(blockId, closedId, openId) {
 }
 
 /**
+ * Return the hit door cell plus its stacked partner, if any.
+ * Village doors occupy two cells; toggling one must toggle both.
+ */
+export function pairedDoorCells(getBlock, x, y, z, closedId, openId) {
+  const isDoor = (id) => id === closedId || id === openId;
+  const cells = [{ x, y, z }];
+  if (typeof getBlock !== 'function') return cells;
+  if (isDoor(getBlock(x, y + 1, z))) cells.push({ x, y: y + 1, z });
+  if (isDoor(getBlock(x, y - 1, z))) cells.push({ x, y: y - 1, z });
+  return cells;
+}
+
+/**
  * Optional facing meta 0..3 (for future hinged mesh).
  */
 export function doorFacingFromYaw(yaw) {

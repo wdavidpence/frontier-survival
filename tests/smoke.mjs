@@ -107,7 +107,8 @@ import {
 import { stairFacingFromYaw, stairFacingMeta, stairFacingFromMeta } from '../js/stair-place.js';
 import { bowDrawCharge, bowPowerFromCharge, isBowFullyDrawn } from '../js/bow-draw.js';
 import { advanceCropGrowth, cropStageAt, isCropRipe, CROP_MATURE_SECONDS } from '../js/crop-growth.js';
-import { toggleDoor, isDoorBlock, doorFacingFromYaw } from '../js/door-hinge.js';
+import { toggleDoor, isDoorBlock, doorFacingFromYaw, pairedDoorCells } from '../js/door-hinge.js';
+import { buildDoorGeometry, pairDoorLeaves } from '../js/door-geometry.js';
 import { sanitizeSignLine, sanitizeSignText } from '../js/sign-text.js';
 import { toggleFenceGate, gateFacingFromYaw } from '../js/fence-gate.js';
 import { ladderClimbVy, ladderSuppressGravity, shouldDetachLadder } from '../js/ladder-climb.js';
@@ -249,7 +250,7 @@ import {
   firstCraftableRecipe,
   nextProgressionRecipe,
 } from '../js/crafting.js';
-import { FaunaSystem, findStarterEncounterSpawn, meatDropCount, SPECIES, canFeed, tryFeed, hostileSpawnLimit } from '../js/animals.js?v=278';
+import { FaunaSystem, findStarterEncounterSpawn, findBeachShowcaseSpawn, meatDropCount, SPECIES, canFeed, tryFeed, hostileSpawnLimit } from '../js/animals.js?v=280';
 import { animalPartLayout, animalLimbPose, accentColor } from '../js/animal-visuals.js';
 import { tickLogic, isPowered, COMPONENT } from '../js/logic.js';
 import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
@@ -264,7 +265,8 @@ import { ambientMix } from '../js/audio.js';
 import { greedyMeshChunk, quadsToArrays, countNaiveFaces } from '../js/mesh-greedy.js';
 import { buildMushroomGeometry } from '../js/mushroom-geometry.js';
 import { buildTorchGeometry } from '../js/torch-geometry.js';
-import { buildPalmTrunkGeometry } from '../js/palm-trunk-geometry.js';
+import { buildPalmTrunkGeometry, buildPalmCrownGeometry } from '../js/palm-trunk-geometry.js';
+import { PALM_WIND_DX, palmTrunkAt } from '../js/palm-lean.js';
 import {
   buildSavePayload,
   parseSavePayload,
@@ -326,7 +328,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /\[\[-10, -28\], \[-10, -29\]/);
   assert.doesNotMatch(source, /Math\.PI \/ 4/, 'Cane Garden Bay must look along the beach, not a diagonal into buildings');
   assert.match(source, /chosen\.landmark === 'Cane Garden Bay · Tortola'/);
-  assert.match(gameSource, /world\.js\?v=545/);
+  assert.match(gameSource, /world.js\?v=548/);
   assert.match(gameSource, /this\.player\.pitch = 0;/);
 });
 
@@ -646,7 +648,7 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /const k = clamp01\(0\.35 \+ n \* 0\.8\)/);
   assert.match(atlas, /0\.5\)`;/);
   assert.match(atlas, /vTile - 5\.0/);
-  assert.match(game, /atlas\.js\?v=344/);
+  assert.match(game, /atlas\.js\?v=345/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -1424,7 +1426,14 @@ test('tropical palms use light bark, deliberate lean, authored fronds, and fauna
   assert.match(world, /'palm-frond': \{ blades: 8/);
   assert.match(world, /reach: \[1\.15, 1\.85\]/);
   assert.match(worker, /BLOCK\.PALM_TRUNK/);
-  assert.match(worker, /const maxLean = 2/);
+  assert.match(worker, /PALM_WIND_DX = -1/);
+  assert.match(world, /palmTrunkAt/);
+  assert.doesNotMatch(world, /'x' : 'z'/);
+  assert.doesNotMatch(worker, /'x' : 'z'/);
+  assert.equal(PALM_WIND_DX, -1);
+  assert.equal(palmTrunkAt(0, 0, 0, 8).x, 0);
+  assert.ok(palmTrunkAt(0, 0, 7, 8).x < 0, 'every palm leans west with the trades');
+  assert.equal(palmTrunkAt(4, 9, 7, 8).z, 9);
   assert.doesNotMatch(world, /distance >= 2 \? -1 : 1/, 'world palm fronds must not float one cell above the trunk');
   assert.doesNotMatch(worker, /distance >= 2 \? -1 : 1/, 'worker palm fronds must not float one cell above the trunk');
   assert.match(world, /distance >= 2 \? -1 : 0/);
@@ -1511,6 +1520,14 @@ test('palm trunks render as slim authored poles, not full voxel cubes', () => {
   assert.deepEqual(geometry.positions, repeat.positions, 'same cell and seed rebuild identically');
   assert.deepEqual([...new Set(geometry.tiles)].sort((a, b) => a - b), [TILE.PALM_TRUNK_SIDE]);
   assert.ok(geometry.indices.length > 0 && geometry.colors.every((value, i) => i % 4 !== 3 || value === 1));
+  const column = Array.from({ length: 7 }, (_, i) => ({ x: 8 - Math.round((i / 6) ** 1.55 * 2), y: 17 + i, z: -26 }));
+  const curved = buildPalmTrunkGeometry(column, TILE.PALM_TRUNK_SIDE, [0.94, 0.82, 0.56], 1884808540);
+  const curvedX = curved.positions.filter((_, i) => i % 3 === 0);
+  assert.ok(Math.min(...curvedX) < 7.1, 'lined palms must curve west as one tree');
+  const crown = buildPalmCrownGeometry(column, TILE.PALM_LEAVES, [0.52, 0.84, 0.34], 1884808540);
+  assert.ok(crown.indices.length > 120, 'each palm has a radial frond crown');
+  const crownX = crown.positions.filter((_, i) => i % 3 === 0);
+  assert.ok(Math.max(...crownX) - Math.min(...crownX) > 3.2, 'fronds must read as long palm leaves, not a cube cap');
   assert.match(worldSource, /BLOCK\.PALM_TRUNK/);
   assert.match(worldSource, /buildPalmTrunkGeometry\(/);
   assert.match(worldSource, /skipBlock:[\s\S]*PALM_TRUNK/);
@@ -2528,6 +2545,24 @@ test('chicken SPECIES exists passive feed seeds', () => {
   assert.ok(c.hp > 0 && c.count > 0);
   assert.ok(canFeed({ type: 'chicken' }, ITEM.SEEDS));
   assert.ok(!canFeed({ type: 'chicken' }, ITEM.BERRIES));
+  assert.ok(c.scale[0] >= 0.8 && c.scale[1] >= 0.7, 'chicken is large enough to read on the beach');
+});
+
+test('beach showcase places chickens in the arrival look cone', () => {
+  const world = {
+    getBlock(x, y, z) {
+      if (y === 16 && z < 0) return BLOCK.SAND;
+      if (y > 16) return BLOCK.AIR;
+      return BLOCK.STONE;
+    },
+  };
+  const spawn = findBeachShowcaseSpawn(world, 11, [], { x: -9.5, z: -27.5 }, Math.PI / 2);
+  assert.ok(spawn, 'beach showcase finds a sand cell');
+  assert.ok(spawn.distance >= 4 && spawn.distance <= 9, 'showcase stays in the near arrival band');
+  assert.ok(spawn.x < -9.5, 'showcase is in front of a west-facing Cane Garden camera');
+  const game = fsText('js/game.js');
+  assert.match(game, /ensureBeachShowcaseNear/);
+  assert.match(game, /SphereGeometry\(0\.5, 10, 8\)/);
 });
 
 test('boar SPECIES exists hostile high-hide', () => {
@@ -4131,6 +4166,47 @@ test('door-hinge toggle', () => {
   assert.strictEqual(toggleDoor(BLOCK.DOOR_CLOSED, BLOCK.DOOR_CLOSED, BLOCK.DOOR_OPEN), BLOCK.DOOR_OPEN);
   assert.strictEqual(toggleDoor(BLOCK.DOOR_OPEN, BLOCK.DOOR_CLOSED, BLOCK.DOOR_OPEN), BLOCK.DOOR_CLOSED);
   assert.ok(doorFacingFromYaw(0) >= 0);
+  const grid = new Map([['3,8,4', BLOCK.DOOR_CLOSED], ['3,9,4', BLOCK.DOOR_CLOSED]]);
+  const pair = pairedDoorCells((x, y, z) => grid.get(`${x},${y},${z}`) ?? 0, 3, 8, 4, BLOCK.DOOR_CLOSED, BLOCK.DOOR_OPEN);
+  assert.strictEqual(pair.length, 2);
+  assert.ok(pair.some(c => c.y === 9));
+});
+
+test('authored doors are thin leaves that swing open', () => {
+  const cells = [
+    { x: 0, y: 4, z: 0, id: BLOCK.DOOR_CLOSED },
+    { x: 0, y: 5, z: 0, id: BLOCK.DOOR_CLOSED },
+  ];
+  const closedLeaves = pairDoorLeaves(cells, BLOCK.DOOR_CLOSED, BLOCK.DOOR_OPEN);
+  assert.strictEqual(closedLeaves.length, 1);
+  assert.strictEqual(closedLeaves[0].height, 2);
+  const closed = buildDoorGeometry(closedLeaves, 1, [0.62, 0.45, 0.25]);
+  const opened = buildDoorGeometry([{ ...closedLeaves[0], open: true }], 1, [0.62, 0.45, 0.25]);
+  assert.ok(closed.indices.length > 30);
+  assert.notDeepStrictEqual(closed.positions, opened.positions);
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (let i = 0; i < closed.positions.length; i += 3) {
+    minY = Math.min(minY, closed.positions[i + 1]);
+    maxY = Math.max(maxY, closed.positions[i + 1]);
+    minZ = Math.min(minZ, closed.positions[i + 2]);
+    maxZ = Math.max(maxZ, closed.positions[i + 2]);
+  }
+  assert.ok(maxZ - minZ < 0.22, 'closed door is a thin leaf, not a cube');
+  assert.ok(maxY - minY > 1.7, 'two-block door is player-tall');
+  let openMinZ = Infinity;
+  let openMaxZ = -Infinity;
+  for (let i = 2; i < opened.positions.length; i += 3) {
+    openMinZ = Math.min(openMinZ, opened.positions[i]);
+    openMaxZ = Math.max(openMaxZ, opened.positions[i]);
+  }
+  assert.ok(openMaxZ - openMinZ > 0.55, 'open door swings off the wall');
+  assert.deepStrictEqual(buildDoorGeometry(closedLeaves, 1, [0.62, 0.45, 0.25]).positions, closed.positions);
+  const world = fsText('js/world.js');
+  assert.match(world, /buildDoorGeometry/);
+  assert.match(world, /DOOR_CLOSED \|\| id === BLOCK\.DOOR_OPEN/);
 });
 
 test('game wires slab half place', () => {
@@ -4299,6 +4375,7 @@ test('bed-facing from yaw', () => {
 test('game uses toggleDoor helper', () => {
   const src = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
   assert.ok(src.includes('toggleDoor'));
+  assert.ok(src.includes('pairedDoorCells'));
   assert.ok(src.includes('door-hinge.js'));
 });
 
@@ -4775,9 +4852,9 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const main = fsText('js/main.js');
   const visuals = fsText('js/animal-visuals.js');
   const animals = fsText('js/animals.js');
-  assert.match(game, /animals\.js\?v=278/);
-  assert.match(game, /animal-visuals\.js\?v=258/);
-  assert.match(main, /game\.js\?v=830/);
+  assert.match(game, /animals.js\?v=280/);
+  assert.match(game, /animal-visuals.js\?v=259/);
+  assert.match(main, /game.js\?v=835/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5312,7 +5389,7 @@ test('fauna-parts/wolf-layout snout and ears have dark color', () => {
 test('fauna-parts/chicken-layout crest is a curved comb of bumps', () => {
   const spec = { color: [0.6, 0.45, 0.3], scale: [1, 1, 1] };
   const layout = layoutChicken(spec);
-  const crests = layout.parts.filter(p => p.name.startsWith('crestL') || p.name.startsWith('crestR'));
+  const crests = layout.parts.filter(p => p.name.startsWith('crest'));
   assert.ok(crests.length >= 3, `expected ≥3 crest bumps, got ${crests.length}`);
   // bumps should have varying heights (not all identical)
   const heights = crests.map(c => c.sy);
@@ -5534,7 +5611,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker\.js\?v=353/);
+  assert.match(world, /chunk-worker.js\?v=356/);
   assert.match(world, /starterLaunchCorridor/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
@@ -5793,7 +5870,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.26.9'), 'HTML must expose v1.26.9');
+  assert.ok(html.includes('v1.26.10'), 'HTML must expose v1.26.10');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -5840,6 +5917,17 @@ test('Tortola villages are rare, anchored, compact, and deterministic', () => {
   }
   assert.ok(ids.has(BLOCK.COBBLE), 'village foundation uses authored cobble only');
   assert.ok(ids.has(BLOCK.PLANKS), 'village walls/roof use authored planks only');
+  assert.ok(ids.has(BLOCK.GLASS) || ids.has(BLOCK.SLAB_WOOD), 'cottages get windows or eaves');
+  assert.ok(ids.has(BLOCK.DOOR_CLOSED), 'cottages keep working door cells');
+  let stackedDoor = false;
+  for (let dx = -4; dx <= 4; dx++) for (let dz = -3; dz <= 3; dz++) {
+    for (let y = 1; y < 47; y++) {
+      const a = villageBlockAt(site.cx - 18 + dx, y, site.cz - 3 + dz, sites);
+      const b = villageBlockAt(site.cx - 18 + dx, y + 1, site.cz - 3 + dz, sites);
+      if (a === BLOCK.DOOR_CLOSED && b === BLOCK.DOOR_CLOSED) stackedDoor = true;
+    }
+  }
+  assert.ok(stackedDoor, 'cottage doors are two blocks tall');
   const world = fsText('js/world.js');
   const worker = fsText('js/chunk-worker.js');
   assert.match(world, /villageSitesForSeed\(this\.seed\)/);
@@ -6073,8 +6161,10 @@ test('held item catalog uses authored family geometry at the camera seam', () =>
   assert.match(gameSrc, /family === 'shield' \? 0\.78/);
   assert.match(gameSrc, /const mobileHeld = !!this\._isMobile/);
   assert.match(geomSrc, /CylinderGeometry/);
-  assert.match(geomSrc, /CylinderGeometry\(0\.07, 0\.07, 0\.72, 8\)/);
-  assert.match(geomSrc, /CylinderGeometry\(0\.09, 0\.02, 0\.42, 6\)/);
+  assert.match(geomSrc, /pickHead/);
+  assert.match(geomSrc, /axeBlade/);
+  assert.match(geomSrc, /hoeBlade/);
+  assert.match(geomSrc, /spadeBlade/);
   assert.match(geomSrc, /ConeGeometry|TorusGeometry/);
   assert.match(geomSrc, /function addHandAnchor/);
   assert.match(geomSrc, /const cuff = new THREE\.Mesh/);
@@ -6097,7 +6187,7 @@ test('tropical ecology sprint exposes six additions, coconuts, and root foods', 
   assert.match(world, /this\.chunks\.set\(this\.key\(cx, cz\), applyTropicalEcology/);
   assert.match(world, /BROMELIAD/);
   assert.match(world, /FOREST_UNDERSTORY_CAP = 2/);
-  assert.match(world, /tropical-ecology\.js\?v=19/);
+  assert.match(world, /tropical-ecology.js\?v=21/);
   assert.match(ecology, /STARTER_COVE_SHOWCASE/);
   assert.match(ecology, /const clusterRoll = hash2/);
   assert.match(ecology, /BLOCK\.BROMELIAD\], \[2, 1, BLOCK\.HELICONIA/);

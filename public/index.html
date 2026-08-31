@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.26.9</title>
+  <title>Frontier Survival v1.26.10</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -385,13 +385,13 @@
     .workbench-head span { color:#9b958b; font-size:10px; }
     .workbench-layout { display:grid; grid-template-columns:minmax(190px, 1fr) minmax(150px, .8fr); gap:14px; align-items:stretch; }
     #workbench-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:5px; max-width:210px; }
-    .workbench-cell { min-height:48px; aspect-ratio:1; display:flex; align-items:center; justify-content:center; position:relative; border:1px solid rgba(255,255,255,.12); border-radius:6px; background:rgba(0,0,0,.26); }
+    .workbench-cell { min-height:52px; aspect-ratio:1; display:flex; align-items:center; justify-content:center; position:relative; border:1px solid rgba(210,168,110,.28); border-radius:7px; background:linear-gradient(180deg, rgba(72,48,28,.55), rgba(18,12,8,.72)); box-shadow:inset 0 1px 0 rgba(255,220,160,.12); }
     .workbench-cell.empty { opacity:.45; }
     .workbench-cell .inv-icon { width:76%; height:76%; object-fit:contain; filter:drop-shadow(0 1px 2px rgba(0,0,0,.7)); }
     .workbench-cell .wb-count { position:absolute; right:4px; bottom:2px; color:#fff; font-size:10px; text-shadow:0 1px 2px #000; }
     .workbench-output { display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:150px; border-left:1px solid rgba(255,255,255,.1); padding-left:14px; text-align:center; }
     .workbench-output-label { color:#8b857c; font-size:9px; letter-spacing:.12em; text-transform:uppercase; }
-    #workbench-output { width:72px; height:72px; margin:8px 0 5px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(224,184,136,.35); border-radius:8px; background:rgba(224,184,136,.1); }
+    #workbench-output { width:84px; height:84px; margin:8px 0 5px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(232,196,128,.55); border-radius:10px; background:radial-gradient(circle at 40% 30%, rgba(255,220,160,.22), rgba(40,24,12,.55)); box-shadow:inset 0 0 0 1px rgba(0,0,0,.25); }
     #workbench-output .inv-icon { width:80%; height:80%; object-fit:contain; }
     #workbench-output-name { color:#e8e0d4; font-size:12px; font-weight:700; }
     #workbench-status { margin-top:5px; color:#a08f6e; font-size:10px; line-height:1.35; }
@@ -1684,7 +1684,7 @@
     </div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.26.9</div>
+    <div id="version-badge">v1.26.10</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" role="status" aria-live="polite" aria-atomic="true"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1779,7 +1779,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.26.9</div>
+      <div class="tag">Browser survival sandbox · v1.26.10</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1912,6 +1912,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=853"></script>
+  <script type="module" src="./js/main.js?v=859"></script>
 </body>
 </html>

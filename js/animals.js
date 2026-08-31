@@ -3,8 +3,8 @@
  * Prey flee; predators hunt (worse at night). Meat drops on death.
  */
 import { isSolid, BLOCK } from './blocks.js?v=297';
-import { hash2 } from './gen.js?v=327';
-import { biomeAt, BIOME } from './biomes.js?v=272';
+import { hash2 } from './gen.js?v=328';
+import { biomeAt, BIOME } from './biomes.js?v=273';
 
 export const SPECIES = {
   hare: {
@@ -114,8 +114,8 @@ export const SPECIES = {
     meatMin: 1,
     meatMax: 2,
     feedItem: 'seeds',
-    color: [0.6, 0.4, 0.3],
-    scale: [0.55, 0.45, 0.65],
+    color: [0.93, 0.90, 0.82],
+    scale: [0.88, 0.74, 1.02],
     count: 10,
     tropical: true,
   },
@@ -319,6 +319,9 @@ const STARTER_ENCOUNTER_OFFSETS = Object.freeze([
 ]);
 const STARTER_ENCOUNTER_MIN_RADIUS = 10;
 const STARTER_ENCOUNTER_MAX_RADIUS = 16;
+const BEACH_SHOWCASE_OFFSETS = Object.freeze([
+  [4.8, -0.7], [5.4, -1.1], [4.5, 0.5], [5.2, 0.9],
+]);
 
 /**
  * Find a deterministic, walkable passive encounter just outside the spawn ring.
@@ -353,6 +356,40 @@ export function findStarterEncounterSpawn(world, seed = 1, occupied = [], origin
     const y = groundY(world, x, z);
     const ground = world.getBlock(xi, y - 1, zi);
     if (!isSolid(ground) || ground === BLOCK.WATER) continue;
+    if (world.getBlock(xi, y, zi) !== BLOCK.AIR || world.getBlock(xi, y + 1, zi) !== BLOCK.AIR) continue;
+    return { x, y, z, distance };
+  }
+  return null;
+}
+
+/**
+ * Place a readable shore animal in the arrival camera, not 13m off-screen.
+ * Offsets are (forward, left) in look space using the same yaw as Player.lookDir.
+ */
+export function findBeachShowcaseSpawn(world, seed = 1, occupied = [], origin = { x: 0, z: 0 }, yaw = Math.PI / 2) {
+  if (!world || typeof world.getBlock !== 'function') return null;
+  const ox = Number.isFinite(origin?.x) ? origin.x : 0;
+  const oz = Number.isFinite(origin?.z) ? origin.z : 0;
+  const fx = -Math.sin(yaw);
+  const fz = -Math.cos(yaw);
+  const leftX = fz;
+  const leftZ = -fx;
+  const seedIndex = Number.isFinite(seed)
+    ? Math.floor(Math.abs(seed)) % BEACH_SHOWCASE_OFFSETS.length
+    : 0;
+  for (let i = 0; i < BEACH_SHOWCASE_OFFSETS.length; i++) {
+    const [fwd, left] = BEACH_SHOWCASE_OFFSETS[(seedIndex + i) % BEACH_SHOWCASE_OFFSETS.length];
+    const x = ox + fx * fwd + leftX * left;
+    const z = oz + fz * fwd + leftZ * left;
+    const distance = Math.hypot(x - ox, z - oz);
+    if (distance < 4 || distance > 9) continue;
+    const xi = Math.floor(x);
+    const zi = Math.floor(z);
+    if (occupied.some((a) => a && !a.dead && Math.floor(a.x) === xi && Math.floor(a.z) === zi)) continue;
+    const y = groundY(world, x, z);
+    const ground = world.getBlock(xi, y - 1, zi);
+    if (!isSolid(ground) || ground === BLOCK.WATER) continue;
+    if (ground !== BLOCK.SAND && ground !== BLOCK.GRASS && ground !== BLOCK.DAMP_SOIL) continue;
     if (world.getBlock(xi, y, zi) !== BLOCK.AIR || world.getBlock(xi, y + 1, zi) !== BLOCK.AIR) continue;
     return { x, y, z, distance };
   }
@@ -645,6 +682,21 @@ export class FaunaSystem {
     if (!spec) return false;
     this.animals.push(this._make(spec, authored.x, authored.y, authored.z));
     return true;
+  }
+
+  /** Put one or two chickens on the arrival beach so fauna is actually visible. */
+  ensureBeachShowcaseNear(x = 0, z = 0, yaw = Math.PI / 2) {
+    const nearby = this.animals.filter((a) => !a.dead && a.type === 'chicken'
+      && Math.hypot(a.x - x, a.z - z) <= 9);
+    let added = 0;
+    while (nearby.length + added < 2) {
+      const spawn = findBeachShowcaseSpawn(this.world, this.seed + added * 19, this.animals, { x, z }, yaw);
+      if (!spawn) break;
+      if (this.countLiving('chicken') >= SPECIES.chicken.count) break;
+      this.animals.push(this._make(SPECIES.chicken, spawn.x, spawn.y, spawn.z));
+      added++;
+    }
+    return added > 0;
   }
 
   /** Push wildlife away from a point (spawn safety). */

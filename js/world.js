@@ -1,13 +1,15 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=297';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=327';
-import { biomeAt, BIOME } from './biomes.js?v=272';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=329';
+import { biomeAt, BIOME } from './biomes.js?v=273';
 import { tileForBlock } from './atlas-core.js?v=293';
 import { CRAFTING_TABLE } from './crafting-table.js?v=1';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=248';
 import { buildMushroomGeometry } from './mushroom-geometry.js?v=3';
 import { buildTorchGeometry } from './torch-geometry.js?v=2';
-import { buildPalmTrunkGeometry } from './palm-trunk-geometry.js?v=1';
+import { buildDoorGeometry, pairDoorLeaves } from './door-geometry.js?v=1';
+import { buildPalmTrunkGeometry, buildPalmCrownGeometry } from './palm-trunk-geometry.js?v=2';
+import { palmTrunkAt } from './palm-lean.js?v=1';
 import {
   terrainVisibilityPlan,
   chunkDetailTier,
@@ -17,7 +19,7 @@ import { raycastVoxel } from './interaction-contract.js?v=5';
 import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=6';
 import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=3';
 import { createDisposalContext, disposeGeometry, disposeTree } from './resource-disposal.js?v=3';
-import { applyTropicalEcology } from './tropical-ecology.js?v=19';
+import { applyTropicalEcology } from './tropical-ecology.js?v=21';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -653,7 +655,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=353';
+    const workerUrl = './js/chunk-worker.js?v=356';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -1787,25 +1789,17 @@ export class World {
   }
 
 
-  /** Tropical palm: sun-bleached trunk, broad lean, and layered frond crown. */
+  /** Tropical palm: sun-bleached trunk, west trade-wind lean, and layered frond crown. */
   _placePalm(data, lx, y, lz) {
     const trunkH = 6 + Math.floor(hash2(lx + 21, lz + 13) * 4);
-    const axis = hash2(lx + 27, lz + 31) > 0.5 ? 'x' : 'z';
-    const sign = hash2(lx + 29, lz + 37) > 0.5 ? 1 : -1;
-    const maxLean = 2;
-    const offsetAt = (i) => Math.round(Math.pow(i / Math.max(1, trunkH - 1), 1.55) * maxLean) * sign;
-    const trunkAt = (i) => ({
-      x: lx + (axis === 'x' ? offsetAt(i) : 0),
-      z: lz + (axis === 'z' ? offsetAt(i) : 0),
-    });
     for (let i = 0; i < trunkH; i++) {
       const ty = y + i;
       if (ty >= WORLD_HEIGHT) break;
-      const trunk = trunkAt(i);
+      const trunk = palmTrunkAt(lx, lz, i, trunkH);
       this._setAir(data, trunk.x, ty, trunk.z, BLOCK.PALM_TRUNK);
     }
     const top = y + trunkH - 1;
-    const crown = trunkAt(trunkH - 1);
+    const crown = palmTrunkAt(lx, lz, trunkH - 1, trunkH);
     const fronds = [
       [0, 0], [1, 0], [-1, 0], [0, 1], [0, -1],
       [2, 0], [-2, 0], [0, 2], [0, -2],
@@ -2145,7 +2139,7 @@ export class World {
       waterId: BLOCK.WATER,
       // Authored props are appended below so small objects do not inherit the
       // six-face cube treatment used by full blocks.
-      skipBlock: id => id === BLOCK.MUSHROOM || id === BLOCK.TORCH || id === BLOCK.COCONUT || id === BLOCK.PALM_TRUNK || PLANT_FORM.has(id),
+      skipBlock: id => id === BLOCK.MUSHROOM || id === BLOCK.TORCH || id === BLOCK.COCONUT || id === BLOCK.PALM_TRUNK || id === BLOCK.DOOR_CLOSED || id === BLOCK.DOOR_OPEN || PLANT_FORM.has(id),
     });
     const arrays = quadsToArrays(quads);
     const mushrooms = [];
@@ -2153,6 +2147,7 @@ export class World {
     const plants = [];
     const coconuts = [];
     const palmTrunks = [];
+    const doors = [];
     for (let lz = 0; lz < CHUNK_SIZE; lz++) {
       for (let ly = 0; ly < WORLD_HEIGHT; ly++) {
         for (let lx = 0; lx < CHUNK_SIZE; lx++) {
@@ -2165,7 +2160,9 @@ export class World {
             if (torches.length < PLANT_BUDGET) torches.push({ x: baseX + lx, y: ly, z: baseZ + lz });
           } else if (id === BLOCK.PALM_TRUNK) {
             if (palmTrunks.length < PLANT_BUDGET) palmTrunks.push({ x: baseX + lx, y: ly, z: baseZ + lz });
-          } else if (PLANT_FORM.has(id) && plants.length < PLANT_BUDGET) {
+          } else if (id === BLOCK.DOOR_CLOSED || id === BLOCK.DOOR_OPEN) {
+            if (doors.length < PLANT_BUDGET) doors.push({ x: baseX + lx, y: ly, z: baseZ + lz, id });
+          } else if (id !== BLOCK.PALM_LEAVES && PLANT_FORM.has(id) && plants.length < PLANT_BUDGET) {
             plants.push({ x: baseX + lx, y: ly, z: baseZ + lz, id });
           }
         }
@@ -2191,6 +2188,16 @@ export class World {
         ),
       );
     }
+    if (doors.length) {
+      appendGeometryPart(
+        arrays,
+        buildDoorGeometry(
+          pairDoorLeaves(doors, BLOCK.DOOR_CLOSED, BLOCK.DOOR_OPEN),
+          tileForBlock(BLOCK.PLANKS, 'side'),
+          getColor(BLOCK.DOOR_CLOSED),
+        ),
+      );
+    }
     if (palmTrunks.length) {
       appendGeometryPart(
         arrays,
@@ -2198,6 +2205,15 @@ export class World {
           palmTrunks,
           tileForBlock(BLOCK.PALM_TRUNK, 'side'),
           getColor(BLOCK.PALM_TRUNK),
+          this.seed,
+        ),
+      );
+      appendGeometryPart(
+        arrays,
+        buildPalmCrownGeometry(
+          palmTrunks,
+          tileForBlock(BLOCK.PALM_LEAVES),
+          getColor(BLOCK.PALM_LEAVES),
           this.seed,
         ),
       );

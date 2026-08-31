@@ -4,8 +4,9 @@
  * same plant and edible-root distribution without duplicating worker logic.
  */
 import { BLOCK } from './blocks.js?v=297';
-import { biomeAt, BIOME } from './biomes.js?v=272';
-import { hash2, bviBeachLandingAt } from './gen.js?v=327';
+import { biomeAt, BIOME } from './biomes.js?v=273';
+import { hash2, bviBeachLandingAt } from './gen.js?v=328';
+import { palmTrunkAt } from './palm-lean.js?v=1';
 
 export const TROPICAL_ECOLOGY = Object.freeze({
   mushroomChance: 0.003,
@@ -43,20 +44,12 @@ function put(data, lx, y, lz, id) {
 
 function placeLeaningPalm(data, lx, y, lz) {
   const trunkH = 6 + Math.floor(hash2(lx + 21, lz + 13) * 4);
-  const axis = hash2(lx + 27, lz + 31) > 0.5 ? 'x' : 'z';
-  const sign = hash2(lx + 29, lz + 37) > 0.5 ? 1 : -1;
-  const maxLean = 2;
-  const offsetAt = (i) => Math.round(Math.pow(i / Math.max(1, trunkH - 1), 1.55) * maxLean) * sign;
-  const trunkAt = (i) => ({
-    x: lx + (axis === 'x' ? offsetAt(i) : 0),
-    z: lz + (axis === 'z' ? offsetAt(i) : 0),
-  });
   for (let i = 0; i < trunkH; i++) {
-    const trunk = trunkAt(i);
+    const trunk = palmTrunkAt(lx, lz, i, trunkH);
     put(data, trunk.x, y + i, trunk.z, BLOCK.PALM_TRUNK);
   }
   const top = y + trunkH - 1;
-  const crown = trunkAt(trunkH - 1);
+  const crown = palmTrunkAt(lx, lz, trunkH - 1, trunkH);
   const fronds = [
     [0, 0], [1, 0], [-1, 0], [0, 1], [0, -1],
     [2, 0], [-2, 0], [0, 2], [0, -2],

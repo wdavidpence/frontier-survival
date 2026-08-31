@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=545';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=548';
 import { Player } from './player.js?v=241';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=226';
@@ -43,7 +43,7 @@ import { renderFurnaceUi, bindFurnaceUi } from './furnace-ui.js?v=3';
 import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=221';
 import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=221';
 import { advanceCropGrowth } from './crop-growth.js?v=221';
-import { toggleDoor } from './door-hinge.js?v=221';
+import { toggleDoor, pairedDoorCells } from './door-hinge.js?v=222';
 import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=221';
 import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=221';
 import { maceSmashDamage } from './mace-smash.js?v=221';
@@ -69,16 +69,16 @@ import {
   nextProgressionRecipe,
 } from './crafting.js?v=422';
 import { CRAFTING_TABLE } from './crafting-table.js?v=1';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=278';
-import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=258';
-import { createBlockAtlas } from './atlas.js?v=344';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=280';
+import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=259';
+import { createBlockAtlas } from './atlas.js?v=345';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=290';
 import { underwaterFogStyle } from './underwater-fog.js?v=246';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=291';
-import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=10';
+import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=11';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
 import { placementState } from './placement-preview.js?v=1';
-import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=327';
+import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=328';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=32';
 import {
   equipmentWarmth,
@@ -125,7 +125,7 @@ import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=221';
 import { wearTool, durabilityRatio } from './durability.js?v=224';
 import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=221';
 import { tickLogic, COMPONENT } from './logic.js?v=221';
-import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=272';
+import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=273';
 import {
   chestKey,
   getChestSlots,
@@ -1265,6 +1265,7 @@ export class Game {
     if (this.fauna && this.player) {
       this.fauna.clearNear(this.player.position.x, this.player.position.z, 16);
       this.fauna.ensureStarterEncounterNear?.(this.player.position.x, this.player.position.z);
+      this.fauna.ensureBeachShowcaseNear?.(this.player.position.x, this.player.position.z, this.player.yaw);
     }
     this._clearCastawayArrivalVisual();
     if (this._castawayArrival) {
@@ -2214,7 +2215,7 @@ export class Game {
     this._heldItemView.visible = true;
     const swayX = Math.sin(this._heldMotionT * 1.7) * 0.008;
     const swayY = Math.cos(this._heldMotionT * 1.35) * 0.006;
-    const swingProgress = this._heldSwingT > 0 ? 1 - Math.min(1, this._heldSwingT / 0.26) : 0;
+    const swingProgress = this._heldSwingT > 0 ? 1 - Math.min(1, this._heldSwingT / 0.40) : 0;
     const swing = Math.sin(swingProgress * Math.PI);
     const blockHeld = family === 'block';
     const mobileHeld = !!this._isMobile;
@@ -2227,7 +2228,7 @@ export class Game {
       baseZ + swing * 0.08,
     );
     this._heldItemView.rotation.set(
-      (blockHeld ? -0.16 : -0.3) - swing * 0.55,
+      (blockHeld ? -0.16 : -0.3) - swing * 0.95,
       (blockHeld ? 0.30 : 0.14) + swayX * 1.5,
       (blockHeld ? -0.18 : -0.34) + swayY * 2.4,
     );
@@ -4524,7 +4525,7 @@ export class Game {
     this.camera.position.x += shiver;
     this.camera.position.y += Math.cos(this._cameraMotionT * 19) * shiver * 0.7;
     this.camera.rotation.z += shiver * 0.8;
-    const swingProgress = this._heldSwingT > 0 ? 1 - Math.min(1, this._heldSwingT / 0.26) : 0;
+    const swingProgress = this._heldSwingT > 0 ? 1 - Math.min(1, this._heldSwingT / 0.40) : 0;
     const impactPulse = Math.sin(Math.PI * swingProgress);
     const lookX = -Math.sin(this.player.yaw);
     const lookZ = -Math.cos(this.player.yaw);
@@ -4690,7 +4691,7 @@ export class Game {
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
     const heldTool = propsOf(this.player.heldId())?.tool;
-    if (this.input.breakHeld && heldTool && this._heldSwingT <= 0) this._heldSwingT = 0.26;
+    if (this.input.breakHeld && heldTool && this._heldSwingT <= 0) this._heldSwingT = 0.40;
 
     // Friendly-fire off: ignore teammate as melee target
     if (this.input.breakHeld && this.coopMode && !this._friendlyFireOn()) {
@@ -4953,6 +4954,11 @@ export class Game {
       }
       if (blockId === BLOCK.DOOR_CLOSED || blockId === BLOCK.DOOR_OPEN) {
         this._unlock('first_door');
+        const aboveY = (py | 0) + 1;
+        if (aboveY < WORLD_HEIGHT && this.world.getBlock(px, aboveY, pz) === BLOCK.AIR) {
+          this.world.setBlock(px, aboveY, pz, blockId);
+          this._builtEdits.set(`${px | 0},${aboveY},${pz | 0}`, blockId);
+        }
       }
       if (blockId === BLOCK.GENERATOR) {
         this.player.notify('Generator placed. Connect with wire to lamps.');
@@ -5206,11 +5212,17 @@ export class Game {
       }
     }
 
-    // Toggle door
+    // Toggle door (both stacked cells so a 2-block doorway stays in sync)
     if (hit && (hit.id === BLOCK.DOOR_CLOSED || hit.id === BLOCK.DOOR_OPEN)) {
       const next = toggleDoor(hit.id, BLOCK.DOOR_CLOSED, BLOCK.DOOR_OPEN);
       if (next == null) return;
-      this.world.setBlock(hit.x, hit.y, hit.z, next);
+      const cells = pairedDoorCells(
+        (x, y, z) => this.world.getBlock(x, y, z),
+        hit.x, hit.y, hit.z,
+        BLOCK.DOOR_CLOSED,
+        BLOCK.DOOR_OPEN,
+      );
+      for (const cell of cells) this.world.setBlock(cell.x, cell.y, cell.z, next);
       this.audio.placeBlock();
       this.player.notify(next === BLOCK.DOOR_CLOSED ? 'Door closed.' : 'Door opened.');
       this._scanLights(true);
@@ -5476,21 +5488,34 @@ export class Game {
     const g = new THREE.Group();
     for (const part of layout.parts) {
       const baseColor = new THREE.Color(part.color[0], part.color[1], part.color[2]);
-      const detailRole = /^(marking|eye|mouth|mane|horn|tusk|beak|snout|ear)$/.test(part.role || part.name);
+      const role = part.role || part.name || '';
+      const detailRole = /^(marking|eye|mouth|mane|horn|tusk|beak|snout|ear)$/.test(role);
       const mat = new THREE.MeshLambertMaterial({
         color: baseColor,
         emissive: detailRole ? baseColor.clone().multiplyScalar(0.12) : 0x000000,
         emissiveIntensity: detailRole ? 0.35 : 0,
       });
       const detailScale = part.role === 'marking' ? 1.18 : 1;
+      const sx = part.sx * detailScale;
+      const sy = part.sy * detailScale;
+      const sz = part.sz * detailScale;
+      const spherical = role === 'eye' || role === 'body' || role === 'head' || role === 'crest' || role === 'wing'
+        || /^(eye|pupil|catch|socket|body|head|belly|chest|neck|wool|crest|wing|wattle|tail)/.test(part.name || '');
+      const cylindrical = role === 'leg' || /^(legL|legR)$/.test(part.name || '');
       const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(part.sx * detailScale, part.sy * detailScale, part.sz * detailScale),
+        spherical
+          ? new THREE.SphereGeometry(0.5, 10, 8)
+          : cylindrical
+            ? new THREE.CylinderGeometry(0.42, 0.34, 1, 7)
+            : new THREE.BoxGeometry(sx, sy, sz),
         mat,
       );
+      if (spherical || cylindrical) mesh.scale.set(sx, sy, sz);
       mesh.position.set(part.x, part.y, part.z);
       mesh.name = part.name;
-      mesh.userData.role = part.role || part.name;
+      mesh.userData.role = role;
       mesh.userData.baseColor = [part.color[0], part.color[1], part.color[2]];
+      mesh.userData.baseScale = { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z };
       g.add(mesh);
     }
     const grounded = !spec.aquatic && !spec.nocturnal && !['bird', 'parrot', 'bat'].includes(type);

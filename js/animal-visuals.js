@@ -275,29 +275,21 @@ export function layoutChicken(spec) {
   const headY = bodyY + bodyH * 0.35;
   const headZ = l * 0.28;
   parts.push(part('head', headS, headS, headS, 0, headY, headZ, c, 'head'));
-  parts.push(part('beak', w * 0.14, w * 0.1, w * 0.22, 0, headY - headS * 0.05, headZ + headS * 0.5, warm, 'beak'));
-  // crest: curved comb of rounded bumps along the top of the head
-  const crestCount = Math.min(4, Math.max(3, Math.round(spec?.crestCount || 4)));
-  const crestBaseY = headY + headS * 0.45;
-  for (let i = 0; i < crestCount; i++) {
-    const t = i / (crestCount - 1);
-    const bumpW = w * 0.08;
-    const bumpH = h * 0.09 + t * 0.04;
-    const bumpD = w * 0.06;
-    const xOff = -w * 0.25 + t * w * 0.5;
-    parts.push(part('crestL' + i, bumpW, bumpH, bumpD, xOff, crestBaseY, headZ + headS * 0.1, [0.85, 0.15, 0.12], 'crest'));
-    parts.push(part('crestR' + i, bumpW, bumpH, bumpD, xOff, crestBaseY, headZ - headS * 0.1, [0.85, 0.15, 0.12], 'crest'));
-  }
-  // wattle: droopy fleshy fold beneath beak
-  parts.push(part('wattle', w * 0.08, h * 0.1, w * 0.08, 0, headY - headS * 0.35, headZ + headS * 0.2, [0.8, 0.12, 0.1], 'crest'));
+  parts.push(part('beak', w * 0.16, w * 0.11, w * 0.28, 0, headY - headS * 0.02, headZ + headS * 0.58, warm, 'beak'));
+  const crestBaseY = headY + headS * 0.48;
+  parts.push(part('crest0', w * 0.10, h * 0.16, w * 0.10, 0, crestBaseY + h * 0.02, headZ + headS * 0.02, [0.86, 0.12, 0.10], 'crest'));
+  parts.push(part('crest1', w * 0.09, h * 0.13, w * 0.09, 0, crestBaseY, headZ - headS * 0.12, [0.82, 0.10, 0.09], 'crest'));
+  parts.push(part('crest2', w * 0.09, h * 0.13, w * 0.09, 0, crestBaseY, headZ + headS * 0.16, [0.82, 0.10, 0.09], 'crest'));
+  parts.push(part('wattle', w * 0.09, h * 0.14, w * 0.09, 0, headY - headS * 0.38, headZ + headS * 0.28, [0.78, 0.10, 0.08], 'crest'));
   addEyes(parts, eyeNames, headS, headY + headS * 0.08, headZ + headS * 0.3, w * 0.07, [0.05, 0.05, 0.05]);
-  // wings: folded at rest, spread when wingFold > 0
   const wingFold = clamp01(spec?.wingFold || 0);
-  parts.push(part('wingL', w * 0.18, h * 0.22, l * 0.4, -w * 0.48 + wingFold * w * 0.3, bodyY, 0.02, dark, 'wing'));
-  parts.push(part('wingR', w * 0.18, h * 0.22, l * 0.4, w * 0.48 - wingFold * w * 0.3, bodyY, 0.02, dark, 'wing'));
-  parts.push(part('tail', w * 0.35, h * 0.28, w * 0.12, 0, bodyY + bodyH * 0.15, -l * 0.4, dark, 'tail'));
-  parts.push(part('legL', w * 0.1, legH, w * 0.1, -w * 0.18, legH * 0.5, 0.02, warm, 'leg'));
-  parts.push(part('legR', w * 0.1, legH, w * 0.1, w * 0.18, legH * 0.5, 0.02, warm, 'leg'));
+  parts.push(part('wingL', w * 0.22, h * 0.16, l * 0.46, -w * 0.52 + wingFold * w * 0.3, bodyY + bodyH * 0.02, 0.04, dark, 'wing'));
+  parts.push(part('wingR', w * 0.22, h * 0.16, l * 0.46, w * 0.52 - wingFold * w * 0.3, bodyY + bodyH * 0.02, 0.04, dark, 'wing'));
+  parts.push(part('tail', w * 0.28, h * 0.34, w * 0.10, 0, bodyY + bodyH * 0.22, -l * 0.46, dark, 'tail'));
+  parts.push(part('legL', w * 0.08, legH, w * 0.08, -w * 0.18, legH * 0.5, 0.04, warm, 'leg'));
+  parts.push(part('legR', w * 0.08, legH, w * 0.08, w * 0.18, legH * 0.5, 0.04, warm, 'leg'));
+  parts.push(part('footL', w * 0.16, w * 0.05, w * 0.18, -w * 0.18, 0.03, 0.08, warm, 'leg'));
+  parts.push(part('footR', w * 0.16, w * 0.05, w * 0.18, w * 0.18, 0.03, 0.08, warm, 'leg'));
   legNames.push('legL', 'legR');
   return { parts, legNames, wingNames, eyeNames };
 }
