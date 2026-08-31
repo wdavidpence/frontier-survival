@@ -1,7 +1,7 @@
 /** Crafting recipes — pure data + craft helper */
-import { BLOCK } from './blocks.js?v=297';
-import { ITEM } from './items.js?v=255';
-import { CRAFTING_TABLE } from './crafting-table.js?v=1';
+import { BLOCK } from './blocks.js?v=298';
+import { ITEM } from './items.js?v=256';
+import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { craftWith, countItems } from './inventory.js?v=223';
 
 /**
@@ -67,6 +67,27 @@ const ALL_RECIPES = [
       { id: ITEM.COAL, count: 1 },
     ],
     results: [{ id: BLOCK.TORCH, count: 4 }],
+  },
+  {
+    id: 'candle',
+    name: 'Beeswax Candles',
+    desc: '1 Beeswax + 1 Stick → 4 warm, smokeless candles',
+    category: 'lighting',
+    tier: 1,
+    ingredients: [
+      { id: ITEM.BEESWAX, count: 1 },
+      { id: ITEM.STICK, count: 1 },
+    ],
+    results: [{ id: BLOCK.CANDLE, count: 4 }],
+  },
+  {
+    id: 'render_beeswax',
+    name: 'Render Beeswax',
+    desc: '2 Honeycomb → 2 Beeswax',
+    category: 'material',
+    tier: 1,
+    ingredients: [{ id: ITEM.HONEYCOMB, count: 2 }],
+    results: [{ id: ITEM.BEESWAX, count: 2 }],
   },
   {
     id: 'crafting_table',

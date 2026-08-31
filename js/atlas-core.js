@@ -1,8 +1,8 @@
 /**
  * Pure atlas tile math — no DOM/Three (unit-testable).
  */
-import { BLOCK } from './blocks.js?v=297';
-import { CRAFTING_TABLE } from './crafting-table.js?v=1';
+import { BLOCK } from './blocks.js?v=298';
+import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 
 export const TILE_PX = 32;
 export const ATLAS_N = 10;
@@ -141,6 +141,8 @@ export function tileForBlock(blockId, faceDir) {
     case BLOCK.COAL_ORE:
       return TILE.COAL_ORE;
     case BLOCK.TORCH:
+      return TILE.TORCH;
+    case BLOCK.CANDLE:
       return TILE.TORCH;
     case BLOCK.CAMPFIRE:
       return TILE.CAMPFIRE;

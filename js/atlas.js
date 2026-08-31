@@ -11,7 +11,7 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=293';
+} from './atlas-core.js?v=294';
 import { WATER_WAVE } from './water-material.js?v=2';
 
 export {
@@ -23,7 +23,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=293';
+} from './atlas-core.js?v=294';
 
 function rnd(seed) {
   let s = seed | 0;

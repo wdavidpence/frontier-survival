@@ -495,6 +495,20 @@ export class AudioBus {
     this.beep(90, 0.1, 'triangle', 0.08);
     this.beep(240 + Math.random() * 40, 0.04, 'sine', 0.05);
   }
+  buzz(gain = 0.04, pan = 0) {
+    const level = Math.max(0, Math.min(0.12, gain));
+    this.beep(182 + Math.random() * 34, 0.09, 'sawtooth', level, pan);
+    this.beep(246 + Math.random() * 38, 0.065, 'triangle', level * 0.58, pan * 0.72);
+  }
+  honeyHarvest() {
+    this.beep(520, 0.07, 'sine', 0.11);
+    this.beep(740, 0.11, 'triangle', 0.075);
+    this.beep(960, 0.08, 'sine', 0.05);
+  }
+  honeySip() {
+    this.beep(360, 0.07, 'sine', 0.10);
+    this.beep(540, 0.09, 'triangle', 0.07);
+  }
   recover() {
     this.beep(360, 0.07, 'sine', 0.08);
     this.beep(540, 0.1, 'sine', 0.065);

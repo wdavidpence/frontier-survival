@@ -1,8 +1,8 @@
 /**
  * Pure crafting-station catalog (MC-breadth). Tags only — no UI/game tick.
  */
-import { BLOCK } from './blocks.js?v=297';
-import { CRAFTING_TABLE } from './crafting-table.js?v=1';
+import { BLOCK } from './blocks.js?v=298';
+import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 
 /**
  * @typedef {{ id: string, name: string, blockId: number|null, recipeTags: string[], notes?: string }} Station

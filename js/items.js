@@ -2,7 +2,7 @@
  * Unified item/block IDs for inventory stacks.
  * Blocks: 0–99 (see blocks.js). Items: 100+.
  */
-import { BLOCK, BLOCK_PROPS } from './blocks.js?v=297';
+import { BLOCK, BLOCK_PROPS } from './blocks.js?v=298';
 
 export const ITEM = {
   STICK: 100,
@@ -76,6 +76,9 @@ export const ITEM = {
   COOKED_NYAME: 177,
   BATATA: 178,
   COOKED_BATATA: 179,
+  HONEY: 180,
+  HONEYCOMB: 181,
+  BEESWAX: 182,
   WOOD_HOE: 149,
   STONE_HOE: 150,
   IRON_HOE: 151,
@@ -297,6 +300,9 @@ export const ITEM_PROPS = {
   [ITEM.COOKED_NYAME]: { name: 'Cooked Ñame', color: [0.88, 0.70, 0.40], edible: 36, maxStack: 16 },
   [ITEM.BATATA]: { name: 'Batata (Sweet Potato)', color: [0.76, 0.34, 0.22], edible: 20, cookable: ITEM.COOKED_BATATA, maxStack: 16 },
   [ITEM.COOKED_BATATA]: { name: 'Cooked Batata', color: [0.94, 0.48, 0.26], edible: 38, maxStack: 16 },
+  [ITEM.HONEY]: { name: 'Wild Honey', color: [1.0, 0.66, 0.12], edible: 24, heal: 5, maxStack: 16 },
+  [ITEM.HONEYCOMB]: { name: 'Honeycomb', color: [1.0, 0.76, 0.18], maxStack: 32 },
+  [ITEM.BEESWAX]: { name: 'Beeswax', color: [1.0, 0.84, 0.42], maxStack: 32 },
  };
 
 export function propsOf(id) {

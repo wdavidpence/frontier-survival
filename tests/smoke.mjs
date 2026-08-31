@@ -117,6 +117,7 @@ import { torchFalloff, isTorchLit, torchLightSum } from '../js/torch-falloff.js'
 import { bearingTo, horizDistance, compassNeedleAngle } from '../js/compass-bearing.js';
 import { bedFacingFromYaw, bedFacingMeta, bedHeadOffset } from '../js/bed-facing.js';
 import { underwaterFogStyle } from '../js/underwater-fog.js';
+import { pollinatorActivity, apiaryHarvest, APIARY_HARVEST_COOLDOWN_SEC } from '../js/apiary-state.js';
 import {
   terrainVisibilityPlan,
   chunkDetailTier,
@@ -222,7 +223,7 @@ import {
   formatTemperatureF,
   fallDamageFromSpeed,
 } from '../js/survival.js';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js?v=297';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js?v=298';
 import { ITEM, mineMultiplier, dropForBlock, isPlaceable, placeBlockId, propsOf } from '../js/items.js';
 import { CRAFTING_TABLE } from '../js/crafting-table.js';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from '../js/workbench.js';
@@ -328,7 +329,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /\[\[-10, -28\], \[-10, -29\]/);
   assert.doesNotMatch(source, /Math\.PI \/ 4/, 'Cane Garden Bay must look along the beach, not a diagonal into buildings');
   assert.match(source, /chosen\.landmark === 'Cane Garden Bay · Tortola'/);
-  assert.match(gameSource, /world.js\?v=548/);
+  assert.match(gameSource, /world.js\?v=549/);
   assert.match(gameSource, /this\.player\.pitch = 0;/);
 });
 
@@ -648,7 +649,7 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /const k = clamp01\(0\.35 \+ n \* 0\.8\)/);
   assert.match(atlas, /0\.5\)`;/);
   assert.match(atlas, /vTile - 5\.0/);
-  assert.match(game, /atlas\.js\?v=345/);
+  assert.match(game, /atlas\.js\?v=346/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -3511,7 +3512,7 @@ test('crafting lists shape building recipes', () => {
 test('crafting progression metadata is complete and reachable', () => {
   const categories = new Set(RECIPE_CATEGORIES.map((c) => c.id));
   const tiers = new Set(RECIPE_TIERS.map((t) => t.tier));
-  assert.equal(RECIPES.length, 61);
+  assert.equal(RECIPES.length, 63);
   for (const recipe of RECIPES) {
     assert.ok(categories.has(recipe.category), `${recipe.id} category`);
     assert.ok(tiers.has(recipe.tier), `${recipe.id} tier`);
@@ -4854,7 +4855,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=280/);
   assert.match(game, /animal-visuals.js\?v=259/);
-  assert.match(main, /game.js\?v=835/);
+  assert.match(main, /game\.js\?v=837/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5462,6 +5463,34 @@ test('underwater fog style shortens and cools with depth', () => {
   assert.ok(deep.tint > shallow.tint, 'deeper water should increase tint');
 });
 
+test('island apiary activity, harvesting, candles, and game wiring are reachable', () => {
+  const noon = pollinatorActivity({ dayPhase: 0.5, weather: 'clear', flowers: 10, distance: 4 });
+  const rain = pollinatorActivity({ dayPhase: 0.5, weather: 'rain', flowers: 10, distance: 4 });
+  assert.equal(noon.active, true);
+  assert.ok(noon.visibleBees >= 8, 'flowering clearings should visibly swarm in daylight');
+  assert.ok(rain.activity < noon.activity * 0.2, 'bees should shelter during rain');
+  const ready = apiaryHarvest({ now: APIARY_HARVEST_COOLDOWN_SEC + 1, lastHarvest: 0, seed: 12 });
+  const resting = apiaryHarvest({ now: 20, lastHarvest: 0, seed: 12 });
+  assert.equal(ready.ready, true);
+  assert.ok(ready.honey >= 1 && ready.comb === 1);
+  assert.equal(resting.ready, false);
+  assert.ok(resting.remaining > 0);
+  assert.equal(BLOCK.CANDLE, 80);
+  assert.equal(propsOf(BLOCK.CANDLE).placeable, true);
+  assert.equal(propsOf(ITEM.HONEY).edible, 24);
+  assert.equal(propsOf(ITEM.HONEY).heal, 5);
+  assert.ok(visibleRecipes().some((recipe) => recipe.id === 'candle'));
+  assert.ok(visibleRecipes().some((recipe) => recipe.id === 'render_beeswax'));
+  const game = fsText('js/game.js');
+  const world = fsText('js/world.js');
+  assert.match(game, /PollinatorHabitatFX/);
+  assert.match(game, /apiaryHarvest/);
+  assert.match(game, /_tickApiary\(dt\)/);
+  assert.match(game, /BLOCK\.CANDLE/);
+  assert.match(world, /buildCandleGeometry/);
+  assert.match(world, /BLOCK\.CANDLE/);
+});
+
 import { cowSpotLayout, cowUdderLayout } from '../js/fauna-parts/cow-spots-udder.js';
 
 test('fauna-parts/cow-spots-udder cowSpotLayout default', () => {
@@ -5870,7 +5899,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.26.10'), 'HTML must expose v1.26.10');
+  assert.ok(html.includes('v1.26.11'), 'HTML must expose v1.26.11');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

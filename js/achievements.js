@@ -8,6 +8,7 @@
 export const ACHIEVEMENTS = [
   { id: 'first_log', title: 'Woodsman', desc: 'Gather your first log.' },
   { id: 'first_fire', title: 'Spark of Life', desc: 'Place a campfire.' },
+  { id: 'first_apiary', title: 'Island Apiarist', desc: 'Discover and gather from a wild bee hive.' },
   { id: 'first_cook', title: 'Hot Meal', desc: 'Cook meat at a fire.' },
   { id: 'first_night', title: 'Still Breathing', desc: 'Survive into day 2.' },
   { id: 'first_kill', title: 'Hunter', desc: 'Take down wildlife.' },

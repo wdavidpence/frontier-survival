@@ -1,12 +1,13 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=297';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=298';
 import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=329';
 import { biomeAt, BIOME } from './biomes.js?v=273';
-import { tileForBlock } from './atlas-core.js?v=293';
-import { CRAFTING_TABLE } from './crafting-table.js?v=1';
+import { tileForBlock } from './atlas-core.js?v=294';
+import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=248';
 import { buildMushroomGeometry } from './mushroom-geometry.js?v=3';
 import { buildTorchGeometry } from './torch-geometry.js?v=2';
+import { buildCandleGeometry } from './candle-geometry.js?v=1';
 import { buildDoorGeometry, pairDoorLeaves } from './door-geometry.js?v=1';
 import { buildPalmTrunkGeometry, buildPalmCrownGeometry } from './palm-trunk-geometry.js?v=2';
 import { palmTrunkAt } from './palm-lean.js?v=1';
@@ -2139,11 +2140,12 @@ export class World {
       waterId: BLOCK.WATER,
       // Authored props are appended below so small objects do not inherit the
       // six-face cube treatment used by full blocks.
-      skipBlock: id => id === BLOCK.MUSHROOM || id === BLOCK.TORCH || id === BLOCK.COCONUT || id === BLOCK.PALM_TRUNK || id === BLOCK.DOOR_CLOSED || id === BLOCK.DOOR_OPEN || PLANT_FORM.has(id),
+      skipBlock: id => id === BLOCK.MUSHROOM || id === BLOCK.TORCH || id === BLOCK.CANDLE || id === BLOCK.COCONUT || id === BLOCK.PALM_TRUNK || id === BLOCK.DOOR_CLOSED || id === BLOCK.DOOR_OPEN || PLANT_FORM.has(id),
     });
     const arrays = quadsToArrays(quads);
     const mushrooms = [];
     const torches = [];
+    const candles = [];
     const plants = [];
     const coconuts = [];
     const palmTrunks = [];
@@ -2158,6 +2160,8 @@ export class World {
             if (mushrooms.length < PLANT_BUDGET) mushrooms.push({ x: baseX + lx, y: ly, z: baseZ + lz });
           } else if (id === BLOCK.TORCH) {
             if (torches.length < PLANT_BUDGET) torches.push({ x: baseX + lx, y: ly, z: baseZ + lz });
+          } else if (id === BLOCK.CANDLE) {
+            if (candles.length < PLANT_BUDGET) candles.push({ x: baseX + lx, y: ly, z: baseZ + lz });
           } else if (id === BLOCK.PALM_TRUNK) {
             if (palmTrunks.length < PLANT_BUDGET) palmTrunks.push({ x: baseX + lx, y: ly, z: baseZ + lz });
           } else if (id === BLOCK.DOOR_CLOSED || id === BLOCK.DOOR_OPEN) {
@@ -2188,6 +2192,7 @@ export class World {
         ),
       );
     }
+    if (candles.length) appendGeometryPart(arrays, buildCandleGeometry(candles, tileForBlock(BLOCK.WILDFLOWER), tileForBlock(BLOCK.TORCH), this.seed));
     if (doors.length) {
       appendGeometryPart(
         arrays,

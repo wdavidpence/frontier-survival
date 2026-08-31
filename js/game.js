@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=548';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=549';
 import { Player } from './player.js?v=241';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=226';
-import { AudioBus } from './audio.js?v=239';
+import { AudioBus } from './audio.js?v=240';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
@@ -14,7 +14,7 @@ import {
   moveSpeedMultiplier,
 } from './survival.js?v=245';
 
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=297';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=298';
 import {
   ITEM,
   propsOf,
@@ -23,7 +23,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=255';
+} from './items.js?v=256';
 import { iconDataUriForItem } from './item-icons.js?v=24';
 import { resolveBlockDrop, harvestDurationForBlock, workDurationForBlock } from './mine-tier.js?v=224';
 import {
@@ -67,12 +67,14 @@ import {
   ingredientSummary,
   recipeProgress,
   nextProgressionRecipe,
-} from './crafting.js?v=422';
-import { CRAFTING_TABLE } from './crafting-table.js?v=1';
+} from './crafting.js?v=423';
+import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=280';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=259';
-import { createBlockAtlas } from './atlas.js?v=345';
+import { createBlockAtlas } from './atlas.js?v=346';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=290';
+import { PollinatorHabitatFX } from './pollinator-habitat.js?v=1';
+import { apiaryHarvest } from './apiary-state.js?v=1';
 import { underwaterFogStyle } from './underwater-fog.js?v=246';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=291';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=11';
@@ -119,7 +121,7 @@ import {
   popAchievementToast,
   achievementTitle,
   achievementDesc,
-} from './achievements.js?v=222';
+} from './achievements.js?v=223';
 import { tickSpoilage } from './spoilage.js?v=223';
 import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=221';
 import { wearTool, durabilityRatio } from './durability.js?v=224';
@@ -259,7 +261,7 @@ export class Game {
     // Keep the starter island readable: ACES rolls back the sunlit sand
     // highlights while a small exposure lift preserves dark tree silhouettes.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.22;
+    this.renderer.toneMappingExposure = 1.38;
 
     this.scene = new THREE.Scene();
     this._skyBackdrop = document.getElementById('sky-backdrop');
@@ -366,6 +368,11 @@ export class Game {
     this.mudskipperFx = new MangroveMudskipperFX(this.scene);
     this.dragonflyFx = new MangroveDragonflyFX(this.scene);
     this.egretFx = new MangroveEgretFX(this.scene);
+    this.apiaryFx = new PollinatorHabitatFX(this.scene);
+    this._apiaryHarvests = new Map();
+    this._apiaryClock = 0;
+    this._apiaryCueT = 0;
+    this._apiarySeen = false;
     // Outer streaming ring; overwritten by _applyRenderDistance via visibility plan.
     this.worldRadius = this._visPlan?.proxyChunks || 5;
 
@@ -1865,6 +1872,31 @@ export class Game {
     if (blockId === BLOCK.SNOW || blockId === BLOCK.ICE) return 'snow';
     if (blockId === BLOCK.WATER) return 'water';
     return 'dirt';
+  }
+
+  _tickApiary(dt) {
+    this._apiaryClock += Math.max(0, dt || 0);
+    this._apiaryCueT = Math.max(0, this._apiaryCueT - Math.max(0, dt || 0));
+    const state = this.apiaryFx?.tick(dt, {
+      world: this.world,
+      player: this.player?.position,
+      seed: this.world?.seed || 0,
+      dayPhase: this.time?.dayPhase ?? 0.25,
+      weather: this.time?.weather || 'clear',
+      started: this.started && !this.survival?.dead,
+    });
+    const hive = state?.nearest;
+    if (!hive) return;
+    if (!this._apiarySeen && hive.distance < 16) {
+      this._apiarySeen = true;
+      this._unlock('first_apiary');
+      this.player.notify('Flowering clearing discovered · follow the hum to a wild hive.', 3.8);
+    }
+    if (hive.distance < 10 && state.active && this._apiaryCueT <= 0) {
+      const pan = Math.max(-1, Math.min(1, (hive.x + 0.5 - this.player.position.x) / 10));
+      this.audio.buzz?.(state.buzzGain, pan);
+      this._apiaryCueT = 2.8;
+    }
   }
 
   _sampleShade(x, y, z) {
@@ -4202,6 +4234,7 @@ export class Game {
       this._tickLogicPower(dt);
       this._tickWeatherFX(dt);
       this._tickMangroveFX(dt);
+      this._tickApiary(dt);
     } else if (this._outline) {
       this._outline.visible = false;
     }
@@ -4630,7 +4663,7 @@ export class Game {
       for (let z = pz - R; z <= pz + R; z++) {
         for (let x = px - R; x <= px + R; x++) {
           const id = this.world.getBlock(x, y, z);
-          if (id === BLOCK.TORCH || id === BLOCK.CAMPFIRE || id === BLOCK.GENERATOR) {
+          if (id === BLOCK.TORCH || id === BLOCK.CANDLE || id === BLOCK.CAMPFIRE || id === BLOCK.GENERATOR) {
             found.push({ x, y, z, id });
           } else if (id === BLOCK.LAMP) {
             const k = `${x},${y},${z}`;
@@ -4667,6 +4700,10 @@ export class Game {
           L.color.setHex(0xffeecc);
           L.intensity = (this.time.isNight() ? 1.3 : 0.65) * flick;
           L.distance = 13;
+        } else if (b.id === BLOCK.CANDLE) {
+          L.color.setHex(0xffcf77);
+          L.intensity = (this.time.isNight() ? 0.62 : 0.20) * flick;
+          L.distance = 7;
         } else {
           L.color.setHex(0xffcc77);
           L.intensity = (this.time.isNight() ? 1.1 : 0.55) * flick;
@@ -4964,8 +5001,8 @@ export class Game {
         this.player.notify('Generator placed. Connect with wire to lamps.');
         this._scanLights(true);
       }
-      if (blockId === BLOCK.TORCH) {
-        this.player.notify('Torch placed.');
+      if (blockId === BLOCK.TORCH || blockId === BLOCK.CANDLE) {
+        this.player.notify(blockId === BLOCK.CANDLE ? 'Beeswax candle placed. Soft light, no smoke.' : 'Torch placed.');
         this._scanLights(true);
       }
       if (blockId === BLOCK.LAMP) {
@@ -5032,6 +5069,19 @@ export class Game {
       this.audio.recover?.() || this.audio.eat();
       this._recoverT = 0.42;
       this.player.notify('Applied bandage. Bleeding stopped. +8 health.', 2.5);
+      return;
+    }
+
+    if (p?.heal && p?.edible && held.count > 0) {
+      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+      if (!cons.ok) return;
+      this.player.slots = cons.slots;
+      this.survival = eatFood(this.survival, p.edible, 1);
+      this.survival = { ...this.survival, health: Math.min(this.survival.maxHealth, this.survival.health + p.heal) };
+      this._nourishT = 0.34;
+      this._recoverT = 0.28;
+      this.audio.honeySip?.() || this.audio.eat();
+      this.player.notify(`Ate ${p.name}. +${p.edible} hunger, +${p.heal} health.`, 2.4);
       return;
     }
 
@@ -5148,6 +5198,32 @@ export class Game {
     }
     if (animalHit?.animal?.type === 'horse' && animalHit.animal.tamed) {
       this._mountHorse(animalHit.animal);
+      return;
+    }
+
+    const hive = this.apiaryFx?.nearestHive(this.player.position, 3.25);
+    if (hive) {
+      const harvest = apiaryHarvest({
+        now: this._apiaryClock,
+        lastHarvest: this._apiaryHarvests.get(hive.key),
+        seed: this.world?.seed || 0,
+      });
+      if (!harvest.ready) {
+        this.player.notify(`Wild hive is resting · honey returns in ${Math.ceil(harvest.remaining)}s.`, 2.5);
+        return;
+      }
+      let slots = this.player.slots;
+      for (const [id, count] of [[ITEM.HONEY, harvest.honey], [ITEM.HONEYCOMB, harvest.comb], [ITEM.BEESWAX, harvest.wax]]) {
+        if (!count) continue;
+        const add = addItems(slots, id, count);
+        slots = add.slots;
+      }
+      this.player.slots = slots;
+      this._apiaryHarvests.set(hive.key, this._apiaryClock);
+      this.fx.burst(hive.x, hive.y + 0.8, hive.z, [1.0, 0.72, 0.16], 18);
+      this.audio.honeyHarvest?.();
+      this._unlock('first_apiary');
+      this.player.notify(`Wild hive gathered · +${harvest.honey} Honey, +${harvest.comb} Honeycomb${harvest.wax ? ', +1 Beeswax' : ''}.`, 3.4);
       return;
     }
 
@@ -6011,10 +6087,10 @@ export class Game {
     this.fill.color.setHex(nightColors ? 0x5578ad : 0x9fc8df);
     this.ambient.color.setHex(nightColors ? 0x26385c : 0x6688aa);
     this.hemi.color.setHex(nightColors ? 0x5d76a8 : 0x9ec9ff);
-    this.sun.intensity = (0.08 * nightMix + (0.30 + sunI * 1.15) * dayFactor) + flash * 1.1;
-    this.fill.intensity = (0.05 * nightMix + (0.10 + sunI * 0.20) * dayFactor) + flash * 0.22;
-    this.ambient.intensity = (0.20 * nightMix + (0.30 + sunI * 0.56) * dayFactor) + flash * 1.7;
-    this.hemi.intensity = (0.30 * nightMix + (0.28 + sunI * 0.44) * dayFactor) + flash * 0.9;
+    this.sun.intensity = (0.10 * nightMix + (0.42 + sunI * 1.38) * dayFactor) + flash * 1.1;
+    this.fill.intensity = (0.07 * nightMix + (0.16 + sunI * 0.32) * dayFactor) + flash * 0.22;
+    this.ambient.intensity = (0.24 * nightMix + (0.36 + sunI * 0.62) * dayFactor) + flash * 1.7;
+    this.hemi.intensity = (0.34 * nightMix + (0.36 + sunI * 0.52) * dayFactor) + flash * 0.9;
 
     if (this._skyBackdrop) {
       this._skyBackdrop.style.setProperty('--sky-top', `#${palette.top.getHexString()}`);
@@ -6808,6 +6884,7 @@ const hbName = document.getElementById('hotbar-name');
     this.input.unbind();
     this.fx?.dispose?.();
     this.weatherFx?.dispose?.();
+    this.apiaryFx?.dispose?.();
     for (const wake of this._boatWake) {
       this.scene.remove(wake);
       wake.geometry?.dispose?.();
