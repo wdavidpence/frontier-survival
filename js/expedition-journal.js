@@ -21,6 +21,13 @@ export const JOURNAL_ENTRIES = Object.freeze([
     reward: 'A lit signal mast, route board, and a reason to launch the next voyage',
   }),
   Object.freeze({
+    id: 'seaglass_cay',
+    name: 'Seaglass Cay',
+    category: 'Expedition',
+    clue: 'The Lookout plan charts a second offshore cay marked by a glass beacon.',
+    reward: 'A surveyed cay chart and a reason to keep exploring offshore',
+  }),
+  Object.freeze({
     id: 'lantern_rootwalk',
     name: 'Lantern Rootwalk',
     category: 'Ecology',

@@ -98,7 +98,7 @@ import {
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=230';
+} from './save.js?v=231';
 import { getMode } from './modes.js?v=244';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=4';
 import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=4';
@@ -190,10 +190,12 @@ import {
   createJournalState,
   discoverJournalEntry,
   journalHudSummary,
-} from './expedition-journal.js?v=1';
+} from './expedition-journal.js?v=2';
 import { createTidewatchWreck, updateTidewatchWreck, disposeTidewatchWreck } from './tidewatch-wreck.js?v=2';
 import { createHarborSignal, updateHarborSignal, disposeHarborSignal } from './harbor-signal.js?v=2';
 import { createHarborChoiceState, cycleHarborChoice, harborChoiceSummary } from './harbor-choice.js?v=1';
+import { createLookoutRouteState, chartLookoutRoute, surveyLookoutRoute, claimLookoutRoute, lookoutRouteHudSummary } from './lookout-route.js?v=1';
+import { createSeaglassCay, updateSeaglassCay, disposeSeaglassCay } from './seaglass-cay.js?v=1';
 
 function setItemIcon(element, itemId, name, color, className) {
   element.querySelectorAll('.hb-glyph:not(.slot-icon)').forEach((oldIcon) => oldIcon.remove());
@@ -465,8 +467,10 @@ export class Game {
     this._pressureState = createPressureState();
     this._journalState = createJournalState();
     this._harborChoiceState = createHarborChoiceState();
+    this._lookoutRouteState = createLookoutRouteState();
     this._tidewatchWreckGroup = null;
     this._harborSignalGroup = null;
+    this._seaglassCayGroup = null;
     this._destinationLandmarkPlaced = false;
     this._arrivalLandmarkGroup = null;
     this._forestThresholdGroup = null;
@@ -1169,6 +1173,7 @@ export class Game {
       this._pressureState = createPressureState();
       this._journalState = createJournalState();
       this._harborChoiceState = createHarborChoiceState();
+      this._lookoutRouteState = createLookoutRouteState();
       this._destinationLandmarkPlaced = false;
       this._workshopState = createWorkshopState();
       this._furnaceOpen = null;
@@ -1268,6 +1273,7 @@ export class Game {
       this._pressureState = deserializePressureState(saveData.pressure);
       this._journalState = createJournalState(saveData.journal);
       this._harborChoiceState = createHarborChoiceState(saveData.harborChoice);
+      this._lookoutRouteState = createLookoutRouteState(saveData.lookoutRoute);
       this._destinationLandmarkPlaced = false;
     }
 
@@ -1275,6 +1281,7 @@ export class Game {
     this._ensureDestinationLandmark({ relocateIfTooClose: freshPlayer || !hasSavedDestination });
     this._buildTidewatchWreckVisual();
     this._buildHarborSignalVisual();
+    this._buildSeaglassCayVisual();
     this._buildArrivalLandmarkVisual();
     this._buildForestThresholdVisual();
 
@@ -1527,10 +1534,58 @@ export class Game {
     if (!pl || state?.phase !== 'claimed' || !this._harborSignalGroup) return false;
     const signal = this._harborSignalGroup.position;
     if (Math.hypot(pl.position.x - signal.x, pl.position.z - signal.z) > 4.5) return false;
+    if (this._lookoutRouteState?.phase === 'surveyed') {
+      this._lookoutRouteState = claimLookoutRoute(this._lookoutRouteState);
+      this._discoverJournalEntry('seaglass_cay', owner);
+      pl.notify('Seaglass Cay chart claimed at the Harbor Signal.', 3.6);
+      this.saveGame({ quiet: true });
+      return true;
+    }
     const cycled = cycleHarborChoice(this._harborChoiceState);
     this._harborChoiceState = cycled.state;
+    this._lookoutRouteState = chartLookoutRoute(this._lookoutRouteState, {
+      harborChoice: cycled.choice.id,
+      seed: this.seed,
+      campPosition: this._spawnPos || pl.position,
+    });
     this._buildHarborSignalVisual();
-    pl.notify(`${cycled.choice.name} chosen · ${cycled.choice.summary}`, 3.6);
+    this._buildSeaglassCayVisual();
+    if (cycled.choice.id === 'lookout' && this._lookoutRouteState?.phase === 'charted') {
+      this._discoverJournalEntry('seaglass_cay', owner);
+      pl.notify('Lookout Plan chosen · Seaglass Cay charted offshore.', 3.8);
+    } else {
+      pl.notify(`${cycled.choice.name} chosen · ${cycled.choice.summary}`, 3.6);
+    }
+    this.saveGame({ quiet: true });
+    return true;
+  }
+
+  _clearSeaglassCayVisual() {
+    if (!this._seaglassCayGroup) return;
+    this.scene?.remove(this._seaglassCayGroup);
+    disposeSeaglassCay(this._seaglassCayGroup);
+    this._seaglassCayGroup = null;
+  }
+
+  _buildSeaglassCayVisual() {
+    this._clearSeaglassCayVisual();
+    const route = this._lookoutRouteState;
+    if (!this.scene || !route?.destination || route.phase === 'locked') return;
+    const dest = route.destination;
+    const height = Math.floor(heightAt(dest.x, dest.z, this.seed));
+    const y = Number.isFinite(height) ? Math.max(SEA_LEVEL + 1, height + 1) : Math.max(SEA_LEVEL + 1, dest.y || 0);
+    this._seaglassCayGroup = createSeaglassCay({ x: dest.x, y, z: dest.z });
+    this.scene.add(this._seaglassCayGroup);
+  }
+
+  _handleLookoutRouteUse(owner) {
+    const pl = this._destinationPlayer(owner);
+    const route = this._lookoutRouteState;
+    const cay = this._seaglassCayGroup;
+    if (!pl || route?.phase !== 'charted' || !cay) return false;
+    if (Math.hypot(pl.position.x - cay.position.x, pl.position.z - cay.position.z) > 4.5) return false;
+    this._lookoutRouteState = surveyLookoutRoute(route);
+    pl.notify('Seaglass Cay surveyed · Return to the Harbor Signal.', 3.6);
     this.saveGame({ quiet: true });
     return true;
   }
@@ -3248,7 +3303,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=230').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=231').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -3323,6 +3378,7 @@ export class Game {
       pressure: this._pressureState,
       journal: this._journalState,
       harborChoice: this._harborChoiceState,
+      lookoutRoute: this._lookoutRouteState,
       workshop: serializeWorkshopState(this._workshopState),
       buildMeta: {
         blocks: [...this._builtEdits.entries()],
@@ -3854,7 +3910,9 @@ export class Game {
           const origin = this.player2.eyePosition();
           const dir = this.player2.lookDir();
           const hit = this._raycastInteraction(origin, dir, 6);
-          if (this._handleHarborSignalUse('p2')) {
+          if (this._handleLookoutRouteUse('p2')) {
+            // Shared Seaglass Cay survey; P2 uses the same route state.
+          } else if (this._handleHarborSignalUse('p2')) {
             // Shared harbor plan; P2 cycles the same persistent choice.
           } else if (this._handleDestinationUse(hit, 'p2')) {
             // Destination state is shared; P2 uses the same transition owner path.
@@ -4435,6 +4493,7 @@ export class Game {
     updateArrivalLandmark(this._arrivalLandmarkGroup, dt);
     updateTidewatchWreck(this._tidewatchWreckGroup, dt, this.time?.isNight?.() || false);
     updateHarborSignal(this._harborSignalGroup, dt, this.time?.isNight?.() || false);
+    updateSeaglassCay(this._seaglassCayGroup, dt);
     updateForestThreshold(this._forestThresholdGroup, dt);
     if (this._lightScanAcc > 0.5) {
       this._lightScanAcc = 0;
@@ -5369,6 +5428,7 @@ export class Game {
       return;
     }
 
+    if (this._handleLookoutRouteUse('p1')) return;
     if (this._handleHarborSignalUse('p1')) return;
     if (this._handleDestinationUse(hit, 'p1')) return;
 
@@ -6526,7 +6586,9 @@ export class Game {
     const nearRootwalk = this.started && !this.survival?.dead && rootwalkDistance <= 42;
     const ironRelevant = this.started && !this.survival?.dead && (state.phase !== 'unprepared' || distance <= 140);
     const mountedSkiff = !!this._boat?.mounted;
-    const relevant = nearRootwalk || ironRelevant || mountedSkiff;
+    const lookout = this._lookoutRouteState;
+    const lookoutLive = !!(lookout && lookout.phase && lookout.phase !== 'locked');
+    const relevant = nearRootwalk || ironRelevant || mountedSkiff || lookoutLive;
     hud.classList.toggle('hidden', !relevant);
     if (!relevant) return;
     const title = hud.querySelector('strong');
@@ -6571,12 +6633,32 @@ export class Game {
       const harborDistance = Math.hypot(this.player.position.x - harbor.x, this.player.position.z - harbor.z);
       if (harborDistance <= 8) {
         title.textContent = 'Harbor Signal';
-        status.textContent = harborChoiceSummary(this._harborChoiceState);
-        next.textContent = this.coopMode
-          ? 'Circle · Cycle Lookout or Landing plan'
-          : 'F · Cycle Lookout or Landing plan';
+        status.textContent = lookout?.phase === 'surveyed'
+          ? lookoutRouteHudSummary(lookout)
+          : harborChoiceSummary(this._harborChoiceState);
+        next.textContent = lookout?.phase === 'surveyed'
+          ? (this.coopMode ? 'Circle · Claim Seaglass Cay chart' : 'F · Claim Seaglass Cay chart')
+          : (this.coopMode ? 'Circle · Cycle Lookout or Landing plan' : 'F · Cycle Lookout or Landing plan');
         return;
       }
+    }
+    if (lookoutLive && lookout.destination) {
+      const cayDistance = Math.hypot(this.player.position.x - lookout.destination.x, this.player.position.z - lookout.destination.z);
+      title.textContent = 'Seaglass Cay';
+      status.textContent = `${lookoutRouteHudSummary(lookout)} · ${Math.round(cayDistance)}m`;
+      next.textContent = lookout.phase === 'charted'
+        ? (this.coopMode ? 'Circle at the cay beacon to survey' : 'F · Survey the Seaglass Cay beacon')
+        : lookout.phase === 'surveyed'
+          ? 'NEXT · Return to the Harbor Signal'
+          : 'COMPLETE · Seaglass Cay chart recorded';
+      if (progressLabel) {
+        progressLabel.textContent = lookout.phase === 'claimed'
+          ? '100% · Seaglass Cay complete'
+          : lookout.phase === 'surveyed'
+            ? 'Return to harbor'
+            : `${Math.max(0, Math.round(cayDistance))}m to Seaglass Cay`;
+      }
+      return;
     }
     if (nearRootwalk) {
       title.textContent = 'Mangrove Lagoon';
