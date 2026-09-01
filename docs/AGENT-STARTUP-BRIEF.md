@@ -62,7 +62,7 @@ If you only open one file after the project path, make it this one.
 
 ### Playability is sacred
 - **Never publish** a build that cannot paint Solo/Co-op + difficulty rows and Start into a world.
-- Latest verified public release: **v1.27.3** (`d0e5c8a`, tag `v1.27.3`). Lookout plan charts Seaglass Cay; survey the cay beacon and claim the chart at the Harbor Signal.
+- Latest verified public release: **v1.27.4** (`b264a8a`, tag `v1.27.4`). Landing plan opens a working skiff return berth; F / Circle moors and launches the dinghy at the pier.
 - If start is broken: **restore last good playable commit first**, then salvage features carefully. Do not “fix forward” a dead title screen.
 
 ### Boot / ES module landmines
