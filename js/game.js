@@ -98,7 +98,7 @@ import {
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=232';
+} from './save.js?v=233';
 import { getMode } from './modes.js?v=244';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=4';
 import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=4';
@@ -190,13 +190,15 @@ import {
   createJournalState,
   discoverJournalEntry,
   journalHudSummary,
-} from './expedition-journal.js?v=3';
+} from './expedition-journal.js?v=4';
 import { createTidewatchWreck, updateTidewatchWreck, disposeTidewatchWreck } from './tidewatch-wreck.js?v=2';
 import { createHarborSignal, updateHarborSignal, disposeHarborSignal } from './harbor-signal.js?v=2';
 import { createHarborChoiceState, cycleHarborChoice, harborChoiceSummary } from './harbor-choice.js?v=1';
 import { createLookoutRouteState, chartLookoutRoute, surveyLookoutRoute, claimLookoutRoute, lookoutRouteHudSummary } from './lookout-route.js?v=1';
 import { createSeaglassCay, updateSeaglassCay, disposeSeaglassCay } from './seaglass-cay.js?v=1';
 import { createLandingBerthState, openLandingBerth, boatNearBerth, moorBoatAtBerth, launchBoatFromBerth, landingBerthHudSummary } from './landing-berth.js?v=1';
+import { createWhiteBayRouteState, chartWhiteBayRoute, surveyWhiteBayRoute, claimWhiteBayRoute, whiteBayRouteHudSummary } from './white-bay-route.js?v=1';
+import { createWhiteBayCamp, updateWhiteBayCamp, disposeWhiteBayCamp } from './white-bay-camp.js?v=1';
 
 function setItemIcon(element, itemId, name, color, className) {
   element.querySelectorAll('.hb-glyph:not(.slot-icon)').forEach((oldIcon) => oldIcon.remove());
@@ -470,9 +472,11 @@ export class Game {
     this._harborChoiceState = createHarborChoiceState();
     this._lookoutRouteState = createLookoutRouteState();
     this._landingBerthState = createLandingBerthState();
+    this._whiteBayRouteState = createWhiteBayRouteState();
     this._tidewatchWreckGroup = null;
     this._harborSignalGroup = null;
     this._seaglassCayGroup = null;
+    this._whiteBayCampGroup = null;
     this._destinationLandmarkPlaced = false;
     this._arrivalLandmarkGroup = null;
     this._forestThresholdGroup = null;
@@ -1177,6 +1181,7 @@ export class Game {
       this._harborChoiceState = createHarborChoiceState();
       this._lookoutRouteState = createLookoutRouteState();
       this._landingBerthState = createLandingBerthState();
+      this._whiteBayRouteState = createWhiteBayRouteState();
       this._destinationLandmarkPlaced = false;
       this._workshopState = createWorkshopState();
       this._furnaceOpen = null;
@@ -1278,6 +1283,7 @@ export class Game {
       this._harborChoiceState = createHarborChoiceState(saveData.harborChoice);
       this._lookoutRouteState = createLookoutRouteState(saveData.lookoutRoute);
       this._landingBerthState = createLandingBerthState(saveData.landingBerth);
+      this._whiteBayRouteState = createWhiteBayRouteState(saveData.whiteBayRoute);
       this._destinationLandmarkPlaced = false;
     }
 
@@ -1286,6 +1292,7 @@ export class Game {
     this._buildTidewatchWreckVisual();
     this._buildHarborSignalVisual();
     this._buildSeaglassCayVisual();
+    this._chartWhiteBayIfReady();
     this._buildArrivalLandmarkVisual();
     this._buildForestThresholdVisual();
 
@@ -1545,6 +1552,13 @@ export class Game {
       this.saveGame({ quiet: true });
       return true;
     }
+    if (this._whiteBayRouteState?.phase === 'surveyed') {
+      this._whiteBayRouteState = claimWhiteBayRoute(this._whiteBayRouteState);
+      this._discoverJournalEntry('white_bay', owner);
+      pl.notify('White Bay overnight chart claimed at the Harbor Signal.', 3.6);
+      this.saveGame({ quiet: true });
+      return true;
+    }
     const cycled = cycleHarborChoice(this._harborChoiceState);
     this._harborChoiceState = cycled.state;
     this._lookoutRouteState = chartLookoutRoute(this._lookoutRouteState, {
@@ -1587,6 +1601,47 @@ export class Game {
     const y = Number.isFinite(height) ? Math.max(SEA_LEVEL + 1, height + 1) : Math.max(SEA_LEVEL + 1, dest.y || 0);
     this._seaglassCayGroup = createSeaglassCay({ x: dest.x, y, z: dest.z });
     this.scene.add(this._seaglassCayGroup);
+  }
+
+  _chartWhiteBayIfReady(owner = 'p1') {
+    const before = this._whiteBayRouteState?.phase;
+    this._whiteBayRouteState = chartWhiteBayRoute(this._whiteBayRouteState, {
+      tidewatchClaimed: this._destinationState?.phase === 'claimed',
+    });
+    this._buildWhiteBayCampVisual();
+    if (before === 'locked' && this._whiteBayRouteState?.phase === 'charted') {
+      this._discoverJournalEntry('white_bay', owner);
+    }
+  }
+
+  _clearWhiteBayCampVisual() {
+    if (!this._whiteBayCampGroup) return;
+    this.scene?.remove(this._whiteBayCampGroup);
+    disposeWhiteBayCamp(this._whiteBayCampGroup);
+    this._whiteBayCampGroup = null;
+  }
+
+  _buildWhiteBayCampVisual() {
+    this._clearWhiteBayCampVisual();
+    const route = this._whiteBayRouteState;
+    if (!this.scene || !route?.destination || route.phase === 'locked') return;
+    const dest = route.destination;
+    const height = Math.floor(heightAt(dest.x, dest.z, this.seed));
+    const y = Number.isFinite(height) ? Math.max(SEA_LEVEL + 1, height + 1) : Math.max(SEA_LEVEL + 1, dest.y || 0);
+    this._whiteBayCampGroup = createWhiteBayCamp({ x: dest.x, y, z: dest.z });
+    this.scene.add(this._whiteBayCampGroup);
+  }
+
+  _handleWhiteBayRouteUse(owner) {
+    const pl = this._destinationPlayer(owner);
+    const route = this._whiteBayRouteState;
+    const camp = this._whiteBayCampGroup;
+    if (!pl || route?.phase !== 'charted' || !camp) return false;
+    if (Math.hypot(pl.position.x - camp.position.x, pl.position.z - camp.position.z) > 4.5) return false;
+    this._whiteBayRouteState = surveyWhiteBayRoute(route);
+    pl.notify('White Bay camp surveyed · Return to the Harbor Signal.', 3.6);
+    this.saveGame({ quiet: true });
+    return true;
   }
 
   _handleLookoutRouteUse(owner) {
@@ -1825,6 +1880,7 @@ export class Game {
       this._discoverJournalEntry('iron_ravine', owner);
       this._discoverJournalEntry('harbor_signal', owner);
       this._buildHarborSignalVisual();
+      this._chartWhiteBayIfReady(owner);
       pl.slots = slots;
       pl.notify('Iron Ravine reward claimed · Tidewatch Harbor Signal raised at camp.', 3.8);
       this.saveGame({ quiet: true });
@@ -3344,7 +3400,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=232').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=233').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -3421,6 +3477,7 @@ export class Game {
       harborChoice: this._harborChoiceState,
       lookoutRoute: this._lookoutRouteState,
       landingBerth: this._landingBerthState,
+      whiteBayRoute: this._whiteBayRouteState,
       workshop: serializeWorkshopState(this._workshopState),
       buildMeta: {
         blocks: [...this._builtEdits.entries()],
@@ -3954,6 +4011,8 @@ export class Game {
           const hit = this._raycastInteraction(origin, dir, 6);
           if (this._handleLookoutRouteUse('p2')) {
             // Shared Seaglass Cay survey; P2 uses the same route state.
+          } else if (this._handleWhiteBayRouteUse('p2')) {
+            // Shared White Bay camp; P2 uses the same route state.
           } else if (this._handleLandingBerthUse('p2')) {
             // Shared landing berth; P2 moors or launches the same skiff.
           } else if (this._handleHarborSignalUse('p2')) {
@@ -4538,6 +4597,7 @@ export class Game {
     updateTidewatchWreck(this._tidewatchWreckGroup, dt, this.time?.isNight?.() || false);
     updateHarborSignal(this._harborSignalGroup, dt, this.time?.isNight?.() || false);
     updateSeaglassCay(this._seaglassCayGroup, dt);
+    updateWhiteBayCamp(this._whiteBayCampGroup, dt, this.time?.isNight?.() || false);
     updateForestThreshold(this._forestThresholdGroup, dt);
     if (this._lightScanAcc > 0.5) {
       this._lightScanAcc = 0;
@@ -5474,6 +5534,7 @@ export class Game {
     }
 
     if (this._handleLookoutRouteUse('p1')) return;
+    if (this._handleWhiteBayRouteUse('p1')) return;
     if (this._handleLandingBerthUse('p1')) return;
     if (this._handleHarborSignalUse('p1')) return;
     if (this._handleDestinationUse(hit, 'p1')) return;
@@ -6636,7 +6697,10 @@ export class Game {
     const lookoutLive = !!(lookout && lookout.phase && lookout.phase !== 'locked');
     const berth = this._landingBerthState;
     const berthLive = !!(berth && berth.phase && berth.phase !== 'locked');
-    const relevant = nearRootwalk || ironRelevant || mountedSkiff || lookoutLive || berthLive;
+    const whiteBay = this._whiteBayRouteState;
+    const whiteBayLive = !!(whiteBay && whiteBay.phase && whiteBay.phase !== 'locked' && whiteBay.phase !== 'claimed');
+    const lookoutActive = !!(lookoutLive && lookout.phase !== 'claimed');
+    const relevant = nearRootwalk || ironRelevant || mountedSkiff || lookoutLive || berthLive || whiteBayLive;
     hud.classList.toggle('hidden', !relevant);
     if (!relevant) return;
     const title = hud.querySelector('strong');
@@ -6683,11 +6747,15 @@ export class Game {
         title.textContent = berthLive ? 'Landing Berth' : 'Harbor Signal';
         status.textContent = lookout?.phase === 'surveyed'
           ? lookoutRouteHudSummary(lookout)
-          : berthLive
+          : whiteBay?.phase === 'surveyed'
+            ? whiteBayRouteHudSummary(whiteBay)
+            : berthLive
             ? landingBerthHudSummary(berth)
             : harborChoiceSummary(this._harborChoiceState);
         next.textContent = lookout?.phase === 'surveyed'
           ? (this.coopMode ? 'Circle · Claim Seaglass Cay chart' : 'F · Claim Seaglass Cay chart')
+          : whiteBay?.phase === 'surveyed'
+            ? (this.coopMode ? 'Circle · Claim White Bay chart' : 'F · Claim White Bay chart')
           : berthLive
             ? (berth.phase === 'moored'
               ? (this.coopMode ? 'Circle · Launch skiff from berth' : 'F · Launch skiff from berth')
@@ -6696,7 +6764,7 @@ export class Game {
         return;
       }
     }
-    if (lookoutLive && lookout.destination) {
+    if (lookoutActive && lookout.destination) {
       const cayDistance = Math.hypot(this.player.position.x - lookout.destination.x, this.player.position.z - lookout.destination.z);
       title.textContent = 'Seaglass Cay';
       status.textContent = `${lookoutRouteHudSummary(lookout)} · ${Math.round(cayDistance)}m`;
@@ -6711,6 +6779,20 @@ export class Game {
           : lookout.phase === 'surveyed'
             ? 'Return to harbor'
             : `${Math.max(0, Math.round(cayDistance))}m to Seaglass Cay`;
+      }
+      return;
+    }
+    if (whiteBayLive && whiteBay.destination) {
+      const bayDistance = Math.hypot(this.player.position.x - whiteBay.destination.x, this.player.position.z - whiteBay.destination.z);
+      title.textContent = 'White Bay';
+      status.textContent = `${whiteBayRouteHudSummary(whiteBay)} · ${Math.round(bayDistance)}m`;
+      next.textContent = whiteBay.phase === 'charted'
+        ? (this.coopMode ? 'Circle at the overnight camp to survey' : 'F · Survey the White Bay camp')
+        : 'NEXT · Return to the Harbor Signal';
+      if (progressLabel) {
+        progressLabel.textContent = whiteBay.phase === 'surveyed'
+          ? 'Return to harbor'
+          : `${Math.max(0, Math.round(bayDistance))}m to White Bay`;
       }
       return;
     }

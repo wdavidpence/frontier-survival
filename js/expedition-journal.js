@@ -35,6 +35,13 @@ export const JOURNAL_ENTRIES = Object.freeze([
     reward: 'Moor and launch the dinghy without the beach-push ritual',
   }),
   Object.freeze({
+    id: 'white_bay',
+    name: 'White Bay',
+    category: 'Expedition',
+    clue: 'A sheltered sand landing west of camp waits for an overnight coastal return.',
+    reward: 'A named White Bay camp and a reason to stay out past dusk',
+  }),
+  Object.freeze({
     id: 'lantern_rootwalk',
     name: 'Lantern Rootwalk',
     category: 'Ecology',
