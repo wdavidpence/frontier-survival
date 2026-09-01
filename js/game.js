@@ -101,6 +101,7 @@ import {
 } from './save.js?v=233';
 import { getMode } from './modes.js?v=244';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=4';
+import { streamingConfidenceFromStats, streamingConfidenceHudLabel } from './streaming-confidence.js?v=1';
 import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=4';
 import { createDisposalContext, disposeTree } from './resource-disposal.js?v=3';
 import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=3';
@@ -3576,14 +3577,17 @@ export class Game {
         if (this._perfReportAcc >= 1000) {
           const stats = frameStats(this._frameBudget);
           this._perfReportAcc = 0;
+          const meshCount = this.world?.group?.children?.length || 0;
+          this._streamConfidence = streamingConfidenceFromStats(stats, { meshCount });
           if (globalThis.__FS === this) {
             globalThis.__FS.performance = {
               ...stats,
               cpu: frameStats(this._cpuBudget),
               quality: this.graphicsQuality,
               pixelRatio: this.renderer.getPixelRatio(),
-              worldMeshes: this.world?.group?.children?.length || 0,
+              worldMeshes: meshCount,
               workerCount: this.world?._workerPool?.length || 0,
+              confidence: this._streamConfidence,
             };
           }
         }
@@ -6944,6 +6948,7 @@ export class Game {
       bits.push(`Day ${this.time.dayNumber}`);
       bits.push(this.time.isNight() ? 'Night' : 'Day');
       bits.push(this.time.weather);
+      if (this._streamConfidence) bits.push(streamingConfidenceHudLabel(this._streamConfidence));
       if (s._debug) bits.push(`Air ${formatTemperatureF(s._debug.ambient)}`);
       const cw = equipmentWarmth(this.player.equipment);
       if (cw > 0) bits.push(`Warmth +${cw}`);
@@ -6961,6 +6966,7 @@ export class Game {
         `Day ${this.time.dayNumber}`,
         this.time.isNight() ? 'Night' : 'Day',
         this.time.weather,
+        this._streamConfidence && streamingConfidenceHudLabel(this._streamConfidence),
       ].filter(Boolean);
       const statusText = document.body.classList.contains('exploration-mode')
         ? compactBits.join(' · ')
