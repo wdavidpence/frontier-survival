@@ -134,6 +134,7 @@ export function buildSavePayload(state) {
     journal: state.journal,
     harborChoice: state.harborChoice,
     lookoutRoute: state.lookoutRoute,
+    landingBerth: state.landingBerth,
     workshop: state.workshop,
     buildMeta: state.buildMeta || undefined,
     spawnPos: state.spawnPos || undefined,
@@ -170,6 +171,7 @@ export function parseSavePayload(raw) {
   if (!data.journal || typeof data.journal !== 'object') data.journal = null;
   if (!data.harborChoice || typeof data.harborChoice !== 'object') data.harborChoice = null;
   if (!data.lookoutRoute || typeof data.lookoutRoute !== 'object') data.lookoutRoute = null;
+  if (!data.landingBerth || typeof data.landingBerth !== 'object') data.landingBerth = null;
   if (data.workshop == null) data.workshop = null;
   if (!data.buildMeta || typeof data.buildMeta !== 'object') data.buildMeta = { blocks: [], slabs: [], stairs: [], beds: [] };
   for (const key of ['blocks', 'slabs', 'stairs', 'beds']) {

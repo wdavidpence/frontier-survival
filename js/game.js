@@ -98,7 +98,7 @@ import {
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=231';
+} from './save.js?v=232';
 import { getMode } from './modes.js?v=244';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=4';
 import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=4';
@@ -190,12 +190,13 @@ import {
   createJournalState,
   discoverJournalEntry,
   journalHudSummary,
-} from './expedition-journal.js?v=2';
+} from './expedition-journal.js?v=3';
 import { createTidewatchWreck, updateTidewatchWreck, disposeTidewatchWreck } from './tidewatch-wreck.js?v=2';
 import { createHarborSignal, updateHarborSignal, disposeHarborSignal } from './harbor-signal.js?v=2';
 import { createHarborChoiceState, cycleHarborChoice, harborChoiceSummary } from './harbor-choice.js?v=1';
 import { createLookoutRouteState, chartLookoutRoute, surveyLookoutRoute, claimLookoutRoute, lookoutRouteHudSummary } from './lookout-route.js?v=1';
 import { createSeaglassCay, updateSeaglassCay, disposeSeaglassCay } from './seaglass-cay.js?v=1';
+import { createLandingBerthState, openLandingBerth, boatNearBerth, moorBoatAtBerth, launchBoatFromBerth, landingBerthHudSummary } from './landing-berth.js?v=1';
 
 function setItemIcon(element, itemId, name, color, className) {
   element.querySelectorAll('.hb-glyph:not(.slot-icon)').forEach((oldIcon) => oldIcon.remove());
@@ -468,6 +469,7 @@ export class Game {
     this._journalState = createJournalState();
     this._harborChoiceState = createHarborChoiceState();
     this._lookoutRouteState = createLookoutRouteState();
+    this._landingBerthState = createLandingBerthState();
     this._tidewatchWreckGroup = null;
     this._harborSignalGroup = null;
     this._seaglassCayGroup = null;
@@ -1174,6 +1176,7 @@ export class Game {
       this._journalState = createJournalState();
       this._harborChoiceState = createHarborChoiceState();
       this._lookoutRouteState = createLookoutRouteState();
+      this._landingBerthState = createLandingBerthState();
       this._destinationLandmarkPlaced = false;
       this._workshopState = createWorkshopState();
       this._furnaceOpen = null;
@@ -1274,6 +1277,7 @@ export class Game {
       this._journalState = createJournalState(saveData.journal);
       this._harborChoiceState = createHarborChoiceState(saveData.harborChoice);
       this._lookoutRouteState = createLookoutRouteState(saveData.lookoutRoute);
+      this._landingBerthState = createLandingBerthState(saveData.landingBerth);
       this._destinationLandmarkPlaced = false;
     }
 
@@ -1548,11 +1552,18 @@ export class Game {
       seed: this.seed,
       campPosition: this._spawnPos || pl.position,
     });
+    this._landingBerthState = openLandingBerth(this._landingBerthState, {
+      harborChoice: cycled.choice.id,
+      harborPosition: this._harborSignalGroup?.position || this._spawnPos || pl.position,
+    });
     this._buildHarborSignalVisual();
     this._buildSeaglassCayVisual();
     if (cycled.choice.id === 'lookout' && this._lookoutRouteState?.phase === 'charted') {
       this._discoverJournalEntry('seaglass_cay', owner);
       pl.notify('Lookout Plan chosen · Seaglass Cay charted offshore.', 3.8);
+    } else if (cycled.choice.id === 'landing' && this._landingBerthState?.phase === 'open') {
+      this._discoverJournalEntry('landing_berth', owner);
+      pl.notify('Landing Plan chosen · Skiff return berth is open.', 3.8);
     } else {
       pl.notify(`${cycled.choice.name} chosen · ${cycled.choice.summary}`, 3.6);
     }
@@ -1586,6 +1597,36 @@ export class Game {
     if (Math.hypot(pl.position.x - cay.position.x, pl.position.z - cay.position.z) > 4.5) return false;
     this._lookoutRouteState = surveyLookoutRoute(route);
     pl.notify('Seaglass Cay surveyed · Return to the Harbor Signal.', 3.6);
+    this.saveGame({ quiet: true });
+    return true;
+  }
+
+  _handleLandingBerthUse(owner) {
+    const pl = this._destinationPlayer(owner);
+    const berth = this._landingBerthState;
+    if (!pl || !this._boat || berth?.phase === 'locked') return false;
+    const slip = berth.slip;
+    if (!slip) return false;
+    if (Math.hypot(pl.position.x - slip.x, pl.position.z - slip.z) > 5.5) return false;
+    if (!boatNearBerth(berth, this._boat)) return false;
+    if (berth.phase === 'moored') {
+      const launched = launchBoatFromBerth(berth, this._boat, SEA_LEVEL);
+      if (!launched.ok) return false;
+      Object.assign(this._boat, launched.boat);
+      this._landingBerthState = launched.state;
+      if (this._boat.mounted) this._dismountBoat();
+      pl.notify('Skiff launched from the Landing Berth. F boards it · WASD steers.', 3.6);
+      this._syncBoatVisual?.();
+      this.saveGame({ quiet: true });
+      return true;
+    }
+    const moored = moorBoatAtBerth(berth, this._boat);
+    if (!moored.ok) return false;
+    if (this._boat.mounted) this._dismountBoat();
+    Object.assign(this._boat, moored.boat);
+    this._landingBerthState = moored.state;
+    pl.notify('Skiff moored at the Landing Berth. F launches it.', 3.6);
+    this._syncBoatVisual?.();
     this.saveGame({ quiet: true });
     return true;
   }
@@ -3303,7 +3344,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=231').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=232').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -3379,6 +3420,7 @@ export class Game {
       journal: this._journalState,
       harborChoice: this._harborChoiceState,
       lookoutRoute: this._lookoutRouteState,
+      landingBerth: this._landingBerthState,
       workshop: serializeWorkshopState(this._workshopState),
       buildMeta: {
         blocks: [...this._builtEdits.entries()],
@@ -3912,6 +3954,8 @@ export class Game {
           const hit = this._raycastInteraction(origin, dir, 6);
           if (this._handleLookoutRouteUse('p2')) {
             // Shared Seaglass Cay survey; P2 uses the same route state.
+          } else if (this._handleLandingBerthUse('p2')) {
+            // Shared landing berth; P2 moors or launches the same skiff.
           } else if (this._handleHarborSignalUse('p2')) {
             // Shared harbor plan; P2 cycles the same persistent choice.
           } else if (this._handleDestinationUse(hit, 'p2')) {
@@ -5355,6 +5399,7 @@ export class Game {
     if (!this.input.consumeUse()) return;
     const heldUse = this.player.heldStack();
     const heldTool = propsOf(heldUse.id);
+    if (this._handleLandingBerthUse('p1')) return;
     if (this._mountedAnimalId != null) {
       this._dismountHorse();
       return;
@@ -5429,6 +5474,7 @@ export class Game {
     }
 
     if (this._handleLookoutRouteUse('p1')) return;
+    if (this._handleLandingBerthUse('p1')) return;
     if (this._handleHarborSignalUse('p1')) return;
     if (this._handleDestinationUse(hit, 'p1')) return;
 
@@ -6588,7 +6634,9 @@ export class Game {
     const mountedSkiff = !!this._boat?.mounted;
     const lookout = this._lookoutRouteState;
     const lookoutLive = !!(lookout && lookout.phase && lookout.phase !== 'locked');
-    const relevant = nearRootwalk || ironRelevant || mountedSkiff || lookoutLive;
+    const berth = this._landingBerthState;
+    const berthLive = !!(berth && berth.phase && berth.phase !== 'locked');
+    const relevant = nearRootwalk || ironRelevant || mountedSkiff || lookoutLive || berthLive;
     hud.classList.toggle('hidden', !relevant);
     if (!relevant) return;
     const title = hud.querySelector('strong');
@@ -6632,13 +6680,19 @@ export class Game {
       const harbor = this._harborSignalGroup.position;
       const harborDistance = Math.hypot(this.player.position.x - harbor.x, this.player.position.z - harbor.z);
       if (harborDistance <= 8) {
-        title.textContent = 'Harbor Signal';
+        title.textContent = berthLive ? 'Landing Berth' : 'Harbor Signal';
         status.textContent = lookout?.phase === 'surveyed'
           ? lookoutRouteHudSummary(lookout)
-          : harborChoiceSummary(this._harborChoiceState);
+          : berthLive
+            ? landingBerthHudSummary(berth)
+            : harborChoiceSummary(this._harborChoiceState);
         next.textContent = lookout?.phase === 'surveyed'
           ? (this.coopMode ? 'Circle · Claim Seaglass Cay chart' : 'F · Claim Seaglass Cay chart')
-          : (this.coopMode ? 'Circle · Cycle Lookout or Landing plan' : 'F · Cycle Lookout or Landing plan');
+          : berthLive
+            ? (berth.phase === 'moored'
+              ? (this.coopMode ? 'Circle · Launch skiff from berth' : 'F · Launch skiff from berth')
+              : (this.coopMode ? 'Circle · Moor skiff at Landing Berth' : 'F · Moor skiff at Landing Berth'))
+            : (this.coopMode ? 'Circle · Cycle Lookout or Landing plan' : 'F · Cycle Lookout or Landing plan');
         return;
       }
     }

@@ -28,6 +28,13 @@ export const JOURNAL_ENTRIES = Object.freeze([
     reward: 'A surveyed cay chart and a reason to keep exploring offshore',
   }),
   Object.freeze({
+    id: 'landing_berth',
+    name: 'Landing Berth',
+    category: 'Harbor',
+    clue: 'The Landing plan turns the signal pier into a working skiff return berth.',
+    reward: 'Moor and launch the dinghy without the beach-push ritual',
+  }),
+  Object.freeze({
     id: 'lantern_rootwalk',
     name: 'Lantern Rootwalk',
     category: 'Ecology',
