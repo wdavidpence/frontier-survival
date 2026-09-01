@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.26.11</title>
+  <title>Frontier Survival v1.27.0</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -252,25 +252,25 @@
     #coop-pad-prompt {
       display: none;
       position: absolute;
-      right: 8%;
-      top: 42%;
-      transform: translateY(-50%);
-      max-width: min(420px, 40vw);
-      padding: 18px 22px;
-      background: rgba(8, 14, 28, 0.92);
-      border: 2px solid rgba(120, 170, 255, 0.55);
-      border-radius: 14px;
+      left: 50%;
+      top: 62px;
+      transform: translateX(-50%);
+      max-width: min(330px, 42vw);
+      padding: 7px 12px;
+      background: rgba(8, 14, 28, 0.88);
+      border: 1px solid rgba(120, 170, 255, 0.5);
+      border-radius: 10px;
       color: #e8f0ff;
-      font-size: clamp(16px, 2.2vw, 28px);
-      line-height: 1.35;
+      font-size: clamp(11px, 1.2vw, 15px);
+      line-height: 1.25;
       text-align: center;
       z-index: 12;
       pointer-events: none;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.32);
     }
     body.coop-mode #coop-pad-prompt.show { display: block; }
-    body.coop-mode #coop-pad-prompt .sub { font-size: 0.72em; color: #9ab; margin-top: 8px; }
-    #coop-pad-prompt strong { display: block; }
+    body.coop-mode #coop-pad-prompt .sub { font-size: 0.82em; color: #b9cbe3; margin-top: 2px; }
+    #coop-pad-prompt strong { display: block; letter-spacing: .04em; }
 
     body.coop-mode #p1-tag {
       display: block;
@@ -521,6 +521,19 @@
     }
     #destination-hud [data-destination-next] { display: block; margin-top: 3px; color: #f1d29c; font-size: 10px; letter-spacing: .03em; }
     body.coop-mode #destination-hud { right: 12px; max-width: 30vw; }
+    #discovery-log {
+      position: absolute; top: 96px; left: 12px; z-index: 4;
+      width: min(250px, 28vw); padding: 6px 9px;
+      border: 1px solid rgba(241, 196, 118, 0.34); border-radius: 8px;
+      background: linear-gradient(145deg, rgba(23,31,34,0.82), rgba(8,14,20,0.68));
+      color: #e8e0d4; font-size: 10px; line-height: 1.32; pointer-events: none;
+      text-shadow: 0 1px 3px #000; box-shadow: 0 12px 28px rgba(0,0,0,.2);
+      backdrop-filter: blur(10px) saturate(1.12);
+    }
+    #discovery-log.hidden { display: none; }
+    #discovery-log strong { display: block; color: #f1d29c; letter-spacing: .08em; text-transform: uppercase; }
+    #discovery-log small { display: block; margin-top: 2px; color: #aecbd0; }
+    body.coop-mode #discovery-log { left: 12px; max-width: 28vw; }
     #shelter-hud {
       position: absolute; top: 48px; right: 12px; width: min(320px, 34vw); padding: 6px 9px;
       border: 1px solid rgba(232,184,112,0.34); border-radius: 8px;
@@ -1670,6 +1683,7 @@
     <div id="tooltip-box" class="hidden"></div>
     <div id="status-line">Frontier Survival</div>
     <div id="destination-hud" class="hidden" role="status" aria-live="polite"><strong>Iron Ravine</strong><span data-destination-status>Find an Iron Pick</span><div class="destination-progress" role="progressbar" aria-label="Expedition route progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span data-destination-progress></span></div><small data-destination-progress-label>Route not started</small><small data-destination-next>NEXT · Craft an Iron Pick, then return to campfire</small></div>
+    <div id="discovery-log" class="hidden" role="status" aria-live="polite"><strong>Discovery Log</strong><span data-journal-summary>0/3 discoveries</span><small data-journal-lead>New routes will be recorded here.</small></div>
     <div id="workshop-hud" class="hidden" role="status" aria-live="polite"><strong>Workshop</strong><span data-workshop-status>Furnace nearby</span></div>
     <div id="shelter-hud" class="hidden" role="status" aria-live="polite"><strong>First Shelter</strong><span data-shelter-status>Build a safe base near the cove.</span><small data-shelter-next>1/3 · Crafting table · light · shelter blocks</small></div>
     <div id="spawn-marker" class="hidden"><div class="marker-icon"></div><span class="marker-label">SPAWN</span></div>
@@ -1684,7 +1698,7 @@
     </div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.26.11</div>
+    <div id="version-badge">v1.27.0</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" role="status" aria-live="polite" aria-atomic="true"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1779,7 +1793,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.26.11</div>
+      <div class="tag">Browser survival sandbox · v1.27.0</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1912,6 +1926,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=861"></script>
+  <script type="module" src="./js/main.js?v=864"></script>
 </body>
 </html>

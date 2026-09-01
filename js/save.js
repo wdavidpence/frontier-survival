@@ -100,6 +100,7 @@ function parseBoat(boat) {
  * @param {object} [state.destination]
  * @param {object} [state.pressure]
  * @param {object} [state.crossing]
+ * @param {object} [state.journal]
  * @param {object} [state.workshop]
  * @param {object} [state.buildMeta]
  */
@@ -130,6 +131,7 @@ export function buildSavePayload(state) {
     destination: state.destination,
     pressure: state.pressure,
     crossing: state.crossing,
+    journal: state.journal,
     workshop: state.workshop,
     buildMeta: state.buildMeta || undefined,
     spawnPos: state.spawnPos || undefined,
@@ -163,6 +165,7 @@ export function parseSavePayload(raw) {
   if (data.destination == null) data.destination = null;
   if (data.pressure == null) data.pressure = null;
   if (data.crossing == null) data.crossing = null;
+  if (!data.journal || typeof data.journal !== 'object') data.journal = null;
   if (data.workshop == null) data.workshop = null;
   if (!data.buildMeta || typeof data.buildMeta !== 'object') data.buildMeta = { blocks: [], slabs: [], stairs: [], beds: [] };
   for (const key of ['blocks', 'slabs', 'stairs', 'beds']) {

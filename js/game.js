@@ -3,7 +3,7 @@ import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=549';
 import { Player } from './player.js?v=241';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=226';
-import { AudioBus } from './audio.js?v=240';
+import { AudioBus } from './audio.js?v=241';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
@@ -98,7 +98,7 @@ import {
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=228';
+} from './save.js?v=229';
 import { getMode } from './modes.js?v=244';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=4';
 import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=4';
@@ -185,6 +185,13 @@ import {
   tickCrossing,
   crossingHudSummary,
 } from './expedition-crossing.js?v=2';
+import {
+  JOURNAL_ENTRIES,
+  createJournalState,
+  discoverJournalEntry,
+  journalHudSummary,
+} from './expedition-journal.js?v=1';
+import { createTidewatchWreck, updateTidewatchWreck, disposeTidewatchWreck } from './tidewatch-wreck.js?v=2';
 
 function setItemIcon(element, itemId, name, color, className) {
   element.querySelectorAll('.hb-glyph:not(.slot-icon)').forEach((oldIcon) => oldIcon.remove());
@@ -454,6 +461,8 @@ export class Game {
     this._destinationState = createDestinationState();
     this._crossingState = createCrossingState();
     this._pressureState = createPressureState();
+    this._journalState = createJournalState();
+    this._tidewatchWreckGroup = null;
     this._destinationLandmarkPlaced = false;
     this._arrivalLandmarkGroup = null;
     this._forestThresholdGroup = null;
@@ -1047,8 +1056,8 @@ export class Game {
       seed,
       freshPlayer: true,
       notify: this.coopMode
-        ? 'Local Co-op: two DualSense controllers · P1 left / P2 right.'
-        : 'Hunt wildlife · craft a spear · cook at campfires · watch wolves. E craft · F use · K save · Esc pause',
+        ? 'Local Co-op: two DualSense controllers · P1 left / P2 right. Your first shared voyage is Tidewatch Wreck.'
+        : 'First voyage: craft an iron pick, equip it, then use a campfire to begin Tidewatch Wreck. E craft · F use · K save · Esc pause',
     });
   }
 
@@ -1154,6 +1163,7 @@ export class Game {
         destination: this._destinationState.destination,
       });
       this._pressureState = createPressureState();
+      this._journalState = createJournalState();
       this._destinationLandmarkPlaced = false;
       this._workshopState = createWorkshopState();
       this._furnaceOpen = null;
@@ -1251,11 +1261,13 @@ export class Game {
         destination: this._destinationState.destination,
       });
       this._pressureState = deserializePressureState(saveData.pressure);
+      this._journalState = createJournalState(saveData.journal);
       this._destinationLandmarkPlaced = false;
     }
 
     const hasSavedDestination = !!saveData?.destination?.destination || !!saveData?.destination?.position;
     this._ensureDestinationLandmark({ relocateIfTooClose: freshPlayer || !hasSavedDestination });
+    this._buildTidewatchWreckVisual();
     this._buildArrivalLandmarkVisual();
     this._buildForestThresholdVisual();
 
@@ -1429,6 +1441,34 @@ export class Game {
     this._destinationLandmarkPlaced = true;
   }
 
+  _clearTidewatchWreckVisual() {
+    if (!this._tidewatchWreckGroup) return;
+    this.scene.remove(this._tidewatchWreckGroup);
+    disposeTidewatchWreck(this._tidewatchWreckGroup);
+    this._tidewatchWreckGroup = null;
+  }
+
+  _buildTidewatchWreckVisual() {
+    const destination = this._destinationState?.destination;
+    if (!destination || !this.scene) return;
+    this._clearTidewatchWreckVisual();
+    this._tidewatchWreckGroup = createTidewatchWreck({ ...destination, seed: this.seed });
+    this.scene.add(this._tidewatchWreckGroup);
+  }
+
+  _discoverJournalEntry(id, owner = 'p1') {
+    const result = discoverJournalEntry(this._journalState, id, {
+      day: Math.max(1, Math.floor((this.time?.elapsed || 0) / Math.max(1, this.time?.dayLengthSec || 900)) + 1),
+    });
+    this._journalState = result.state;
+    if (result.newEntry) {
+      const pl = this._destinationPlayer(owner) || this.player;
+      pl?.notify(`Discovery logged · ${result.entry.name}.`, 3.6);
+      this.audio.discovery?.();
+    }
+    return result;
+  }
+
   _clearArrivalLandmarkVisual() {
     if (!this._arrivalLandmarkGroup) return;
     this.scene.remove(this._arrivalLandmarkGroup);
@@ -1531,6 +1571,7 @@ export class Game {
       }
       pl.slots = added.slots;
       this._unlock('first_mangrove_lantern');
+      this._discoverJournalEntry('lantern_rootwalk', owner);
       this.waterFx?.lanternInspectPulse?.(1);
       pl.notify('Lantern inspected · 2 Fish Bait added.', 3.2);
       this.audio.lantern?.();
@@ -1550,6 +1591,7 @@ export class Game {
 
     if (nearLandmark && state.phase === 'en_route') {
       this._destinationState = arriveDestination(state);
+      this._discoverJournalEntry('tidewatch_wreck', owner);
       this._pressureState = triggerPressure(this._pressureState, {
         isNight: this.time.isNight(),
         weather: this.time.weather,
@@ -1605,6 +1647,7 @@ export class Game {
         slots = added.slots;
       }
       this._destinationState = claim.state;
+      this._discoverJournalEntry('iron_ravine', owner);
       pl.slots = slots;
       pl.notify('Iron Ravine reward claimed.', 3.2);
       this.saveGame({ quiet: true });
@@ -2677,6 +2720,7 @@ export class Game {
       this._landfallNoticeT = 3;
       if (arrivedAtDestination) {
         this._destinationState = arriveDestination(destinationState);
+        this._discoverJournalEntry('tidewatch_wreck', 'p1');
         this._pressureState = triggerPressure(this._pressureState, {
           isNight: this.time.isNight(),
           weather: this.time.weather,
@@ -3123,7 +3167,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=228').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=229').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -3196,6 +3240,7 @@ export class Game {
       destination: this._destinationState,
       crossing: this._crossingState,
       pressure: this._pressureState,
+      journal: this._journalState,
       workshop: serializeWorkshopState(this._workshopState),
       buildMeta: {
         blocks: [...this._builtEdits.entries()],
@@ -3470,14 +3515,25 @@ export class Game {
     try {
       p2Pad = getConnectedPad(this.input?._gpConnected ? 1 : 0);
     } catch (_) {}
-    // Update prompt text with assignment status when assignments change or P2 is missing
+    // Keep the controller reminder compact and outside either split viewport.
+    // A raw status string previously replaced the semantic markup and could
+    // cover P2's entire central sightline while no controllers were paired.
+    let p1Assigned = false;
+    let p2Assigned = false;
     if (this._coopRouter) {
-      const status = this._coopRouter.getPadStatus();
-      el.textContent = status;
-    } else if (p2Pad) {
-      el.textContent = 'P2 pad connected';
+      const mapping = this._coopRouter.getMapping?.() || {};
+      p1Assigned = Number(mapping.p1) >= 0;
+      p2Assigned = Number(mapping.p2) >= 0;
     }
-    el.classList.toggle('show', !p2Pad);
+    if (p2Pad) p2Assigned = true;
+    if (!p1Assigned && !p2Assigned) {
+      el.innerHTML = '<strong>Connect two controllers</strong><div class="sub">Pair two DualSense controllers for P1 + P2.</div>';
+    } else if (!p2Assigned) {
+      el.innerHTML = '<strong>Connect P2 controller</strong><div class="sub">P1 is ready · pair a second controller for the right screen.</div>';
+    } else {
+      el.innerHTML = '<strong>Local co-op ready</strong><div class="sub">Both players are connected.</div>';
+    }
+    el.classList.toggle('show', !p2Assigned);
   }
 
   _bagPlayer() {
@@ -4293,6 +4349,7 @@ export class Game {
     this.clouds?.update(dt, this.camera);
     this._lightScanAcc += dt;
     updateArrivalLandmark(this._arrivalLandmarkGroup, dt);
+    updateTidewatchWreck(this._tidewatchWreckGroup, dt, this.time?.isNight?.() || false);
     updateForestThreshold(this._forestThresholdGroup, dt);
     if (this._lightScanAcc > 0.5) {
       this._lightScanAcc = 0;
@@ -6351,6 +6408,28 @@ export class Game {
     }
   }
 
+  _updateJournalHud() {
+    const hud = document.getElementById('discovery-log');
+    if (!hud || !this.started) return;
+    const summary = hud.querySelector('[data-journal-summary]');
+    const lead = hud.querySelector('[data-journal-lead]');
+    const progress = this._journalState?.discovered?.length || 0;
+    hud.classList.remove('hidden');
+    if (!summary || !lead) return;
+    if (progress <= 0) {
+      summary.textContent = 'First voyage · Tidewatch Wreck';
+      lead.textContent = this.coopMode
+        ? 'Shared crew log · craft an iron pick, then use a campfire to set sail.'
+        : 'Craft an iron pick, equip it, then use a campfire to begin the route.';
+      return;
+    }
+    summary.textContent = journalHudSummary(this._journalState);
+    const lastId = this._journalState.discovered[progress - 1]?.id;
+    const latest = JOURNAL_ENTRIES.find((entry) => entry.id === lastId) || null;
+    const prefix = this.coopMode ? 'Shared crew log · ' : '';
+    lead.textContent = latest ? `${prefix}${latest.category} · ${latest.reward}` : `${prefix}Keep following new routes.`;
+  }
+
   _updateDestinationHud() {
     const hud = document.getElementById('destination-hud');
     const state = this._destinationState;
@@ -6471,6 +6550,7 @@ export class Game {
     }
     this._updateSpawnMarker();
     this._updateDestinationHud();
+    this._updateJournalHud();
     this._updateCoopPadPrompt();
 
     const workshopHud = document.getElementById('workshop-hud');

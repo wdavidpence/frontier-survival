@@ -544,6 +544,13 @@ export class AudioBus {
     this.beep(540, 0.10, 'triangle', 0.07);
     this.beep(720, 0.14, 'sine', 0.06);
   }
+  /** A restrained, original exploration stinger for a persistent discovery. */
+  discovery() {
+    this.beep(392, 0.10, 'triangle', 0.075);
+    this.beep(523.25, 0.12, 'sine', 0.065);
+    this.beep(659.25, 0.16, 'sine', 0.055);
+    this.beep(783.99, 0.22, 'triangle', 0.042);
+  }
   ui() {
     this.beep(660, 0.04, 'sine', 0.08);
   }
