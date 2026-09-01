@@ -6,20 +6,20 @@ Updated: 2026-09-01
 
 - Repository: `/mnt/c/Users/wdavi/Projects/Frontier-Survival`
 - Live: https://wdavidpence.github.io/frontier-survival/
-- Latest product release: **v1.27.6**
-- Published commit/tag: `59b4c80` / `v1.27.6`
-- Release: Shared crew White Bay—Local Co-op treats the overnight camp as a crew rendezvous. When both survivors arrive, HUD and survey notify the shared crew.
-- Live proof: GitHub Pages v1.27.6 exposes `main.js?v=872` and `game.js?v=848`; Local Co-op fresh start reached `started=true` with a hidden title, split HUD, P2 present, Tidewatch wreck ownership, and zero page-owned errors.
+- Latest product release: **v1.27.7**
+- Published commit/tag: `68d3f31` / `v1.27.7`
+- Release: Streaming confidence—after warmup the status HUD reports Streaming · warming / playable / steady / hitching from the live frame-time ring.
+- Live proof: GitHub Pages v1.27.7 exposes `main.js?v=873` and `game.js?v=849`; fresh New World reached `started=true` with a hidden title, rendered HUD/world including `Streaming · hitching` in this automation harness, Tidewatch wreck ownership, and zero page-owned errors.
 
-## Verified v1.27.6 evidence
+## Verified v1.27.7 evidence
 
-- Full `node tests/smoke.mjs` passed: 472 `PASS` assertions plus 6 TAP subtests, including co-op crew rendezvous contracts.
+- Full `node tests/smoke.mjs` passed: 474 `PASS` assertions plus 6 TAP subtests, including streaming-confidence contracts.
 - All changed JavaScript syntax checks passed.
 - Root/public HTML parity and `git diff --check` passed.
-- 175 executable relative-import edges audited; zero missing cache-busts.
-- Exact local candidate at `127.0.0.1:8789` and live Pages Local Co-op starts reached `started=true` with P2 present and zero page-owned errors.
-- Controlled crew probe: both players at White Bay showed `Shared crew · both at White Bay` and surveyed together.
-- Visual proof accepted for release health: ordinary local/live co-op frames had readable split terrain, water, HUD, and no black/gray renderer artifact.
+- 176 executable relative-import edges audited; zero missing cache-busts.
+- Exact local candidate at `127.0.0.1:8790` and live Pages fresh starts reached `started=true` with a hidden title and zero page-owned errors.
+- Runtime probe exposed `__FS.performance.confidence` and status HUD copy. This Playwright harness measured hitching (headless frame times are not a laptop-GPU sample).
+- Visual proof accepted for release health: ordinary local/live frames had readable terrain, water, sky, HUD, and no black/gray renderer artifact.
 
 ## Operational state
 
@@ -27,4 +27,4 @@ Updated: 2026-09-01
 
 ## Next bounded product slice
 
-Use a clean worktree from `origin/main` for a long-session streaming/performance confidence pass. Keep every next slice tied to ordinary fresh-world screenshots.
+A five-minute roam/reload leak sample on real GPU hardware, or DualSense hardware proof. Do not treat this automation hitching verdict as a laptop-GPU measurement.

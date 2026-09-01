@@ -62,7 +62,7 @@ If you only open one file after the project path, make it this one.
 
 ### Playability is sacred
 - **Never publish** a build that cannot paint Solo/Co-op + difficulty rows and Start into a world.
-- Latest verified public release: **v1.27.6** (`59b4c80`, tag `v1.27.6`). Local Co-op treats White Bay as a shared crew rendezvous; both survivors at the camp get crew HUD and survey copy.
+- Latest verified public release: **v1.27.7** (`68d3f31`, tag `v1.27.7`). After warmup the status HUD reports streaming confidence (warming / playable / steady / hitching) from the live frame-time ring.
 - If start is broken: **restore last good playable commit first**, then salvage features carefully. Do not “fix forward” a dead title screen.
 
 ### Boot / ES module landmines
