@@ -117,6 +117,7 @@ export function buildSavePayload(state) {
       elapsed: state.time.elapsed,
       weather: state.time.weather,
       weatherTimer: state.time.weatherTimer,
+      weatherGrace: state.time.weatherGrace,
       dayLengthSec: state.time.dayLengthSec,
     },
     player: packPlayer(state.player),

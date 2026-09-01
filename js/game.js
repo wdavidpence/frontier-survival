@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=549';
 import { Player } from './player.js?v=241';
 import { Input } from './input.js?v=413';
-import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=226';
+import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=227';
 import { AudioBus } from './audio.js?v=241';
 import {
   DEFAULT_SURVIVAL,
@@ -98,10 +98,11 @@ import {
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=233';
+} from './save.js?v=234';
 import { getMode } from './modes.js?v=244';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=4';
 import { streamingConfidenceFromStats, streamingConfidenceHudLabel } from './streaming-confidence.js?v=1';
+import { applyClearArrivalTick, clearArrivalHudLabel, normalizeWeatherGrace } from './clear-arrival.js?v=1';
 import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=4';
 import { createDisposalContext, disposeTree } from './resource-disposal.js?v=3';
 import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=3';
@@ -1236,6 +1237,7 @@ export class Game {
       this.time.elapsed = saveData.time?.elapsed || 0;
       this.time.weather = saveData.time?.weather || 'clear';
       this.time.weatherTimer = saveData.time?.weatherTimer ?? 60;
+      this.time.weatherGrace = normalizeWeatherGrace(saveData.time?.weatherGrace);
       this.mode = saveData.mode || this.mode || 'survival';
       this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0, ...(saveData.stats || {}) };
       this._achievements = emptyAchievements();
@@ -3410,7 +3412,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=233').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=234').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -3450,6 +3452,7 @@ export class Game {
         elapsed: this.time.elapsed,
         weather: this.time.weather,
         weatherTimer: this.time.weatherTimer,
+        weatherGrace: this.time.weatherGrace,
         dayLengthSec: this.time.dayLengthSec,
       },
       player: packLive(this.player),
@@ -3911,6 +3914,7 @@ export class Game {
     // Feed climate context so snow cannot appear in tropical/desert regions.
     const climateBiome = biomeAt(this.player.position.x, this.player.position.z, this.seed);
     this.time.tick(dt, { biome: climateBiome, altitude: this.player.position.y });
+    applyClearArrivalTick(this.time, 0);
     this._crossHitT = Math.max(0, this._crossHitT - dt);
     this._recoverT = Math.max(0, this._recoverT - dt);
     this._nourishT = Math.max(0, this._nourishT - dt);
@@ -6416,6 +6420,7 @@ export class Game {
     this.hemi.intensity = (0.34 * nightMix + (0.36 + sunI * 0.52) * dayFactor) + flash * 0.9;
 
     if (this._skyBackdrop) {
+      this._skyBackdrop.classList.toggle('clear-arrival', Number(this.time?.weatherGrace) > 0);
       this._skyBackdrop.style.setProperty('--sky-top', `#${palette.top.getHexString()}`);
       this._skyBackdrop.style.setProperty('--sky-mid', `#${palette.mid.getHexString()}`);
       this._skyBackdrop.style.setProperty('--sky-horizon', `#${palette.horizon.getHexString()}`);
@@ -6947,7 +6952,7 @@ export class Game {
       if (arm > 0) bits.push(`Armor ${arm}`);
       bits.push(`Day ${this.time.dayNumber}`);
       bits.push(this.time.isNight() ? 'Night' : 'Day');
-      bits.push(this.time.weather);
+      bits.push(clearArrivalHudLabel(this.time) || this.time.weather);
       if (this._streamConfidence) bits.push(streamingConfidenceHudLabel(this._streamConfidence));
       if (s._debug) bits.push(`Air ${formatTemperatureF(s._debug.ambient)}`);
       const cw = equipmentWarmth(this.player.equipment);
@@ -6965,7 +6970,7 @@ export class Game {
         biomeName,
         `Day ${this.time.dayNumber}`,
         this.time.isNight() ? 'Night' : 'Day',
-        this.time.weather,
+        clearArrivalHudLabel(this.time) || this.time.weather,
         this._streamConfidence && streamingConfidenceHudLabel(this._streamConfidence),
       ].filter(Boolean);
       const statusText = document.body.classList.contains('exploration-mode')

@@ -1,4 +1,6 @@
 /** Day/night clock. dayPhase in [0,1): 0 dawn, 0.25 noon, 0.5 dusk, 0.75 midnight */
+import { CLEAR_ARRIVAL_GRACE_SEC, applyClearArrivalTick } from './clear-arrival.js?v=1';
+
 export const DEFAULT_DAY_LENGTH_SEC = 900;
 export const LEGACY_DEFAULT_DAY_LENGTH_SEC = 420;
 
@@ -26,6 +28,7 @@ export class GameTime {
     this.weather = 'clear';
     // Let a new world reveal its palette before the first weather roll.
     this.weatherTimer = 90;
+    this.weatherGrace = CLEAR_ARRIVAL_GRACE_SEC;
   }
 
   get dayPhase() {
@@ -43,6 +46,8 @@ export class GameTime {
 
   tick(dt, climate = {}) {
     this.elapsed += dt;
+    applyClearArrivalTick(this, dt);
+    if (this.weatherGrace > 0) return;
     this.weatherTimer -= dt;
     if (this.weatherTimer <= 0) {
       const r = Math.random();

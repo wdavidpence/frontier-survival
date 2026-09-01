@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.27.7</title>
+  <title>Frontier Survival v1.27.8</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -61,6 +61,12 @@
         radial-gradient(ellipse 31% 10% at 72% 18%, rgba(235, 246, 255, 0.11) 0%, rgba(235, 246, 255, 0.035) 44%, transparent 78%),
         radial-gradient(ellipse 22% 7% at 48% 31%, rgba(255, 239, 218, 0.08) 0%, rgba(255, 239, 218, 0.025) 46%, transparent 80%);
       opacity: 0.9;
+    }
+    #sky-backdrop.clear-arrival::before {
+      opacity: 1;
+      background:
+        radial-gradient(circle 24% at 76% 14%, rgba(255,246,214,0.52), rgba(255,214,150,0.16) 36%, transparent 74%),
+        linear-gradient(180deg, transparent 0%, transparent 46%, rgba(255,214,168,0.12) 66%, transparent 100%);
     }
     #hud {
       position: fixed; inset: 0;
@@ -1698,7 +1704,7 @@
     </div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.27.7</div>
+    <div id="version-badge">v1.27.8</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" role="status" aria-live="polite" aria-atomic="true"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1793,7 +1799,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.27.7</div>
+      <div class="tag">Browser survival sandbox · v1.27.8</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1926,6 +1932,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=873"></script>
+  <script type="module" src="./js/main.js?v=874"></script>
 </body>
 </html>
