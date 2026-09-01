@@ -62,7 +62,7 @@ If you only open one file after the project path, make it this one.
 
 ### Playability is sacred
 - **Never publish** a build that cannot paint Solo/Co-op + difficulty rows and Start into a world.
-- Latest verified public release: **v1.27.2** (`02d8990`, tag `v1.27.2`). Tidewatch return still raises the Harbor Signal; F / Circle now cycles a persistent Lookout or Landing construction plan that rebuilds the landmark and survives save/load.
+- Latest verified public release: **v1.27.3** (`d0e5c8a`, tag `v1.27.3`). Lookout plan charts Seaglass Cay; survey the cay beacon and claim the chart at the Harbor Signal.
 - If start is broken: **restore last good playable commit first**, then salvage features carefully. Do not “fix forward” a dead title screen.
 
 ### Boot / ES module landmines

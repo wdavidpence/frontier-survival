@@ -3,30 +3,30 @@
   "target_description": "Reach Minecraft-class product quality through a sequence of verified releases: authored expedition, building expression, world variety, interaction feel, living ecology, long-term progression, finished co-op, durable performance, cohesive presentation, and onboarding/audio/accessibility.",
   "overall_score": {
     "foundation": "strong: streamed voxel world, survival, crafting, save/load, boats, fishing, controller/co-op plumbing",
-    "current_release_slice": "v1.27.2 Tidewatch Harbor Choice lets players pick a lasting Lookout or Landing plan at the claimed Harbor Signal",
-    "remaining_gap": "not Minecraft parity; a second named offshore route, broader regional destinations, full co-op productization, long-session performance profiling, and wider accessibility remain active release tracks"
+    "current_release_slice": "v1.27.3 Seaglass Cay is a second named offshore route unlocked by the Lookout harbor plan",
+    "remaining_gap": "not Minecraft parity; Landing-plan skiff berth, broader regional destinations, full co-op productization, long-session performance profiling, and wider accessibility remain active release tracks"
   },
   "checklist": [
-    {"id":"authored-expedition","status":"implemented","detail":"Tidewatch Wreck provides a visible discovery → reward → return journey."},
-    {"id":"building-expression","status":"implemented","detail":"Players now choose Lookout or Landing at the Harbor Signal; the selected plan rebuilds the landmark."},
-    {"id":"world-variety","status":"in-progress","detail":"Authored offshore wreck and harbor plans join existing BVI cove/forest/rootwalk routes; a second named destination remains."},
-    {"id":"interaction-feel","status":"implemented","detail":"Shared F/Circle harbor cycling, HUD plan copy, and notifications provide clearer construction feedback."},
-    {"id":"living-ecology","status":"implemented","detail":"The wreck includes low-cost animated seabirds, complementing existing reef and shore life."},
-    {"id":"progression","status":"implemented","detail":"Discovery Log plus a persistent harbor plan give a durable return reason after Tidewatch."},
-    {"id":"co-op-product","status":"in-progress","detail":"P1 and P2 share the harbor plan handler; complete shared harbor roles and controller hardware proof remain."},
-    {"id":"performance","status":"in-progress","detail":"Harbor prop remains bounded and disposal-owned; long-session browser measurement remains required."},
-    {"id":"presentation","status":"implemented","detail":"Lookout spyglass/table and Landing pier/mooring distinguish the chosen plan on the existing signal."},
-    {"id":"audio-onboarding-accessibility","status":"implemented","detail":"Original discovery stinger and actionable early route copy complement existing responsive/accessible menu work."}
+    {"id":"authored-expedition","status":"implemented","detail":"Tidewatch plus Seaglass Cay now provide two named discovery → survey → return journeys."},
+    {"id":"building-expression","status":"implemented","detail":"Lookout charts a real second route; Landing remains visual-only until the next slice."},
+    {"id":"world-variety","status":"in-progress","detail":"A second authored offshore cay joins wreck/harbor/rootwalk; more regions remain."},
+    {"id":"interaction-feel","status":"implemented","detail":"Shared F/Circle survey and claim handlers plus HUD route copy."},
+    {"id":"living-ecology","status":"implemented","detail":"Existing reef/shore/wreck life remains; no regression in this slice."},
+    {"id":"progression","status":"implemented","detail":"Discovery Log records Seaglass Cay as a durable return reason after Lookout."},
+    {"id":"co-op-product","status":"in-progress","detail":"P1 and P2 share the lookout-route handler; hardware proof remains."},
+    {"id":"performance","status":"in-progress","detail":"Cay prop is bounded and disposal-owned; long-session measurement remains."},
+    {"id":"presentation","status":"implemented","detail":"Cay cairn, glass beacon, shards, and pennant distinguish the second route."},
+    {"id":"audio-onboarding-accessibility","status":"implemented","detail":"Existing discovery stinger and actionable HUD copy cover the new lead."}
   ],
   "last_test_report": {
-    "static": "169 executable relative-import edges audited; 0 missing cache-busts. node --check passed on changed JS. root/public HTML parity and git diff --check passed.",
-    "automated": "node tests/smoke.mjs exited 0 with 464 PASS assertions and 6 TAP subtests, including harbor-choice state and integration.",
-    "runtime": "Exact local candidate at :8785 loaded v1.27.2 main.js?v=868 and game.js?v=844. Fresh New World reached started=true with title hidden and zero page-owned errors. Controlled claimed-reward probe cycled lookout then landing with HUD Harbor Signal copy.",
-    "visual": "Ordinary local and live fresh-start frames were reviewed: no black/gray renderer artifact or HUD failure. Diagnostic harbor close-up was not isolated at useful scale and is not claimed as visual pier/spyglass acceptance.",
-    "mobile": "v1.27.0 mobile title evidence remains valid; v1.27.2 has not changed responsive layout."
+    "static": "171 executable relative-import edges audited; 0 missing cache-busts. node --check passed on changed JS. root/public HTML parity and git diff --check passed.",
+    "automated": "node tests/smoke.mjs exited 0 with 466 PASS assertions and 6 TAP subtests, including lookout-route contracts.",
+    "runtime": "Exact local candidate at :8786 loaded v1.27.3 main.js?v=869 and game.js?v=845. Fresh New World reached started=true with title hidden and zero page-owned errors. Controlled Lookout probe charted, surveyed, and claimed Seaglass Cay.",
+    "visual": "Ordinary local and live fresh-start frames were reviewed: no black/gray renderer artifact or HUD failure.",
+    "mobile": "v1.27.0 mobile title evidence remains valid; v1.27.3 has not changed responsive layout."
   },
-  "last_commit": "02d8990",
-  "next_action": "Clean worktree from origin/main: Lookout plan unlocks a second named offshore route.",
-  "pass_count": 4,
+  "last_commit": "d0e5c8a",
+  "next_action": "Clean worktree from origin/main: Landing plan unlocks a working skiff return berth.",
+  "pass_count": 5,
   "judge_review_due": true
 }
