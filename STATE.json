@@ -3,30 +3,30 @@
   "target_description": "Reach Minecraft-class product quality through a sequence of verified releases: authored expedition, building expression, world variety, interaction feel, living ecology, long-term progression, finished co-op, durable performance, cohesive presentation, and onboarding/audio/accessibility.",
   "overall_score": {
     "foundation": "strong: streamed voxel world, survival, crafting, save/load, boats, fishing, controller/co-op plumbing",
-    "current_release_slice": "v1.27.5 White Bay is a third named coastal destination unlocked by the Tidewatch return",
-    "remaining_gap": "not Minecraft parity; full co-op productization, long-session performance profiling, and wider accessibility remain active release tracks"
+    "current_release_slice": "v1.27.6 Local Co-op White Bay is a shared crew rendezvous with HUD and dual notify",
+    "remaining_gap": "not Minecraft parity; DualSense hardware proof and long-session performance profiling remain active release tracks"
   },
   "checklist": [
-    {"id":"authored-expedition","status":"implemented","detail":"Tidewatch, Seaglass Cay, and White Bay now provide three named discovery loops."},
+    {"id":"authored-expedition","status":"implemented","detail":"Tidewatch, Seaglass Cay, and White Bay remain the named discovery loops."},
     {"id":"building-expression","status":"implemented","detail":"Lookout charts a second route; Landing moors the live skiff."},
-    {"id":"world-variety","status":"implemented","detail":"White Bay overnight camp joins wreck, cay, harbor, and rootwalk as a named coastal destination."},
-    {"id":"interaction-feel","status":"implemented","detail":"Shared F/Circle survey and claim handlers plus HUD route copy."},
+    {"id":"world-variety","status":"implemented","detail":"White Bay overnight camp joins wreck, cay, harbor, and rootwalk."},
+    {"id":"interaction-feel","status":"implemented","detail":"Shared crew HUD and dual notify when both players reach White Bay."},
     {"id":"living-ecology","status":"implemented","detail":"Existing reef/shore/wreck life remains."},
-    {"id":"progression","status":"implemented","detail":"Discovery Log records White Bay as a durable overnight return reason."},
-    {"id":"co-op-product","status":"in-progress","detail":"P1 and P2 share the White Bay handler; hardware proof remains."},
-    {"id":"performance","status":"in-progress","detail":"Camp prop is bounded and disposal-owned; long-session measurement remains."},
-    {"id":"presentation","status":"implemented","detail":"Lean-to, bedroll, crate, and lantern distinguish the White Bay camp."},
-    {"id":"audio-onboarding-accessibility","status":"implemented","detail":"Existing discovery stinger and HUD copy cover the new lead."}
+    {"id":"progression","status":"implemented","detail":"Discovery Log still records White Bay as a durable overnight return reason."},
+    {"id":"co-op-product","status":"implemented","detail":"P1 and P2 share White Bay survey with crew-together copy; DualSense hardware proof remains."},
+    {"id":"performance","status":"in-progress","detail":"Crew helper is allocation-light; long-session measurement remains."},
+    {"id":"presentation","status":"implemented","detail":"Split-screen co-op spawn remains readable with dual HUD."},
+    {"id":"audio-onboarding-accessibility","status":"implemented","detail":"Existing discovery stinger and shared-crew copy cover the rendezvous."}
   ],
   "last_test_report": {
-    "static": "174 executable relative-import edges audited; 0 missing cache-busts. node --check passed on changed JS. root/public HTML parity and git diff --check passed.",
-    "automated": "node tests/smoke.mjs exited 0 with 470 PASS assertions and 6 TAP subtests, including white-bay route contracts.",
-    "runtime": "Exact local candidate at :8788 loaded v1.27.5 main.js?v=871 and game.js?v=847. Fresh New World reached started=true with title hidden and zero page-owned errors. Controlled White Bay probe charted, surveyed, and claimed the overnight camp.",
-    "visual": "Ordinary local and live fresh-start frames were reviewed: no black/gray renderer artifact or HUD failure.",
-    "mobile": "v1.27.0 mobile title evidence remains valid; v1.27.5 has not changed responsive layout."
+    "static": "175 executable relative-import edges audited; 0 missing cache-busts. node --check passed on changed JS. root/public HTML parity and git diff --check passed.",
+    "automated": "node tests/smoke.mjs exited 0 with 472 PASS assertions and 6 TAP subtests, including co-op crew contracts.",
+    "runtime": "Exact local candidate at :8789 loaded v1.27.6 main.js?v=872 and game.js?v=848. Local Co-op fresh start reached started=true with P2 present and zero page-owned errors. Controlled crew probe showed Shared crew · both at White Bay.",
+    "visual": "Ordinary local and live co-op frames were reviewed: split terrain/water/HUD readable, no black/gray renderer artifact.",
+    "mobile": "v1.27.0 mobile title evidence remains valid; v1.27.6 has not changed responsive layout."
   },
-  "last_commit": "e0ab0c9",
-  "next_action": "Clean worktree from origin/main: long-session streaming/performance confidence or finished co-op shared-route proof.",
-  "pass_count": 7,
+  "last_commit": "59b4c80",
+  "next_action": "Clean worktree from origin/main: long-session streaming/performance confidence pass.",
+  "pass_count": 8,
   "judge_review_due": true
 }

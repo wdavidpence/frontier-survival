@@ -62,7 +62,7 @@ If you only open one file after the project path, make it this one.
 
 ### Playability is sacred
 - **Never publish** a build that cannot paint Solo/Co-op + difficulty rows and Start into a world.
-- Latest verified public release: **v1.27.5** (`e0ab0c9`, tag `v1.27.5`). Completing Tidewatch charts White Bay; survey the overnight camp and claim the coastal chart at the Harbor Signal.
+- Latest verified public release: **v1.27.6** (`59b4c80`, tag `v1.27.6`). Local Co-op treats White Bay as a shared crew rendezvous; both survivors at the camp get crew HUD and survey copy.
 - If start is broken: **restore last good playable commit first**, then salvage features carefully. Do not “fix forward” a dead title screen.
 
 ### Boot / ES module landmines
