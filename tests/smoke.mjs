@@ -4,6 +4,8 @@ import './coop-prompt-presentation.mjs';
 import './expedition-journal.mjs';
 import './expedition-discovery-integration.mjs';
 import './harbor-signal-integration.mjs';
+import './harbor-choice.mjs';
+import './harbor-choice-integration.mjs';
 import { sandyBeachHeight } from '../js/shore-water.js';
 import { chooseCastawayCandidate, createCastawayArrival, restoreCastawayArrival, castawayObjective } from '../js/castaway-arrival.js';
 
@@ -4859,7 +4861,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=280/);
   assert.match(game, /animal-visuals.js\?v=259/);
-  assert.match(main, /game\.js\?v=843/);
+  assert.match(main, /game\.js\?v=844/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5903,7 +5905,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.27.1'), 'HTML must expose v1.27.1');
+  assert.ok(html.includes('v1.27.2'), 'HTML must expose v1.27.2');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');

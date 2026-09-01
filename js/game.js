@@ -98,7 +98,7 @@ import {
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=229';
+} from './save.js?v=230';
 import { getMode } from './modes.js?v=244';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=4';
 import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=4';
@@ -192,7 +192,8 @@ import {
   journalHudSummary,
 } from './expedition-journal.js?v=1';
 import { createTidewatchWreck, updateTidewatchWreck, disposeTidewatchWreck } from './tidewatch-wreck.js?v=2';
-import { createHarborSignal, updateHarborSignal, disposeHarborSignal } from './harbor-signal.js?v=1';
+import { createHarborSignal, updateHarborSignal, disposeHarborSignal } from './harbor-signal.js?v=2';
+import { createHarborChoiceState, cycleHarborChoice, harborChoiceSummary } from './harbor-choice.js?v=1';
 
 function setItemIcon(element, itemId, name, color, className) {
   element.querySelectorAll('.hb-glyph:not(.slot-icon)').forEach((oldIcon) => oldIcon.remove());
@@ -463,6 +464,7 @@ export class Game {
     this._crossingState = createCrossingState();
     this._pressureState = createPressureState();
     this._journalState = createJournalState();
+    this._harborChoiceState = createHarborChoiceState();
     this._tidewatchWreckGroup = null;
     this._harborSignalGroup = null;
     this._destinationLandmarkPlaced = false;
@@ -1166,6 +1168,7 @@ export class Game {
       });
       this._pressureState = createPressureState();
       this._journalState = createJournalState();
+      this._harborChoiceState = createHarborChoiceState();
       this._destinationLandmarkPlaced = false;
       this._workshopState = createWorkshopState();
       this._furnaceOpen = null;
@@ -1264,6 +1267,7 @@ export class Game {
       });
       this._pressureState = deserializePressureState(saveData.pressure);
       this._journalState = createJournalState(saveData.journal);
+      this._harborChoiceState = createHarborChoiceState(saveData.harborChoice);
       this._destinationLandmarkPlaced = false;
     }
 
@@ -1513,8 +1517,22 @@ export class Game {
     if (!this.scene || state?.phase !== 'claimed') return;
     const position = this._findHarborSignalPosition();
     if (!position) return;
-    this._harborSignalGroup = createHarborSignal(position);
+    this._harborSignalGroup = createHarborSignal({ ...position, choice: this._harborChoiceState?.choice });
     this.scene.add(this._harborSignalGroup);
+  }
+
+  _handleHarborSignalUse(owner) {
+    const pl = this._destinationPlayer(owner);
+    const state = this._destinationState;
+    if (!pl || state?.phase !== 'claimed' || !this._harborSignalGroup) return false;
+    const signal = this._harborSignalGroup.position;
+    if (Math.hypot(pl.position.x - signal.x, pl.position.z - signal.z) > 4.5) return false;
+    const cycled = cycleHarborChoice(this._harborChoiceState);
+    this._harborChoiceState = cycled.state;
+    this._buildHarborSignalVisual();
+    pl.notify(`${cycled.choice.name} chosen · ${cycled.choice.summary}`, 3.6);
+    this.saveGame({ quiet: true });
+    return true;
   }
 
   _discoverJournalEntry(id, owner = 'p1') {
@@ -3230,7 +3248,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=229').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=230').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -3304,6 +3322,7 @@ export class Game {
       crossing: this._crossingState,
       pressure: this._pressureState,
       journal: this._journalState,
+      harborChoice: this._harborChoiceState,
       workshop: serializeWorkshopState(this._workshopState),
       buildMeta: {
         blocks: [...this._builtEdits.entries()],
@@ -3835,7 +3854,9 @@ export class Game {
           const origin = this.player2.eyePosition();
           const dir = this.player2.lookDir();
           const hit = this._raycastInteraction(origin, dir, 6);
-          if (this._handleDestinationUse(hit, 'p2')) {
+          if (this._handleHarborSignalUse('p2')) {
+            // Shared harbor plan; P2 cycles the same persistent choice.
+          } else if (this._handleDestinationUse(hit, 'p2')) {
             // Destination state is shared; P2 uses the same transition owner path.
           } else if (hit && hit.id === CRAFTING_TABLE) {
             this.setInventoryOpen(true, 'p2', 'workbench');
@@ -5348,6 +5369,7 @@ export class Game {
       return;
     }
 
+    if (this._handleHarborSignalUse('p1')) return;
     if (this._handleDestinationUse(hit, 'p1')) return;
 
     // Open crafting table
@@ -6466,7 +6488,7 @@ export class Game {
       case 'completed':
         return 'NEXT · Return to campfire and claim the expedition reward';
       case 'claimed':
-        return 'COMPLETE · Iron Ravine reward secured';
+        return `COMPLETE · Iron Ravine reward secured · ${harborChoiceSummary(this._harborChoiceState)}`;
       default:
         return 'NEXT · Prepare for the Iron Ravine expedition';
     }
@@ -6543,6 +6565,18 @@ export class Game {
             ? `UNDERWAY · ${boatSpeed.toFixed(1)} m/s · Follow route · E storage`
             : 'DRIFTING · Follow route · E storage · F disembark';
       return;
+    }
+    if (state.phase === 'claimed' && this._harborSignalGroup) {
+      const harbor = this._harborSignalGroup.position;
+      const harborDistance = Math.hypot(this.player.position.x - harbor.x, this.player.position.z - harbor.z);
+      if (harborDistance <= 8) {
+        title.textContent = 'Harbor Signal';
+        status.textContent = harborChoiceSummary(this._harborChoiceState);
+        next.textContent = this.coopMode
+          ? 'Circle · Cycle Lookout or Landing plan'
+          : 'F · Cycle Lookout or Landing plan';
+        return;
+      }
     }
     if (nearRootwalk) {
       title.textContent = 'Mangrove Lagoon';

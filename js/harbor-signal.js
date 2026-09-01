@@ -15,12 +15,28 @@ function box(group, name, size, position, mat, rotation = null) {
   return mesh;
 }
 
+function addLookoutPlan(group, timber, darkTimber, brass) {
+  box(group, 'lookout-table', [1.08, 0.08, 0.64], [-0.78, 0.82, 0.46], timber);
+  box(group, 'lookout-leg-a', [0.08, 0.72, 0.08], [-1.18, 0.42, 0.2], darkTimber);
+  box(group, 'lookout-leg-b', [0.08, 0.72, 0.08], [-0.38, 0.42, 0.7], darkTimber);
+  box(group, 'lookout-spyglass', [0.66, 0.08, 0.08], [-0.62, 0.96, 0.46], brass, [0, 0.38, 0.16]);
+  box(group, 'lookout-chart-weight', [0.16, 0.06, 0.16], [-0.96, 0.9, 0.28], brass);
+}
+
+function addLandingPlan(group, timber, darkTimber, rope) {
+  box(group, 'landing-pier', [4.2, 0.18, 1.46], [0, 0.1, 1.62], timber);
+  box(group, 'landing-post-left', [0.16, 1.18, 0.16], [-1.72, 0.74, 2.12], darkTimber);
+  box(group, 'landing-post-right', [0.16, 1.18, 0.16], [1.72, 0.74, 2.12], darkTimber);
+  box(group, 'landing-crate', [0.5, 0.38, 0.44], [-0.72, 0.42, 1.52], darkTimber);
+  box(group, 'landing-mooring', [0.05, 0.9, 0.05], [-1.72, 1.18, 2.12], rope, [0.18, 0, 0.42]);
+}
+
 /** A compact harbor landmark unlocked after completing the Tidewatch return. */
-export function createHarborSignal({ x = 0, y = 0, z = 0 } = {}) {
+export function createHarborSignal({ x = 0, y = 0, z = 0, choice = null } = {}) {
   const group = new THREE.Group();
   group.name = 'tidewatch-harbor-signal';
   group.position.set(x, y, z);
-  group.userData = { elapsed: 0, lanterns: [], pennants: [] };
+  group.userData = { elapsed: 0, lanterns: [], pennants: [], choice: choice || null };
 
   const timber = material(0x9a6338);
   const darkTimber = material(0x573321);
@@ -61,6 +77,9 @@ export function createHarborSignal({ x = 0, y = 0, z = 0 } = {}) {
     group.add(pennant);
     group.userData.pennants.push({ pennant, phase });
   }
+
+  if (choice === 'lookout') addLookoutPlan(group, timber, darkTimber, brass);
+  if (choice === 'landing') addLandingPlan(group, timber, darkTimber, rope);
   return group;
 }
 

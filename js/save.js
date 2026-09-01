@@ -132,6 +132,7 @@ export function buildSavePayload(state) {
     pressure: state.pressure,
     crossing: state.crossing,
     journal: state.journal,
+    harborChoice: state.harborChoice,
     workshop: state.workshop,
     buildMeta: state.buildMeta || undefined,
     spawnPos: state.spawnPos || undefined,
@@ -166,6 +167,7 @@ export function parseSavePayload(raw) {
   if (data.pressure == null) data.pressure = null;
   if (data.crossing == null) data.crossing = null;
   if (!data.journal || typeof data.journal !== 'object') data.journal = null;
+  if (!data.harborChoice || typeof data.harborChoice !== 'object') data.harborChoice = null;
   if (data.workshop == null) data.workshop = null;
   if (!data.buildMeta || typeof data.buildMeta !== 'object') data.buildMeta = { blocks: [], slabs: [], stairs: [], beds: [] };
   for (const key of ['blocks', 'slabs', 'stairs', 'beds']) {
