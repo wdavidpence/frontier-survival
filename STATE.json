@@ -1,32 +1,12 @@
 {
-  "project": "Frontier Survival",
-  "target_description": "Reach Minecraft-class product quality through a sequence of verified releases: authored expedition, building expression, world variety, interaction feel, living ecology, long-term progression, finished co-op, durable performance, cohesive presentation, and onboarding/audio/accessibility.",
-  "overall_score": {
-    "foundation": "strong: streamed voxel world, survival, crafting, save/load, boats, fishing, controller/co-op plumbing",
-    "current_release_slice": "v1.27.7 streaming confidence is visible on the status HUD from the live frame-time ring",
-    "remaining_gap": "not Minecraft parity; a five-minute GPU roam/leak sample and DualSense hardware proof remain"
+  "project": "frontier-survival",
+  "updated": "2026-09-01",
+  "scoreboard": {
+    "current_release_slice": "v1.27.8 Clear Arrival holds a readable first-look sky and HUD for 90 seconds",
+    "remaining_gap": "Minecraft-class atmosphere, DualSense hardware proof, and a five-minute GPU roam/leak sample remain open"
   },
-  "checklist": [
-    {"id":"authored-expedition","status":"implemented","detail":"Tidewatch, Seaglass Cay, and White Bay remain the named discovery loops."},
-    {"id":"building-expression","status":"implemented","detail":"Lookout charts a second route; Landing moors the live skiff."},
-    {"id":"world-variety","status":"implemented","detail":"White Bay overnight camp joins wreck, cay, harbor, and rootwalk."},
-    {"id":"interaction-feel","status":"implemented","detail":"Shared crew HUD and dual notify when both players reach White Bay."},
-    {"id":"living-ecology","status":"implemented","detail":"Existing reef/shore/wreck life remains."},
-    {"id":"progression","status":"implemented","detail":"Discovery Log still records named coastal returns."},
-    {"id":"co-op-product","status":"implemented","detail":"P1 and P2 share White Bay survey with crew-together copy; DualSense hardware proof remains."},
-    {"id":"performance","status":"implemented","detail":"Streaming confidence is classified and shown on the HUD; five-minute GPU leak sample remains."},
-    {"id":"presentation","status":"implemented","detail":"Ordinary spawn remains readable with streaming copy in the status HUD."},
-    {"id":"audio-onboarding-accessibility","status":"implemented","detail":"Existing discovery stinger, shared-crew copy, and HUD labels remain."}
-  ],
-  "last_test_report": {
-    "static": "176 executable relative-import edges audited; 0 missing cache-busts. node --check passed on changed JS. root/public HTML parity and git diff --check passed.",
-    "automated": "node tests/smoke.mjs exited 0 with 474 PASS assertions and 6 TAP subtests, including streaming-confidence contracts.",
-    "runtime": "Exact local candidate at :8790 loaded v1.27.7 main.js?v=873 and game.js?v=849. Fresh New World reached started=true with title hidden and zero page-owned errors. Performance.confidence and status HUD showed Streaming · hitching in this headless harness.",
-    "visual": "Ordinary local and live frames were reviewed: terrain/water/HUD readable, streaming copy visible, no black/gray renderer artifact.",
-    "mobile": "v1.27.0 mobile title evidence remains valid; v1.27.7 has not changed responsive layout."
-  },
-  "last_commit": "68d3f31",
-  "next_action": "Five-minute GPU roam/leak sample or DualSense hardware proof — not another landmark prop.",
-  "pass_count": 9,
-  "judge_review_due": true
+  "last_test_report": "476 PASS + 6 TAP; 178 import edges; 0 cache-bust misses",
+  "runtime": "Exact local candidate at :8791 loaded v1.27.8 main.js?v=874 and game.js?v=850. Fresh New World reached started=true with title hidden, weather=clear, decreasing weatherGrace, sky class clear-arrival, and zero page-owned errors.",
+  "visual": "Ordinary local/live cove frames readable; HUD shows Clear arrival; no black/gray renderer artifact.",
+  "mobile": "v1.27.0 mobile title evidence remains valid; v1.27.8 has not changed responsive layout."
 }

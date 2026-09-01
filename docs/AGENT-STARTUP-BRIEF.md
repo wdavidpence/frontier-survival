@@ -62,7 +62,7 @@ If you only open one file after the project path, make it this one.
 
 ### Playability is sacred
 - **Never publish** a build that cannot paint Solo/Co-op + difficulty rows and Start into a world.
-- Latest verified public release: **v1.27.7** (`68d3f31`, tag `v1.27.7`). After warmup the status HUD reports streaming confidence (warming / playable / steady / hitching) from the live frame-time ring.
+- Latest verified public release: **v1.27.8** (`064f39a`, tag `v1.27.8`). A new cove stays on a readable clear morning for 90 seconds; the status HUD reports Clear arrival and the sky warms while that grace remains.
 - If start is broken: **restore last good playable commit first**, then salvage features carefully. Do not “fix forward” a dead title screen.
 
 ### Boot / ES module landmines
