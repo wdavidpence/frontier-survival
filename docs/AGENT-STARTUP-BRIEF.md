@@ -62,7 +62,7 @@ If you only open one file after the project path, make it this one.
 
 ### Playability is sacred
 - **Never publish** a build that cannot paint Solo/Co-op + difficulty rows and Start into a world.
-- Latest verified public release: **v1.27.4** (`b264a8a`, tag `v1.27.4`). Landing plan opens a working skiff return berth; F / Circle moors and launches the dinghy at the pier.
+- Latest verified public release: **v1.27.5** (`e0ab0c9`, tag `v1.27.5`). Completing Tidewatch charts White Bay; survey the overnight camp and claim the coastal chart at the Harbor Signal.
 - If start is broken: **restore last good playable commit first**, then salvage features carefully. Do not “fix forward” a dead title screen.
 
 ### Boot / ES module landmines
