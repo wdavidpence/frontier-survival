@@ -14,6 +14,13 @@ export const JOURNAL_ENTRIES = Object.freeze([
     reward: 'A working chart and harbor supplies',
   }),
   Object.freeze({
+    id: 'harbor_signal',
+    name: 'Tidewatch Harbor Signal',
+    category: 'Harbor',
+    clue: 'Recovered charts and signal torches turn a successful voyage into a visible camp landmark.',
+    reward: 'A lit signal mast, route board, and a reason to launch the next voyage',
+  }),
+  Object.freeze({
     id: 'lantern_rootwalk',
     name: 'Lantern Rootwalk',
     category: 'Ecology',

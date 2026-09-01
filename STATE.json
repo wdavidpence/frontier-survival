@@ -3,30 +3,30 @@
   "target_description": "Reach Minecraft-class product quality through a sequence of verified releases: authored expedition, building expression, world variety, interaction feel, living ecology, long-term progression, finished co-op, durable performance, cohesive presentation, and onboarding/audio/accessibility.",
   "overall_score": {
     "foundation": "strong: streamed voxel world, survival, crafting, save/load, boats, fishing, controller/co-op plumbing",
-    "current_release_slice": "v1.27.0 Tidewatch Expedition connects the first voyage, discovery, reward, persistent journal, co-op cue, authored prop, ecology accent, and original audio feedback",
-    "remaining_gap": "not Minecraft parity; building depth, regional world breadth, full co-op productization, long-session performance profiling, and wider accessibility remain active release tracks"
+    "current_release_slice": "v1.27.1 Tidewatch Harbor Signal connects an expedition return reward to a persistent, visible home-cove transformation",
+    "remaining_gap": "not Minecraft parity; player-directed harbor construction, regional world breadth, full co-op productization, long-session performance profiling, and wider accessibility remain active release tracks"
   },
   "checklist": [
     {"id":"authored-expedition","status":"implemented","detail":"Tidewatch Wreck provides a visible discovery → reward → return journey."},
-    {"id":"building-expression","status":"in-progress","detail":"Signal-torch reward connects expeditions to harbor building; deeper materials/furniture remain."},
-    {"id":"world-variety","status":"in-progress","detail":"Authored offshore wreck joins existing BVI cove/forest/rootwalk routes; caves and more regional destinations remain."},
+    {"id":"building-expression","status":"implemented","detail":"Claiming the Tidewatch reward raises a persistent visual harbor signal; player-selected harbor construction remains next."},
+    {"id":"world-variety","status":"in-progress","detail":"Authored offshore wreck and harbor transformation join existing BVI cove/forest/rootwalk routes; caves and further regional destinations remain."},
     {"id":"interaction-feel","status":"implemented","detail":"Persistent log, first-voyage cue, notifications, and a dedicated discovery stinger provide clearer feedback."},
     {"id":"living-ecology","status":"implemented","detail":"The wreck includes low-cost animated seabirds, complementing existing reef and shore life."},
-    {"id":"progression","status":"implemented","detail":"Discovery Log persists named discoveries and expedition rewards."},
-    {"id":"co-op-product","status":"implemented","detail":"Fresh co-op routes and shared journal language now frame a shared first voyage."},
-    {"id":"performance","status":"in-progress","detail":"Visual prop is bounded and disposal-owned; long-session browser measurement remains required."},
-    {"id":"presentation","status":"implemented","detail":"Signal lantern, wreck, sail, gull silhouettes, and HUD route cue improve offshore readability."},
+    {"id":"progression","status":"implemented","detail":"Discovery Log persists named discoveries and the harbor reward transformation."},
+    {"id":"co-op-product","status":"in-progress","detail":"Shared first-voyage messaging is released; complete shared harbor roles and controller hardware proof remain."},
+    {"id":"performance","status":"in-progress","detail":"Harbor prop is bounded, animated without per-frame allocation, and disposal-owned; long-session browser measurement remains required."},
+    {"id":"presentation","status":"implemented","detail":"Signal lantern, mast, route board, wreck, sail, gull silhouettes, and HUD route cue strengthen the outbound/return composition."},
     {"id":"audio-onboarding-accessibility","status":"implemented","detail":"Original discovery stinger and actionable early route copy complement existing responsive/accessible menu work."}
   ],
   "last_test_report": {
-    "static": "167 executable relative-import edges audited; 0 missing cache-busts. node --check passed on all changed JS. root/public HTML parity and git diff --check passed.",
-    "automated": "node tests/smoke.mjs exited 0 with 461 PASS lines, including journal, expedition integration, and compact co-op prompt regressions.",
-    "runtime": "Exact local candidate at :8783 loaded main.js?v=864; Solo and Local Co-op New World both reached started=true with title hidden and zero page-owned errors.",
-    "visual": "Ordinary solo, controlled Tidewatch wreck, and Local Co-op screenshots show readable terrain/water/HUD with no black/gray occlusion. The co-op controller reminder was corrected from a central obstruction to a compact top-center cue.",
-    "mobile": "390x844 title panel is scrollable; Continue and controller controls remain within the viewport; zero console errors."
+    "static": "168 executable relative-import edges audited; 0 missing cache-busts. node --check passed on changed JS. root/public HTML parity and git diff --check passed.",
+    "automated": "node tests/smoke.mjs exited 0 with 462 PASS assertions and 6 TAP subtests, including harbor-signal integration.",
+    "runtime": "Exact local candidate at :8784 loaded v1.27.1 main.js?v=867 and game.js?v=843. Fresh New World reached started=true with title hidden and zero page-owned errors. Controlled claimed-reward probe constructed signal children=12, lanterns=2, pennants=2.",
+    "visual": "Ordinary fresh-start and controlled harbor-signal frames were reviewed: no black/gray renderer artifact or HUD failure. Harbor composition is intentionally marked as an ongoing premium-presentation pass, not final AAA parity.",
+    "mobile": "v1.27.0 mobile title evidence remains valid; v1.27.1 has not changed responsive layout."
   },
   "last_commit": null,
-  "next_action": "Review the clean release diff, commit/tag/push v1.27.0, then prove the live GitHub Pages artifact independently.",
-  "pass_count": 2,
+  "next_action": "Review the clean v1.27.1 release diff, commit/tag/push, then prove the live GitHub Pages artifact independently.",
+  "pass_count": 3,
   "judge_review_due": true
 }

@@ -192,6 +192,7 @@ import {
   journalHudSummary,
 } from './expedition-journal.js?v=1';
 import { createTidewatchWreck, updateTidewatchWreck, disposeTidewatchWreck } from './tidewatch-wreck.js?v=2';
+import { createHarborSignal, updateHarborSignal, disposeHarborSignal } from './harbor-signal.js?v=1';
 
 function setItemIcon(element, itemId, name, color, className) {
   element.querySelectorAll('.hb-glyph:not(.slot-icon)').forEach((oldIcon) => oldIcon.remove());
@@ -463,6 +464,7 @@ export class Game {
     this._pressureState = createPressureState();
     this._journalState = createJournalState();
     this._tidewatchWreckGroup = null;
+    this._harborSignalGroup = null;
     this._destinationLandmarkPlaced = false;
     this._arrivalLandmarkGroup = null;
     this._forestThresholdGroup = null;
@@ -1268,6 +1270,7 @@ export class Game {
     const hasSavedDestination = !!saveData?.destination?.destination || !!saveData?.destination?.position;
     this._ensureDestinationLandmark({ relocateIfTooClose: freshPlayer || !hasSavedDestination });
     this._buildTidewatchWreckVisual();
+    this._buildHarborSignalVisual();
     this._buildArrivalLandmarkVisual();
     this._buildForestThresholdVisual();
 
@@ -1454,6 +1457,64 @@ export class Game {
     this._clearTidewatchWreckVisual();
     this._tidewatchWreckGroup = createTidewatchWreck({ ...destination, seed: this.seed });
     this.scene.add(this._tidewatchWreckGroup);
+  }
+
+  _clearHarborSignalVisual() {
+    if (!this._harborSignalGroup) return;
+    this.scene.remove(this._harborSignalGroup);
+    disposeHarborSignal(this._harborSignalGroup);
+    this._harborSignalGroup = null;
+  }
+
+  _findHarborSignalPosition() {
+    if (!this._spawnPos || !this.player) return null;
+    const yaw = Number.isFinite(this.player.yaw) ? this.player.yaw : 0;
+    const naturalGround = new Set([BLOCK.SAND, BLOCK.GRASS, BLOCK.DIRT, BLOCK.COBBLE, BLOCK.SANDSTONE]);
+    const openPlatformAt = (x, z) => {
+      if (!this.world?.getBlock) return null;
+      for (let y = WORLD_HEIGHT - 2; y >= SEA_LEVEL; y -= 1) {
+        const base = this.world.getBlock(x, y, z);
+        if (!naturalGround.has(base)) continue;
+        let clear = true;
+        for (let dx = -1; dx <= 1 && clear; dx += 1) {
+          for (let dz = -1; dz <= 1 && clear; dz += 1) {
+            const neighbor = this.world.getBlock(x + dx, y, z + dz);
+            if (!naturalGround.has(neighbor)) { clear = false; continue; }
+            for (let dy = 1; dy <= 4; dy += 1) {
+              if (this.world.getBlock(x + dx, y + dy, z + dz) !== BLOCK.AIR) { clear = false; break; }
+            }
+          }
+        }
+        if (clear) return { x, y: y + 1, z };
+      }
+      return null;
+    };
+    for (let distance = 12; distance <= 26; distance += 2) {
+      for (let lateral = -12; lateral <= 12; lateral += 2) {
+        const x = Math.round(this._spawnPos.x - Math.sin(yaw) * distance + Math.cos(yaw) * lateral);
+        const z = Math.round(this._spawnPos.z - Math.cos(yaw) * distance - Math.sin(yaw) * lateral);
+        const platform = openPlatformAt(x, z);
+        if (platform) return platform;
+      }
+    }
+    const fallbackX = Math.round(this._spawnPos.x + Math.cos(yaw) * 6);
+    const fallbackZ = Math.round(this._spawnPos.z + Math.sin(yaw) * 6);
+    const fallbackHeight = Math.floor(heightAt(fallbackX, fallbackZ, this.seed));
+    return {
+      x: fallbackX,
+      y: Number.isFinite(fallbackHeight) ? Math.max(SEA_LEVEL + 1, fallbackHeight + 1) : Math.max(SEA_LEVEL + 1, this._spawnPos.y),
+      z: fallbackZ,
+    };
+  }
+
+  _buildHarborSignalVisual() {
+    const state = this._destinationState;
+    this._clearHarborSignalVisual();
+    if (!this.scene || state?.phase !== 'claimed') return;
+    const position = this._findHarborSignalPosition();
+    if (!position) return;
+    this._harborSignalGroup = createHarborSignal(position);
+    this.scene.add(this._harborSignalGroup);
   }
 
   _discoverJournalEntry(id, owner = 'p1') {
@@ -1648,8 +1709,10 @@ export class Game {
       }
       this._destinationState = claim.state;
       this._discoverJournalEntry('iron_ravine', owner);
+      this._discoverJournalEntry('harbor_signal', owner);
+      this._buildHarborSignalVisual();
       pl.slots = slots;
-      pl.notify('Iron Ravine reward claimed.', 3.2);
+      pl.notify('Iron Ravine reward claimed · Tidewatch Harbor Signal raised at camp.', 3.8);
       this.saveGame({ quiet: true });
       return true;
     }
@@ -4350,6 +4413,7 @@ export class Game {
     this._lightScanAcc += dt;
     updateArrivalLandmark(this._arrivalLandmarkGroup, dt);
     updateTidewatchWreck(this._tidewatchWreckGroup, dt, this.time?.isNight?.() || false);
+    updateHarborSignal(this._harborSignalGroup, dt, this.time?.isNight?.() || false);
     updateForestThreshold(this._forestThresholdGroup, dt);
     if (this._lightScanAcc > 0.5) {
       this._lightScanAcc = 0;
