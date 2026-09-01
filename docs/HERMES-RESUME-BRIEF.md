@@ -6,10 +6,20 @@ Updated: 2026-09-01
 
 - Repository: `/mnt/c/Users/wdavi/Projects/Frontier-Survival`
 - Live: https://wdavidpence.github.io/frontier-survival/
-- Latest product release: **v1.27.0**
-- Published commit/tag: `d7db5e5` / `v1.27.0`
-- Release: Tidewatch Expedition—an authored wreck/lantern/gull landmark connected to a persistent Discovery Log, clear first-voyage cue, shared co-op messaging, original discovery stinger, and the existing expedition reward loop.
-- Live proof: GitHub Pages v1.27.0 exposes `main.js?v=864`; fresh New World reached `started=true` with a hidden title, rendered HUD/world, a visible Tidewatch lead, wreck/gull runtime ownership, and zero page-owned errors.
+- Latest product release: **v1.27.1**
+- Published commit/tag: `bc4c63c` / `v1.27.1`
+- Release: Tidewatch Harbor Signal—claiming the Tidewatch return reward now raises a persistent harbor mast with a route board, twin lanterns, and animated pennants on a nearby clear natural landing. The Discovery Log records the home-cove transformation.
+- Live proof: GitHub Pages v1.27.1 exposes `main.js?v=867` and `game.js?v=843`; fresh New World reached `started=true` with a hidden title, rendered HUD/world, a visible Tidewatch lead, wreck runtime ownership, and zero page-owned errors.
+
+## Verified v1.27.1 evidence
+
+- Full `node tests/smoke.mjs` passed: 462 `PASS` assertions plus 6 TAP subtests.
+- All changed JavaScript syntax checks passed.
+- Root/public HTML parity and `git diff --check` passed.
+- 168 executable relative-import edges audited; zero missing cache-busts.
+- Exact local candidate and live Pages fresh starts reached `started=true` with a hidden title and zero page-owned errors.
+- Controlled claimed-reward runtime proof created the Harbor Signal with 12 child meshes, 2 lanterns, and 2 animated pennants.
+- Visual proof accepted for release health: local controlled and live ordinary frames had readable terrain, water, sky, HUD, and no black/gray renderer artifact. Harbor composition is still an active premium-presentation track, not final Minecraft-class parity.
 
 ## Verified v1.27.0 evidence
 
