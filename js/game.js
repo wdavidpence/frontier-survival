@@ -144,6 +144,7 @@ import { splitViewport } from './viewport-split.js?v=221';
 import { readGamepad } from './input-coop.js?v=262';
 import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=221';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=221';
+import { crewTogetherAt, coopCrewRouteSummary } from './coop-crew-route.js?v=1';
 import { palmLeafDrop } from './palm-drops.js?v=3';
 import { createBoat, normalizeBoatState, mountBoat, dismountBoat, hasRider, stepBoat, degradeBoat, boatRepairPlan, repairBoat, pushBoat, buoyancyY, riderPosition, boatWaterFootprintClear, BOAT_CONFIG } from './boat-entity.js?v=6';
 import { boatAttachChest, createBoatChest } from './boat-chest.js?v=2';
@@ -1639,7 +1640,15 @@ export class Game {
     if (!pl || route?.phase !== 'charted' || !camp) return false;
     if (Math.hypot(pl.position.x - camp.position.x, pl.position.z - camp.position.z) > 4.5) return false;
     this._whiteBayRouteState = surveyWhiteBayRoute(route);
-    pl.notify('White Bay camp surveyed · Return to the Harbor Signal.', 3.6);
+    const together = !!(this.coopMode && crewTogetherAt(this.player, this.player2, camp.position, 8));
+    const message = together
+      ? 'Crew surveyed White Bay together · Return to the Harbor Signal.'
+      : 'White Bay camp surveyed · Return to the Harbor Signal.';
+    pl.notify(message, 3.6);
+    if (together) {
+      const partner = owner === 'p2' ? this.player : this.player2;
+      partner?.notify?.('Shared crew log · White Bay surveyed together.', 3.2);
+    }
     this.saveGame({ quiet: true });
     return true;
   }
@@ -6785,10 +6794,21 @@ export class Game {
     if (whiteBayLive && whiteBay.destination) {
       const bayDistance = Math.hypot(this.player.position.x - whiteBay.destination.x, this.player.position.z - whiteBay.destination.z);
       title.textContent = 'White Bay';
-      status.textContent = `${whiteBayRouteHudSummary(whiteBay)} · ${Math.round(bayDistance)}m`;
+      const together = !!(this.coopMode && crewTogetherAt(this.player, this.player2, whiteBay.destination, 8));
+      const crew = coopCrewRouteSummary({
+        coopMode: this.coopMode,
+        together,
+        routeName: 'White Bay',
+        phase: whiteBay.phase,
+      });
+      status.textContent = crew
+        ? `${crew} · ${Math.round(bayDistance)}m`
+        : `${whiteBayRouteHudSummary(whiteBay)} · ${Math.round(bayDistance)}m`;
       next.textContent = whiteBay.phase === 'charted'
-        ? (this.coopMode ? 'Circle at the overnight camp to survey' : 'F · Survey the White Bay camp')
-        : 'NEXT · Return to the Harbor Signal';
+        ? (this.coopMode
+          ? (together ? 'Circle · Crew survey White Bay together' : 'Circle at the overnight camp to survey')
+          : 'F · Survey the White Bay camp')
+        : (this.coopMode && together ? 'NEXT · Crew return to the Harbor Signal' : 'NEXT · Return to the Harbor Signal');
       if (progressLabel) {
         progressLabel.textContent = whiteBay.phase === 'surveyed'
           ? 'Return to harbor'
