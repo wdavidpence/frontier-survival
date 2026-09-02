@@ -1,12 +1,12 @@
 {
   "project": "frontier-survival",
-  "updated": "2026-09-01",
+  "updated": "2026-09-02",
   "scoreboard": {
-    "current_release_slice": "v1.27.8 Clear Arrival holds a readable first-look sky and HUD for 90 seconds",
+    "current_release_slice": "v1.27.9 Sandbox Feel adds Minecraft-class drops, sneak, chew, leaf decay, and pickup juice",
     "remaining_gap": "Minecraft-class atmosphere, DualSense hardware proof, and a five-minute GPU roam/leak sample remain open"
   },
-  "last_test_report": "476 PASS + 6 TAP; 178 import edges; 0 cache-bust misses",
-  "runtime": "Exact local candidate at :8791 loaded v1.27.8 main.js?v=874 and game.js?v=850. Fresh New World reached started=true with title hidden, weather=clear, decreasing weatherGrace, sky class clear-arrival, and zero page-owned errors.",
-  "visual": "Ordinary local/live cove frames readable; HUD shows Clear arrival; no black/gray renderer artifact.",
-  "mobile": "v1.27.0 mobile title evidence remains valid; v1.27.8 has not changed responsive layout."
+  "last_test_report": "smoke exit 0 including minecraft-feel contracts; HTML parity; syntax and git diff --check clean",
+  "runtime": "Live Pages v1.27.9 loaded main.js?v=875 and game.js?v=851. Fresh start reached started=true with title hidden, _spawnWorldDrop wired, and zero page-owned errors.",
+  "visual": "Ordinary local solo cove frame readable; live Start playable. No black/gray renderer artifact.",
+  "mobile": "v1.27.0 mobile title evidence remains valid; v1.27.9 has not changed responsive layout."
 }

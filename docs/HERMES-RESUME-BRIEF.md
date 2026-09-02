@@ -1,25 +1,23 @@
 # Hermes Resume Brief — Frontier Survival
 
-Updated: 2026-09-01
+Updated: 2026-09-02
 
 ## Current release truth
 
 - Repository: `/mnt/c/Users/wdavi/Projects/Frontier-Survival`
 - Live: https://wdavidpence.github.io/frontier-survival/
-- Latest product release: **v1.27.8**
-- Published commit/tag: `064f39a` / `v1.27.8`
-- Release: Clear Arrival—a new cove stays on a readable clear morning for 90 seconds. The status HUD reports Clear arrival, and the sky backdrop warms while that grace remains. Weather then rolls normally.
-- Live proof: GitHub Pages v1.27.8 exposes `main.js?v=874` and `game.js?v=850`; fresh New World reached `started=true` with a hidden title, rendered HUD/world including `Clear arrival`, decreasing `weatherGrace`, sky class `clear-arrival`, Tidewatch wreck ownership, and zero page-owned errors.
+- Latest product release: **v1.27.9**
+- Published commit/tag: `063c0be` / `v1.27.9`
+- Release: Sandbox Feel—mined/Q/death items bounce and magnet, sneak lowers the camera and clings to ledges, eating chews, unsupported leaves decay, plus footstep dust, water bubbles, mine-punch SFX, knockback, hotbar name fade, and pickup pops.
+- Live proof: GitHub Pages v1.27.9 exposes `main.js?v=875` and `game.js?v=851`; fresh start reached `started=true` with a hidden title, `_spawnWorldDrop` wired, and zero page-owned errors.
 
-## Verified v1.27.8 evidence
+## Verified v1.27.9 evidence
 
-- Full `node tests/smoke.mjs` passed: 476 `PASS` assertions plus 6 TAP subtests, including clear-arrival contracts.
+- Full `node tests/smoke.mjs` passed, including minecraft-feel contracts.
 - All changed JavaScript syntax checks passed.
 - Root/public HTML parity and `git diff --check` passed.
-- 178 executable relative-import edges audited; zero missing cache-busts.
-- Exact local candidate at `127.0.0.1:8791` and live Pages fresh starts reached `started=true` with a hidden title and zero page-owned errors.
-- Runtime probe exposed `time.weather === 'clear'`, decreasing `weatherGrace`, HUD copy, and `#sky-backdrop.clear-arrival`.
-- Visual proof accepted for release health: ordinary local/live frames had readable terrain, water, sky, HUD, and no black/gray renderer artifact.
+- Exact local candidate at `127.0.0.1:8792` and live Pages starts reached `started=true` with a hidden title and zero page-owned errors.
+- Visual proof: ordinary local solo cove frame was readable (sand, water, palms, sky, HUD, no black/gray renderer artifact). Live Start also reached a playable world; the captured live frame was split-screen because co-op settings persisted in that browser.
 
 ## Operational state
 
@@ -27,4 +25,4 @@ Updated: 2026-09-01
 
 ## Next bounded product slice
 
-A five-minute roam/reload leak sample on real GPU hardware, or DualSense hardware proof. Do not treat the automation hitching verdict as a laptop-GPU measurement. This checkpoint does not complete Minecraft-class atmosphere.
+A five-minute roam/reload leak sample on real GPU hardware, or DualSense hardware proof. This checkpoint does not complete Minecraft-class atmosphere.
