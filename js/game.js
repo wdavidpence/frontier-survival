@@ -96,7 +96,8 @@ import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
 import { placementState } from './placement-preview.js?v=1';
 import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=328';
-import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=32';
+import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=33';
+import { sunDirection, moonDirection, skyGlowFromNdc, shadowFollow } from './atmosphere-sky.js?v=1';
 import {
   equipmentWarmth,
   equipmentArmor,
@@ -365,6 +366,9 @@ export class Game {
     this.sun.shadow.camera.top = 72;
     this.sun.shadow.camera.bottom = -72;
     this.sun.position.set(32, 72, 24);
+    this.scene.add(this.sun.target);
+    this._sunAzimuth = 0.92;
+    this._sunNdc = new THREE.Vector3();
     // A restrained cool fill keeps the sun-facing contact edges legible without
     // flattening the warm key light or making shadowed terrain read as black.
     this.fill = new THREE.DirectionalLight(0x9fc8df, 0.22);
@@ -1190,6 +1194,7 @@ export class Game {
       this.player.pitch = 0;
       this.input.lookX = this.player.yaw;
       this.input.lookY = this.player.pitch;
+      this._sunAzimuth = this.player.yaw;
       if (spawn.landmark) {
         this._lastBiome = biomeAt(spawn.x, spawn.z, seed);
         this._wildlifeQuietT = 0;
@@ -1226,6 +1231,7 @@ export class Game {
       this.player.pitch = saveData.player.pitch || 0;
       this.input.lookX = this.player.yaw;
       this.input.lookY = this.player.pitch;
+      this._sunAzimuth = Number.isFinite(saveData.sunAzimuth) ? saveData.sunAzimuth : this.player.yaw;
       this.player.hotbarIndex = saveData.player.hotbarIndex || 0;
       this.player.slots = cloneSlots(saveData.player.slots);
       this.player.equipment = saveData.player.equipment
@@ -6649,14 +6655,23 @@ export class Game {
     const weatherMix = this.time.weather === 'rain' ? 0.2 : this.time.weather === 'snow' ? 0.28 : 0;
     const flash = this._stormFlashT > 0 ? Math.min(1, this._stormFlashT * 5) : 0;
 
-    // Move the key light through a broad arc so terrain relief, tree crowns, and
-    // water highlights describe the time of day instead of staying stage-flat.
-    const sunArc = ((phase - 0.05) / 0.5) * Math.PI;
-    const sunY = Math.max(10, Math.sin(sunArc) * 78);
-    const sunX = Math.cos(sunArc) * 64;
-    const sunZ = Math.sin(sunArc) * 42;
-    this.sun.position.set(sunX, sunY, sunZ);
-    this.fill.position.set(-sunX * 0.55, Math.max(18, sunY * 0.42), -sunZ * 0.55);
+    // Move the key light through a broad arc aligned to the arrival vista so the
+    // sun sits in the opening sky instead of a hardcoded world axis.
+    const sun = sunDirection(phase, this._sunAzimuth ?? 0.92);
+    const moon = moonDirection(phase, this._sunAzimuth ?? 0.92);
+    const _sdx = sun.x, _sdy = sun.y, _sdz = sun.z;
+    const _mdx = moon.x, _mdy = moon.y, _mdz = moon.z;
+    const follow = this.player
+      ? shadowFollow(this.player.position, sun, 70)
+      : { lightX: _sdx * 70, lightY: _sdy * 70, lightZ: _sdz * 70, targetX: 0, targetY: 0, targetZ: 0 };
+    this.sun.position.set(follow.lightX, follow.lightY, follow.lightZ);
+    this.sun.target.position.set(follow.targetX, follow.targetY, follow.targetZ);
+    this.sun.target.updateMatrixWorld();
+    this.fill.position.set(
+      follow.targetX - _sdx * 38,
+      follow.targetY + Math.max(18, _sdy * 28),
+      follow.targetZ - _sdz * 38,
+    );
 
     palette.top.setHex(0x2966b0).lerp(palette.nightTop, nightMix);
     palette.mid.setHex(0x72bce8).lerp(palette.nightMid, nightMix);
@@ -6693,18 +6708,6 @@ export class Game {
       this._skyBackdrop.style.setProperty('--sky-horizon', `#${palette.horizon.getHexString()}`);
       this._skyBackdrop.style.setProperty('--sky-ground', `#${palette.ground.getHexString()}`);
     }
-    // Normalized sun direction for sky shader and disc placement.
-    const _sunLen = Math.hypot(sunX, sunY, sunZ) || 1;
-    const _sdx = sunX / _sunLen, _sdy = sunY / _sunLen, _sdz = sunZ / _sunLen;
-
-    // Moon arc: 12-hour offset from sun so it rises as the sun sets.
-    const moonPhase = (phase + 0.5) % 1.0;
-    const moonArc = ((moonPhase - 0.05) / 0.5) * Math.PI;
-    const moonRawX = Math.cos(moonArc) * 64;
-    const moonRawY = Math.sin(moonArc) * 78;
-    const moonRawZ = Math.sin(moonArc) * 42;
-    const _moonLen = Math.hypot(moonRawX, moonRawY, moonRawZ) || 1;
-    const _mdx = moonRawX / _moonLen, _mdy = moonRawY / _moonLen, _mdz = moonRawZ / _moonLen;
 
     if (this.skyDome) {
       this.skyDome.visible = false;
@@ -6720,6 +6723,18 @@ export class Game {
     }
     this.sunDisc?.update(_sdx, _sdy, _sdz, _mdx, _mdy, _mdz, this.camera.position, nightMix);
     this.starField?.update(nightMix, this.camera.position);
+    if (this._skyBackdrop && this.camera && this._sunNdc) {
+      this._sunNdc.set(
+        this.camera.position.x + _sdx * 162,
+        this.camera.position.y + _sdy * 162,
+        this.camera.position.z + _sdz * 162,
+      );
+      this._sunNdc.project(this.camera);
+      const glow = skyGlowFromNdc(this._sunNdc.x, this._sunNdc.y, this._sunNdc.z);
+      this._skyBackdrop.style.setProperty('--sun-x', `${glow.x.toFixed(1)}%`);
+      this._skyBackdrop.style.setProperty('--sun-y', `${glow.y.toFixed(1)}%`);
+      this._skyBackdrop.style.setProperty('--sun-glow', glow.visible ? (nightMix > 0.55 ? '0.35' : '0.9') : '0');
+    }
     // Fog: horizon-tinted for depth; lean slightly toward mid-blue for readability.
     palette.fog.copy(palette.horizon).lerp(palette.mid, 0.38);
     this.scene.fog.color.copy(palette.fog);

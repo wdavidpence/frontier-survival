@@ -253,7 +253,9 @@ export class SunDisc {
     this._sunGlow.position.copy(this._sun.position);
     this._sun.visible = sy > 0.02 && nightMix < 0.82;
     this._sunGlow.visible = this._sun.visible;
-    this._sunGlowMat.opacity = this._sun.visible ? (0.22 + elevT * 0.28) * (1.0 - nightMix) : 0;
+    this._sunGlowMat.opacity = this._sun.visible ? (0.34 + elevT * 0.38) * (1.0 - nightMix) : 0;
+    this._sun.scale.setScalar(1.15 + elevT * 0.12);
+    this._sunGlow.scale.setScalar(1.35 + (1 - elevT) * 0.45);
 
     this._moon.position.set(
       cameraPos.x + mx * DIST,
@@ -261,8 +263,10 @@ export class SunDisc {
       cameraPos.z + mz * DIST
     );
     this._moonGlow.position.copy(this._moon.position);
-    this._moon.visible = false;
-    this._moonGlow.visible = false;
+    const moonUp = my > 0.04 && nightMix > 0.22;
+    this._moon.visible = moonUp;
+    this._moonGlow.visible = moonUp;
+    this._moonGlowMat.opacity = moonUp ? 0.16 + nightMix * 0.22 : 0;
   }
 
   dispose() {

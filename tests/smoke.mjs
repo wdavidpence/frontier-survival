@@ -19,6 +19,7 @@ import './streaming-confidence-integration.mjs';
 import './clear-arrival.mjs';
 import './clear-arrival-integration.mjs';
 import './minecraft-feel.mjs';
+import './atmosphere-sky.mjs';
 import { sandyBeachHeight } from '../js/shore-water.js';
 import { chooseCastawayCandidate, createCastawayArrival, restoreCastawayArrival, castawayObjective } from '../js/castaway-arrival.js';
 
@@ -4874,7 +4875,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=280/);
   assert.match(game, /animal-visuals.js\?v=259/);
-  assert.match(main, /game\.js\?v=851/);
+  assert.match(main, /game\.js\?v=852/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5918,7 +5919,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.27.9'), 'HTML must expose v1.27.9');
+  assert.ok(html.includes('v1.27.10'), 'HTML must expose v1.27.10');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -6277,7 +6278,21 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=875/);
+  assert.match(html, /main\.js\?v=876/);
+});
+
+test('arrival sun sits in the opening sky and shadows follow the player', () => {
+  const game = fsText('js/game.js');
+  const clouds = fsText('js/sky-clouds.js');
+  const html = fsText('index.html');
+  assert.match(game, /atmosphere-sky\.js\?v=1/);
+  assert.match(game, /sunDirection\(phase/);
+  assert.match(game, /shadowFollow/);
+  assert.match(game, /skyGlowFromNdc/);
+  assert.match(game, /this\._sunAzimuth = this\.player\.yaw/);
+  assert.match(clouds, /const moonUp = my > 0\.04 && nightMix > 0\.22/);
+  assert.match(html, /--sun-x/);
+  assert.match(html, /--sun-glow/);
 });
 
 if (process.exitCode) process.exit(1);
