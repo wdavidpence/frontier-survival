@@ -450,6 +450,18 @@ export class AudioBus {
     this.beep(400, 0.06, 'sine', 0.12);
     this.beep(300, 0.08, 'sine', 0.1);
   }
+  pickup() {
+    this.beep(880, 0.04, 'sine', 0.07);
+    this.beep(1240, 0.06, 'triangle', 0.045);
+  }
+  chew() {
+    this.beep(280 + Math.random() * 40, 0.05, 'sine', 0.07);
+    this.beep(190, 0.07, 'triangle', 0.05);
+  }
+  minePunch() {
+    this.beep(150 + Math.random() * 40, 0.035, 'triangle', 0.08);
+    this.beep(90, 0.05, 'square', 0.04);
+  }
   step(surface = 'dirt') {
     let base = 60;
     if (surface === 'stone' || surface === 'cobble') base = 90;

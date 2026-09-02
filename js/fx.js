@@ -141,7 +141,66 @@ export class BreakFX {
 
       this.scene.add(m);
       const maxLife = 0.45 + Math.random() * 0.35;
-      this.particles.push({ mesh: m, vx, vy, vz, life: maxLife, maxLife });
+      this.particles.push({ mesh: m, vx, vy, vz, life: maxLife, maxLife, grav: 14 });
+    }
+  }
+
+  /**
+   * Soft surface dust / chew crumbs. Smaller and shorter than a break burst.
+   */
+  puff(x, y, z, color = [0.55, 0.5, 0.4], count = 6) {
+    const cx = x + 0.5;
+    const cy = y + 0.08;
+    const cz = z + 0.5;
+    const capped = Math.min(count, 10);
+    for (let i = 0; i < capped; i++) {
+      const size = 0.03 + Math.random() * 0.04;
+      const geo = new THREE.BoxGeometry(size, size, size);
+      const r = Math.max(0, Math.min(1, color[0] + (Math.random() - 0.5) * 0.2));
+      const g = Math.max(0, Math.min(1, color[1] + (Math.random() - 0.5) * 0.2));
+      const b = Math.max(0, Math.min(1, color[2] + (Math.random() - 0.5) * 0.2));
+      const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(r, g, b), transparent: true, opacity: 0.92 });
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(cx + (Math.random() - 0.5) * 0.35, cy, cz + (Math.random() - 0.5) * 0.35);
+      this.scene.add(m);
+      const maxLife = 0.28 + Math.random() * 0.18;
+      this.particles.push({
+        mesh: m,
+        vx: (Math.random() - 0.5) * 1.4,
+        vy: 0.6 + Math.random() * 1.1,
+        vz: (Math.random() - 0.5) * 1.4,
+        life: maxLife,
+        maxLife,
+        grav: 8,
+      });
+    }
+  }
+
+  /** Rising underwater breath bubbles. */
+  bubble(x, y, z, count = 3) {
+    const capped = Math.min(count, 8);
+    for (let i = 0; i < capped; i++) {
+      const size = 0.04 + Math.random() * 0.05;
+      const geo = new THREE.SphereGeometry(size, 6, 4);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xcfefff,
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false,
+      });
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x + (Math.random() - 0.5) * 0.28, y + Math.random() * 0.2, z + (Math.random() - 0.5) * 0.28);
+      this.scene.add(m);
+      const maxLife = 0.7 + Math.random() * 0.45;
+      this.particles.push({
+        mesh: m,
+        vx: (Math.random() - 0.5) * 0.25,
+        vy: 0.7 + Math.random() * 0.55,
+        vz: (Math.random() - 0.5) * 0.25,
+        life: maxLife,
+        maxLife,
+        grav: -1.6,
+      });
     }
   }
 
@@ -168,7 +227,7 @@ export class BreakFX {
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.life -= dt;
-      p.vy -= 14 * dt;
+      p.vy -= (p.grav ?? 14) * dt;
       p.mesh.position.x += p.vx * dt;
       p.mesh.position.y += p.vy * dt;
       p.mesh.position.z += p.vz * dt;

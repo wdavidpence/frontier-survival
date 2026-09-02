@@ -18,6 +18,7 @@ import './streaming-confidence.mjs';
 import './streaming-confidence-integration.mjs';
 import './clear-arrival.mjs';
 import './clear-arrival-integration.mjs';
+import './minecraft-feel.mjs';
 import { sandyBeachHeight } from '../js/shore-water.js';
 import { chooseCastawayCandidate, createCastawayArrival, restoreCastawayArrival, castawayObjective } from '../js/castaway-arrival.js';
 
@@ -4873,7 +4874,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=280/);
   assert.match(game, /animal-visuals.js\?v=259/);
-  assert.match(main, /game\.js\?v=850/);
+  assert.match(main, /game\.js\?v=851/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5917,7 +5918,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.27.8'), 'HTML must expose v1.27.8');
+  assert.ok(html.includes('v1.27.9'), 'HTML must expose v1.27.9');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
@@ -6251,6 +6252,32 @@ test('tropical ecology sprint exposes six additions, coconuts, and root foods', 
   assert.match(world, /instance\.y \+ 0\.82, 0\.34, 0\.24/);
   assert.match(world, /instance\.y \+ 0\.92, 0\.28, 0\.14/);
   assert.match(world, /instance\.y \+ 0\.18, 0\.08, 0\.28/);
+});
+
+test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
+  const game = fsText('js/game.js');
+  const player = fsText('js/player.js');
+  const fx = fsText('js/fx.js');
+  const audio = fsText('js/audio.js');
+  const html = fsText('index.html');
+  assert.match(game, /minecraft-feel\.js\?v=1/);
+  assert.match(game, /_spawnWorldDrop/);
+  assert.match(game, /_tickWorldDrops/);
+  assert.match(game, /_queueLeafDecay/);
+  assert.match(game, /startChew/);
+  assert.match(game, /knockbackVelocity/);
+  assert.match(game, /hotbarNameTick/);
+  assert.match(game, /this\.fx\.puff/);
+  assert.match(game, /this\.fx\.bubble/);
+  assert.match(game, /audio\.minePunch/);
+  assert.match(player, /this\.eyeY/);
+  assert.match(player, /this\.height/);
+  assert.match(fx, /puff\(x, y, z/);
+  assert.match(fx, /bubble\(x, y, z/);
+  assert.match(audio, /pickup\(\)/);
+  assert.match(html, /pickup-pops/);
+  assert.match(html, /hotbar-name\.show/);
+  assert.match(html, /main\.js\?v=875/);
 });
 
 if (process.exitCode) process.exit(1);

@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=549';
-import { Player } from './player.js?v=241';
+import { Player } from './player.js?v=242';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=227';
-import { AudioBus } from './audio.js?v=241';
+import { AudioBus } from './audio.js?v=242';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
@@ -72,7 +72,22 @@ import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=280';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=259';
 import { createBlockAtlas } from './atlas.js?v=346';
-import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=290';
+import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=291';
+import {
+  spawnWorldDrop,
+  throwDropFromLook,
+  tickWorldDrop,
+  dropVisualY,
+  startChew,
+  tickChew,
+  knockbackVelocity,
+  hotbarNameTick,
+  isLogId,
+  collectUnsupportedLeaves,
+  staggerLeafDecay,
+  MAX_WORLD_DROPS,
+  MINE_PUNCH_SECONDS,
+} from './minecraft-feel.js?v=1';
 import { PollinatorHabitatFX } from './pollinator-habitat.js?v=1';
 import { apiaryHarvest } from './apiary-state.js?v=1';
 import { underwaterFogStyle } from './underwater-fog.js?v=246';
@@ -426,6 +441,15 @@ export class Game {
     this._fpsAcc = 0;
     this._fpsFrames = 0;
     this._wasInWater = false;
+    this._worldDrops = [];
+    this._worldDropMeshes = [];
+    this._chew = null;
+    this._leafDecay = [];
+    this._hotbarNameId = undefined;
+    this._hotbarNameT = 0;
+    this._hotbarPopIndex = -1;
+    this._bubbleAcc = 0;
+    this._minePunchAcc = 0;
     this._cameraInWater = false;
     this._cameraMotionT = 0;
     this._cameraBob = 0;
@@ -1098,6 +1122,9 @@ export class Game {
     this._stairFace = new Map();
     this._bedFace = new Map();
     this._builtEdits = new Map();
+    this._clearWorldDrops();
+    this._chew = null;
+    this._leafDecay = [];
     this._clearArrivalLandmarkVisual();
     this._clearForestThresholdVisual();
     if (this.world) {
@@ -4073,6 +4100,30 @@ export class Game {
           [0.55, 0.75, 1.0],
           8,
         );
+      } else if (!move.inWater && this._wasInWater) {
+        this.audio.splash?.();
+        this.fx.puff?.(
+          this.player.position.x - 0.5,
+          this.player.position.y - 0.15,
+          this.player.position.z - 0.5,
+          [0.62, 0.82, 1.0],
+          10,
+        );
+      }
+      if (move.inWater) {
+        this._bubbleAcc = (this._bubbleAcc || 0) + dt;
+        const headId = this.world.getBlock(
+          this.player.position.x,
+          this.player.position.y + (this.player.eyeY ?? 1.55),
+          this.player.position.z,
+        );
+        if (headId === BLOCK.WATER && this._bubbleAcc > 0.42) {
+          this._bubbleAcc = 0;
+          const eye = this.player.eyePosition();
+          this.fx.bubble?.(eye.x, eye.y - 0.12, eye.z, 3);
+        }
+      } else {
+        this._bubbleAcc = 0;
       }
       this._wasInWater = move.inWater;
 
@@ -4389,6 +4440,13 @@ export class Game {
         dmg = mitigatePhysicalDamage(dmg, equipmentArmor(this.player.equipment));
         this.survival = applyDamage(this.survival, dmg, 'wolf');
         this.audio.hurt();
+        if (attacker) {
+          const kb = knockbackVelocity(this.player.position.x, this.player.position.z, attacker.x, attacker.z, 7.4);
+          this.player.velocity.x += kb.x;
+          this.player.velocity.z += kb.z;
+          this.player.velocity.y = Math.max(this.player.velocity.y, kb.y);
+          this._cameraLandKick = Math.min(1, this._cameraLandKick + 0.55);
+        }
       }
       if ((fa.player2Damage || 0) > 0 && this.survival2 && this.player2) {
         let dmg = fa.player2Damage;
@@ -4518,6 +4576,14 @@ export class Game {
             this.player.position.z,
           );
           this.audio.step(this._surfaceName(under));
+          const dust = getColor(under, 'side') || [0.55, 0.48, 0.36];
+          this.fx.puff?.(
+            this.player.position.x - 0.5,
+            this.player.position.y - 0.95,
+            this.player.position.z - 0.5,
+            dust,
+            move.sprinting ? 7 : 4,
+          );
           // path wear on grass -> dirt
           if (under === BLOCK.GRASS) {
             const fx = Math.floor(this.player.position.x);
@@ -4608,6 +4674,9 @@ export class Game {
 
     this.world.flushDirty();
     this.fx.tick(dt);
+    this._tickWorldDrops(dt);
+    this._tickLeafDecay(dt);
+    this._tickChew(dt);
     this.clouds?.update(dt, this.camera);
     this._lightScanAcc += dt;
     updateArrivalLandmark(this._arrivalLandmarkGroup, dt);
@@ -4637,6 +4706,13 @@ export class Game {
   _onDeath() {
     const mode = this.modeDef();
     if (mode.deathDrops && this.player) {
+      const px = this.player.position.x;
+      const py = this.player.position.y;
+      const pz = this.player.position.z;
+      for (const stack of this.player.slots || []) {
+        if (stack?.id == null || !stack.count) continue;
+        this._spawnWorldDrop(stack.id, stack.count, px, py, pz);
+      }
       this.player.slots = emptySlots();
       this.player.equipment = emptyEquipment();
       this.player.notify('Your pack spilled into the wild.', 4);
@@ -4675,6 +4751,15 @@ export class Game {
     const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
     if (!cons.ok) return;
     this.player.slots = cons.slots;
+    const look = this.player.lookDir();
+    const eye = this.player.eyePosition();
+    const thrown = throwDropFromLook(cons.id, 1, eye, look, 6.2);
+    this._spawnWorldDrop(cons.id, 1, thrown.x - 0.5, thrown.y - 0.55, thrown.z - 0.5, {
+      vx: thrown.vx,
+      vy: thrown.vy,
+      vz: thrown.vz,
+      pickupDelay: thrown.pickupDelay,
+    });
     this.audio.ui();
     this.player.notify(`Dropped 1 ${displayName(cons.id)}.`, 1.4);
   }
@@ -5046,6 +5131,171 @@ export class Game {
     this._actionCueT = 1.1;
   }
 
+  _dropColor(id) {
+    const item = propsOf(id);
+    if (item?.color) return item.color;
+    try {
+      return getColor(id, 'side') || [0.72, 0.62, 0.42];
+    } catch {
+      return [0.72, 0.62, 0.42];
+    }
+  }
+
+  _dropGroundY(x, y, z) {
+    let iy = Math.floor(y);
+    for (let i = 0; i < 12; i++) {
+      if (isSolid(this.world.getBlock(x, iy, z))) return iy + 1;
+      iy--;
+    }
+    return iy + 1;
+  }
+
+  _clearWorldDrops() {
+    if (this._worldDropMeshes) {
+      for (const mesh of this._worldDropMeshes) {
+        this.scene?.remove(mesh);
+        mesh.geometry?.dispose?.();
+        mesh.material?.dispose?.();
+      }
+    }
+    this._worldDrops = [];
+    this._worldDropMeshes = [];
+  }
+
+  _spawnWorldDrop(id, count, x, y, z, extra = {}) {
+    if (id == null || id === BLOCK.AIR || !count) return;
+    if (!this._worldDrops) this._worldDrops = [];
+    if (!this._worldDropMeshes) this._worldDropMeshes = [];
+    while (this._worldDrops.length >= MAX_WORLD_DROPS) {
+      const old = this._worldDrops.shift();
+      const mesh = this._worldDropMeshes.shift();
+      if (mesh) {
+        this.scene.remove(mesh);
+        mesh.geometry?.dispose?.();
+        mesh.material?.dispose?.();
+      }
+      void old;
+    }
+    const drop = spawnWorldDrop({
+      id,
+      count,
+      x: x + 0.5 + ((Math.random() - 0.5) * 0.35),
+      y: y + 0.55,
+      z: z + 0.5 + ((Math.random() - 0.5) * 0.35),
+      vx: extra.vx ?? (Math.random() - 0.5) * 3.2,
+      vy: extra.vy ?? (3.6 + Math.random() * 2.2),
+      vz: extra.vz ?? (Math.random() - 0.5) * 3.2,
+      pickupDelay: extra.pickupDelay,
+    });
+    this._worldDrops.push(drop);
+    const col = this._dropColor(id);
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.28, 0.28, 0.28),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color(col[0], col[1], col[2]),
+      }),
+    );
+    mesh.position.set(drop.x, dropVisualY(drop), drop.z);
+    this.scene.add(mesh);
+    this._worldDropMeshes.push(mesh);
+  }
+
+  _showPickupPop(text) {
+    const root = document.getElementById('pickup-pops');
+    if (!root) return;
+    const el = document.createElement('div');
+    el.className = 'pickup-pop';
+    el.textContent = text;
+    root.appendChild(el);
+    setTimeout(() => el.remove(), 1200);
+  }
+
+  _tickWorldDrops(dt) {
+    if (!this._worldDrops?.length) return;
+    const player = {
+      x: this.player.position.x,
+      y: this.player.position.y,
+      z: this.player.position.z,
+    };
+    for (let i = this._worldDrops.length - 1; i >= 0; i--) {
+      const drop = this._worldDrops[i];
+      const { collected } = tickWorldDrop(drop, dt, {
+        groundY: this._dropGroundY(drop.x, drop.y, drop.z),
+        player,
+      });
+      const mesh = this._worldDropMeshes[i];
+      if (mesh) {
+        mesh.position.set(drop.x, dropVisualY(drop), drop.z);
+        mesh.rotation.y += dt * 2.5;
+        mesh.rotation.x = 0.25;
+      }
+      if (!collected) continue;
+      const add = addItems(this.player.slots, drop.id, drop.count);
+      this.player.slots = add.slots;
+      if (add.leftover > 0) {
+        drop.count = add.leftover;
+        continue;
+      }
+      this.audio.pickup?.() || this.audio.ui();
+      this._showPickupPop(`+${drop.count} ${displayName(drop.id)}`);
+      this._worldDrops.splice(i, 1);
+      const gone = this._worldDropMeshes.splice(i, 1)[0];
+      if (gone) {
+        this.scene.remove(gone);
+        gone.geometry?.dispose?.();
+        gone.material?.dispose?.();
+      }
+    }
+  }
+
+  _queueLeafDecay(x, y, z) {
+    if (!this.world) return;
+    const leaves = collectUnsupportedLeaves(
+      (lx, ly, lz) => this.world.getBlock(lx, ly, lz),
+      { x, y, z },
+      6,
+      4,
+    );
+    if (!this._leafDecay) this._leafDecay = [];
+    this._leafDecay.push(...staggerLeafDecay(leaves, 0.1));
+  }
+
+  _tickLeafDecay(dt) {
+    if (!this._leafDecay?.length) return;
+    for (let i = this._leafDecay.length - 1; i >= 0; i--) {
+      const leaf = this._leafDecay[i];
+      leaf.delay -= dt;
+      if (leaf.delay > 0) continue;
+      const id = this.world.getBlock(leaf.x, leaf.y, leaf.z);
+      this._leafDecay.splice(i, 1);
+      if (id !== leaf.id) continue;
+      const col = getColor(id, 'side');
+      this.fx.puff?.(leaf.x, leaf.y, leaf.z, col, 5) || this.fx.burst(leaf.x, leaf.y, leaf.z, col, 5);
+      this.world.excavateBlock(leaf.x, leaf.y, leaf.z);
+      if (Math.random() < 0.22) this._spawnWorldDrop(ITEM.STICK, 1, leaf.x, leaf.y, leaf.z);
+      else if (Math.random() < 0.08) this._spawnWorldDrop(ITEM.APPLE, 1, leaf.x, leaf.y, leaf.z);
+    }
+  }
+
+  _tickChew(dt) {
+    if (!this._chew) return;
+    if (this.player.heldId() !== this._chew.id) {
+      this._chew = null;
+      return;
+    }
+    const result = tickChew(this._chew, dt);
+    this._chew = result.state;
+    this._heldSwingT = Math.max(this._heldSwingT, 0.18);
+    if (result.crumb) {
+      this.audio.chew?.() || this.audio.eat();
+      const eye = this.player.eyePosition();
+      const dir = this.player.lookDir();
+      const col = this._dropColor(result.id);
+      this.fx.puff?.(eye.x + dir.x - 0.5, eye.y + dir.y - 0.2, eye.z + dir.z - 0.5, col, 4);
+    }
+    if (result.done) this._finishChew(result.id);
+  }
+
   _handleMining(dt) {
     const origin = this.player.eyePosition();
     const dir = this.player.lookDir();
@@ -5141,6 +5391,11 @@ export class Game {
       );
       this.player.breaking.progress += dt / (workDuration ?? harvestDuration);
       this.fx.setCrack(hit, this.player.breaking.progress);
+      this._minePunchAcc = (this._minePunchAcc || 0) + dt;
+      if (this._minePunchAcc >= MINE_PUNCH_SECONDS) {
+        this._minePunchAcc = 0;
+        this.audio.minePunch?.() || this.audio.hit?.() || this.audio.breakBlock();
+      }
       if (this.player.breaking.progress >= 1) {
         let drop = resolveBlockDrop(hit.id, dropForBlock);
         let dropCount = 1;
@@ -5153,16 +5408,13 @@ export class Game {
         }
         if (hit.id === BLOCK.PALM_LEAVES) drop = palmLeafDrop(hit.id, Math.random());
         if (hit.id === BLOCK.GRASS && Math.random() < 0.12) {
-          // bonus seeds when ripping grass
-          const bonus = addItems(this.player.slots, ITEM.SEEDS, 1);
-          this.player.slots = bonus.slots;
+          this._spawnWorldDrop(ITEM.SEEDS, 1, hit.x, hit.y, hit.z);
         }
         if (hit.id === BLOCK.BUSH) {
           drop = ITEM.BERRIES;
           dropCount = 1 + (Math.random() < 0.4 ? 1 : 0);
           if (Math.random() < 0.35) {
-            const s = addItems(this.player.slots, ITEM.SEEDS, 1);
-            this.player.slots = s.slots;
+            this._spawnWorldDrop(ITEM.SEEDS, 1, hit.x, hit.y, hit.z);
           }
         }
         if (hit.id === BLOCK.CROP) {
@@ -5177,8 +5429,8 @@ export class Game {
               drop = ITEM.WHEAT;
               dropCount = 1 + (Math.random() < 0.5 ? 1 : 0);
             }
-            const s = addItems(this.player.slots, ITEM.SEEDS, 1 + (Math.random() < 0.4 ? 1 : 0));
-            this.player.slots = s.slots;
+            const sCount = 1 + (Math.random() < 0.4 ? 1 : 0);
+            this._spawnWorldDrop(ITEM.SEEDS, sCount, hit.x, hit.y, hit.z);
           } else {
             drop = ITEM.SEEDS;
             dropCount = 1;
@@ -5190,6 +5442,7 @@ export class Game {
         this.fx.hideCrack();
         this.world.excavateBlock(hit.x, hit.y, hit.z);
         this._builtEdits.delete(`${hit.x|0},${hit.y|0},${hit.z|0}`);
+        if (isLogId(hit.id)) this._queueLeafDecay(hit.x, hit.y, hit.z);
         this.audio.breakBlock();
         this._showActionCue(`Mined ${displayName(hit.id)}`);
         this.player.breaking = null;
@@ -5199,13 +5452,8 @@ export class Game {
           if (w.broken) this.player.notify('Tool broke!');
         }
         if (drop && drop !== BLOCK.AIR) {
-          const res = addItems(this.player.slots, drop, dropCount);
-          this.player.slots = res.slots;
-          if (res.leftover > 0) {
-            this.player.notify('Inventory full — drop lost.');
-          } else {
-            this.player.notify(`+${dropCount} ${displayName(drop)}`, 1.4);
-          }
+          this._spawnWorldDrop(drop, dropCount, hit.x, hit.y, hit.z);
+          this.player.notify(`+${dropCount} ${displayName(drop)}`, 1.4);
         }
         if (this._actionCueText) this.player.notify(`✦ ${this._actionCueText}`, 1.1);
       }
@@ -5284,6 +5532,7 @@ export class Game {
       this._builtEdits.set(`${px|0},${py|0},${pz|0}`, blockId);
       this._placeT = 0.38;
       this.audio.placeBlock();
+      this.fx.puff?.(px, py, pz, getColor(blockId, 'side') || [0.6, 0.55, 0.45], 5);
       this._showActionCue(`Placed ${displayName(blockId)}`);
       if (blockId === CRAFTING_TABLE) {
         this.player.notify('Crafting table placed. Look at it and press F to craft.', 2.4);
@@ -5360,6 +5609,7 @@ export class Game {
   }
 
   _handleEat() {
+    if (this._chew) return;
     if (!this.input.consumeEat()) return;
     const held = this.player.heldStack();
     const p = propsOf(held.id);
@@ -5395,15 +5645,8 @@ export class Game {
     }
 
     if (p?.heal && p?.edible && held.count > 0) {
-      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
-      if (!cons.ok) return;
-      this.player.slots = cons.slots;
-      this.survival = eatFood(this.survival, p.edible, 1);
-      this.survival = { ...this.survival, health: Math.min(this.survival.maxHealth, this.survival.health + p.heal) };
-      this._nourishT = 0.34;
-      this._recoverT = 0.28;
-      this.audio.honeySip?.() || this.audio.eat();
-      this.player.notify(`Ate ${p.name}. +${p.edible} hunger, +${p.heal} health.`, 2.4);
+      this._chew = startChew(held.id);
+      this.player.notify(`Eating ${p.name}…`, 1.2);
       return;
     }
 
@@ -5427,9 +5670,44 @@ export class Game {
       return;
     }
     if (p?.edible && held.count > 0) {
-      const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
-      if (!cons.ok) return;
-      this.player.slots = cons.slots;
+      this._chew = startChew(held.id);
+      this.player.notify(`Eating ${p.name}…`, 1.2);
+      return;
+    }
+    // prefer cooked meat anywhere
+    if (countItems(this.player.slots, ITEM.COOKED_MEAT) > 0) {
+      this._chew = startChew(ITEM.COOKED_MEAT);
+      this.player.notify('Eating cooked meat…', 1.2);
+      return;
+    }
+    if (countItems(this.player.slots, ITEM.RATION) > 0) {
+      this._chew = startChew(ITEM.RATION);
+      this.player.notify('Eating ration…', 1.2);
+      return;
+    }
+    this.player.notify('No safe food. Hunt, cook at fire (E), or eat rations (R).');
+  }
+
+  _finishChew(itemId) {
+    const p = propsOf(itemId);
+    let cons;
+    if (this.player.heldId() === itemId) {
+      cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+    } else {
+      cons = removeItems(this.player.slots, itemId, 1);
+    }
+    if (!cons.ok) return;
+    this.player.slots = cons.slots;
+    if (p?.heal && p?.edible) {
+      this.survival = eatFood(this.survival, p.edible, 1);
+      this.survival = { ...this.survival, health: Math.min(this.survival.maxHealth, this.survival.health + p.heal) };
+      this._nourishT = 0.34;
+      this._recoverT = 0.28;
+      this.audio.honeySip?.() || this.audio.eat();
+      this.player.notify(`Ate ${p.name}. +${p.edible} hunger, +${p.heal} health.`, 2.4);
+      return;
+    }
+    if (p?.edible) {
       this.survival = eatFood(this.survival, p.edible, p.edible > 20 ? 2 : 0);
       const mode = this.modeDef();
       const poisonChance = mode.poisonMult ?? 0.35;
@@ -5444,31 +5722,20 @@ export class Game {
       this.audio.eat();
       return;
     }
-    // prefer cooked meat anywhere
-    if (countItems(this.player.slots, ITEM.COOKED_MEAT) > 0) {
-      const rem = removeItems(this.player.slots, ITEM.COOKED_MEAT, 1);
-      if (rem.ok) {
-        this.player.slots = rem.slots;
-        this.survival = eatFood(this.survival, 38, 2);
-        this._nourishT = 0.34;
-        this.audio.eat();
-        this.player.notify('Ate cooked meat.');
-        return;
-      }
+    if (itemId === ITEM.COOKED_MEAT) {
+      this.survival = eatFood(this.survival, 38, 2);
+      this._nourishT = 0.34;
+      this.audio.eat();
+      this.player.notify('Ate cooked meat.');
+      return;
     }
-    if (countItems(this.player.slots, ITEM.RATION) > 0) {
-      const rem = removeItems(this.player.slots, ITEM.RATION, 1);
-      if (rem.ok) {
-        this.player.slots = rem.slots;
-        this.survival = eatFood(this.survival, 28, 1);
-        this._nourishT = 0.34;
-        this.audio.eat();
-        const left = countItems(this.player.slots, ITEM.RATION);
-        this.player.notify(`Ate ration (${left} left).`);
-        return;
-      }
+    if (itemId === ITEM.RATION) {
+      this.survival = eatFood(this.survival, 28, 1);
+      this._nourishT = 0.34;
+      this.audio.eat();
+      const left = countItems(this.player.slots, ITEM.RATION);
+      this.player.notify(`Ate ration (${left} left).`);
     }
-    this.player.notify('No safe food. Hunt, cook at fire (E), or eat rations (R).');
   }
 
   /** F: cook meat / equip clothes / sleep on bed / chest / fish / fertilize */
@@ -6995,7 +7262,14 @@ export class Game {
     }
 
     document.querySelectorAll('#hotbar .hotbar-slot').forEach((el, i) => {
-      el.classList.toggle('active', i === this.player.hotbarIndex);
+      const active = i === this.player.hotbarIndex;
+      el.classList.toggle('active', active);
+      if (active && this._hotbarPopIndex !== i) {
+        el.classList.remove('pop');
+        void el.offsetWidth;
+        el.classList.add('pop');
+        this._hotbarPopIndex = i;
+      }
       const stack = this.player.slots[i];
       el.dataset.slot = String(i);
       el.dataset.hotbar = String(i);
@@ -7123,7 +7397,12 @@ export class Game {
 const hbName = document.getElementById('hotbar-name');
     if (hbName && this.player) {
       const h = this.player.heldStack();
-      hbName.textContent = h?.id != null ? displayName(h.id) : '';
+      const nextId = h?.id != null ? h.id : null;
+      const nameState = hotbarNameTick(this._hotbarNameId, nextId, this._hotbarNameT, 1 / 60);
+      this._hotbarNameId = nameState.id;
+      this._hotbarNameT = nameState.t;
+      hbName.textContent = nameState.visible ? displayName(nextId) : '';
+      hbName.classList.toggle('show', !!nameState.visible);
     }
 
     const toast = document.getElementById('ach-toast');

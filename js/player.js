@@ -36,6 +36,9 @@ export class Player {
     this._fallVy = 0;
     /** @type {number} last fall damage this frame (consumed by game) */
     this.pendingFallDamage = 0;
+    this.height = PLAYER_HEIGHT;
+    this.eyeY = EYE;
+    this.crouching = false;
   }
 
   heldStack() {
@@ -47,7 +50,7 @@ export class Player {
   }
 
   eyePosition(out = new THREE.Vector3()) {
-    return out.set(this.position.x, this.position.y + EYE, this.position.z);
+    return out.set(this.position.x, this.position.y + (this.eyeY ?? EYE), this.position.z);
   }
 
   setLook(yaw, pitch) {
@@ -106,7 +109,17 @@ export class Player {
     const moving = wish.lengthSq() > 0;
     if (moving) wish.normalize();
 
-    const crouching = !!(input.wantsCrouch && input.wantsCrouch());
+    let crouching = !!(input.wantsCrouch && input.wantsCrouch());
+    if (!crouching && (this.height ?? PLAYER_HEIGHT) < PLAYER_HEIGHT - 0.02) {
+      const headId = world.getBlock(this.position.x, this.position.y + PLAYER_HEIGHT - 0.05, this.position.z);
+      if (isSolid(headId)) crouching = true;
+    }
+    this.crouching = crouching;
+    const targetH = crouching ? 1.45 : PLAYER_HEIGHT;
+    const targetEye = crouching ? 1.18 : EYE;
+    const ease = Math.min(1, Math.max(0, dt) * 14);
+    this.height = (this.height ?? PLAYER_HEIGHT) + (targetH - (this.height ?? PLAYER_HEIGHT)) * ease;
+    this.eyeY = (this.eyeY ?? EYE) + (targetEye - (this.eyeY ?? EYE)) * ease;
     const sprinting = !crouching && input.wantsSprint() && moving && canSprint(survival);
     let speed = BASE_SPEED * moveSpeedMultiplier(survival, sprinting);
     if (crouching) speed *= 0.42;
@@ -160,6 +173,13 @@ export class Player {
 
     this.velocity.x = wish.x * speed * waterMul;
     this.velocity.z = wish.z * speed * waterMul;
+    if (crouching && this.onGround && !inWater && !onLadder) {
+      const feetY = this.position.y - 0.05;
+      const nextX = this.position.x + this.velocity.x * dt;
+      const nextZ = this.position.z + this.velocity.z * dt;
+      if (!isSolid(world.getBlock(nextX, feetY, this.position.z))) this.velocity.x = 0;
+      if (!isSolid(world.getBlock(this.position.x, feetY, nextZ))) this.velocity.z = 0;
+    }
 
     if (onLadder) {
       this.velocity.y = 0;
@@ -228,7 +248,7 @@ export class Player {
     const minX = p.x - PLAYER_RADIUS;
     const maxX = p.x + PLAYER_RADIUS;
     const minY = p.y;
-    const maxY = p.y + PLAYER_HEIGHT;
+    const maxY = p.y + (this.height ?? PLAYER_HEIGHT);
     const minZ = p.z - PLAYER_RADIUS;
     const maxZ = p.z + PLAYER_RADIUS;
 
@@ -264,7 +284,7 @@ export class Player {
             v.z = 0;
           } else if (axis === 'y') {
             if (v.y > 0) {
-              p.y = by0 - PLAYER_HEIGHT - 1e-4;
+              p.y = by0 - (this.height ?? PLAYER_HEIGHT) - 1e-4;
               v.y = 0;
             } else if (v.y < 0) {
               p.y = by1 + 1e-4;
