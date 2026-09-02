@@ -62,7 +62,7 @@ If you only open one file after the project path, make it this one.
 
 ### Playability is sacred
 - **Never publish** a build that cannot paint Solo/Co-op + difficulty rows and Start into a world.
-- Latest verified public release: **v1.27.9** (`063c0be`, tag `v1.27.9`). Sandbox Feel: world item drops, sneak camera/ledges, chew eating, leaf decay, and pickup juice on the existing tropical cove.
+- Latest verified public release: **v1.27.10** (`63cf17c`, tag `v1.27.10`). Arrival Sun: the opening cove’s sun lives in the sky you are looking at, glow tracks the disc, contact shadows follow the player, and the moon returns at night.
 - If start is broken: **restore last good playable commit first**, then salvage features carefully. Do not “fix forward” a dead title screen.
 
 ### Boot / ES module landmines

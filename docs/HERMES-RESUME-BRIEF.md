@@ -6,18 +6,17 @@ Updated: 2026-09-02
 
 - Repository: `/mnt/c/Users/wdavi/Projects/Frontier-Survival`
 - Live: https://wdavidpence.github.io/frontier-survival/
-- Latest product release: **v1.27.9**
-- Published commit/tag: `063c0be` / `v1.27.9`
-- Release: Sandbox Feel—mined/Q/death items bounce and magnet, sneak lowers the camera and clings to ledges, eating chews, unsupported leaves decay, plus footstep dust, water bubbles, mine-punch SFX, knockback, hotbar name fade, and pickup pops.
-- Live proof: GitHub Pages v1.27.9 exposes `main.js?v=875` and `game.js?v=851`; fresh start reached `started=true` with a hidden title, `_spawnWorldDrop` wired, and zero page-owned errors.
+- Latest product release: **v1.27.10**
+- Published commit/tag: `63cf17c` / `v1.27.10`
+- Release: Arrival Sun—the opening cove’s sun lives in the sky you are looking at. Glow tracks the disc, contact shadows follow the player, and the moon returns at night.
+- Live proof: GitHub Pages v1.27.10 exposes `main.js?v=876` and `game.js?v=852`; fresh start reached `started=true` with a hidden title, visible sun disc, tracking sky glow, and zero page-owned errors.
 
-## Verified v1.27.9 evidence
+## Verified v1.27.10 evidence
 
-- Full `node tests/smoke.mjs` passed, including minecraft-feel contracts.
-- All changed JavaScript syntax checks passed.
+- Full `node tests/smoke.mjs` passed, including atmosphere-sky contracts.
 - Root/public HTML parity and `git diff --check` passed.
-- Exact local candidate at `127.0.0.1:8792` and live Pages starts reached `started=true` with a hidden title and zero page-owned errors.
-- Visual proof: ordinary local solo cove frame was readable (sand, water, palms, sky, HUD, no black/gray renderer artifact). Live Start also reached a playable world; the captured live frame was split-screen because co-op settings persisted in that browser.
+- Exact local candidate and live Pages starts reached `started=true` with a hidden title and zero page-owned errors.
+- Visual: ordinary cove frame readable (sand, water, palms, blue sky). No black/gray renderer artifact. Sun sits high in the arrival sky rather than as a huge horizon orb.
 
 ## Operational state
 
@@ -25,4 +24,4 @@ Updated: 2026-09-02
 
 ## Next bounded product slice
 
-A five-minute roam/reload leak sample on real GPU hardware, or DualSense hardware proof. This checkpoint does not complete Minecraft-class atmosphere.
+Water glitter/shore contrast, or DualSense hardware proof. This checkpoint does not complete Minecraft-class atmosphere.

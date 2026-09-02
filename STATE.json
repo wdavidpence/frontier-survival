@@ -2,11 +2,11 @@
   "project": "frontier-survival",
   "updated": "2026-09-02",
   "scoreboard": {
-    "current_release_slice": "v1.27.9 Sandbox Feel adds Minecraft-class drops, sneak, chew, leaf decay, and pickup juice",
+    "current_release_slice": "v1.27.10 Arrival Sun puts the sun in the opening vista with tracking glow and player-followed shadows",
     "remaining_gap": "Minecraft-class atmosphere, DualSense hardware proof, and a five-minute GPU roam/leak sample remain open"
   },
-  "last_test_report": "smoke exit 0 including minecraft-feel contracts; HTML parity; syntax and git diff --check clean",
-  "runtime": "Live Pages v1.27.9 loaded main.js?v=875 and game.js?v=851. Fresh start reached started=true with title hidden, _spawnWorldDrop wired, and zero page-owned errors.",
-  "visual": "Ordinary local solo cove frame readable; live Start playable. No black/gray renderer artifact.",
-  "mobile": "v1.27.0 mobile title evidence remains valid; v1.27.9 has not changed responsive layout."
+  "last_test_report": "smoke exit 0 including atmosphere-sky contracts; HTML parity; syntax and git diff --check clean",
+  "runtime": "Live Pages v1.27.10 loaded main.js?v=876 and game.js?v=852. Fresh start reached started=true with title hidden, sun disc visible, tracking sky glow, and zero page-owned errors.",
+  "visual": "Ordinary cove frame readable; sun high in arrival sky; no black/gray renderer artifact.",
+  "mobile": "v1.27.0 mobile title evidence remains valid; v1.27.10 has not changed responsive layout."
 }
