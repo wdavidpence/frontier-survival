@@ -46,12 +46,12 @@ const QUALITY_PRESETS = Object.freeze({
       waterGlitter: false,
     }),
     balanced: Object.freeze({
-      pixelRatioCap: 1.5,
-      shadowMapSize: 1024,
-      cloudDensity: 0.5,
-      particleCap: 300,
-      renderDistance: 80,
-      streamRadius: 7,
+      pixelRatioCap: 1.0,
+      shadowMapSize: 512,
+      cloudDensity: 0.35,
+      particleCap: 160,
+      renderDistance: 64,
+      streamRadius: 5,
       waterGlitter: false,
     }),
     visual: Object.freeze({

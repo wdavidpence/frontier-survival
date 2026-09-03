@@ -4875,7 +4875,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=280/);
   assert.match(game, /animal-visuals.js\?v=259/);
-  assert.match(main, /game\.js\?v=852/);
+  assert.match(main, /game\.js\?v=913/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5919,9 +5919,10 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.27.10'), 'HTML must expose v1.27.10');
+  assert.ok(html.includes('v1.27.11'), 'HTML must expose v1.27.11');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
+  assert.ok(html.includes('main.js?v=889'), 'HTML must expose the bumped entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6278,7 +6279,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=876/);
+  assert.match(html, /main\.js\?v=889/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6293,6 +6294,25 @@ test('arrival sun sits in the opening sky and shadows follow the player', () => 
   assert.match(clouds, /const moonUp = my > 0\.04 && nightMix > 0\.22/);
   assert.match(html, /--sun-x/);
   assert.match(html, /--sun-glow/);
+});
+
+test('balanced performance budget keeps distant world and fauna presentation bounded', () => {
+  const game = fsText('js/game.js');
+  const quality = fsText('js/quality-policy.js');
+  assert.match(quality, /balanced: Object\.freeze\(\{[\s\S]*?pixelRatioCap: 1\.0,[\s\S]*?shadowMapSize: 512,[\s\S]*?particleCap: 160,[\s\S]*?streamRadius: 5/);
+  assert.match(game, /_applyBalancedLodCull/);
+  assert.match(game, /meshTiers\?\.get\(key\) !== 'lod'/);
+  assert.match(game, /if \(!renderable\) continue;/);
+});
+
+test('balanced cadence bounds apiary, power, and light scans without removing live systems', () => {
+  const game = fsText('js/game.js');
+  const pollinator = fsText('js/pollinator-habitat.js');
+  assert.match(game, /graphicsQuality === 'balanced' \? 0\.6 : 0\.25/);
+  assert.match(game, /graphicsQuality === 'balanced' \? 10 : 14/);
+  assert.match(game, /rebuildInterval: this\.graphicsQuality === 'balanced' \? 8 : 3\.5/);
+  assert.match(pollinator, /scanRadius = 30/);
+  assert.match(pollinator, /rebuildInterval = 3\.5/);
 });
 
 if (process.exitCode) process.exit(1);

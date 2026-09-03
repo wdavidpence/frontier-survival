@@ -88,7 +88,7 @@ import {
   MAX_WORLD_DROPS,
   MINE_PUNCH_SECONDS,
 } from './minecraft-feel.js?v=1';
-import { PollinatorHabitatFX } from './pollinator-habitat.js?v=1';
+import { PollinatorHabitatFX } from './pollinator-habitat.js?v=2';
 import { apiaryHarvest } from './apiary-state.js?v=1';
 import { underwaterFogStyle } from './underwater-fog.js?v=246';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=291';
@@ -119,7 +119,7 @@ import { getMode } from './modes.js?v=244';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=4';
 import { streamingConfidenceFromStats, streamingConfidenceHudLabel } from './streaming-confidence.js?v=1';
 import { applyClearArrivalTick, clearArrivalHudLabel, normalizeWeatherGrace } from './clear-arrival.js?v=1';
-import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=4';
+import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=5';
 import { createDisposalContext, disposeTree } from './resource-disposal.js?v=3';
 import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=3';
 import { createForestThreshold, updateForestThreshold, disposeForestThreshold } from './forest-threshold.js?v=3';
@@ -433,6 +433,7 @@ export class Game {
     this._deathHandled = false;
     this._lightPool = [];
     this._lightScanAcc = 0;
+    this._lodCullAcc = 0;
     this._projectiles = [];
     this._arrowMeshes = [];
     this._crops = new Map(); // "x,y,z" -> growth 0..1
@@ -1001,6 +1002,23 @@ export class Game {
     let rd = this.settings.renderDistance ?? DEFAULT_SETTINGS.renderDistance ?? 9;
     if (this.coopMode) rd = effectiveCoopRenderDistance(rd);
     return this._visPlan || terrainVisibilityPlan(rd);
+  }
+
+  /** Hide distant LOD render meshes while retaining their streamed data. */
+  _applyBalancedLodCull() {
+    if (this.graphicsQuality !== 'balanced' || !this.world || !this.player) return;
+    const center = this.world.worldToChunk(this.player.position.x, this.player.position.z);
+    const keepRadius = Math.max(4, (this._visPlan?.fullChunks || 3) + 1);
+    const limit = keepRadius * keepRadius;
+    for (const [key, mesh] of this.world.meshes || []) {
+      if (this.world.meshTiers?.get(key) !== 'lod') continue;
+      const split = String(key).split(',');
+      const cx = Number(split[0]);
+      const cz = Number(split[1]);
+      const dx = cx - center.cx;
+      const dz = cz - center.cz;
+      mesh.visible = dx * dx + dz * dz <= limit;
+    }
   }
 
   _applyCoopPerfBudget() {
@@ -2205,6 +2223,8 @@ export class Game {
       dayPhase: this.time?.dayPhase ?? 0.25,
       weather: this.time?.weather || 'clear',
       started: this.started && !this.survival?.dead,
+      scanRadius: this.graphicsQuality === 'balanced' ? 22 : 30,
+      rebuildInterval: this.graphicsQuality === 'balanced' ? 8 : 3.5,
     });
     const hive = state?.nearest;
     if (!hive) return;
@@ -4679,6 +4699,11 @@ export class Game {
     this.camera.rotation.x = -this.player.pitch;
 
     this.world.flushDirty();
+    this._lodCullAcc -= dt;
+    if (this._lodCullAcc <= 0) {
+      this._lodCullAcc = 0.35;
+      this._applyBalancedLodCull();
+    }
     this.fx.tick(dt);
     this._tickWorldDrops(dt);
     this._tickLeafDecay(dt);
@@ -5019,12 +5044,13 @@ export class Game {
   /** SC-lite electricity: generators power adjacent wires/lamps */
   _tickLogicPower(dt) {
     this._logicAcc = (this._logicAcc || 0) + dt;
-    if (this._logicAcc < 0.25 || !this.world || !this.player) return;
+    const logicInterval = this.graphicsQuality === 'balanced' ? 0.6 : 0.25;
+    if (this._logicAcc < logicInterval || !this.world || !this.player) return;
     this._logicAcc = 0;
     const px = Math.floor(this.player.position.x);
     const py = Math.floor(this.player.position.y);
     const pz = Math.floor(this.player.position.z);
-    const R = 14;
+    const R = this.graphicsQuality === 'balanced' ? 10 : 14;
     const nodes = new Map();
     const edges = [];
     const key = (x, y, z) => `${x},${y},${z}`;
@@ -5071,7 +5097,7 @@ export class Game {
     const py = Math.floor(this.player.position.y);
     const pz = Math.floor(this.player.position.z);
     const found = [];
-    const R = 14;
+    const R = this.graphicsQuality === 'balanced' ? 10 : 14;
     for (let y = py - 6; y <= py + 8; y++) {
       for (let z = pz - R; z <= pz + R; z++) {
         for (let x = px - R; x <= px + R; x++) {
@@ -6218,7 +6244,9 @@ export class Game {
   _syncAnimalMeshes() {
     if (!this.fauna) return;
     this._animalSyncFrame = (this._animalSyncFrame || 0) + 1;
-    if (this.graphicsQuality === 'performance' && this._animalSyncFrame % 2 === 0) return;
+    const animalSyncStride = this.graphicsQuality === 'performance' ? 2
+      : this.graphicsQuality === 'balanced' ? 2 : 1;
+    if (this._animalSyncFrame % animalSyncStride === 0 && this._animalMeshes.size > 0) return;
     this._animClock = (this._animClock || 0) + 0.016;
     const living = this.fauna.living();
     const seen = new Set();
@@ -6243,8 +6271,10 @@ export class Game {
       const dx = a.x - this.camera.position.x;
       const dz = a.z - this.camera.position.z;
       const renderRadius = this.graphicsQuality === 'performance' ? 18
-        : this.graphicsQuality === 'balanced' ? 30 : 44;
-      mesh.visible = a.id === this._mountedAnimalId || dx * dx + dz * dz <= renderRadius * renderRadius;
+        : this.graphicsQuality === 'balanced' ? 22 : 44;
+      const renderable = a.id === this._mountedAnimalId || dx * dx + dz * dz <= renderRadius * renderRadius;
+      mesh.visible = renderable;
+      if (!renderable) continue;
       const nearGroundShadow = !spec.aquatic && !spec.nocturnal && !['bird', 'parrot', 'bat'].includes(a.type)
         && dx * dx + dz * dz < 26 * 26;
       mesh.userData.shadowActive = nearGroundShadow;

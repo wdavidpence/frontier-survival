@@ -82,15 +82,15 @@ export class PollinatorHabitatFX {
     return hive;
   }
 
-  _rebuild(world, player, seed) {
+  _rebuild(world, player, seed, scanRadius = 30) {
     const next = [];
     const px = Math.floor(player.x);
     const pz = Math.floor(player.z);
     const py = Math.floor(player.y);
     const accepted = [];
     const candidates = [];
-    for (let z = pz - 30; z <= pz + 30 && next.length < 5; z += 1) {
-      for (let x = px - 30; x <= px + 30 && next.length < 5; x += 1) {
+    for (let z = pz - scanRadius; z <= pz + scanRadius && next.length < 5; z += 1) {
+      for (let x = px - scanRadius; x <= px + scanRadius && next.length < 5; x += 1) {
         let fy = -1;
         for (let y = Math.max(1, py - 9); y <= Math.min(46, py + 9); y++) {
           if (world.getBlock(x, y, z) === BLOCK.WILDFLOWER) { fy = y; break; }
@@ -130,7 +130,7 @@ export class PollinatorHabitatFX {
     this.anchors = next;
   }
 
-  tick(dt, { world, player, seed = 0, dayPhase = 0.25, weather = 'clear', started = false } = {}) {
+  tick(dt, { world, player, seed = 0, dayPhase = 0.25, weather = 'clear', started = false, scanRadius = 30, rebuildInterval = 3.5 } = {}) {
     this._elapsed += Math.max(0, dt || 0);
     this._rebuildT -= Math.max(0, dt || 0);
     if (!started || !world || !player) {
@@ -138,8 +138,8 @@ export class PollinatorHabitatFX {
       return { active: false, activity: 0, visibleBees: 0, buzzGain: 0 };
     }
     if (this._rebuildT <= 0) {
-      this._rebuild(world, player, seed);
-      this._rebuildT = 3.5;
+      this._rebuild(world, player, seed, scanRadius);
+      this._rebuildT = rebuildInterval;
     }
     let nearest = null;
     for (const anchor of this.anchors) {

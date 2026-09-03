@@ -1853,3 +1853,12 @@ Oldest ready task age: 100160s
 - Also includes accumulated tropical ocean blocks/fauna/density WIP needed for green smoke
 - Decision: **ship**
 
+## 2026-09-03 — ship v1.27.11 Balanced Performance
+
+- Candidate reconciled onto `origin/main` v1.27.10 before release; older v1.27.8-based WIP was not published.
+- Performance pass: Balanced DPR 1, 64-block/5-chunk envelope, LOD render culling, distant-fauna presentation throttling, bounded apiary/power/light scans.
+- Verification: 203 smoke checks + 6 TAP subtests passed; syntax, diff-check, root/public parity passed; local v1.27.11 Start reached `started=true` with title hidden and zero console errors.
+- Runtime evidence: 74 draw calls, 83,130 triangles, 269 geometries, 219 streamed meshes, 7 visible LOD meshes, 6 visible animals, no pending stream work in the final sample.
+- Public v1.27.10 comparison: dark shelter/palm framing is inherited; no new black/gray occlusion or HUD clipping from the performance pass.
+- Decision: **ship**.
+
