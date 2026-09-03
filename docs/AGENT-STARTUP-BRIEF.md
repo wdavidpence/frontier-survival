@@ -62,7 +62,7 @@ If you only open one file after the project path, make it this one.
 
 ### Playability is sacred
 - **Never publish** a build that cannot paint Solo/Co-op + difficulty rows and Start into a world.
-- Latest verified public release: **v1.27.10** (`63cf17c`, tag `v1.27.10`). Arrival Sun: the opening cove’s sun lives in the sky you are looking at, glow tracks the disc, contact shadows follow the player, and the moon returns at night.
+- Latest verified public release: **v1.27.11** (`18c412e`, tag `v1.27.11`). Balanced mode now bounds DPR, stream distance, LOD visibility, fauna presentation, apiary scans, power scans, and light scans while retaining the latest v1.27.10 product surface.
 - If start is broken: **restore last good playable commit first**, then salvage features carefully. Do not “fix forward” a dead title screen.
 
 ### Boot / ES module landmines
