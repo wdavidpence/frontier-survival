@@ -630,8 +630,10 @@ function drawTorch(ctx, x0, y0) {
 }
 
 function drawCampfire(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [50, 40, 30], 0.2, 9, 255, 2);
-  ctx.strokeStyle = '#5a3a1a';
+  fillNoise(ctx, x0, y0, [112, 66, 34], 0.16, 9, 255, 2);
+  ctx.fillStyle = '#7a4320';
+  ctx.fillRect(x0 + 5, y0 + 22, 22, 5);
+  ctx.strokeStyle = '#d17832';
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(x0 + 6, y0 + 24);
@@ -639,11 +641,17 @@ function drawCampfire(ctx, x0, y0) {
   ctx.moveTo(x0 + 26, y0 + 24);
   ctx.lineTo(x0 + 6, y0 + 10);
   ctx.stroke();
-  ctx.fillStyle = '#ff6622';
+  ctx.fillStyle = '#ff6a22';
   ctx.beginPath();
-  ctx.moveTo(x0 + 16, y0 + 6);
-  ctx.lineTo(x0 + 10, y0 + 20);
-  ctx.lineTo(x0 + 22, y0 + 20);
+  ctx.moveTo(x0 + 16, y0 + 5);
+  ctx.lineTo(x0 + 9, y0 + 21);
+  ctx.lineTo(x0 + 23, y0 + 21);
+  ctx.fill();
+  ctx.fillStyle = '#ffd36a';
+  ctx.beginPath();
+  ctx.moveTo(x0 + 16, y0 + 10);
+  ctx.lineTo(x0 + 13, y0 + 19);
+  ctx.lineTo(x0 + 19, y0 + 19);
   ctx.fill();
 }
 
@@ -1117,7 +1125,7 @@ function drawStickPile(ctx, x0, y0) {
 }
 
 function drawDampSoil(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [118, 92, 54], 0.24, 414, 255, 2);
+  fillNoise(ctx, x0, y0, [150, 114, 72], 0.24, 414, 255, 2);
   const r = rnd(415);
   ctx.fillStyle = 'rgba(70, 58, 30, 0.4)';
   for (let i = 0; i < 12; i++) {

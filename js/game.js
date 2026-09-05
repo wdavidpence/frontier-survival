@@ -71,7 +71,7 @@ import {
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=280';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=259';
-import { createBlockAtlas } from './atlas.js?v=346';
+import { createBlockAtlas } from './atlas.js?v=348';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=291';
 import {
   spawnWorldDrop,
@@ -114,7 +114,7 @@ import {
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=234';
+} from './save.js?v=235';
 import { getMode } from './modes.js?v=244';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=4';
 import { streamingConfidenceFromStats, streamingConfidenceHudLabel } from './streaming-confidence.js?v=1';
@@ -123,6 +123,8 @@ import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v
 import { createDisposalContext, disposeTree } from './resource-disposal.js?v=3';
 import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=3';
 import { createForestThreshold, updateForestThreshold, disposeForestThreshold } from './forest-threshold.js?v=3';
+import { createGoldenCoveVision } from './frontier-vision-pack.js?v=29';
+import { createFirstExpeditionState, advanceFirstExpedition, firstExpeditionSummary } from './first-expedition.js?v=1';
 
 const HARVEST_BASE_SECONDS = 4.2;
 
@@ -381,6 +383,7 @@ export class Game {
     this.clouds = new VoxelCloudLayer(this.scene);
     this.sunDisc = new SunDisc(this.scene);
     this.starField = new StarField(this.scene);
+    this.vision = createGoldenCoveVision({ scene: this.scene, hudRoot: document.getElementById('hud') });
 
     this.world = null;
     this.player = null;
@@ -501,6 +504,8 @@ export class Game {
     this._crossingState = createCrossingState();
     this._pressureState = createPressureState();
     this._journalState = createJournalState();
+    this._firstExpedition = createFirstExpeditionState();
+    this._firstExpeditionDrank = false;
     this._harborChoiceState = createHarborChoiceState();
     this._lookoutRouteState = createLookoutRouteState();
     this._landingBerthState = createLandingBerthState();
@@ -629,6 +634,15 @@ export class Game {
       this._recipeFilter = e.target.value || '';
       this._invNeedsPaint = true;
       this._paintInventory();
+    });
+    document.getElementById('hotbar')?.addEventListener('click', (e) => {
+      const slot = e.target.closest('.hotbar-slot');
+      if (!slot || !this.player || !this.started) return;
+      const idx = Number(slot.dataset.hotbar);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= HOTBAR_SIZE) return;
+      this.player.hotbarIndex = idx;
+      this._invNeedsPaint = true;
+      this.audio.ui?.();
     });
     document.getElementById('btn-close-chest')?.addEventListener('click', () => this._closeChest());
     document.getElementById('btn-chest-deposit')?.addEventListener('click', () => {
@@ -1100,6 +1114,7 @@ export class Game {
     document.getElementById('hud')?.classList.add('hidden');
     document.getElementById('title-screen')?.classList.remove('hidden');
     document.body.classList.remove('game-active');
+    this.vision?.setActive(false);
     this.hud.refreshContinue?.();
     this._updateClickToPlay?.();
     return saveRes;
@@ -1135,6 +1150,7 @@ export class Game {
     this.seed = seed;
     this._spawnLandmark = '';
     document.getElementById('hud')?.classList.remove('hidden');
+    this.vision?.setActive(true);
     this._lastSaveStatus = '';
     this._updatePauseSaveStatus('');
     this._resetFishingCast();
@@ -1207,6 +1223,10 @@ export class Game {
       this._boat.mast = 0.58;
       this._boat.sail = 0.46;
       this.player = new Player(spawn, { starterRations: this.modeDef().starterRations });
+      // Golden Cove first shelter route: 3 Logs for Campfire, 3 Logs for
+      // Planks/roofing, plus the supplied sticks for the first safe night.
+      this.player.slots = addItems(this.player.slots, BLOCK.LOG, 4).slots;
+      this.player.slots = addItems(this.player.slots, ITEM.PALM_FROND, 2).slots;
       // Fresh arrivals open seaward so the first frame shows water and flanking palms, not the village wall.
       this.player.yaw = freshPlayer ? (Number.isFinite(arrival.yaw) ? arrival.yaw : 0.92) : (Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI));
       this.player.pitch = 0;
@@ -1231,6 +1251,8 @@ export class Game {
       });
       this._pressureState = createPressureState();
       this._journalState = createJournalState();
+      this._firstExpedition = createFirstExpeditionState();
+      this._firstExpeditionDrank = false;
       this._harborChoiceState = createHarborChoiceState();
       this._lookoutRouteState = createLookoutRouteState();
       this._landingBerthState = createLandingBerthState();
@@ -1335,6 +1357,8 @@ export class Game {
       });
       this._pressureState = deserializePressureState(saveData.pressure);
       this._journalState = createJournalState(saveData.journal);
+      this._firstExpedition = createFirstExpeditionState(saveData.expedition);
+      this._firstExpeditionDrank = this._firstExpedition.stage !== 'water';
       this._harborChoiceState = createHarborChoiceState(saveData.harborChoice);
       this._lookoutRouteState = createLookoutRouteState(saveData.lookoutRoute);
       this._landingBerthState = createLandingBerthState(saveData.landingBerth);
@@ -2684,7 +2708,7 @@ export class Game {
 
   _syncBoatVisual() {
     const source = this._boat || this._castawayArrival;
-    if (this._castawayGroup) {
+    if (this._castawayGroup && !this._boat) {
       if (!source) {
         this._castawayGroup.visible = false;
       } else {
@@ -2704,6 +2728,7 @@ export class Game {
       return;
     }
     if (!this._boatMesh) return;
+    if (this._castawayGroup) this._castawayGroup.visible = false;
     if (!this._boat) {
       this._boatMesh.visible = false;
       return;
@@ -2937,6 +2962,8 @@ export class Game {
         if (mounted.ok) {
           this._boat.chest ||= boatAttachChest(createBoatChest(false));
           this.player.position.copy(riderPosition(this._boat, 'p1'));
+          // Reframe the first-person view on boarding so the waterline and bow read immediately.
+          this.player.pitch = 0;
           if (this.coopMode && this.player2 && Math.hypot(this.player2.position.x - this._boat.x, this.player2.position.z - this._boat.z) <= 6) {
             if (mountBoat(this._boat, 'p2').ok) this.player2.position.copy(riderPosition(this._boat, 'p2'));
           }
@@ -3465,7 +3492,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=234').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=235').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -3540,6 +3567,7 @@ export class Game {
       crossing: this._crossingState,
       pressure: this._pressureState,
       journal: this._journalState,
+      expedition: this._firstExpedition,
       harborChoice: this._harborChoiceState,
       lookoutRoute: this._lookoutRouteState,
       landingBerth: this._landingBerthState,
@@ -3706,6 +3734,35 @@ export class Game {
     if (!help) return;
     help.classList.toggle('hidden', !this._helpVisible);
     help.classList.toggle('faded', false);
+  }
+
+  _tickFirstExpedition() {
+    if (!this.started || !this.player || !this._firstExpedition) return;
+    const p = this.player.position;
+    const atCamp = !!this._spawnPos
+      && !this._boat?.mounted
+      && Math.hypot(p.x - this._spawnPos.x, p.z - this._spawnPos.z) < 24;
+    const boatSpeed = this._boat ? Math.hypot(this._boat.vx || 0, this._boat.vz || 0) : 0;
+    const result = advanceFirstExpedition(this._firstExpedition, {
+      now: Date.now(),
+      salvaged: this._castawayArrival?.salvaged === true,
+      drank: this._firstExpeditionDrank === true,
+      campfire: this._campFuel?.size > 0,
+      roofed: this._roofed === true,
+      caught: !!this._achievements?.unlocked?.first_fish,
+      underway: !!this._boat?.mounted && boatSpeed > 0.18,
+      marine: this._marineSightingShown === true,
+      atCamp,
+    });
+    if (!result?.changed) return;
+    this._firstExpedition = result.state;
+    const next = firstExpeditionSummary(result.state);
+    const message = next.complete
+      ? 'First expedition complete · the cove remembers. Choose the next horizon.'
+      : `Expedition route · ${next.label} · ${next.prompt}`;
+    this.player.notify(message, next.complete ? 5 : 4);
+    this.audio.discovery?.() || this.audio.ui();
+    this.saveGame({ quiet: true });
   }
 
   _updateShelterHud() {
@@ -4724,6 +4781,8 @@ export class Game {
     this._updateWaterVisuals();
     this._tickTooltips(dt);
     this._updateHud();
+    this._tickFirstExpedition();
+    this.vision?.tick({ game: this, dt });
     if ((this.player?.inventoryOpen || this.player2?.inventoryOpen) && this._invNeedsPaint) this._paintInventory();
 
     // periodic autosave
@@ -5654,6 +5713,7 @@ export class Game {
       if (add.leftover > 0) return;
       this.player.slots = add.slots;
       this.survival = drinkWater(this.survival, p.drinkable, p.drinkStamina || 18);
+      this._firstExpeditionDrank = true;
       this._nourishT = 0.34;
       this.audio.splash?.() || this.audio.eat();
       this.player.notify('Drank from the fresh-water canteen. Empty canteen ready to refill.', 3.2);
@@ -5934,6 +5994,7 @@ export class Game {
     // Drink water
     if (hit && hit.id === BLOCK.WATER && this._drinkCd <= 0) {
       this.survival = drinkWater(this.survival, 42, 22);
+      this._firstExpeditionDrank = true;
       // sipping surface water slightly wets you
       this.survival = { ...this.survival, wetness: Math.min(100, (this.survival.wetness || 0) + 8) };
       this._drinkCd = 2;
@@ -6931,6 +6992,8 @@ export class Game {
       z: spawn.z ?? spawn.position?.z ?? 0,
     };
     this.player2 = new Player(s2, { starterRations: this.modeDef().starterRations });
+    this.player2.slots = addItems(this.player2.slots, BLOCK.LOG, 4).slots;
+    this.player2.slots = addItems(this.player2.slots, ITEM.PALM_FROND, 2).slots;
     this.input2 = new PadInputAdapter();
     this.input2.lookX = this.player?.yaw || 0;
     this.input2.lookY = 0;

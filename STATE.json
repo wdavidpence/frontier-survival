@@ -1,12 +1,32 @@
 {
   "project": "frontier-survival",
-  "updated": "2026-09-02",
-  "scoreboard": {
-    "current_release_slice": "v1.27.10 Arrival Sun puts the sun in the opening vista with tracking glow and player-followed shadows",
-    "remaining_gap": "Minecraft-class atmosphere, DualSense hardware proof, and a five-minute GPU roam/leak sample remain open"
-  },
-  "last_test_report": "smoke exit 0 including atmosphere-sky contracts; HTML parity; syntax and git diff --check clean",
-  "runtime": "Live Pages v1.27.10 loaded main.js?v=876 and game.js?v=852. Fresh start reached started=true with title hidden, sun disc visible, tracking sky glow, and zero page-owned errors.",
-  "visual": "Ordinary cove frame readable; sun high in arrival sky; no black/gray renderer artifact.",
-  "mobile": "v1.27.0 mobile title evidence remains valid; v1.27.10 has not changed responsive layout."
+  "target_description": "Golden Cove 20-piece vision pack: move Frontier toward a memorable tropical coastal AAA-style expedition game through readable arrival, ocean travel, ecology, camp life, co-op, continuity, and disciplined presentation.",
+  "overall_score": 7.2,
+  "checklist": [
+    {"id":"01","title":"Golden Cove arrival camera and cinematic title treatment","status":"completed"},
+    {"id":"02","title":"Dynamic sky color grading tied to sun/weather","status":"completed"},
+    {"id":"03","title":"Readable shoreline foam and tide-band treatment","status":"completed"},
+    {"id":"04","title":"Tide and sea-state HUD telemetry","status":"completed"},
+    {"id":"05","title":"Expedition compass with landmark bearings","status":"completed"},
+    {"id":"06","title":"Discoverable landmark memory feed","status":"completed"},
+    {"id":"07","title":"Camp comfort and shelter-quality feedback","status":"completed"},
+    {"id":"08","title":"Campfire warmth-radius visual feedback","status":"completed"},
+    {"id":"09","title":"Boat readiness and voyage telemetry","status":"completed"},
+    {"id":"10","title":"Boat wake/travel feedback polish","status":"completed"},
+    {"id":"11","title":"Fishing bite anticipation and catch celebration","status":"completed"},
+    {"id":"12","title":"Wildlife track/discovery cues","status":"completed"},
+    {"id":"13","title":"Dynamic ecology activity readout","status":"completed"},
+    {"id":"14","title":"Weather forecast and storm horizon warning","status":"completed"},
+    {"id":"15","title":"Day/night transition ambience treatment","status":"completed"},
+    {"id":"16","title":"Survival risk triage and contextual guidance","status":"completed"},
+    {"id":"17","title":"Crafting progression presentation upgrade","status":"completed"},
+    {"id":"18","title":"Co-op navigator/scout role presentation","status":"completed"},
+    {"id":"19","title":"Persistent expedition timeline and world memory","status":"completed"},
+    {"id":"20","title":"AAA synthesis pass, performance guard, and mobile layout","status":"completed"}
+  ],
+  "last_test_report": "Golden Cove First Expedition Loop local candidate: 493 PASS assertion lines + 6/6 TAP subtests; changed-module syntax, diff-check, root/public parity, and 184 executable relative-import edges with zero missing cache-busts. Exact browser chain main.js?v=927 -> game.js?v=954 -> save.js?v=235 -> frontier-vision-pack.js?v=29 -> first-expedition.js?v=1 loaded successfully. Fresh Solo New World reached started=true with hidden title, Landfall 01 / 08, and Open the dinghy locker. Real W+F salvage advanced the route to Fresh water 02 / 08; the expedition payload persisted in localStorage and restored after a real reload and Continue. Desktop and 390x844 mobile route ribbons passed layout readback; the mobile arrival card moved below the expanded ribbon. No page-owned browser errors. Existing 20 vision-pack items remain completed locally; First Expedition Loop is implemented as the next synthesis slice. No commit, push, deploy, or publish.",
+  "last_commit": "b915623",
+  "next_action": "Candidate has the First Expedition Loop locally. Continue from the saved Fresh water stage for a full end-to-end route proof when desired; await explicit authorization before commit, push, deploy, or publish.",
+  "pass_count": 26,
+  "judge_review_due": "after the next evidence-open slice or any regression"
 }

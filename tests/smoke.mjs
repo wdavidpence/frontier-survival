@@ -36,6 +36,7 @@ import { layoutWolf, layoutChicken } from '../js/animal-visuals.js';
 import { getPlayMode, DEFAULT_SETTINGS, parseSettings, serializeSettings, SETTINGS_KEY, sensitivityFromSlider, sliderFromSensitivity, writeSettings, readSettings } from '../js/settings.js';
 import { MODES, getMode, scalePredatorDamage, isValidMode, MODE_ORDER } from '../js/modes.js';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, LEGACY_DEFAULT_DAY_LENGTH_SEC, snowAllowed } from '../js/time.js';
+import { createFirstExpeditionState, advanceFirstExpedition, firstExpeditionSummary } from '../js/first-expedition.js';
 import { clonePlayer, cloneSurvivalState, serializeCoopGameState } from '../js/coop-state.js';
 import {
   stairShape,
@@ -669,7 +670,10 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /const k = clamp01\(0\.35 \+ n \* 0\.8\)/);
   assert.match(atlas, /0\.5\)`;/);
   assert.match(atlas, /vTile - 5\.0/);
-  assert.match(game, /atlas\.js\?v=346/);
+  assert.match(atlas, /\[150, 114, 72\]/);
+  assert.match(atlas, /\[112, 66, 34\]/);
+  assert.match(atlas, /#ffd36a/);
+  assert.match(game, /atlas\.js\?v=348/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -4875,7 +4879,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=280/);
   assert.match(game, /animal-visuals.js\?v=259/);
-  assert.match(main, /game\.js\?v=913/);
+  assert.match(main, /game\.js\?v=954/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5919,10 +5923,10 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.27.11'), 'HTML must expose v1.27.11');
+  assert.ok(html.includes('v1.28.0'), 'HTML must expose v1.28.0');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
-  assert.ok(html.includes('main.js?v=889'), 'HTML must expose the bumped entry cache bust');
+  assert.ok(html.includes('main.js?v=927'), 'HTML must expose the current entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6279,7 +6283,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=889/);
+  assert.match(html, /main\.js\?v=927/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6313,6 +6317,141 @@ test('balanced cadence bounds apiary, power, and light scans without removing li
   assert.match(game, /rebuildInterval: this\.graphicsQuality === 'balanced' \? 8 : 3\.5/);
   assert.match(pollinator, /scanRadius = 30/);
   assert.match(pollinator, /rebuildInterval = 3\.5/);
+});
+
+test('golden cove vision pack wires the first six future-vision pillars', () => {
+  const game = fsText('js/game.js');
+  const main = fsText('js/main.js');
+  const vision = fsText('js/frontier-vision-pack.js');
+  const html = fsText('index.html');
+  assert.match(main, /game\.js\?v=954/);
+  assert.match(game, /frontier-vision-pack\.js\?v=29/);
+  assert.match(game, /if \(this\._castawayGroup && !this\._boat\)/);
+  assert.match(game, /if \(this\._castawayGroup\) this\._castawayGroup\.visible = false/);
+  assert.match(vision, /campFactors/);
+  assert.match(vision, /fire secured/);
+  assert.match(vision, /roof missing/);
+  assert.match(vision, /bed missing/);
+  assert.match(vision, /nearestCampfire/);
+  assert.match(vision, /goldenCoveCampfireGlow/);
+  assert.match(vision, /fireLight\.intensity/);
+  assert.match(game, /getElementById\('hotbar'\)\?\.addEventListener\('click'/);
+  assert.match(game, /this\.player\.hotbarIndex = idx/);
+  assert.match(vision, /hasCampfireItem/);
+  assert.match(vision, /Place the campfire at the tide edge/);
+  assert.match(vision, /Feed the campfire before sunset/);
+  assert.match(game, /Golden Cove first shelter route/);
+  assert.match(game, /this\.player\.slots = addItems\(this\.player\.slots, BLOCK\.LOG, 4\)\.slots/);
+  assert.match(game, /this\.player2\.slots = addItems\(this\.player2\.slots, BLOCK\.LOG, 4\)\.slots/);
+  assert.match(game, /this\.player\.slots = addItems\(this\.player\.slots, ITEM\.PALM_FROND, 2\)\.slots/);
+  assert.match(game, /this\.player2\.slots = addItems\(this\.player2\.slots, ITEM\.PALM_FROND, 2\)\.slots/);
+  assert.match(vision, /prefers-reduced-motion:reduce/);
+  assert.match(vision, /env\(safe-area-inset-left\)/);
+  assert.match(vision, /root\.dataset\.weather = s\.weather/);
+  assert.match(vision, /root\.dataset\.night = s\.night \? 'true' : 'false'/);
+  assert.match(vision, /Storm front closing in/);
+  assert.match(vision, /const p2Pos = game\.player2\?\.position/);
+  assert.match(vision, /const p2Distance = pos && p2Pos/);
+  assert.match(vision, /const crewTogether = !!\(game\.coopMode/);
+  assert.match(vision, /navigator and scout rendezvous/);
+  assert.match(vision, /goldenCoveFishingBitePulse/);
+  assert.match(vision, /const biteVisible = s\.fishPhase === 'bite'/);
+  assert.match(vision, /boatReadiness/);
+  assert.match(vision, /boatCargo/);
+  assert.match(vision, /wakeActive/);
+  assert.match(vision, /warmth: clamp01\(\(game\._lastHeat \|\| 0\) \/ 18\)/);
+  assert.match(vision, /let campBed = false/);
+  assert.match(vision, /const roofed = !!game\._roofed/);
+  assert.match(vision, /goldenCoveWarmthHalo/);
+  assert.match(vision, /warmthVisible = s\.warmth > \.03/);
+  assert.match(vision, /gcv-voyage/);
+  assert.match(vision, /data-gcv=\"voyageState\"/);
+  assert.match(vision, /WASD steer · E storage · F disembark/);
+  assert.match(vision, /voyage\?\.classList\.toggle\('on'/);
+  assert.match(game, /this\.player\.pitch = 0/);
+  assert.match(game, /Reframe the first-person view on boarding/);
+  assert.match(game, /createGoldenCoveVision\(\{ scene: this\.scene/);
+  assert.match(game, /this\.vision\?\.tick\(\{ game: this, dt \}\)/);
+  assert.match(game, /this\.vision\?\.setActive\(true\)/);
+  assert.match(vision, /Golden Cove field dossier/);
+  assert.match(vision, /const livingAnimals = game\.fauna\?\.living\?\.\(\) \|\| \[\]/);
+  assert.match(vision, /goldenCoveTideFoam/);
+  assert.match(vision, /MEMORY_KEY/);
+  assert.match(vision, /bearingTo/);
+  assert.match(vision, /setWidth\(root, '\[data-gcv-meter=\"tide\"\]'/);
+  assert.match(html, /main\.js\?v=927/);
+});
+
+test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvous', () => {
+  const vision = fsText('js/frontier-vision-pack.js');
+  assert.match(vision, /export function fieldRisk\(survival = \{\}\)/);
+  assert.match(vision, /const risk = fieldRisk\(survival\)/);
+  assert.match(vision, /export function wildlifeSpoorLabel\(nearestAnimal\)/);
+  assert.match(vision, /Fresh spoor · \$\{nearestAnimal\.type\}/);
+  const weather = new GameTime({ dayLengthSec: 900 });
+  const originalRandom = Math.random;
+  try {
+    Math.random = () => 0.8;
+    weather.weatherGrace = 0;
+    weather.weatherTimer = 0;
+    weather.tick(0.1, { biome: 'tropical', altitude: 10 });
+    assert.strictEqual(weather.weather, 'rain', 'natural tropical weather roll should reach rain');
+  } finally {
+    Math.random = originalRandom;
+  }
+  const clock = new GameTime({ dayLengthSec: 10 });
+  clock.elapsed = 5.49;
+  assert.strictEqual(clock.isNight(), false, 'late daylight remains day');
+  clock.tick(0.2, { biome: 'tropical', altitude: 10 });
+  assert.strictEqual(clock.isNight(), true, 'clock tick crosses the natural night boundary');
+  const game = fsText('js/game.js');
+  const html = fsText('index.html');
+  assert.equal(html, fsText('public/index.html'));
+  assert.match(game, /frontier-vision-pack\.js\?v=29/);
+  assert.match(game, /this\.time\.tick\(dt/);
+  assert.match(game, /this\.player2\.update\(this\.world, this\.input2/);
+  assert.match(game, /crewTogetherAt\(this\.player, this\.player2/);
+  assert.match(game, /coopCrewRouteSummary/);
+});
+
+test('Golden Cove first expedition is ordered, one-step, and save-safe', () => {
+  let state = createFirstExpeditionState();
+  assert.deepStrictEqual(firstExpeditionSummary(state), {
+    id: 'arrival',
+    label: 'Landfall',
+    prompt: 'Open the dinghy locker',
+    detail: 'Recover the dry stores from the castaway boat.',
+    index: 0,
+    total: 8,
+    progress: 0,
+    complete: false,
+  });
+  const route = [
+    ['salvaged', 'water'],
+    ['drank', 'campfire'],
+    ['campfire', 'shelter'],
+    ['roofed', 'fish'],
+    ['caught', 'launch'],
+    ['underway', 'offshore'],
+    ['marine', 'return'],
+    ['atCamp', 'complete'],
+  ];
+  for (const [fact, nextStage] of route) {
+    const unchanged = advanceFirstExpedition(state, {});
+    assert.strictEqual(unchanged, null, `stage must wait for ${fact}`);
+    const result = advanceFirstExpedition(state, { [fact]: true, now: 100 });
+    assert.ok(result?.changed, `stage should advance on ${fact}`);
+    state = result.state;
+    assert.strictEqual(state.stage, nextStage);
+  }
+  const restored = createFirstExpeditionState(JSON.parse(JSON.stringify(state)));
+  assert.deepStrictEqual(restored, state);
+  assert.strictEqual(firstExpeditionSummary(restored).complete, true);
+  const game = fsText('js/game.js');
+  const save = fsText('js/save.js');
+  assert.match(game, /advanceFirstExpedition\(this\._firstExpedition/);
+  assert.match(game, /expedition: this\._firstExpedition/);
+  assert.match(save, /expedition: state\.expedition/);
 });
 
 if (process.exitCode) process.exit(1);

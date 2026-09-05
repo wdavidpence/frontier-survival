@@ -133,6 +133,7 @@ export function buildSavePayload(state) {
     pressure: state.pressure,
     crossing: state.crossing,
     journal: state.journal,
+    expedition: state.expedition,
     harborChoice: state.harborChoice,
     lookoutRoute: state.lookoutRoute,
     landingBerth: state.landingBerth,
@@ -171,6 +172,7 @@ export function parseSavePayload(raw) {
   if (data.pressure == null) data.pressure = null;
   if (data.crossing == null) data.crossing = null;
   if (!data.journal || typeof data.journal !== 'object') data.journal = null;
+  if (!data.expedition || typeof data.expedition !== 'object') data.expedition = null;
   if (!data.harborChoice || typeof data.harborChoice !== 'object') data.harborChoice = null;
   if (!data.lookoutRoute || typeof data.lookoutRoute !== 'object') data.lookoutRoute = null;
   if (!data.landingBerth || typeof data.landingBerth !== 'object') data.landingBerth = null;
