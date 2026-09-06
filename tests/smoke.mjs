@@ -36,7 +36,15 @@ import { layoutWolf, layoutChicken } from '../js/animal-visuals.js';
 import { getPlayMode, DEFAULT_SETTINGS, parseSettings, serializeSettings, SETTINGS_KEY, sensitivityFromSlider, sliderFromSensitivity, writeSettings, readSettings } from '../js/settings.js';
 import { MODES, getMode, scalePredatorDamage, isValidMode, MODE_ORDER } from '../js/modes.js';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, LEGACY_DEFAULT_DAY_LENGTH_SEC, snowAllowed } from '../js/time.js';
-import { createFirstExpeditionState, advanceFirstExpedition, firstExpeditionSummary } from '../js/first-expedition.js';
+import {
+  createFirstExpeditionState,
+  advanceFirstExpedition,
+  firstExpeditionSummary,
+  runPlacementProofs,
+  proveShelterPlacement,
+  proveSkiffLaunch,
+  proveMarineSighting,
+} from '../js/first-expedition.js';
 import { clonePlayer, cloneSurvivalState, serializeCoopGameState } from '../js/coop-state.js';
 import {
   stairShape,
@@ -287,7 +295,7 @@ import { ambientMix } from '../js/audio.js';
 import { greedyMeshChunk, quadsToArrays, countNaiveFaces } from '../js/mesh-greedy.js';
 import { buildMushroomGeometry } from '../js/mushroom-geometry.js';
 import { buildTorchGeometry } from '../js/torch-geometry.js';
-import { buildPalmTrunkGeometry, buildPalmCrownGeometry } from '../js/palm-trunk-geometry.js';
+import { buildPalmTrunkGeometry, buildPalmCrownGeometry, CANOPY_READABILITY_CONTRACT } from '../js/palm-trunk-geometry.js';
 import { PALM_WIND_DX, palmTrunkAt } from '../js/palm-lean.js';
 import {
   buildSavePayload,
@@ -4879,7 +4887,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=282/);
   assert.match(game, /animal-visuals.js\?v=259/);
-  assert.match(main, /game\.js\?v=956/);
+  assert.match(main, /game\.js\?v=957/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5926,7 +5934,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   assert.ok(html.includes('v1.28.0'), 'HTML must expose v1.28.0');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
-  assert.ok(html.includes('main.js?v=929'), 'HTML must expose the current entry cache bust');
+  assert.ok(html.includes('main.js?v=930'), 'HTML must expose the current entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6283,7 +6291,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=929/);
+  assert.match(html, /main\.js\?v=930/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6324,8 +6332,8 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   const main = fsText('js/main.js');
   const vision = fsText('js/frontier-vision-pack.js');
   const html = fsText('index.html');
-  assert.match(main, /game\.js\?v=956/);
-  assert.match(game, /frontier-vision-pack\.js\?v=29/);
+  assert.match(main, /game\.js\?v=957/);
+  assert.match(game, /frontier-vision-pack\.js\?v=30/);
   assert.match(game, /if \(this\._castawayGroup && !this\._boat\)/);
   assert.match(game, /if \(this\._castawayGroup\) this\._castawayGroup\.visible = false/);
   assert.match(vision, /campFactors/);
@@ -6379,7 +6387,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   assert.match(vision, /MEMORY_KEY/);
   assert.match(vision, /bearingTo/);
   assert.match(vision, /setWidth\(root, '\[data-gcv-meter=\"tide\"\]'/);
-  assert.match(html, /main\.js\?v=929/);
+  assert.match(html, /main\.js\?v=930/);
 });
 
 test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvous', () => {
@@ -6407,7 +6415,7 @@ test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvo
   const game = fsText('js/game.js');
   const html = fsText('index.html');
   assert.equal(html, fsText('public/index.html'));
-  assert.match(game, /frontier-vision-pack\.js\?v=29/);
+  assert.match(game, /frontier-vision-pack\.js\?v=30/);
   assert.match(game, /this\.time\.tick\(dt/);
   assert.match(game, /this\.player2\.update\(this\.world, this\.input2/);
   assert.match(game, /crewTogetherAt\(this\.player, this\.player2/);
@@ -6492,6 +6500,120 @@ test('world-believability pass keeps land fauna dry, caves deep, and doors faced
   assert.match(game, /doorFacing: \(\) => this\._doorFace/);
   assert.match(game, /doorFacingFromYaw\(this\.player\.yaw\)/);
   assert.match(game, /doors: \[\.\.\.this\._doorFace\.entries\(\)\]/);
+});
+
+test('canopy readability pass dims foreground occlusion', () => {
+  assert.ok(CANOPY_READABILITY_CONTRACT, 'CANOPY_READABILITY_CONTRACT must be exported');
+  assert.ok(Array.isArray(CANOPY_READABILITY_CONTRACT.colorFloor) && CANOPY_READABILITY_CONTRACT.colorFloor.length === 3);
+  assert.ok(CANOPY_READABILITY_CONTRACT.colorFloor[0] >= 0.55, 'warm red component lifted to prevent near-black occlusion');
+  assert.ok(CANOPY_READABILITY_CONTRACT.colorFloor[1] >= 0.85, 'saturated green component maintained');
+  assert.ok(CANOPY_READABILITY_CONTRACT.warmthFloor >= 0.06, 'warmth floor prevents near-black occlusion');
+  assert.ok(CANOPY_READABILITY_CONTRACT.baseBrightness >= 0.90, 'base brightness floor lifted');
+  assert.ok(CANOPY_READABILITY_CONTRACT.upwardNormalBias >= 0.70, 'upward normal bias catches ambient sky light');
+
+  // Verify palm crown geometry conforms to the readability contract
+  const column = Array.from({ length: 7 }, (_, i) => ({
+    x: -15 - Math.round((i / 6) ** 1.55 * 2),
+    y: 17 + i,
+    z: -26,
+  }));
+  const crown = buildPalmCrownGeometry(column, TILE.PALM_LEAVES, [0.52, 0.84, 0.34], 1884808540);
+  assert.ok(crown.indices.length > 120, 'crown has radial fronds');
+  const colors = crown.colors;
+  assert.ok(colors.length > 0, 'crown has vertex colors');
+
+  // Assert all vertices meet the saturated warm green and luminance contract
+  for (let i = 0; i < colors.length; i += 4) {
+    const r = colors[i];
+    const g = colors[i + 1];
+    const b = colors[i + 2];
+    const a = colors[i + 3];
+    assert.equal(a, 1, 'alpha must be 1');
+    assert.ok(r >= 0.50, `red component must be warm and readable, got ${r}`);
+    assert.ok(g >= 0.75, `green component must be saturated, got ${g}`);
+    assert.ok(g > r && g > b, `foliage must read as saturated green, got [${r}, ${g}, ${b}]`);
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    assert.ok(
+      luminance >= CANOPY_READABILITY_CONTRACT.minLuminance,
+      `vertex luminance ${luminance} must exceed floor ${CANOPY_READABILITY_CONTRACT.minLuminance}`,
+    );
+  }
+
+  // Assert normals are upward-biased and normalized
+  const normals = crown.normals;
+  for (let i = 0; i < normals.length; i += 3) {
+    const nx = normals[i];
+    const ny = normals[i + 1];
+    const nz = normals[i + 2];
+    const len = Math.hypot(nx, ny, nz);
+    assert.ok(Math.abs(len - 1.0) < 0.001, `normal must be normalized, got len=${len}`);
+    assert.ok(ny >= 0.70, `normal must have strong upward bias to catch sky ambient, got ny=${ny}`);
+  }
+});
+
+test('first-expedition placement proofs verify shelter, skiff-launch, and marine sighting', async () => {
+  assert.equal(typeof runPlacementProofs, 'function', 'runPlacementProofs must be exported');
+  assert.equal(typeof proveShelterPlacement, 'function', 'proveShelterPlacement must be exported');
+  assert.equal(typeof proveSkiffLaunch, 'function', 'proveSkiffLaunch must be exported');
+  assert.equal(typeof proveMarineSighting, 'function', 'proveMarineSighting must be exported');
+
+  // Test with game harness modeling real game APIs
+  const blocks = new Map();
+  const testGame = {
+    started: true,
+    player: {
+      position: { x: -14, y: 17, z: -26 },
+      notify() {},
+    },
+    world: {
+      getBlock(x, y, z) {
+        return blocks.get(`${x},${y},${z}`) || BLOCK.AIR;
+      },
+      setBlock(x, y, z, id) {
+        blocks.set(`${x},${y},${z}`, id);
+      },
+    },
+    _boat: {
+      mounted: false,
+      x: -10,
+      y: 16,
+      z: -28,
+      vx: 0,
+      vz: 0,
+    },
+    _firstExpedition: createFirstExpeditionState({ stage: 'shelter' }),
+    _roofed: false,
+    _marineSightingShown: false,
+    _marineSighting: null,
+    _tickFirstExpedition() {
+      const p = this.player.position;
+      const atCamp = Math.hypot(p.x - (-9.5), p.z - (-27.5)) < 24;
+      const boatSpeed = Math.hypot(this._boat.vx || 0, this._boat.vz || 0);
+      const result = advanceFirstExpedition(this._firstExpedition, {
+        now: Date.now(),
+        roofed: this._roofed === true,
+        underway: !!this._boat.mounted && boatSpeed > 0.18,
+        marine: this._marineSightingShown === true,
+        atCamp,
+      });
+      if (result?.changed) this._firstExpedition = result.state;
+    },
+    _updateMarineSighting(speed, dt) {
+      if (this._boat.mounted && speed > 0.18) {
+        this._marineSighting = { x: this._boat.x, y: this._boat.y, z: this._boat.z };
+        this._marineSightingShown = true;
+      }
+    },
+    _useBoat() {
+      this._boat.mounted = true;
+    },
+  };
+
+  const proofResults = await runPlacementProofs(testGame);
+  assert.ok(proofResults.ok, 'placement proofs must succeed');
+  assert.equal(proofResults.proofs.shelter.passed, true, 'shelter proof must pass');
+  assert.equal(proofResults.proofs.launch.passed, true, 'launch proof must pass');
+  assert.equal(proofResults.proofs.offshore.passed, true, 'offshore proof must pass');
 });
 
 if (process.exitCode) process.exit(1);
