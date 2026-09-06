@@ -272,7 +272,7 @@ import {
   firstCraftableRecipe,
   nextProgressionRecipe,
 } from '../js/crafting.js';
-import { FaunaSystem, findStarterEncounterSpawn, findBeachShowcaseSpawn, meatDropCount, SPECIES, canFeed, tryFeed, hostileSpawnLimit } from '../js/animals.js?v=280';
+import { FaunaSystem, findStarterEncounterSpawn, findBeachShowcaseSpawn, meatDropCount, SPECIES, canFeed, tryFeed, hostileSpawnLimit, hasWaterSurface } from '../js/animals.js?v=281';
 import { animalPartLayout, animalLimbPose, accentColor } from '../js/animal-visuals.js';
 import { tickLogic, isPowered, COMPONENT } from '../js/logic.js';
 import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
@@ -350,7 +350,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /\[\[-10, -28\], \[-10, -29\]/);
   assert.doesNotMatch(source, /Math\.PI \/ 4/, 'Cane Garden Bay must look along the beach, not a diagonal into buildings');
   assert.match(source, /chosen\.landmark === 'Cane Garden Bay · Tortola'/);
-  assert.match(gameSource, /world.js\?v=549/);
+  assert.match(gameSource, /world.js\?v=550/);
   assert.match(gameSource, /this\.player\.pitch = 0;/);
 });
 
@@ -4877,9 +4877,9 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const main = fsText('js/main.js');
   const visuals = fsText('js/animal-visuals.js');
   const animals = fsText('js/animals.js');
-  assert.match(game, /animals.js\?v=280/);
+  assert.match(game, /animals.js\?v=281/);
   assert.match(game, /animal-visuals.js\?v=259/);
-  assert.match(main, /game\.js\?v=954/);
+  assert.match(main, /game\.js\?v=955/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5664,7 +5664,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker.js\?v=356/);
+  assert.match(world, /chunk-worker.js\?v=357/);
   assert.match(world, /starterLaunchCorridor/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
@@ -5926,7 +5926,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   assert.ok(html.includes('v1.28.0'), 'HTML must expose v1.28.0');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
-  assert.ok(html.includes('main.js?v=927'), 'HTML must expose the current entry cache bust');
+  assert.ok(html.includes('main.js?v=928'), 'HTML must expose the current entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6283,7 +6283,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=927/);
+  assert.match(html, /main\.js\?v=928/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6324,7 +6324,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   const main = fsText('js/main.js');
   const vision = fsText('js/frontier-vision-pack.js');
   const html = fsText('index.html');
-  assert.match(main, /game\.js\?v=954/);
+  assert.match(main, /game\.js\?v=955/);
   assert.match(game, /frontier-vision-pack\.js\?v=29/);
   assert.match(game, /if \(this\._castawayGroup && !this\._boat\)/);
   assert.match(game, /if \(this\._castawayGroup\) this\._castawayGroup\.visible = false/);
@@ -6379,7 +6379,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   assert.match(vision, /MEMORY_KEY/);
   assert.match(vision, /bearingTo/);
   assert.match(vision, /setWidth\(root, '\[data-gcv-meter=\"tide\"\]'/);
-  assert.match(html, /main\.js\?v=927/);
+  assert.match(html, /main\.js\?v=928/);
 });
 
 test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvous', () => {
@@ -6452,6 +6452,46 @@ test('Golden Cove first expedition is ordered, one-step, and save-safe', () => {
   assert.match(game, /advanceFirstExpedition\(this\._firstExpedition/);
   assert.match(game, /expedition: this\._firstExpedition/);
   assert.match(save, /expedition: state\.expedition/);
+});
+
+test('world-believability pass keeps land fauna dry, caves deep, and doors faced', () => {
+  const waterColumn = {
+    getBlock(x, y, z) {
+      if (x === 2 && z === 3 && y >= 10 && y <= 15) return BLOCK.WATER;
+      if (x === 2 && z === 3 && y === 9) return BLOCK.DIRT;
+      return BLOCK.AIR;
+    },
+  };
+  assert.strictEqual(hasWaterSurface(waterColumn, 2, 3), true);
+  assert.strictEqual(hasWaterSurface(waterColumn, 0, 0), false);
+
+  const gen = fsText('js/gen.js');
+  const worker = fsText('js/chunk-worker.js');
+  assert.match(gen, /y <= GEN_SEA_LEVEL \+ 7/);
+  assert.match(worker, /y <= 16 \+ 7/);
+  const worldSrc = fsText('js/world.js');
+  assert.match(worldSrc, /y <= h - 8/);
+  assert.match(worldSrc, /> 0\.9985/);
+  assert.match(worker, /y <= h - 8/);
+  assert.match(worker, /> 0\.9985/);
+  assert.doesNotMatch(worker, /this\.seed/);
+
+  const closed = buildDoorGeometry(pairDoorLeaves([
+    { x: 4, y: 8, z: 2, id: BLOCK.DOOR_CLOSED, facing: 0 },
+    { x: 4, y: 9, z: 2, id: BLOCK.DOOR_CLOSED, facing: 0 },
+  ], BLOCK.DOOR_CLOSED, BLOCK.DOOR_OPEN), 1, [0.7, 0.5, 0.25]);
+  const open = buildDoorGeometry(pairDoorLeaves([
+    { x: 4, y: 8, z: 2, id: BLOCK.DOOR_OPEN, facing: 1 },
+    { x: 4, y: 9, z: 2, id: BLOCK.DOOR_OPEN, facing: 1 },
+  ], BLOCK.DOOR_CLOSED, BLOCK.DOOR_OPEN), 1, [0.7, 0.5, 0.25]);
+  assert.notDeepStrictEqual(open.positions, closed.positions, 'open/faced door must change authored geometry');
+  assert.ok(open.indices.length > 0 && closed.indices.length > 0);
+
+  const game = fsText('js/game.js');
+  assert.match(game, /F — \$\{hit\.id === BLOCK\.DOOR_OPEN \? 'Close' : 'Open'\} door/);
+  assert.match(game, /doorFacing: \(\) => this\._doorFace/);
+  assert.match(game, /doorFacingFromYaw\(this\.player\.yaw\)/);
+  assert.match(game, /doors: \[\.\.\.this\._doorFace\.entries\(\)\]/);
 });
 
 if (process.exitCode) process.exit(1);

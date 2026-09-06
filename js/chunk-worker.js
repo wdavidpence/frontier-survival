@@ -317,7 +317,9 @@ function heightAt(x, z, seed = 0) {
     const macroInfluence = bvi.majorInfluence > 0 ? bvi.majorInfluence : bvi.cayInfluence;
     const macroPeak = bvi.majorInfluence > 0 ? bvi.majorPeak : bvi.cayPeak;
     y = Math.max(y, 16 + 1 + macroPeak * macroInfluence + relief * 3 * macroInfluence);
-  } else if (bviRegion && !authoredWetland) {
+  } else if (bviRegion && !authoredWetland && y <= 16 + 7) {
+    // Only depress columns already near sea level. Never punch isolated
+    // water potholes into otherwise walkable inland biome.
     y = deepWater > 0
       ? Math.min(y, 16 - 4 - Math.floor(deepWater * 6))
       : Math.min(y, 16 - 2);
@@ -707,8 +709,9 @@ function generateChunkData(cx, cz, seed) {
           if (y < h - 6 && hash2(x + y * 3, z + seed) > 0.97) id = BLOCK.COAL_ORE;
           if (y < h - 10 && y > 4 && hash2(x * 2 + y, z + seed * 5) > 0.985) id = BLOCK.IRON_ORE;
           if (y >= 2 && y <= 8 && hash2(x + y * 13, z * 7 + seed * 3) > 0.982) id = BLOCK.CLAY_DEEP_ORE;
-          if (y >= 3 && y <= h - 5) {
-            if (hash2(x + y * 7, z + seed * 3) > 0.991) id = BLOCK.AIR;
+          if (y >= 3 && y <= h - 8) {
+            // Keep caves as rare, deeper discoveries rather than surface potholes.
+            if (hash2(x + y * 7, z + seed * 3) > 0.9985) id = 0;
           }
         }
         if (!deepWater && y >= h - 1 && y <= h && id === BLOCK.STONE) {

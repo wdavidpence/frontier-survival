@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=549';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=550';
 import { Player } from './player.js?v=242';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=227';
@@ -43,7 +43,7 @@ import { renderFurnaceUi, bindFurnaceUi } from './furnace-ui.js?v=3';
 import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=221';
 import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=221';
 import { advanceCropGrowth } from './crop-growth.js?v=221';
-import { toggleDoor, pairedDoorCells } from './door-hinge.js?v=222';
+import { toggleDoor, pairedDoorCells, doorFacingFromYaw } from './door-hinge.js?v=223';
 import { bedFacingFromYaw, bedFacingMeta } from './bed-facing.js?v=221';
 import { horizDistance, compassNeedleAngle } from './compass-bearing.js?v=221';
 import { maceSmashDamage } from './mace-smash.js?v=221';
@@ -69,7 +69,7 @@ import {
   nextProgressionRecipe,
 } from './crafting.js?v=423';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=280';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=281';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=259';
 import { createBlockAtlas } from './atlas.js?v=348';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=291';
@@ -95,7 +95,7 @@ import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=291'
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=11';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
 import { placementState } from './placement-preview.js?v=1';
-import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=328';
+import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=330';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=33';
 import { sunDirection, moonDirection, skyGlowFromNdc, shadowFollow } from './atmosphere-sky.js?v=1';
 import {
@@ -526,6 +526,8 @@ export class Game {
     this._stairFace = new Map();
     /** Bed facing meta "x,y,z" -> 0..3 */
     this._bedFace = new Map();
+    /** Door facing meta "x,y,z" -> 0..3 */
+    this._doorFace = new Map();
     this._inventoryStation = null;
     this._workbenchRecipeId = 'crafting_table';
     this._lastWeather = 'clear';
@@ -1159,6 +1161,7 @@ export class Game {
     this._slabHalf = new Map();
     this._stairFace = new Map();
     this._bedFace = new Map();
+    this._doorFace = new Map();
     this._builtEdits = new Map();
     this._clearWorldDrops();
     this._chew = null;
@@ -1174,6 +1177,7 @@ export class Game {
       // Bootstrap/full-detail radius — outer proxy ring streams in over frames.
       radiusChunks: this._terrainVisibilityPlan().fullChunks || this.worldRadius || 5,
       material: this.atlas.greedyMaterial || this.atlas.material,
+      doorFacing: () => this._doorFace,
     });
     this.world.streamBudget = this.graphicsQuality === 'performance' ? 1
       : this.graphicsQuality === 'balanced' ? 4 : 8;
@@ -1325,6 +1329,7 @@ export class Game {
       this._slabHalf = new Map(Array.isArray(buildMeta.slabs) ? buildMeta.slabs : []);
       this._stairFace = new Map(Array.isArray(buildMeta.stairs) ? buildMeta.stairs : []);
       this._bedFace = new Map(Array.isArray(buildMeta.beds) ? buildMeta.beds : []);
+      this._doorFace = new Map(Array.isArray(buildMeta.doors) ? buildMeta.doors : []);
       this._furnaceOpen = null;
       // restore starter spawn pin (fallback to world spawn for older saves)
       if (saveData.spawnPos && Number.isFinite(saveData.spawnPos.x)) {
@@ -3578,6 +3583,7 @@ export class Game {
         slabs: [...this._slabHalf.entries()],
         stairs: [...this._stairFace.entries()],
         beds: [...this._bedFace.entries()],
+        doors: [...this._doorFace.entries()],
       },
     };
   }
@@ -4933,7 +4939,8 @@ export class Game {
       this._outline.visible = true;
       this._outline.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
       const bname = BLOCK_PROPS[hit.id]?.name || '';
-      if (hit.id === BLOCK.BED) text = `F — Sleep (if warm & fed) [${bname}]`;
+      if (hit.id === BLOCK.DOOR_CLOSED || hit.id === BLOCK.DOOR_OPEN) text = `F — ${hit.id === BLOCK.DOOR_OPEN ? 'Close' : 'Open'} door`;
+      else if (hit.id === BLOCK.BED) text = `F — Sleep (if warm & fed) [${bname}]`;
       else if (hit.id === BLOCK.CAMPFIRE) text = `Hold meat · F cook near heat [${bname}]`;
     } else {
       this._outline.visible = false;
@@ -5533,6 +5540,7 @@ export class Game {
         this.fx.hideCrack();
         this.world.excavateBlock(hit.x, hit.y, hit.z);
         this._builtEdits.delete(`${hit.x|0},${hit.y|0},${hit.z|0}`);
+        this._doorFace.delete(`${hit.x|0},${hit.y|0},${hit.z|0}`);
         if (isLogId(hit.id)) this._queueLeafDecay(hit.x, hit.y, hit.z);
         this.audio.breakBlock();
         this._showActionCue(`Mined ${displayName(hit.id)}`);
@@ -5621,6 +5629,13 @@ export class Game {
 
     if (this.world.setBlock(px, py, pz, blockId)) {
       this._builtEdits.set(`${px|0},${py|0},${pz|0}`, blockId);
+      if (blockId === BLOCK.DOOR_CLOSED) {
+        const facing = doorFacingFromYaw(this.player.yaw);
+        this._doorFace.set(`${px|0},${py|0},${pz|0}`, facing);
+        if (py + 1 < WORLD_HEIGHT && this.world.getBlock(px, py + 1, pz) === BLOCK.DOOR_CLOSED) {
+          this._doorFace.set(`${px|0},${(py + 1)|0},${pz|0}`, facing);
+        }
+      }
       this._placeT = 0.38;
       this.audio.placeBlock();
       this.fx.puff?.(px, py, pz, getColor(blockId, 'side') || [0.6, 0.55, 0.45], 5);
@@ -5657,6 +5672,7 @@ export class Game {
         if (aboveY < WORLD_HEIGHT && this.world.getBlock(px, aboveY, pz) === BLOCK.AIR) {
           this.world.setBlock(px, aboveY, pz, blockId);
           this._builtEdits.set(`${px | 0},${aboveY},${pz | 0}`, blockId);
+          this._doorFace.set(`${px | 0},${aboveY},${pz | 0}`, doorFacingFromYaw(this.player.yaw));
         }
       }
       if (blockId === BLOCK.GENERATOR) {

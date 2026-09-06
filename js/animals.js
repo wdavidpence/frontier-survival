@@ -3,7 +3,7 @@
  * Prey flee; predators hunt (worse at night). Meat drops on death.
  */
 import { isSolid, BLOCK } from './blocks.js?v=297';
-import { hash2 } from './gen.js?v=328';
+import { hash2 } from './gen.js?v=330';
 import { biomeAt, BIOME } from './biomes.js?v=273';
 
 export const SPECIES = {
@@ -307,6 +307,11 @@ function waterSurfaceY(world, x, z) {
   return null;
 }
 
+/** Land fauna never enter a water column; aquatic fauna use waterSurfaceY directly. */
+export function hasWaterSurface(world, x, z) {
+  return waterSurfaceY(world, x, z) !== null;
+}
+
 function dist2(ax, az, bx, bz) {
   const dx = ax - bx;
   const dz = az - bz;
@@ -355,7 +360,7 @@ export function findStarterEncounterSpawn(world, seed = 1, occupied = [], origin
     if (occupied.some((a) => a && !a.dead && Math.floor(a.x) === xi && Math.floor(a.z) === zi)) continue;
     const y = groundY(world, x, z);
     const ground = world.getBlock(xi, y - 1, zi);
-    if (!isSolid(ground) || ground === BLOCK.WATER) continue;
+    if (!isSolid(ground) || ground === BLOCK.WATER || hasWaterSurface(world, x, z)) continue;
     if (world.getBlock(xi, y, zi) !== BLOCK.AIR || world.getBlock(xi, y + 1, zi) !== BLOCK.AIR) continue;
     return { x, y, z, distance };
   }
@@ -388,7 +393,7 @@ export function findBeachShowcaseSpawn(world, seed = 1, occupied = [], origin = 
     if (occupied.some((a) => a && !a.dead && Math.floor(a.x) === xi && Math.floor(a.z) === zi)) continue;
     const y = groundY(world, x, z);
     const ground = world.getBlock(xi, y - 1, zi);
-    if (!isSolid(ground) || ground === BLOCK.WATER) continue;
+    if (!isSolid(ground) || ground === BLOCK.WATER || hasWaterSurface(world, x, z)) continue;
     if (ground !== BLOCK.SAND && ground !== BLOCK.GRASS && ground !== BLOCK.DAMP_SOIL) continue;
     if (world.getBlock(xi, y, zi) !== BLOCK.AIR || world.getBlock(xi, y + 1, zi) !== BLOCK.AIR) continue;
     return { x, y, z, distance };
@@ -1024,9 +1029,13 @@ export class FaunaSystem {
         } else {
           a.y = waterY - (spec.swimDepth || 0.8);
         }
-      } else if (this.world.getBlock(nx, gy - 1, nz) === BLOCK.WATER) {
-        nx = a.x * 0.7 + nx * 0.3;
-        nz = a.z * 0.7 + nz * 0.3;
+      } else {
+        if (hasWaterSurface(this.world, nx, nz)) {
+          // A land animal may approach the bank, but never enters a water
+          // column whose solid floor sits several blocks below the surface.
+          nx = a.x;
+          nz = a.z;
+        }
       }
       a.x = nx;
       a.z = nz;
@@ -1168,7 +1177,7 @@ export class FaunaSystem {
         const z = player.z + Math.sin(ang) * rad;
         if (dist2(x, z, player.x, player.z) < 14 * 14) continue;
         const y = groundY(this.world, x, z);
-        if (this.world.getBlock(x, y - 1, z) === BLOCK.WATER) continue;
+        if (hasWaterSurface(this.world, x, z)) continue;
         this.animals.push(this._make(spec, x, y, z));
         break;
       }

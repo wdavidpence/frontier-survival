@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=298';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=329';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=330';
 import { biomeAt, BIOME } from './biomes.js?v=273';
 import { tileForBlock } from './atlas-core.js?v=294';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
@@ -8,7 +8,7 @@ import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=248';
 import { buildMushroomGeometry } from './mushroom-geometry.js?v=3';
 import { buildTorchGeometry } from './torch-geometry.js?v=2';
 import { buildCandleGeometry } from './candle-geometry.js?v=1';
-import { buildDoorGeometry, pairDoorLeaves } from './door-geometry.js?v=1';
+import { buildDoorGeometry, pairDoorLeaves } from './door-geometry.js?v=2';
 import { buildPalmTrunkGeometry, buildPalmCrownGeometry } from './palm-trunk-geometry.js?v=2';
 import { palmTrunkAt } from './palm-lean.js?v=1';
 import {
@@ -595,7 +595,7 @@ export class World {
    * @param {number} opts.radiusChunks half-extent in chunks
    * @param {THREE.Material} [opts.material]
    */
-  constructor({ seed = 1, radiusChunks = 4, material = null } = {}) {
+  constructor({ seed = 1, radiusChunks = 4, material = null, doorFacing = null } = {}) {
     this.seed = seed;
     this.radiusChunks = radiusChunks;
     this.streamRadius = Math.max(2, Math.min(32, radiusChunks | 0));
@@ -609,6 +609,7 @@ export class World {
     this._streamReady = [];
     /** @type {Map<string,{cx:number,cz:number,distance:number,tier:'full'|'lod'|'proxy'}>} */
     this._streamDesired = new Map();
+    this.doorFacing = doorFacing;
     this._disposalContext = createDisposalContext();
     // Worker-backed voxel jobs drain off-thread. The fallback path still
     // materializes synchronously, so keep a generous per-frame budget so the
@@ -656,7 +657,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=356';
+    const workerUrl = './js/chunk-worker.js?v=357';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -777,8 +778,10 @@ export class World {
             if (y < h - 6 && hash2(x + y * 3, z + this.seed) > 0.97) id = BLOCK.COAL_ORE;
             if (y < h - 10 && y > 4 && hash2(x * 2 + y, z + this.seed * 5) > 0.985) id = BLOCK.IRON_ORE;
             if (y >= 2 && y <= 8 && hash2(x + y * 13, z * 7 + this.seed * 3) > 0.982) id = BLOCK.CLAY_DEEP_ORE;
-            if (y >= 3 && y <= h - 5) {
-              if (hash2(x + y * 7, z + this.seed * 3) > 0.991) id = BLOCK.AIR;
+            if (y >= 3 && y <= h - 8) {
+              // Keep caves as rare, deeper discoveries rather than surface
+              // potholes in the walking biome.
+              if (hash2(x + y * 7, z + this.seed * 3) > 0.9985) id = BLOCK.AIR;
             }
           }
           if (!deepWater && y >= h - 1 && y <= h && id === BLOCK.STONE) {
@@ -1451,8 +1454,10 @@ export class World {
             // deep clay ore veins (y <= 8, hash2-safe density)
             if (y >= 2 && y <= 8 && hash2(x + y * 13, z * 7 + this.seed * 3) > 0.982) id = BLOCK.CLAY_DEEP_ORE;
             // caves
-            if (y >= 3 && y <= h - 5) {
-              if (hash2(x + y * 7, z + this.seed * 3) > 0.991) id = BLOCK.AIR;
+            if (y >= 3 && y <= h - 8) {
+              // Keep caves as rare, deeper discoveries rather than surface
+              // potholes in the walking biome.
+              if (hash2(x + y * 7, z + this.seed * 3) > 0.9985) id = BLOCK.AIR;
             }
           }
           if (!deepWater && y >= h - 1 && y <= h && id === BLOCK.STONE) {
@@ -2165,7 +2170,12 @@ export class World {
           } else if (id === BLOCK.PALM_TRUNK) {
             if (palmTrunks.length < PLANT_BUDGET) palmTrunks.push({ x: baseX + lx, y: ly, z: baseZ + lz });
           } else if (id === BLOCK.DOOR_CLOSED || id === BLOCK.DOOR_OPEN) {
-            if (doors.length < PLANT_BUDGET) doors.push({ x: baseX + lx, y: ly, z: baseZ + lz, id });
+            if (doors.length < PLANT_BUDGET) {
+              const key = `${baseX + lx | 0},${ly | 0},${baseZ + lz | 0}`;
+              const source = typeof this.doorFacing === 'function' ? this.doorFacing() : this.doorFacing;
+              const facing = Number.isFinite(source?.get?.(key)) ? source.get(key) : 0;
+              doors.push({ x: baseX + lx, y: ly, z: baseZ + lz, id, facing });
+            }
           } else if (id !== BLOCK.PALM_LEAVES && PLANT_FORM.has(id) && plants.length < PLANT_BUDGET) {
             plants.push({ x: baseX + lx, y: ly, z: baseZ + lz, id });
           }

@@ -21,6 +21,7 @@ export function pairDoorLeaves(cells, closedId, openId) {
       y: cell.y | 0,
       z: cell.z | 0,
       open: cell.id === openId || !!(above && above.id === openId),
+      facing: Number.isFinite(cell.facing) ? cell.facing : Number.isFinite(above?.facing) ? above.facing : 0,
       height: above ? 2 : 1,
     });
   }
@@ -74,7 +75,8 @@ export function buildDoorGeometry(leaves, tile, color = [0.72, 0.52, 0.28]) {
     const hingeZ = leaf.z + 1 - 0.05;
     const y0 = leaf.y + 0.02;
     const y1 = leaf.y + height - 0.04;
-    const ang = leaf.open ? 1.3963 : 0;
+    const baseAngle = ((leaf.facing | 0) & 3) * Math.PI * 0.5;
+    const ang = baseAngle + (leaf.open ? 1.3963 : 0);
 
     const corner = (lx, y, lz) => {
       const [rx, rz] = rotY(lx, lz, ang);

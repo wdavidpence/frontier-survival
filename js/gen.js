@@ -432,8 +432,9 @@ export function heightAt(x, z, seed = 0) {
     const macroInfluence = bvi.majorInfluence > 0 ? bvi.majorInfluence : bvi.cayInfluence;
     const macroPeak = bvi.majorInfluence > 0 ? bvi.majorPeak : bvi.cayPeak;
     y = Math.max(y, GEN_SEA_LEVEL + 1 + macroPeak * macroInfluence + relief * 3 * macroInfluence);
-  } else if (bviRegion && !authoredWetland) {
-    // Keep the Drake Channel open, but carve rare 4–10 block bluewater basins.
+  } else if (bviRegion && !authoredWetland && y <= GEN_SEA_LEVEL + 7) {
+    // Only depress columns already near sea level. Never punch isolated
+    // water potholes into otherwise walkable inland biome.
     y = deepWater > 0
       ? Math.min(y, GEN_SEA_LEVEL - 4 - Math.floor(deepWater * 6))
       : Math.min(y, GEN_SEA_LEVEL - 2);
