@@ -9,7 +9,7 @@ import { buildMushroomGeometry } from './mushroom-geometry.js?v=3';
 import { buildTorchGeometry } from './torch-geometry.js?v=2';
 import { buildCandleGeometry } from './candle-geometry.js?v=1';
 import { buildDoorGeometry, pairDoorLeaves } from './door-geometry.js?v=1';
-import { buildPalmTrunkGeometry, buildPalmCrownGeometry } from './palm-trunk-geometry.js?v=2';
+import { buildPalmTrunkGeometry, buildPalmCrownGeometry } from './palm-trunk-geometry.js?v=3';
 import { palmTrunkAt } from './palm-lean.js?v=1';
 import {
   terrainVisibilityPlan,

@@ -178,6 +178,25 @@ export function buildPalmTrunkGeometry(instances, shaftTile, color = [0.94, 0.82
 }
 
 /**
+ * Data-driven canopy readability contract ensuring near-camera foliage reads as
+ * saturated warm green rather than dark-green / near-black foreground occlusion.
+ */
+export const CANOPY_READABILITY_CONTRACT = Object.freeze({
+  /** Saturated warm green color floor for palm fronds [R, G, B]. */
+  colorFloor: Object.freeze([0.56, 0.88, 0.34]),
+  /** Base root brightness preventing near-black occlusion at frond attachments. */
+  baseBrightness: 0.92,
+  /** Tip brightness keeping frond sweeps vibrant. */
+  tipBrightness: 1.08,
+  /** Warm golden sunlit lift (adds to R, warms G, reduces cool B). */
+  warmthFloor: 0.08,
+  /** Upward normal bias so two-sided underside catches ambient sky key. */
+  upwardNormalBias: 0.78,
+  /** Minimum vertex luminance floor ensuring readable canopy contrast. */
+  minLuminance: 0.52,
+});
+
+/**
  * 10 wind-swept fronds anchored at each palm crown — one tree, not a cube cap.
  */
 export function buildPalmCrownGeometry(instances, leafTile, color = [0.52, 0.84, 0.34], seed = 0) {
@@ -186,7 +205,13 @@ export function buildPalmCrownGeometry(instances, leafTile, color = [0.52, 0.84,
   const tau = Math.PI * 2;
   const west = Math.PI;
 
-  const strip = (origin, angle, reach, height, curve, width, tint, tile) => {
+  const baseColor = [
+    Math.max(color[0], CANOPY_READABILITY_CONTRACT.colorFloor[0]),
+    Math.max(color[1], CANOPY_READABILITY_CONTRACT.colorFloor[1]),
+    Math.max(color[2], CANOPY_READABILITY_CONTRACT.colorFloor[2]),
+  ];
+
+  const strip = (origin, angle, reach, height, curve, width, tint, tile, isRachis = false) => {
     const ca = Math.cos(angle);
     const sa = Math.sin(angle);
     const segments = 5;
@@ -199,14 +224,22 @@ export function buildPalmCrownGeometry(instances, leafTile, color = [0.52, 0.84,
       const midX = origin[0] + ca * sweep;
       const midZ = origin[2] + sa * sweep;
       const half = width * 0.5 * (1 - 0.62 * s);
-      const nx = -sa;
-      const ny = 0.55;
-      const nz = ca;
-      const k = 0.78 + 0.34 * s;
+      const nx = -sa * 0.45;
+      const ny = CANOPY_READABILITY_CONTRACT.upwardNormalBias;
+      const nz = ca * 0.45;
+      const norm = normalize(nx, ny, nz);
+      const k = CANOPY_READABILITY_CONTRACT.baseBrightness
+        + (CANOPY_READABILITY_CONTRACT.tipBrightness - CANOPY_READABILITY_CONTRACT.baseBrightness) * s;
+      const warmth = isRachis
+        ? 0.03
+        : CANOPY_READABILITY_CONTRACT.warmthFloor * (1 - 0.35 * s);
+      const r = clamp01(tint[0] * k + warmth);
+      const g = clamp01(tint[1] * k + warmth * 0.45);
+      const b = clamp01(tint[2] * k * 0.90 - warmth * 0.20);
       for (const side of [-1, 1]) {
         buffers.positions.push(midX - sa * half * side, y, midZ + ca * half * side);
-        buffers.normals.push(nx, ny, nz);
-        buffers.colors.push(clamp01(tint[0] * k), clamp01(tint[1] * k), clamp01(tint[2] * k * 0.92), 1);
+        buffers.normals.push(norm[0], norm[1], norm[2]);
+        buffers.colors.push(r, g, b, 1);
         buffers.uvs.push(0.5, 0.2 + 0.6 * s);
         buffers.tiles.push(tile);
       }
@@ -225,11 +258,11 @@ export function buildPalmCrownGeometry(instances, leafTile, color = [0.52, 0.84,
     origin[1] = top.y + 0.72;
     const variation = hash(root.x * 5 + 2, root.z * 3 + 8, seed + 9);
     const tint = [
-      clamp01(color[0] * (1.04 + variation * 0.06)),
-      clamp01(color[1] * (1.06 + variation * 0.05)),
-      clamp01(color[2] * (1.02 + variation * 0.04)),
+      clamp01(baseColor[0] * (1.04 + variation * 0.06)),
+      clamp01(baseColor[1] * (1.06 + variation * 0.05)),
+      clamp01(baseColor[2] * (1.02 + variation * 0.04)),
     ];
-    const rachis = [clamp01(tint[0] + 0.16), clamp01(tint[1] + 0.08), clamp01(tint[2] + 0.04)];
+    const rachis = [clamp01(tint[0] + 0.08), clamp01(tint[1] + 0.06), clamp01(tint[2] + 0.02)];
     const fronds = 10;
     for (let i = 0; i < fronds; i++) {
       const base = (i / fronds) * tau + variation * 0.2;
@@ -238,8 +271,8 @@ export function buildPalmCrownGeometry(instances, leafTile, color = [0.52, 0.84,
       const height = 0.62 + hash(root.x - i * 3, root.z + i * 5, seed + 17) * 0.28;
       const curve = 0.92 + hash(root.x + i, root.z + i * 2, seed + 19) * 0.16;
       const width = 0.30 + hash(root.x * 2 + i, root.z, seed + 23) * 0.12;
-      strip(origin, pulled, reach, height, curve, width, tint, leafTile);
-      strip(origin, pulled, reach * 0.92, height * 0.22, 0.2, 0.07, rachis, leafTile);
+      strip(origin, pulled, reach, height, curve, width, tint, leafTile, false);
+      strip(origin, pulled, reach * 0.92, height * 0.22, 0.2, 0.07, rachis, leafTile, true);
     }
   }
 

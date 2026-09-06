@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=549';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=550';
 import { Player } from './player.js?v=242';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=227';
@@ -123,8 +123,8 @@ import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v
 import { createDisposalContext, disposeTree } from './resource-disposal.js?v=3';
 import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=3';
 import { createForestThreshold, updateForestThreshold, disposeForestThreshold } from './forest-threshold.js?v=3';
-import { createGoldenCoveVision } from './frontier-vision-pack.js?v=29';
-import { createFirstExpeditionState, advanceFirstExpedition, firstExpeditionSummary } from './first-expedition.js?v=1';
+import { createGoldenCoveVision } from './frontier-vision-pack.js?v=30';
+import { createFirstExpeditionState, advanceFirstExpedition, firstExpeditionSummary } from './first-expedition.js?v=2';
 
 const HARVEST_BASE_SECONDS = 4.2;
 

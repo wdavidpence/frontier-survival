@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK } from './blocks.js?v=298';
-import { firstExpeditionSummary } from './first-expedition.js?v=1';
+import { firstExpeditionSummary } from './first-expedition.js?v=2';
 
 const MEMORY_KEY = 'frontier-golden-cove-memory-v1';
 const TAU = Math.PI * 2;
