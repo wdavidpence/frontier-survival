@@ -69,7 +69,7 @@ import {
   nextProgressionRecipe,
 } from './crafting.js?v=423';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=281';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=282';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=259';
 import { createBlockAtlas } from './atlas.js?v=348';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=291';

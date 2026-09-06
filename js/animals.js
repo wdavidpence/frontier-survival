@@ -657,6 +657,7 @@ export class FaunaSystem {
           if (waterSurfaceY(this.world, x, z) === null) continue;
         } else {
           if (this.world.getBlock(x, y - 1, z) === BLOCK.WATER) continue;
+          if (hasWaterSurface(this.world, x, z)) continue;
         }
         const animal = this._make(spec, x, y, z);
         if (spec.aquatic) animal.y = waterSurfaceY(this.world, x, z) - (spec.swimDepth || 0.8);

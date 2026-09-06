@@ -272,7 +272,7 @@ import {
   firstCraftableRecipe,
   nextProgressionRecipe,
 } from '../js/crafting.js';
-import { FaunaSystem, findStarterEncounterSpawn, findBeachShowcaseSpawn, meatDropCount, SPECIES, canFeed, tryFeed, hostileSpawnLimit, hasWaterSurface } from '../js/animals.js?v=281';
+import { FaunaSystem, findStarterEncounterSpawn, findBeachShowcaseSpawn, meatDropCount, SPECIES, canFeed, tryFeed, hostileSpawnLimit, hasWaterSurface } from '../js/animals.js?v=282';
 import { animalPartLayout, animalLimbPose, accentColor } from '../js/animal-visuals.js';
 import { tickLogic, isPowered, COMPONENT } from '../js/logic.js';
 import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
@@ -4877,9 +4877,9 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const main = fsText('js/main.js');
   const visuals = fsText('js/animal-visuals.js');
   const animals = fsText('js/animals.js');
-  assert.match(game, /animals.js\?v=281/);
+  assert.match(game, /animals.js\?v=282/);
   assert.match(game, /animal-visuals.js\?v=259/);
-  assert.match(main, /game\.js\?v=955/);
+  assert.match(main, /game\.js\?v=956/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -6324,7 +6324,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   const main = fsText('js/main.js');
   const vision = fsText('js/frontier-vision-pack.js');
   const html = fsText('index.html');
-  assert.match(main, /game\.js\?v=955/);
+  assert.match(main, /game\.js\?v=956/);
   assert.match(game, /frontier-vision-pack\.js\?v=29/);
   assert.match(game, /if \(this\._castawayGroup && !this\._boat\)/);
   assert.match(game, /if \(this\._castawayGroup\) this\._castawayGroup\.visible = false/);
