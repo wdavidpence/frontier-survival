@@ -18,6 +18,7 @@ import './streaming-confidence.mjs';
 import './streaming-confidence-integration.mjs';
 import './clear-arrival.mjs';
 import './clear-arrival-integration.mjs';
+import './campaign-integration.mjs';
 import './minecraft-feel.mjs';
 import './atmosphere-sky.mjs';
 import { sandyBeachHeight } from '../js/shore-water.js';
@@ -4887,7 +4888,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=282/);
   assert.match(game, /animal-visuals.js\?v=259/);
-  assert.match(main, /game\.js\?v=957/);
+  assert.match(main, /game\.js\?v=958/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5934,7 +5935,7 @@ test('bug sprint: all visible version surfaces agree', () => {
   assert.ok(html.includes('v1.28.0'), 'HTML must expose v1.28.0');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
-  assert.ok(html.includes('main.js?v=930'), 'HTML must expose the current entry cache bust');
+  assert.ok(html.includes('main.js?v=931'), 'HTML must expose the current entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6291,7 +6292,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=930/);
+  assert.match(html, /main\.js\?v=931/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6332,8 +6333,8 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   const main = fsText('js/main.js');
   const vision = fsText('js/frontier-vision-pack.js');
   const html = fsText('index.html');
-  assert.match(main, /game\.js\?v=957/);
-  assert.match(game, /frontier-vision-pack\.js\?v=30/);
+  assert.match(main, /game\.js\?v=958/);
+  assert.match(game, /frontier-vision-pack\.js\?v=31/);
   assert.match(game, /if \(this\._castawayGroup && !this\._boat\)/);
   assert.match(game, /if \(this\._castawayGroup\) this\._castawayGroup\.visible = false/);
   assert.match(vision, /campFactors/);
@@ -6387,7 +6388,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   assert.match(vision, /MEMORY_KEY/);
   assert.match(vision, /bearingTo/);
   assert.match(vision, /setWidth\(root, '\[data-gcv-meter=\"tide\"\]'/);
-  assert.match(html, /main\.js\?v=930/);
+  assert.match(html, /main\.js\?v=931/);
 });
 
 test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvous', () => {
@@ -6415,7 +6416,7 @@ test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvo
   const game = fsText('js/game.js');
   const html = fsText('index.html');
   assert.equal(html, fsText('public/index.html'));
-  assert.match(game, /frontier-vision-pack\.js\?v=30/);
+  assert.match(game, /frontier-vision-pack\.js\?v=31/);
   assert.match(game, /this\.time\.tick\(dt/);
   assert.match(game, /this\.player2\.update\(this\.world, this\.input2/);
   assert.match(game, /crewTogetherAt\(this\.player, this\.player2/);

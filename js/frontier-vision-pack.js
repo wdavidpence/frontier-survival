@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import { BLOCK } from './blocks.js?v=298';
 import { firstExpeditionSummary } from './first-expedition.js?v=2';
+import { locatorEntries } from './campaign-explore.js?v=1';
+import { triagePriority, predatorTelegraph, boatRouteLayers } from './campaign-survival.js?v=1';
+import { buildMilestone } from './campaign-build.js?v=1';
+import { displayName } from './items.js?v=256';
+import { radialQuadrants } from './campaign-friction.js?v=1';
 
 const MEMORY_KEY = 'frontier-golden-cove-memory-v1';
 const TAU = Math.PI * 2;
@@ -120,6 +125,37 @@ function snapshot(game) {
   const rhythm = night ? 'Night field · wildlife quiets' : phase < .2 ? 'Dawn field · gather while it is cool' : phase > .42 ? 'Late light · secure the camp edge' : 'Day field · coast is readable';
   const location = game._spawnLandmark || (game._destinationState?.phase === 'arrived' ? (destination?.name || 'Cane Garden Bay · Tortola') : 'Cane Garden Bay · Tortola');
   const bearing = bearingTo(pos, destination || game._spawnPos);
+  // Campaign wiring: live locator bar, triage, predator telegraph, route layers (items 40/63/58/80).
+  const locatorTargets = [];
+  if (game._spawnPos && pos) locatorTargets.push({ id: 'camp', label: 'Camp', pos: game._spawnPos });
+  if (destination && pos) locatorTargets.push({ id: 'objective', label: destination.name || 'Objective', pos: destination, urgent: game._destinationState?.phase === 'active' });
+  if (p2Pos && pos) locatorTargets.push({ id: 'partner', label: 'Partner', pos: p2Pos });
+  let nearestLiving = null;
+  for (const animal of livingAnimals) {
+    const d = pos ? Math.hypot(animal.x - pos.x, animal.z - pos.z) : Infinity;
+    if (!nearestLiving || d < nearestLiving.d) nearestLiving = { animal, d };
+  }
+  if (nearestLiving && nearestLiving.d < 40) locatorTargets.push({ id: 'wildlife', label: nearestLiving.animal.type, pos: nearestLiving.animal });
+  const locators = pos ? locatorEntries(pos, locatorTargets) : [];
+  const triage = triagePriority(survival);
+  let telegraph = { phase: 'hidden', text: '' };
+  if (pos) {
+    let closestHostile = Infinity;
+    for (const animal of livingAnimals) {
+      const spec = game.fauna?.getSpec?.(animal.type);
+      if (!spec?.hostile) continue;
+      const d = Math.hypot(animal.x - pos.x, animal.z - pos.z);
+      if (d < closestHostile) { closestHostile = d; telegraph = predatorTelegraph(d); }
+    }
+  }
+  let depthUnderBoat = 0;
+  if (boat?.mounted && pos && game.world?.getBlock) {
+    for (let y = Math.floor(pos.y) - 1; y > 0 && game.world.getBlock(Math.floor(pos.x), y, Math.floor(pos.z)) === BLOCK.WATER; y--) depthUnderBoat++;
+  }
+  const routeLayers = boat?.mounted ? boatRouteLayers(depthUnderBoat) : [];
+  const pack = radialQuadrants(game.player, displayName);
+  const hasPack = !!(pack.food || pack.tool || pack.light || pack.water);
+  const milestone = buildMilestone(edits, game._lastMilestoneTier ?? 0);
   return {
     pos, destination, distance, tide, weather, nearWater, boat, survival, risk, edits, campDistance,
     shelter, campBed, campfireBuilt, nearestCampfire, campfireDistance, roofed, activity, night, location, bearing,
@@ -129,6 +165,7 @@ function snapshot(game) {
     craftLabel, rhythm, expedition,
     boatSpeed: boat ? Math.hypot(boat.vx || 0, boat.vz || 0) : 0,
     boatReadiness, boatCargo, wakeActive,
+    locators, triage, telegraph, routeLayers, pack, hasPack, milestone,
     warmth: clamp01((game._lastHeat || 0) / 18),
     sea: weather === 'rain' || weather === 'storm' ? 'Rising swell' : tide > .72 ? 'Flood tide' : tide < .28 ? 'Ebb tide' : 'Calm water',
     depth: boat?.mounted ? (distance > 55 ? 'Open water' : 'Channel edge') : nearWater ? 'Shoreline shallows' : 'Dry land',
@@ -180,7 +217,13 @@ export function createGoldenCoveVision({ scene, hudRoot } = {}) {
         <article class="gcv-card"><div class="gcv-card-label">11 · Next craft</div><div class="gcv-card-value" data-gcv="craft">Raise the first shelter</div><div class="gcv-card-note">Progression is a route, not a menu.</div></article>
         <article class="gcv-card"><div class="gcv-card-label">12 · Field rhythm</div><div class="gcv-card-value" data-gcv="rhythm">Day field · coast is readable</div><div class="gcv-card-note">Light, wildlife, and weather shape the safest hour.</div></article>
         <article class="gcv-card wide"><div class="gcv-card-label">13 · Crew plan</div><div class="gcv-card-value" data-gcv="crew">Solo fieldcraft</div><div class="gcv-card-note" data-gcv="crewNote">Navigator: read the coast. Scout: read the living water.</div></article>
-        <article class="gcv-card wide"><div class="gcv-card-label">14 · Persistent expedition timeline</div><div data-gcv="memories"></div></article>
+        <article class="gcv-card wide"><div class="gcv-card-label">14 · Locator bar</div><div class="gcv-card-value" data-gcv="locator">Camp behind you</div><div class="gcv-card-note" data-gcv="locatorNote">Route markers stay readable at the edge of the screen.</div></article>
+        <article class="gcv-card"><div class="gcv-card-label">15 · Triage</div><div class="gcv-card-value" data-gcv="triage">All clear</div><div class="gcv-card-note" data-gcv="triageNote">No urgent needs logged.</div></article>
+        <article class="gcv-card"><div class="gcv-card-label">16 · Threat read</div><div class="gcv-card-value" data-gcv="telegraph">Calm field</div><div class="gcv-card-note" data-gcv="telegraphNote">Hostile wildlife is rare here — read tracks first.</div></article>
+        <article class="gcv-card"><div class="gcv-card-label">17 · Water column</div><div class="gcv-card-value" data-gcv="layers">On land</div><div class="gcv-card-note" data-gcv="layersNote">Aboard, the depth reveals reef, kelp, and lanes.</div></article>
+        <article class="gcv-card"><div class="gcv-card-label">21 · Pack ready</div><div class="gcv-card-value" data-gcv="pack">Pack empty</div><div class="gcv-card-note" data-gcv="packNote">Food, tool, light, and water all ride in one glance.</div></article>
+        <article class="gcv-card"><div class="gcv-card-label">22 · Homestead</div><div class="gcv-card-value" data-gcv="homestead">0 blocks placed</div><div class="gcv-card-note" data-gcv="homesteadNote">Every placed block moves the settlement tier.</div></article>
+        <article class="gcv-card wide"><div class="gcv-card-label">18 · Persistent expedition timeline</div><div data-gcv="memories"></div></article>
       </div>
     </section>`;
   hudRoot.appendChild(root);
@@ -327,6 +370,24 @@ export function createGoldenCoveVision({ scene, hudRoot } = {}) {
     setText(root, '[data-gcv="riskNote"]', s.risk > .35 ? 'Drink, warm up, and secure a roof before scouting farther.' : 'Keep water close and shelter before dark.');
     setText(root, '[data-gcv="crew"]', s.crewStatus);
     setText(root, '[data-gcv="crewNote"]', !game.coopMode ? 'Read the coast first. Let the horizon become a route.' : s.crewTogether ? 'Navigator and scout are together. Share the next bearing.' : s.p2Distance < Infinity ? 'Navigator reads the route. Scout reads the living water. Rendezvous before the crossing.' : 'Connect the second station to share the expedition.');
+    const locParts = (s.locators || []).slice(0, 3).map((l) => `${l.label} ${l.compass} ${formatDistance(l.distance)}`);
+    setText(root, '[data-gcv="locator"]', locParts.length ? locParts.join(' · ') : 'Open water ahead');
+    setText(root, '[data-gcv="locatorNote"]', locParts.length ? 'Bearings update as you move.' : 'Set a destination to light the locator.');
+    setText(root, '[data-gcv="triage"]', s.triage?.length ? s.triage[0].advice : 'All clear');
+    setText(root, '[data-gcv="triageNote"]', s.triage?.length ? s.triage.map((t) => t.kind).join(' · ') : 'Hunger, thirst, temperature, and breath all read safe.');
+    setText(root, '[data-gcv="telegraph"]', s.telegraph?.text || 'Calm field');
+    setText(root, '[data-gcv="telegraphNote"]', s.telegraph?.phase === 'charge' ? 'Break line of sight or reach the fire.' : 'Hostile wildlife is rare here — read tracks first.');
+    setText(root, '[data-gcv="layers"]', s.routeLayers?.length ? s.routeLayers.join(' / ') : 'On land');
+    setText(root, '[data-gcv="layersNote"]', s.routeLayers?.length ? 'Route layers shift with depth — steer between them.' : 'Aboard, the depth reveals reef, kelp, and lanes.');
+    const packBits = [];
+    if (s.pack?.food) packBits.push(`food · ${s.pack.food}`);
+    if (s.pack?.tool) packBits.push(`tool · ${s.pack.tool}`);
+    if (s.pack?.light) packBits.push(`light · ${s.pack.light}`);
+    if (s.pack?.water) packBits.push(`water · ${s.pack.water}`);
+    setText(root, '[data-gcv="pack"]', packBits.length ? packBits.join(' · ') : 'Pack empty');
+    setText(root, '[data-gcv="packNote"]', packBits.length ? 'Radial ready: food, tool, light, and water all read.' : 'Gather a ration, tool, torch, and water to arm the radial.');
+    setText(root, '[data-gcv="homestead"]', `${s.edits} blocks placed`);
+    setText(root, '[data-gcv="homesteadNote"]', s.milestone ? `${s.milestone.tier} blocks · ${s.milestone.title} secured` : 'Every placed block moves the settlement tier.');
     setWidth(root, '[data-gcv-meter="tide"]', s.tide);
     setWidth(root, '[data-gcv-meter="camp"]', s.shelter);
     setWidth(root, '[data-gcv-meter="boat"]', boatReady);

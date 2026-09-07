@@ -123,7 +123,7 @@ import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v
 import { createDisposalContext, disposeTree } from './resource-disposal.js?v=3';
 import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=3';
 import { createForestThreshold, updateForestThreshold, disposeForestThreshold } from './forest-threshold.js?v=3';
-import { createGoldenCoveVision } from './frontier-vision-pack.js?v=30';
+import { createGoldenCoveVision } from './frontier-vision-pack.js?v=31';
 import { createFirstExpeditionState, advanceFirstExpedition, firstExpeditionSummary } from './first-expedition.js?v=2';
 
 const HARVEST_BASE_SECONDS = 4.2;
