@@ -453,7 +453,7 @@ function tropicalCliffAt(x, z, seed = 0) {
 // gen.js so worker and synchronous fallback produce identical islands.
 const TORTOLA_VILLAGE_SITES = [
   { name: 'Road Town · Tortola', x: 22, z: 1, activation: 0.70 },
-  { name: 'Cane Garden Bay · Tortola', x: 0, z: -12, activation: 0.0, authored: true },
+  { name: 'Cane Garden Bay · Tortola', x: 0, z: -4, activation: 0.0, authored: true },
   { name: 'East End · Tortola', x: 82, z: -10, activation: 0.74 },
   { name: 'West End · Tortola', x: -55, z: -10, activation: 0.82 },
 ];
@@ -817,7 +817,7 @@ function generateChunkData(cx, cz, seed) {
 
       const surfaceId = data[idx(lx, h, lz)];
       const aboveId = data[idx(lx, h + 1, lz)];
-      if (biome === 'forest' && h > SEA_LEVEL + 1 && aboveId === BLOCK.AIR) {
+      if (biome === 'forest' && h > SEA_LEVEL + 1 && aboveId === BLOCK.AIR && !caneBayWalkable) {
         const roll = hash2(x * 29 + seed * 7, z * 31 + seed * 11);
         if (surfaceId === BLOCK.GRASS || surfaceId === BLOCK.DIRT || surfaceId === BLOCK.SAND || surfaceId === BLOCK.MANGROVE_MUD) {
           if (roll > 0.997) data[idx(lx, h + 1, lz)] = BLOCK.MUSHROOM;
@@ -828,7 +828,7 @@ function generateChunkData(cx, cz, seed) {
       }
 
       // Clay deposits near shore
-      if (biome === 'shore' || (h >= SEA_LEVEL && h <= SEA_LEVEL + 3 && biome !== 'tundra')) {
+      if ((biome === 'shore' || (h >= SEA_LEVEL && h <= SEA_LEVEL + 3 && biome !== 'tundra')) && !caneBayWalkable) {
         if (hash2(x + 33, z + seed) > 0.93) {
           const surface = data[idx(lx, h, lz)];
           if (surface === BLOCK.GRASS || surface === BLOCK.DIRT || surface === BLOCK.SAND) {
@@ -840,6 +840,14 @@ function generateChunkData(cx, cz, seed) {
         for (let yy = 1; yy < WORLD_HEIGHT; yy++) {
           const villageId = villageBlockAt(x, yy, z, villageSites);
           if (villageId !== null) data[idx(lx, yy, lz)] = villageId;
+        }
+      }
+      if (caneBayWalkable && !caneBayWater) {
+        const surfaceId = data[idx(lx, SEA_LEVEL, lz)];
+        if (surfaceId === BLOCK.WATER) data[idx(lx, SEA_LEVEL, lz)] = BLOCK.SAND;
+        const aboveId = data[idx(lx, SEA_LEVEL + 1, lz)];
+        if (aboveId === BLOCK.KELP || aboveId === BLOCK.SEAGRASS || aboveId === 72) {
+          data[idx(lx, SEA_LEVEL + 1, lz)] = BLOCK.AIR;
         }
       }
     }

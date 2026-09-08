@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=551';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=552';
 import { Player } from './player.js?v=242';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=227';
@@ -69,9 +69,9 @@ import {
   nextProgressionRecipe,
 } from './crafting.js?v=423';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=283';
-import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=259';
-import { createBlockAtlas } from './atlas.js?v=349';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=284';
+import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=260';
+import { createBlockAtlas } from './atlas.js?v=350';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=291';
 import {
   spawnWorldDrop,
@@ -95,7 +95,7 @@ import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=291'
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=11';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
 import { placementState } from './placement-preview.js?v=1';
-import { heightAt, bviRouteCorridorAt, bviLocationAt, caneGardenBayWalkableAt } from './gen.js?v=331';
+import { heightAt, bviRouteCorridorAt, bviLocationAt, caneGardenBayWalkableAt } from './gen.js?v=332';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=33';
 import { sunDirection, moonDirection, skyGlowFromNdc, shadowFollow } from './atmosphere-sky.js?v=1';
 import {
@@ -123,7 +123,7 @@ import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v
 import { createDisposalContext, disposeTree } from './resource-disposal.js?v=3';
 import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=3';
 import { createForestThreshold, updateForestThreshold, disposeForestThreshold } from './forest-threshold.js?v=3';
-import { createGoldenCoveVision } from './frontier-vision-pack.js?v=32';
+import { createGoldenCoveVision } from './frontier-vision-pack.js?v=33';
 import { createFirstExpeditionState, advanceFirstExpedition, firstExpeditionSummary } from './first-expedition.js?v=2';
 
 const HARVEST_BASE_SECONDS = 4.2;
@@ -1235,7 +1235,7 @@ export class Game {
       this.player.yaw = freshPlayer ? (Number.isFinite(arrival.yaw) ? arrival.yaw : 0.92) : (Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI));
       this.player.pitch = 0;
       if (freshPlayer && (spawn.landmark === 'Cane Garden Bay · Tortola' || caneGardenBayWalkableAt(spawn.x, spawn.z))) {
-        this.player.pitch = 0.16;
+        this.player.pitch = 0.22;
       }
       this.input.lookX = this.player.yaw;
       this.input.lookY = this.player.pitch;
@@ -2027,7 +2027,7 @@ export class Game {
       return mesh;
     };
 
-    box('boat-hull', [1.78, 0.24, 3.15], [0, 0.16, 0.05], wood);
+    box('boat-hull', [2.15, 0.30, 3.85], [0, 0.18, 0.05], wood);
     const bow = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.15, 4), wood);
     bow.name = 'boat-bow';
     bow.rotation.x = Math.PI / 2;
@@ -6823,7 +6823,7 @@ export class Game {
     this.fill.color.setHex(nightColors ? 0x5578ad : 0x9fc8df);
     this.ambient.color.setHex(nightColors ? 0x26385c : 0x6688aa);
     this.hemi.color.setHex(nightColors ? 0x5d76a8 : 0x9ec9ff);
-    this.sun.intensity = (0.10 * nightMix + (0.42 + sunI * 1.38) * dayFactor) + flash * 1.1;
+    this.sun.intensity = (0.10 * nightMix + (0.48 + sunI * 1.55) * dayFactor) + flash * 1.1;
     this.fill.intensity = (0.07 * nightMix + (0.16 + sunI * 0.32) * dayFactor) + flash * 0.22;
     this.ambient.intensity = (0.24 * nightMix + (0.36 + sunI * 0.62) * dayFactor) + flash * 1.7;
     this.hemi.intensity = (0.34 * nightMix + (0.36 + sunI * 0.52) * dayFactor) + flash * 0.9;

@@ -564,7 +564,7 @@ export function tropicalCliffAt(x, z, seed = 0) {
  */
 export const TORTOLA_VILLAGE_SITES = Object.freeze([
   { name: 'Road Town · Tortola', x: 22, z: 1, activation: 0.70 },
-  { name: 'Cane Garden Bay · Tortola', x: 0, z: -12, activation: 0.0, authored: true },
+  { name: 'Cane Garden Bay · Tortola', x: 0, z: -4, activation: 0.0, authored: true },
   { name: 'East End · Tortola', x: 82, z: -10, activation: 0.74 },
   { name: 'West End · Tortola', x: -55, z: -10, activation: 0.82 },
 ]);

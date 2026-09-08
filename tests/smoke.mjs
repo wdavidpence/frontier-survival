@@ -281,7 +281,7 @@ import {
   firstCraftableRecipe,
   nextProgressionRecipe,
 } from '../js/crafting.js';
-import { FaunaSystem, findStarterEncounterSpawn, findBeachShowcaseSpawn, meatDropCount, SPECIES, canFeed, tryFeed, hostileSpawnLimit, hasWaterSurface } from '../js/animals.js?v=283';
+import { FaunaSystem, findStarterEncounterSpawn, findBeachShowcaseSpawn, meatDropCount, SPECIES, canFeed, tryFeed, hostileSpawnLimit, hasWaterSurface } from '../js/animals.js?v=284';
 import { animalPartLayout, animalLimbPose, accentColor } from '../js/animal-visuals.js';
 import { tickLogic, isPowered, COMPONENT } from '../js/logic.js';
 import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
@@ -359,7 +359,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /\[\[-10, -28\], \[-10, -29\]/);
   assert.doesNotMatch(source, /Math\.PI \/ 4/, 'Cane Garden Bay must look along the beach, not a diagonal into buildings');
   assert.match(source, /chosen\.landmark === 'Cane Garden Bay · Tortola'/);
-  assert.match(gameSource, /world.js\?v=551/);
+  assert.match(gameSource, /world.js\?v=552/);
   assert.match(gameSource, /this\.player\.pitch = 0;/);
 });
 
@@ -402,7 +402,7 @@ test('Cane Garden Bay is a large authored 1:10 beach start with a sand village',
   assert.ok(bviWetSandAt(-10, -30), 'Cane Garden waterline is wet sand');
 });
 
-test('v1.28.1 Cane Garden arrival is sand, not mangrove potholes', () => {
+test('v1.28.2 Cane Garden arrival is sand, not mangrove potholes', () => {
   const world = fsText('js/world.js');
   const ecology = fsText('js/tropical-ecology.js');
   const atlas = fsText('js/atlas.js');
@@ -702,7 +702,7 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /\[150, 114, 72\]/);
   assert.match(atlas, /\[112, 66, 34\]/);
   assert.match(atlas, /#ffd36a/);
-  assert.match(game, /atlas\.js\?v=349/);
+  assert.match(game, /atlas\.js\?v=350/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -4906,9 +4906,9 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const main = fsText('js/main.js');
   const visuals = fsText('js/animal-visuals.js');
   const animals = fsText('js/animals.js');
-  assert.match(game, /animals.js\?v=283/);
-  assert.match(game, /animal-visuals.js\?v=259/);
-  assert.match(main, /game\.js\?v=959/);
+  assert.match(game, /animals.js\?v=284/);
+  assert.match(game, /animal-visuals.js\?v=260/);
+  assert.match(main, /game\.js\?v=960/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5693,7 +5693,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker.js\?v=359/);
+  assert.match(world, /chunk-worker.js\?v=360/);
   assert.match(world, /starterLaunchCorridor/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
@@ -5952,10 +5952,10 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.28.1'), 'HTML must expose v1.28.1');
+  assert.ok(html.includes('v1.28.2'), 'HTML must expose v1.28.2');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
-  assert.ok(html.includes('main.js?v=932'), 'HTML must expose the current entry cache bust');
+  assert.ok(html.includes('main.js?v=933'), 'HTML must expose the current entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6270,7 +6270,7 @@ test('tropical ecology sprint exposes six additions, coconuts, and root foods', 
   assert.match(world, /this\.chunks\.set\(this\.key\(cx, cz\), applyTropicalEcology/);
   assert.match(world, /BROMELIAD/);
   assert.match(world, /FOREST_UNDERSTORY_CAP = 2/);
-  assert.match(world, /tropical-ecology.js\?v=22/);
+  assert.match(world, /tropical-ecology.js\?v=23/);
   assert.match(ecology, /STARTER_COVE_SHOWCASE/);
   assert.match(ecology, /const clusterRoll = hash2/);
   assert.match(ecology, /BLOCK\.BROMELIAD\], \[2, 1, BLOCK\.HELICONIA/);
@@ -6312,7 +6312,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=932/);
+  assert.match(html, /main\.js\?v=933/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6353,8 +6353,8 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   const main = fsText('js/main.js');
   const vision = fsText('js/frontier-vision-pack.js');
   const html = fsText('index.html');
-  assert.match(main, /game\.js\?v=959/);
-  assert.match(game, /frontier-vision-pack\.js\?v=32/);
+  assert.match(main, /game\.js\?v=960/);
+  assert.match(game, /frontier-vision-pack\.js\?v=33/);
   assert.match(game, /if \(this\._castawayGroup && !this\._boat\)/);
   assert.match(game, /if \(this\._castawayGroup\) this\._castawayGroup\.visible = false/);
   assert.match(vision, /campFactors/);
@@ -6408,7 +6408,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   assert.match(vision, /MEMORY_KEY/);
   assert.match(vision, /bearingTo/);
   assert.match(vision, /setWidth\(root, '\[data-gcv-meter=\"tide\"\]'/);
-  assert.match(html, /main\.js\?v=932/);
+  assert.match(html, /main\.js\?v=933/);
 });
 
 test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvous', () => {
@@ -6436,7 +6436,7 @@ test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvo
   const game = fsText('js/game.js');
   const html = fsText('index.html');
   assert.equal(html, fsText('public/index.html'));
-  assert.match(game, /frontier-vision-pack\.js\?v=32/);
+  assert.match(game, /frontier-vision-pack\.js\?v=33/);
   assert.match(game, /this\.time\.tick\(dt/);
   assert.match(game, /this\.player2\.update\(this\.world, this\.input2/);
   assert.match(game, /crewTogetherAt\(this\.player, this\.player2/);

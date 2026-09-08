@@ -25,7 +25,7 @@ const CSS = `
   @keyframes gcv-in{from{opacity:0;transform:translateX(-50%) translateY(-7px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
   @media(max-width:720px){.gcv-voyage{bottom:226px;width:calc(100vw - 28px - env(safe-area-inset-left) - env(safe-area-inset-right));}.gcv-ribbon{top:225px;left:calc(10px + env(safe-area-inset-left));right:calc(10px + env(safe-area-inset-right));transform:none;width:auto;min-width:0;animation:none}.gcv-arrival{top:10%;left:calc(50% + (env(safe-area-inset-left) - env(safe-area-inset-right))/2);width:calc(100vw - 28px - env(safe-area-inset-left) - env(safe-area-inset-right));padding:8px 12px}.gcv-arrival-title{font-size:18px}.gcv-arrival-copy{font-size:10px;line-height:1.28;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.gcv-arrival-route{margin-top:7px;font-size:8px}.gcv-dossier{top:225px;left:calc(50% + (env(safe-area-inset-left) - env(safe-area-inset-right))/2);width:calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right));max-height:calc(100vh - 245px)}.gcv-grid{grid-template-columns:1fr}.gcv-card.wide{grid-column:auto}.gcv-toggle{font-size:7px}}
   body.game-active.composure-mode .gcv-ribbon{top:8px;width:min(390px,54vw);padding:6px 10px}
-  body.game-active.composure-mode .gcv-arrival{top:11%}
+  body.game-active.composure-mode .gcv-arrival{display:none!important;visibility:hidden;opacity:0}
   @media(max-width:720px){body.game-active.composure-mode .gcv-ribbon{top:8px;left:50%;right:auto;transform:translateX(-50%);width:min(92vw,420px)}}
   @media(prefers-reduced-motion:reduce){#golden-cove-vision *,#golden-cove-vision::before,#golden-cove-vision::after{animation:none!important;transition:none!important}}
 `;

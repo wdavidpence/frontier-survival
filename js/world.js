@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=298';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, caneGardenBayVillagePadAt, caneGardenBayWalkableAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=331';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, caneGardenBayVillagePadAt, caneGardenBayWalkableAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=332';
 import { biomeAt, BIOME } from './biomes.js?v=273';
 import { tileForBlock } from './atlas-core.js?v=294';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
@@ -20,7 +20,7 @@ import { raycastVoxel } from './interaction-contract.js?v=5';
 import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=7';
 import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=3';
 import { createDisposalContext, disposeGeometry, disposeTree } from './resource-disposal.js?v=3';
-import { applyTropicalEcology } from './tropical-ecology.js?v=22';
+import { applyTropicalEcology } from './tropical-ecology.js?v=23';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -657,7 +657,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=359';
+    const workerUrl = './js/chunk-worker.js?v=360';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -880,7 +880,7 @@ export class World {
           data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
         }
 
-        const floorDetail = forestFloorDetail(
+        const floorDetail = caneBayWalkable ? null : forestFloorDetail(
           x,
           z,
           this.seed,
@@ -894,7 +894,7 @@ export class World {
         else if (floorDetail === 'sticks') data[this._idx(lx, h + 1, lz)] = BLOCK.STICK_PILE;
         else if (floorDetail === 'mushroom') data[this._idx(lx, h + 1, lz)] = BLOCK.MUSHROOM;
 
-        if (biome === BIOME.SHORE || (h >= SEA_LEVEL && h <= SEA_LEVEL + 3 && biome !== BIOME.TUNDRA)) {
+        if ((biome === BIOME.SHORE || (h >= SEA_LEVEL && h <= SEA_LEVEL + 3 && biome !== BIOME.TUNDRA)) && !caneBayWalkable) {
           if (hash2(x + 33, z + this.seed) > 0.93) {
             const surface = data[this._idx(lx, h, lz)];
             if (surface === BLOCK.GRASS || surface === BLOCK.DIRT || surface === BLOCK.SAND) {
@@ -906,6 +906,14 @@ export class World {
           for (let yy = 1; yy < WORLD_HEIGHT; yy++) {
             const villageId = villageBlockAt(x, yy, z, villageSites);
             if (villageId !== null) data[this._idx(lx, yy, lz)] = villageId;
+          }
+        }
+        if (caneBayWalkable && !caneBayWater) {
+          const surfaceId = data[this._idx(lx, SEA_LEVEL, lz)];
+          if (surfaceId === BLOCK.WATER) data[this._idx(lx, SEA_LEVEL, lz)] = BLOCK.SAND;
+          const aboveId = data[this._idx(lx, SEA_LEVEL + 1, lz)];
+          if (aboveId === BLOCK.KELP || aboveId === BLOCK.SEAGRASS || aboveId === BLOCK.PNEUMATOPHORE) {
+            data[this._idx(lx, SEA_LEVEL + 1, lz)] = BLOCK.AIR;
           }
         }
       }
@@ -1559,7 +1567,7 @@ export class World {
           data[this._idx(lx, h + 1, lz)] = BLOCK.BUSH;
         }
 
-        const floorDetail = forestFloorDetail(
+        const floorDetail = caneBayWalkable ? null : forestFloorDetail(
           x,
           z,
           this.seed,
@@ -1574,7 +1582,7 @@ export class World {
         else if (floorDetail === 'mushroom') data[this._idx(lx, h + 1, lz)] = BLOCK.MUSHROOM;
 
         // clay deposits near shore biome
-        if (biome === BIOME.SHORE || (h >= SEA_LEVEL && h <= SEA_LEVEL + 3 && biome !== BIOME.TUNDRA)) {
+        if ((biome === BIOME.SHORE || (h >= SEA_LEVEL && h <= SEA_LEVEL + 3 && biome !== BIOME.TUNDRA)) && !caneBayWalkable) {
           if (hash2(x + 33, z + this.seed) > 0.93) {
             const surface = data[this._idx(lx, h, lz)];
             if (surface === BLOCK.GRASS || surface === BLOCK.DIRT || surface === BLOCK.SAND) {
@@ -1586,6 +1594,14 @@ export class World {
           for (let yy = 1; yy < WORLD_HEIGHT; yy++) {
             const villageId = villageBlockAt(x, yy, z, villageSites);
             if (villageId !== null) data[this._idx(lx, yy, lz)] = villageId;
+          }
+        }
+        if (caneBayWalkable && !caneBayWater) {
+          const surfaceId = data[this._idx(lx, SEA_LEVEL, lz)];
+          if (surfaceId === BLOCK.WATER) data[this._idx(lx, SEA_LEVEL, lz)] = BLOCK.SAND;
+          const aboveId = data[this._idx(lx, SEA_LEVEL + 1, lz)];
+          if (aboveId === BLOCK.KELP || aboveId === BLOCK.SEAGRASS || aboveId === BLOCK.PNEUMATOPHORE) {
+            data[this._idx(lx, SEA_LEVEL + 1, lz)] = BLOCK.AIR;
           }
         }
       }
