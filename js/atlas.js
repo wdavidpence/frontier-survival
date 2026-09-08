@@ -369,7 +369,7 @@ function drawSand(ctx, x0, y0) {
   // Warm golden beach sand. Low contrast keeps it from banding, but the ramp
   // holds saturation at both ends so it never flattens to washed-out cream.
   const field = fillMaterial(ctx, x0, y0, PAL_SAND, {
-    seed: 55, cells: 4, octaves: 3, contrast: 0.85,
+    seed: 55, cells: 4, octaves: 3, contrast: 0.62,
   });
   // Ripple shadows follow a separate horizontally stretched field, replacing the
   // three fixed bars that used to line up into a visible grid across a beach.
@@ -1516,8 +1516,12 @@ export function createBlockAtlas() {
         float waterFace = 1.0 - smoothstep(0.5, 1.5, abs(vTile - 5.0));
         float whiteBay = exp(-pow((vWorldPos.x + 42.0) / 14.0, 2.0) - pow((vWorldPos.z - 8.0) / 6.0, 2.0));
         float northSound = exp(-pow((vWorldPos.x - 52.0) / 10.0, 2.0) - pow((vWorldPos.z + 2.0) / 5.0, 2.0));
-        float cove = max(whiteBay, northSound) * waterFace;
-        float starterCove = exp(-pow((vWorldPos.x - 26.0) / 13.0, 2.0) - pow((vWorldPos.z - 8.0) / 11.0, 2.0)) * waterFace;
+        float caneGarden = exp(-pow((vWorldPos.x + 10.0) / 22.0, 2.0) - pow((vWorldPos.z + 36.0) / 16.0, 2.0));
+        float cove = max(max(whiteBay, northSound), caneGarden) * waterFace;
+        float starterCove = max(
+          exp(-pow((vWorldPos.x - 26.0) / 13.0, 2.0) - pow((vWorldPos.z - 8.0) / 11.0, 2.0)),
+          caneGarden
+        ) * waterFace;
         // Shoreline material response: lower sand/damp-soil faces catch a cool
         // tidal stain while the dry upper lip keeps its warm sunlit identity.
         float sandFace = 1.0 - smoothstep(0.5, 1.5, abs(vTile - 4.0));

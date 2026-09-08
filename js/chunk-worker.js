@@ -142,6 +142,16 @@ function caneGardenBayBeachAt(x, z) {
 function caneGardenBayVillagePadAt(x, z) {
   return x >= -24 && x <= 12 && z >= -28 && z <= 4;
 }
+function caneGardenBayShelfAt(x, z) {
+  if (caneGardenBayWaterAt(x, z) || z < -30) return false;
+  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    if (caneGardenBayBeachAt(x + dx, z + dz) || caneGardenBayVillagePadAt(x + dx, z + dz)) return true;
+  }
+  return false;
+}
+function caneGardenBayWalkableAt(x, z) {
+  return caneGardenBayBeachAt(x, z) || caneGardenBayVillagePadAt(x, z) || caneGardenBayShelfAt(x, z);
+}
 const BVI_CHANNEL_BUOYS = Object.freeze([
   { x: 12, z: 6, id: 'green' },
   { x: 12, z: 10, id: 'red' },
@@ -169,11 +179,18 @@ function bviDockAt(x, z) {
 const BVI_WET_SAND_EDGES = Object.freeze([
   { name: 'white-bay-landing', cx: -42, cz: 9, rx: 12 },
   { name: 'north-sound-landing', cx: 52, cz: -5, rx: 8 },
-  { name: 'cane-garden-bay-landing', cx: -10, cz: -34, rx: 8 },
+  { name: 'cane-garden-bay-landing', cx: -10, cz: -30, rx: 28 },
 ]);
 function bviWetSandAt(x, z) {
+  if (caneGardenBayBeachAt(x, z) && z <= -28) {
+    return { name: 'cane-garden-bay-landing' };
+  }
   for (const edge of BVI_WET_SAND_EDGES) {
     const distance = Math.abs(x - edge.cx);
+    if (edge.name === 'cane-garden-bay-landing') {
+      if (z >= -31 && z <= -29 && distance <= edge.rx) return { name: edge.name };
+      continue;
+    }
     if (z === edge.cz && distance >= Math.floor(edge.rx * 0.72) && distance <= edge.rx) {
       return { name: edge.name };
     }
@@ -332,8 +349,7 @@ function heightAt(x, z, seed = 0) {
   if (starterCoveAt(x, z)) y = 16 + 1;
   if (starterCoveChannelAt(x, z)) y = Math.min(y, 16 - 1);
   if (caneGardenBayWaterAt(x, z)) y = Math.min(y, 16 - 1);
-  else if (caneGardenBayBeachAt(x, z)) y = 16;
-  else if (caneGardenBayVillagePadAt(x, z)) y = 16;
+  else if (caneGardenBayWalkableAt(x, z)) y = 16;
   const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
   if (starterEdgeHeight != null) y = Math.min(y, starterEdgeHeight);
   if (Math.hypot(x, z) < 18 && route.influence <= 0) y = Math.max(y, 16);
@@ -671,18 +687,19 @@ function generateChunkData(cx, cz, seed) {
       const starterCove = starterCoveAt(x, z);
       const caneBayWater = caneGardenBayWaterAt(x, z);
       const caneBayBeach = caneGardenBayBeachAt(x, z);
+      const caneBayWalkable = caneGardenBayWalkableAt(x, z);
       const starterCoveSightline = starterCoveSightlinePocket(x, z, biome);
       const deepWater = bviDeepWaterAt(x, z);
       const baseHeight = caneBayWater ? SEA_LEVEL - 1
-        : caneBayBeach ? SEA_LEVEL
+        : caneBayWalkable ? SEA_LEVEL
           : starterCove ? SEA_LEVEL + 1 : (mangroveApproachWaterPocket(x, z, biome) || mangroveApproachBankCut(x, z, biome))
             ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, seed);
       const cliff = biome === 'tropical' && tropicalCliffAt(x, z, seed);
       const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
       const h = caneBayWater ? SEA_LEVEL - 1
-        : caneBayBeach ? SEA_LEVEL
+        : caneBayWalkable ? SEA_LEVEL
           : starterCove ? SEA_LEVEL + 1 : sandyCoastHeight(x, z, seed, biome, baseHeight, rockyCoast);
-      const sandySurface = !deepWater && (caneBayBeach || starterCove || isSandyBeachSurface(h, biome, rockyCoast));
+      const sandySurface = !deepWater && (caneBayWalkable || starterCove || isSandyBeachSurface(h, biome, rockyCoast));
 
       for (let y = 0; y < WORLD_HEIGHT; y++) {
         let id = BLOCK.AIR;
@@ -691,7 +708,7 @@ function generateChunkData(cx, cz, seed) {
           if (y <= SEA_LEVEL) id = BLOCK.WATER;
         } else if (y === h) {
           if (deepWater) id = BLOCK.STONE;
-          else if (!starterCove && biome === 'mangrove') id = BLOCK.MANGROVE_MUD;
+          else if (!starterCove && !caneBayWalkable && biome === 'mangrove') id = BLOCK.MANGROVE_MUD;
           else if (starterCove || biome === 'desert' || sandySurface) id = BLOCK.SAND;
           else if (biome === 'shore' || biome === 'ocean') id = cliff ? BLOCK.STONE : BLOCK.GRASS;
           else if (biome === 'tundra') id = BLOCK.SNOW;
@@ -699,7 +716,7 @@ function generateChunkData(cx, cz, seed) {
           else id = BLOCK.GRASS;
         } else if (y > h - 4) {
           if (deepWater) id = BLOCK.STONE;
-          else if (!starterCove && biome === 'mangrove') id = BLOCK.MANGROVE_MUD;
+          else if (!starterCove && !caneBayWalkable && biome === 'mangrove') id = BLOCK.MANGROVE_MUD;
           else if (starterCove || biome === 'desert' || sandySurface) id = BLOCK.SAND;
           else if (biome === 'shore' || biome === 'ocean') id = cliff ? BLOCK.STONE : BLOCK.DIRT;
           else if (cliff) id = BLOCK.STONE;

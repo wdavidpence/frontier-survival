@@ -7,7 +7,7 @@ export const CASTAWAY_CONFIG = Object.freeze({
   maxSpawnRadius: 112,
   boatOffset: 4.2,
   salvageRadius: 6.0,
-  cardSeconds: 4.5,
+  cardSeconds: 2.2,
 });
 
 /**

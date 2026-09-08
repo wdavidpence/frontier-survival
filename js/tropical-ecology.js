@@ -5,7 +5,7 @@
  */
 import { BLOCK } from './blocks.js?v=297';
 import { biomeAt, BIOME } from './biomes.js?v=273';
-import { hash2, bviBeachLandingAt } from './gen.js?v=330';
+import { hash2, bviBeachLandingAt, caneGardenBayWalkableAt } from './gen.js?v=331';
 import { palmTrunkAt } from './palm-lean.js?v=1';
 
 export const TROPICAL_ECOLOGY = Object.freeze({
@@ -32,7 +32,7 @@ const STARTER_COVE_SHOWCASE = new Map([
   ['-2,-27', BLOCK.BROMELIAD],
   ['6,-27', BLOCK.PANDANUS],
 ]);
-const STARTER_COVE_PALMS = new Set(['-21,-26', '-15,-26']);
+const STARTER_COVE_PALMS = new Set(['-21,-26', '-15,-26', '-12,-26', '-18,-29', '-8,-29', '-6,-26']);
 const idx = (lx, y, lz) => (lz * WORLD_HEIGHT + y) * CHUNK_SIZE + lx;
 const inside = (lx, y, lz) => lx >= 0 && lx < CHUNK_SIZE && lz >= 0 && lz < CHUNK_SIZE && y >= 0 && y < WORLD_HEIGHT;
 
@@ -120,7 +120,12 @@ export function applyTropicalEcology(data, { baseX = 0, baseZ = 0, seed = 0 } = 
         continue;
       }
       if (h < SEA_LEVEL + 5) {
-        if (biome === BIOME.MANGROVE && h >= SEA_LEVEL - 1 && hash2(x * 71 + seed, z * 79 + seed * 3) > 1 - TROPICAL_ECOLOGY.pneumatophoreChance) {
+        if (
+          biome === BIOME.MANGROVE
+          && !caneGardenBayWalkableAt(x, z)
+          && h >= SEA_LEVEL - 1
+          && hash2(x * 71 + seed, z * 79 + seed * 3) > 1 - TROPICAL_ECOLOGY.pneumatophoreChance
+        ) {
           put(data, lx, Math.max(SEA_LEVEL, h + 1), lz, BLOCK.PNEUMATOPHORE);
         }
         continue;

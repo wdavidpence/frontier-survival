@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=298';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=330';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, caneGardenBayVillagePadAt, caneGardenBayWalkableAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=331';
 import { biomeAt, BIOME } from './biomes.js?v=273';
 import { tileForBlock } from './atlas-core.js?v=294';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
@@ -17,10 +17,10 @@ import {
   buildTerrainProxyArrays,
 } from './terrain-visibility.js?v=291';
 import { raycastVoxel } from './interaction-contract.js?v=5';
-import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=6';
+import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=7';
 import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=3';
 import { createDisposalContext, disposeGeometry, disposeTree } from './resource-disposal.js?v=3';
-import { applyTropicalEcology } from './tropical-ecology.js?v=21';
+import { applyTropicalEcology } from './tropical-ecology.js?v=22';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -657,7 +657,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=357';
+    const workerUrl = './js/chunk-worker.js?v=359';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -723,12 +723,13 @@ export class World {
         const starterChannel = starterCoveChannelAt(x, z);
         const caneBayWater = caneGardenBayWaterAt(x, z);
         const caneBayBeach = caneGardenBayBeachAt(x, z);
+        const caneBayWalkable = caneGardenBayWalkableAt(x, z);
         const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
         const starterCoveSightline = starterCoveSightlinePocket(x, z, biome);
         const deepWater = bviDeepWaterAt(x, z);
         const baseHeight = caneBayWater
           ? SEA_LEVEL - 1
-          : caneBayBeach
+          : caneBayWalkable
             ? SEA_LEVEL
             : starterCove
               ? SEA_LEVEL + 1
@@ -743,14 +744,14 @@ export class World {
         const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
         const h = caneBayWater
           ? SEA_LEVEL - 1
-          : caneBayBeach
+          : caneBayWalkable
             ? SEA_LEVEL
             : starterCove
               ? SEA_LEVEL + 1
               : starterChannel || starterEdgeHeight != null
                 ? baseHeight
                 : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
-        const sandySurface = !deepWater && (caneBayBeach || starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
+        const sandySurface = !deepWater && (caneBayWalkable || starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
           let id = BLOCK.AIR;
@@ -760,7 +761,7 @@ export class World {
             else id = BLOCK.AIR;
           } else if (y === h) {
             if (deepWater) id = BLOCK.STONE;
-            else if (!starterCove && biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
+            else if (!starterCove && !caneBayWalkable && biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
             else if (starterCove || biome === BIOME.DESERT || sandySurface) id = BLOCK.SAND;
             else if (biome === BIOME.SHORE || biome === BIOME.OCEAN) id = cliff ? BLOCK.STONE : BLOCK.GRASS;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
@@ -768,7 +769,7 @@ export class World {
             else id = BLOCK.GRASS;
           } else if (y > h - 4) {
             if (deepWater) id = BLOCK.STONE;
-            else if (!starterCove && biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
+            else if (!starterCove && !caneBayWalkable && biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
             else if (starterCove || biome === BIOME.DESERT || sandySurface) id = BLOCK.SAND;
             else if (biome === BIOME.SHORE || biome === BIOME.OCEAN) id = cliff ? BLOCK.STONE : BLOCK.DIRT;
             else if (cliff) id = BLOCK.STONE;
@@ -1393,12 +1394,13 @@ export class World {
         const starterChannel = starterCoveChannelAt(x, z);
         const caneBayWater = caneGardenBayWaterAt(x, z);
         const caneBayBeach = caneGardenBayBeachAt(x, z);
+        const caneBayWalkable = caneGardenBayWalkableAt(x, z);
         const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
         const starterCoveSightline = starterCoveSightlinePocket(x, z, biome);
         const deepWater = bviDeepWaterAt(x, z);
         const baseHeight = caneBayWater
           ? SEA_LEVEL - 1
-          : caneBayBeach
+          : caneBayWalkable
             ? SEA_LEVEL
             : starterCove
               ? SEA_LEVEL + 1
@@ -1413,14 +1415,14 @@ export class World {
         const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
         const h = caneBayWater
           ? SEA_LEVEL - 1
-          : caneBayBeach
+          : caneBayWalkable
             ? SEA_LEVEL
             : starterCove
               ? SEA_LEVEL + 1
               : starterChannel || starterEdgeHeight != null
                 ? baseHeight
                 : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
-        const sandySurface = !deepWater && (caneBayBeach || starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
+        const sandySurface = !deepWater && (caneBayWalkable || starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
           let id = BLOCK.AIR;
@@ -1431,7 +1433,7 @@ export class World {
           } else if (y === h) {
             // Biome-driven surface block
             if (deepWater) id = BLOCK.STONE;
-            else if (!starterCove && biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
+            else if (!starterCove && !caneBayWalkable && biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
             else if (starterCove || biome === BIOME.DESERT || sandySurface) id = BLOCK.SAND;
             else if (biome === BIOME.SHORE || biome === BIOME.OCEAN) id = cliff ? BLOCK.STONE : BLOCK.GRASS;
             else if (biome === BIOME.TUNDRA) id = BLOCK.SNOW;
@@ -1440,7 +1442,7 @@ export class World {
           } else if (y > h - 4) {
             // Sub-surface follows biome: desert/shore → sand, tundra → dirt, else dirt
             if (deepWater) id = BLOCK.STONE;
-            else if (!starterCove && biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
+            else if (!starterCove && !caneBayWalkable && biome === BIOME.MANGROVE) id = BLOCK.MANGROVE_MUD;
             else if (starterCove || biome === BIOME.DESERT || sandySurface) id = BLOCK.SAND;
             else if (biome === BIOME.SHORE || biome === BIOME.OCEAN) id = cliff ? BLOCK.STONE : BLOCK.DIRT;
             else if (cliff) id = BLOCK.STONE;

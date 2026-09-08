@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111b2a'/%3E%3Cpath d='M14 48 32 12 50 48H14Z' fill='%23d4a45c'/%3E%3C/svg%3E" />
-  <title>Frontier Survival v1.28.0</title>
+  <title>Frontier Survival v1.28.1</title>
   <style>
     :root {
       --panel: rgba(8, 12, 18, 0.72);
@@ -592,6 +592,18 @@
     }
     #help b { color: #ddd5c6; }
     body.game-active #help { display: none; }
+    body:not(.game-active) #hud { visibility: hidden; }
+    body.game-active.composure-mode #discovery-log,
+    body.game-active.composure-mode #shelter-hud,
+    body.game-active.composure-mode #destination-hud,
+    body.game-active.composure-mode #workshop-hud,
+    body.game-active.composure-mode [data-open-controls] { display: none !important; }
+    body.game-active.composure-mode #spawn-marker { opacity: 0.4; }
+    #crosshair.fish-bite {
+      border-color: #ffd34e;
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.45), 0 0 16px rgba(255,211,78,0.55);
+      transform: scale(1.35);
+    }
     #spawn-marker {
       position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
       width: 48px; height: 48px;
@@ -1726,7 +1738,7 @@
     </div>
     <div id="ach-toast" class="hidden" role="status" aria-live="polite"></div>
     <div id="prompt"></div>
-    <div id="version-badge">v1.28.0</div>
+    <div id="version-badge">v1.28.1</div>
     <div id="p1-tag">P1</div>
     <div id="p2-tag">P2 · pad1 body</div>
     <div id="coop-pad-prompt" role="status" aria-live="polite" aria-atomic="true"><strong>Connect P2 controller</strong><div class="sub">Two DualSense controllers: P1 left screen · P2 right screen.</div></div>
@@ -1822,7 +1834,7 @@
 
   <div id="title-screen" class="overlay">
     <div class="panel">
-      <div class="tag">Browser survival sandbox · v1.28.0</div>
+      <div class="tag">Browser survival sandbox · v1.28.1</div>
       <h1>Frontier Survival</h1>
       <p>
         Marooned in a blocky wilderness. Hunger, cold, fatigue, and the dark
@@ -1955,6 +1967,6 @@
   </div>
 
   <div id="sleep-fade"></div>
-  <script type="module" src="./js/main.js?v=931"></script>
+  <script type="module" src="./js/main.js?v=932"></script>
 </body>
 </html>

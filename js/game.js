@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=550';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=551';
 import { Player } from './player.js?v=242';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=227';
-import { AudioBus } from './audio.js?v=242';
+import { AudioBus } from './audio.js?v=243';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
@@ -69,9 +69,9 @@ import {
   nextProgressionRecipe,
 } from './crafting.js?v=423';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
-import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=282';
+import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=283';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=259';
-import { createBlockAtlas } from './atlas.js?v=348';
+import { createBlockAtlas } from './atlas.js?v=349';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=291';
 import {
   spawnWorldDrop,
@@ -95,7 +95,7 @@ import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=291'
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=11';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
 import { placementState } from './placement-preview.js?v=1';
-import { heightAt, bviRouteCorridorAt, bviLocationAt } from './gen.js?v=330';
+import { heightAt, bviRouteCorridorAt, bviLocationAt, caneGardenBayWalkableAt } from './gen.js?v=331';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=33';
 import { sunDirection, moonDirection, skyGlowFromNdc, shadowFollow } from './atmosphere-sky.js?v=1';
 import {
@@ -123,7 +123,7 @@ import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v
 import { createDisposalContext, disposeTree } from './resource-disposal.js?v=3';
 import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=3';
 import { createForestThreshold, updateForestThreshold, disposeForestThreshold } from './forest-threshold.js?v=3';
-import { createGoldenCoveVision } from './frontier-vision-pack.js?v=31';
+import { createGoldenCoveVision } from './frontier-vision-pack.js?v=32';
 import { createFirstExpeditionState, advanceFirstExpedition, firstExpeditionSummary } from './first-expedition.js?v=2';
 
 const HARVEST_BASE_SECONDS = 4.2;
@@ -251,7 +251,7 @@ import {
   castawayObjective,
   createCastawayArrival,
   restoreCastawayArrival,
-} from './castaway-arrival.js?v=6';
+} from './castaway-arrival.js?v=7';
 
 export class Game {
   /**
@@ -421,7 +421,7 @@ export class Game {
     this._autosaveAcc = 0;
     this._autosaveInterval = 40; // seconds
     this._lastSaveStatus = '';
-    this._helpVisible = this.settings.helpVisible !== false;
+    this._helpVisible = false;
     this._helpFadeAcc = 0;
     this._crossHitT = 0;
     this._recoverT = 0;
@@ -1234,6 +1234,9 @@ export class Game {
       // Fresh arrivals open seaward so the first frame shows water and flanking palms, not the village wall.
       this.player.yaw = freshPlayer ? (Number.isFinite(arrival.yaw) ? arrival.yaw : 0.92) : (Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI));
       this.player.pitch = 0;
+      if (freshPlayer && (spawn.landmark === 'Cane Garden Bay · Tortola' || caneGardenBayWalkableAt(spawn.x, spawn.z))) {
+        this.player.pitch = 0.16;
+      }
       this.input.lookX = this.player.yaw;
       this.input.lookY = this.player.pitch;
       this._sunAzimuth = this.player.yaw;
@@ -1403,6 +1406,7 @@ export class Game {
       this._castawayCardWallStartedAt = freshPlayer ? performance.now() : 0;
       this._castawayCardShown = freshPlayer;
     }
+    this._hudComposureT = freshPlayer ? 22 : 0;
     this.started = true;
     this.paused = false;
     this.setPaused(false);
@@ -2130,8 +2134,10 @@ export class Game {
     if (this._castawayFoam) {
       const pulse = 1 + Math.sin(this._castawayClock * 1.8) * 0.045;
       this._castawayFoam.scale.set(pulse, pulse, pulse);
-      this._castawayFoam.visible = water;
-      this._castawayFoam.material.opacity = 0.34 + Math.sin(this._castawayClock * 1.4) * 0.08;
+    this._castawayFoam.visible = true;
+      this._castawayFoam.material.opacity = water
+        ? 0.34 + Math.sin(this._castawayClock * 1.4) * 0.08
+        : 0.16 + Math.sin(this._castawayClock * 1.1) * 0.04;
     }
     if (this._castawaySail) {
       const sailCondition = this._boat?.sail ?? 0.46;
@@ -3774,7 +3780,7 @@ export class Game {
   _updateShelterHud() {
     const el = document.getElementById('shelter-hud');
     if (!el) return;
-    if (!this.started || this.paused || this.survival?.dead || !this.world) {
+    if (!this.started || this.paused || this.survival?.dead || !this.world || this._hudComposureT > 0) {
       el.classList.add('hidden');
       return;
     }
@@ -3827,6 +3833,19 @@ export class Game {
       && !this._furnaceOpen && !this._chestOpenKey
     );
     document.body.classList.toggle('exploration-mode', exploration);
+  }
+
+  _applyHudComposure(dt = 0) {
+    if (this._hudComposureT > 0) this._hudComposureT = Math.max(0, this._hudComposureT - Math.max(0, dt));
+    const composure = !!(this.started && !this.paused && !this.survival?.dead && this._hudComposureT > 0);
+    document.body.classList.toggle('composure-mode', composure);
+    if (!composure) return composure;
+    document.getElementById('discovery-log')?.classList.add('hidden');
+    document.getElementById('shelter-hud')?.classList.add('hidden');
+    document.getElementById('destination-hud')?.classList.add('hidden');
+    document.getElementById('workshop-hud')?.classList.add('hidden');
+    document.getElementById('arrival-card')?.classList.add('hidden');
+    return composure;
   }
 
 
@@ -4701,6 +4720,7 @@ export class Game {
       this._handleDrop();
       this._updateOutlineAndPrompt();
       this._updateShelterHud();
+      this._applyHudComposure(dt);
       }
       this._tickProjectiles(dt);
       this._tickCrops(dt);
@@ -7072,7 +7092,10 @@ export class Game {
 
   _updateJournalHud() {
     const hud = document.getElementById('discovery-log');
-    if (!hud || !this.started) return;
+    if (!hud || !this.started || this._hudComposureT > 0) {
+      hud?.classList.add('hidden');
+      return;
+    }
     const summary = hud.querySelector('[data-journal-summary]');
     const lead = hud.querySelector('[data-journal-lead]');
     const progress = this._journalState?.discovered?.length || 0;
@@ -7096,6 +7119,10 @@ export class Game {
     const hud = document.getElementById('destination-hud');
     const state = this._destinationState;
     if (!hud || !this.player || !state?.destination) return;
+    if (this._hudComposureT > 0) {
+      hud.classList.add('hidden');
+      return;
+    }
     const destination = state.destination;
     const distance = Math.hypot(this.player.position.x - destination.x, this.player.position.z - destination.z);
     const rootwalkDistance = Math.hypot(this.player.position.x - 55.5, this.player.position.z - 58.5);
@@ -7287,6 +7314,7 @@ export class Game {
     this._updateSpawnMarker();
     this._updateDestinationHud();
     this._updateJournalHud();
+    this._applyHudComposure(0);
     this._updateCoopPadPrompt();
 
     const workshopHud = document.getElementById('workshop-hud');
@@ -7322,10 +7350,9 @@ export class Game {
       let biomeName = '';
       try {
         const b = biomeAt(this.player.position.x, this.player.position.z, this.seed);
-        if (b) {
-          biomeName = String(b);
-          bits.push(biomeName);
-        }
+        if (caneGardenBayWalkableAt(this.player.position.x, this.player.position.z)) biomeName = 'shore';
+        else if (b) biomeName = String(b);
+        if (biomeName) bits.push(biomeName);
       } catch (_) {}
       if (this.player.heldId() === ITEM.COMPASS || this.player.heldId() === ITEM.MAP) {
         bits.push(`xyz ${this.player.position.x.toFixed(0)},${this.player.position.y.toFixed(0)},${this.player.position.z.toFixed(0)}`);
