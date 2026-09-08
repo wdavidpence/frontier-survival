@@ -1125,15 +1125,16 @@ function drawStickPile(ctx, x0, y0) {
 }
 
 function drawDampSoil(ctx, x0, y0) {
-  fillNoise(ctx, x0, y0, [150, 114, 72], 0.24, 414, 255, 2);
+  // Wet sand, not garden dirt: cooler, glossier, close to the dry beach palette.
+  fillNoise(ctx, x0, y0, [176, 148, 108], 0.16, 414, 255, 2);
   const r = rnd(415);
-  ctx.fillStyle = 'rgba(70, 58, 30, 0.4)';
-  for (let i = 0; i < 12; i++) {
+  ctx.fillStyle = 'rgba(92, 110, 108, 0.22)';
+  for (let i = 0; i < 8; i++) {
     const bx = (r() * 15) | 0;
     const by = (r() * 15) | 0;
     ctx.fillRect(x0 + bx * 2, y0 + by * 2, 2, 2);
   }
-  applyMicroTexture(ctx, x0, y0, 4);
+  applyMicroTexture(ctx, x0, y0, 3);
 }
 
 function drawMushroom(ctx, x0, y0) {
@@ -1524,12 +1525,19 @@ export function createBlockAtlas() {
         ) * waterFace;
         // Shoreline material response: lower sand/damp-soil faces catch a cool
         // tidal stain while the dry upper lip keeps its warm sunlit identity.
+        // Dry-to-wet Cane Garden gradient uses inland distance from z=-30, not a
+        // height-only stain that paints the whole walking beach as a brown runway.
         float sandFace = 1.0 - smoothstep(0.5, 1.5, abs(vTile - 4.0));
         float dampFace = 1.0 - smoothstep(0.5, 1.5, abs(vTile - 58.0));
         float topFace = smoothstep(0.78, 0.98, vNormal.y);
+        float cgbMask = exp(-pow((vWorldPos.x + 10.0) / 28.0, 2.0));
+        float inland = vWorldPos.z + 30.0;
+        float wetGrad = (sandFace * 0.55 + dampFace) * topFace * cgbMask
+          * (1.0 - smoothstep(0.2, 4.2, inland));
+        rgb = mix(rgb, rgb * vec3(0.66, 0.74, 0.78) + vec3(0.02, 0.045, 0.055), clamp(wetGrad * 0.58, 0.0, 0.58));
         float tidalBand = (sandFace + dampFace * 0.82) * topFace
-          * (1.0 - smoothstep(16.2, 17.6, vWorldPos.y));
-        rgb = mix(rgb, rgb * vec3(0.72, 0.78, 0.80), clamp(tidalBand * 0.28, 0.0, 0.28));
+          * (1.0 - smoothstep(16.2, 17.6, vWorldPos.y)) * (1.0 - cgbMask * 0.88);
+        rgb = mix(rgb, rgb * vec3(0.80, 0.84, 0.86), clamp(tidalBand * 0.14, 0.0, 0.14));
         float wetRockFace = (1.0 - smoothstep(0.5, 1.5, abs(vTile - 3.0))) * topFace
           * (1.0 - smoothstep(16.0, 18.4, vWorldPos.y));
         rgb = mix(rgb, rgb * vec3(0.64, 0.82, 0.88) + vec3(0.025, 0.055, 0.065), clamp(wetRockFace * 0.48, 0.0, 0.48));
@@ -1546,15 +1554,15 @@ export function createBlockAtlas() {
         // water reads as a shallow place rather than a repeated dark atlas tile.
         float broadWave = 0.5 + 0.5 * sin(waterTime * 0.65 + vWorldPos.x * 0.11 + vWorldPos.z * 0.07);
         vec3 coveTint = vec3(0.045, 0.24, 0.30) + vec3(0.015, 0.05, 0.055) * broadWave;
-        rgb = mix(rgb, mix(rgb, coveTint, 0.20), starterCove * waterSurface * 0.86);
+        rgb = mix(rgb, mix(rgb, coveTint, 0.34), starterCove * waterSurface * 0.94);
         float coveFoam = 0.5 + 0.5 * sin(vWorldPos.x * 0.62 - vWorldPos.z * 0.48 + waterTime * 1.1);
         rgb += vec3(0.18, 0.36, 0.34) * starterCove * waterSurface * coveFoam * 0.22;
         float waterSide = waterFace * (1.0 - topFace);
         rgb = mix(rgb, vec3(0.04, 0.16, 0.24), clamp(waterSide * 0.42, 0.0, 0.42));
         rgb = mix(rgb, rgb * vec3(0.52, 0.76, 0.90), clamp(waterSurface * (1.0 - cove) * 0.32, 0.0, 0.32));
-        float shoreFoam = waterSurface * tidalBand
+        float shoreFoam = waterSurface * max(wetGrad, tidalBand)
           * (0.40 + 0.60 * sin(vWorldPos.x * 2.1 + waterTime * 1.4 + vWorldPos.z * 1.6));
-        rgb += vec3(0.24, 0.34, 0.32) * shoreFoam * 0.38;
+        rgb += vec3(0.28, 0.38, 0.36) * shoreFoam * 0.52;
         vec3 viewDir = normalize(cameraPosition - vWorldPos);
         vec3 halfDir = normalize(L + viewDir);
         float glitter = pow(max(0.0, dot(N, halfDir)), 36.0) * max(0.18, ndl);

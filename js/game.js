@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=552';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=554';
 import { Player } from './player.js?v=242';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=227';
@@ -71,7 +71,7 @@ import {
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=284';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=260';
-import { createBlockAtlas } from './atlas.js?v=350';
+import { createBlockAtlas } from './atlas.js?v=351';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=291';
 import {
   spawnWorldDrop,
@@ -95,7 +95,7 @@ import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=291'
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=11';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
 import { placementState } from './placement-preview.js?v=1';
-import { heightAt, bviRouteCorridorAt, bviLocationAt, caneGardenBayWalkableAt } from './gen.js?v=332';
+import { heightAt, bviRouteCorridorAt, bviLocationAt, caneGardenBayWalkableAt } from './gen.js?v=333';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=33';
 import { sunDirection, moonDirection, skyGlowFromNdc, shadowFollow } from './atmosphere-sky.js?v=1';
 import {

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=298';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, caneGardenBayVillagePadAt, caneGardenBayWalkableAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=332';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, caneGardenBayVillagePadAt, caneGardenBayWalkableAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=333';
 import { biomeAt, BIOME } from './biomes.js?v=273';
 import { tileForBlock } from './atlas-core.js?v=294';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
@@ -657,7 +657,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=360';
+    const workerUrl = './js/chunk-worker.js?v=362';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -797,7 +797,7 @@ export class World {
           for (let yy = SEA_LEVEL; yy <= h; yy++) data[this._idx(lx, yy, lz)] = yy === SEA_LEVEL ? BLOCK.WATER : BLOCK.AIR;
         }
         const wetSand = bviWetSandAt(x, z);
-        if (wetSand && h >= SEA_LEVEL) data[this._idx(lx, h, lz)] = BLOCK.DAMP_SOIL;
+        if (wetSand && h >= SEA_LEVEL && wetSand.name !== 'cane-garden-bay-landing') data[this._idx(lx, h, lz)] = BLOCK.DAMP_SOIL;
         const cayOutcrop = bviCayOutcropAt(x, z);
         if (cayOutcrop && h >= SEA_LEVEL + 1) {
           data[this._idx(lx, h, lz)] = BLOCK.STONE;
@@ -1482,7 +1482,7 @@ export class World {
           for (let yy = SEA_LEVEL; yy <= h; yy++) data[this._idx(lx, yy, lz)] = yy === SEA_LEVEL ? BLOCK.WATER : BLOCK.AIR;
         }
         const wetSand = bviWetSandAt(x, z);
-        if (wetSand && h >= SEA_LEVEL) data[this._idx(lx, h, lz)] = BLOCK.DAMP_SOIL;
+        if (wetSand && h >= SEA_LEVEL && wetSand.name !== 'cane-garden-bay-landing') data[this._idx(lx, h, lz)] = BLOCK.DAMP_SOIL;
         const cayOutcrop = bviCayOutcropAt(x, z);
         if (cayOutcrop && h >= SEA_LEVEL + 1) {
           data[this._idx(lx, h, lz)] = BLOCK.STONE;

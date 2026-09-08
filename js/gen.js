@@ -266,15 +266,17 @@ const BVI_WET_SAND_EDGES = Object.freeze([
   { name: 'cane-garden-bay-landing', cx: -10, cz: -30, rx: 28 },
 ]);
 export function bviWetSandAt(x, z) {
-  if (caneGardenBayBeachAt(x, z) && z <= -28) {
+  // Cane Garden: only the waterline lip. A 3-cell DAMP_SOIL slab reads as a
+  // painted brown runway; the dry→wet look is a shader gradient inland of this.
+  if (caneGardenBayBeachAt(x, z) && z === -30) {
+    return { name: 'cane-garden-bay-landing' };
+  }
+  if (caneGardenBayBeachAt(x, z) && z === -29 && hash2(x * 19 + 7, z * 23 + 11) > 0.55) {
     return { name: 'cane-garden-bay-landing' };
   }
   for (const edge of BVI_WET_SAND_EDGES) {
     const distance = Math.abs(x - edge.cx);
-    if (edge.name === 'cane-garden-bay-landing') {
-      if (z >= -31 && z <= -29 && distance <= edge.rx) return { name: edge.name };
-      continue;
-    }
+    if (edge.name === 'cane-garden-bay-landing') continue;
     if (z === edge.cz && distance >= Math.floor(edge.rx * 0.72) && distance <= edge.rx) {
       return { name: edge.name };
     }
