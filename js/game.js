@@ -71,7 +71,7 @@ import {
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=285';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=260';
-import { createBlockAtlas } from './atlas.js?v=354';
+import { createBlockAtlas } from './atlas.js?v=356';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=291';
 import {
   spawnWorldDrop,
@@ -96,7 +96,7 @@ import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
 import { placementState } from './placement-preview.js?v=1';
 import { heightAt, bviRouteCorridorAt, bviLocationAt, caneGardenBayWalkableAt, villageSitesForSeed } from './gen.js?v=337';
-import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=33';
+import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=34';
 import { sunDirection, moonDirection, skyGlowFromNdc, shadowFollow } from './atmosphere-sky.js?v=1';
 import {
   equipmentWarmth,

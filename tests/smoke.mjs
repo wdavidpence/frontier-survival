@@ -799,7 +799,7 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /\[176, 148, 108\]/);
   assert.match(atlas, /\[112, 66, 34\]/);
   assert.match(atlas, /#ffd36a/);
-  assert.match(game, /atlas\.js\?v=354/);
+  assert.match(game, /atlas\.js\?v=356/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -813,6 +813,7 @@ test('water wave salvage is deterministic and reaches the live material path', (
   assert.match(atlas, /waterTime: \{ value: 0 \}/);
   assert.match(atlas, /float waterTime/);
   assert.match(atlas, /float waterSurface = waterFace \* topFace/);
+  assert.match(atlas, /vec3 tropWater/);
   assert.match(atlas, /pos\.y \+= waterTop/);
   assert.match(atlas, /waterTime \* 1\.55/);
   assert.match(game, /mat\.uniforms\.waterTime/);
@@ -5015,7 +5016,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=285/);
   assert.match(game, /animal-visuals.js\?v=260/);
-  assert.match(main, /game\.js\?v=968/);
+  assert.match(main, /game\.js\?v=970/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -6059,10 +6060,10 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.28.8'), 'HTML must expose v1.28.8');
+  assert.ok(html.includes('v1.28.9'), 'HTML must expose v1.28.9');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
-  assert.ok(html.includes('main.js?v=941'), 'HTML must expose the current entry cache bust');
+  assert.ok(html.includes('main.js?v=943'), 'HTML must expose the current entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6419,7 +6420,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=941/);
+  assert.match(html, /main\.js\?v=943/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6460,7 +6461,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   const main = fsText('js/main.js');
   const vision = fsText('js/frontier-vision-pack.js');
   const html = fsText('index.html');
-  assert.match(main, /game\.js\?v=968/);
+  assert.match(main, /game\.js\?v=970/);
   assert.match(game, /frontier-vision-pack\.js\?v=34/);
   assert.match(game, /if \(this\._castawayGroup && !this\._boat\)/);
   assert.match(game, /if \(this\._castawayGroup\) this\._castawayGroup\.visible = false/);
@@ -6515,7 +6516,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   assert.match(vision, /MEMORY_KEY/);
   assert.match(vision, /bearingTo/);
   assert.match(vision, /setWidth\(root, '\[data-gcv-meter=\"tide\"\]'/);
-  assert.match(html, /main\.js\?v=941/);
+  assert.match(html, /main\.js\?v=943/);
 });
 
 test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvous', () => {

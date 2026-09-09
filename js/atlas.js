@@ -12,7 +12,7 @@ import {
   crackTileForProgress,
   atlasTileCount,
 } from './atlas-core.js?v=295';
-import { WATER_WAVE } from './water-material.js?v=4';
+import { WATER_WAVE } from './water-material.js?v=5';
 
 export {
   TILE,
@@ -1590,19 +1590,22 @@ export function createBlockAtlas() {
         rgb += vec3(${WATER_WAVE.tint.join(', ')}) * waterSurface * (0.22 + wave * 0.28);
         rgb += vec3(0.18, 0.28, 0.26) * waterSurface * ripple * 0.14;
         rgb += vec3(0.12, 0.24, 0.26) * waterSurface * flow * 0.26;
-        // The opening cove gets a broad, low-frequency surface response so the
-        // water reads as a shallow place rather than a repeated dark atlas tile.
+        // Hide the repeating water atlas tile so the opening sea reads as one
+        // tropical body: turquoise near the camera, cooler toward the horizon.
+        vec3 tropWater = vec3(0.07, 0.30, 0.34) + vec3(0.03, 0.08, 0.06) * wave + vec3(0.02, 0.04, 0.03) * ripple;
+        vec3 waterLit = tropWater * (0.78 + wrap * 0.32);
+        rgb = mix(rgb, waterLit, waterSurface * 0.94);
         float broadWave = 0.5 + 0.5 * sin(waterTime * 0.65 + vWorldPos.x * 0.11 + vWorldPos.z * 0.07);
-        vec3 coveTint = vec3(0.045, 0.24, 0.30) + vec3(0.015, 0.05, 0.055) * broadWave;
-        rgb = mix(rgb, mix(rgb, coveTint, 0.34), starterCove * waterSurface * 0.94);
+        vec3 coveTint = vec3(0.055, 0.30, 0.32) + vec3(0.02, 0.07, 0.055) * broadWave;
+        rgb = mix(rgb, mix(rgb, coveTint, 0.40), starterCove * waterSurface * 0.96);
         float coveFoam = 0.5 + 0.5 * sin(vWorldPos.x * 0.62 - vWorldPos.z * 0.48 + waterTime * 1.1);
-        rgb += vec3(0.18, 0.36, 0.34) * starterCove * waterSurface * coveFoam * 0.22;
+        rgb += vec3(0.22, 0.40, 0.38) * starterCove * waterSurface * coveFoam * 0.28;
         float waterSide = waterFace * (1.0 - topFace);
-        rgb = mix(rgb, vec3(0.04, 0.16, 0.24), clamp(waterSide * 0.42, 0.0, 0.42));
-        rgb = mix(rgb, rgb * vec3(0.52, 0.76, 0.90), clamp(waterSurface * (1.0 - cove) * 0.32, 0.0, 0.32));
+        rgb = mix(rgb, vec3(0.05, 0.20, 0.26), clamp(waterSide * 0.62, 0.0, 0.62));
+        rgb = mix(rgb, rgb * vec3(0.52, 0.76, 0.90), clamp(waterSurface * (1.0 - cove) * 0.22, 0.0, 0.22));
         float shoreFoam = waterSurface * max(wetGrad, tidalBand)
           * (0.40 + 0.60 * sin(vWorldPos.x * 2.1 + waterTime * 1.4 + vWorldPos.z * 1.6));
-        rgb += vec3(0.28, 0.38, 0.36) * shoreFoam * 0.52;
+        rgb += vec3(0.42, 0.52, 0.50) * shoreFoam * 0.68;
         vec3 viewDir = normalize(cameraPosition - vWorldPos);
         vec3 halfDir = normalize(L + viewDir);
         float glitter = pow(max(0.0, dot(N, halfDir)), 36.0) * max(0.18, ndl);

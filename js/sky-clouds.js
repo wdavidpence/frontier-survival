@@ -175,7 +175,7 @@ export class VoxelCloudLayer {
 export class SunDisc {
   constructor(scene) {
     this.scene = scene;
-    const sunGeo = new THREE.SphereGeometry(4.8, 12, 8);
+    const sunGeo = new THREE.SphereGeometry(8.8, 16, 12);
     this._sunMat = new THREE.MeshBasicMaterial({
       color: 0xfff5c8,
       depthTest: false,
@@ -198,7 +198,7 @@ export class SunDisc {
     scene.add(this._moon);
 
     // Soft additive halos improve readability against bright or busy sky.
-    const sunGlowGeo = new THREE.SphereGeometry(8.4, 12, 8);
+    const sunGlowGeo = new THREE.SphereGeometry(16.2, 16, 12);
     this._sunGlowMat = new THREE.MeshBasicMaterial({
       color: 0xfff5c8,
       transparent: true,
@@ -253,9 +253,9 @@ export class SunDisc {
     this._sunGlow.position.copy(this._sun.position);
     this._sun.visible = sy > 0.02 && nightMix < 0.82;
     this._sunGlow.visible = this._sun.visible;
-    this._sunGlowMat.opacity = this._sun.visible ? (0.34 + elevT * 0.38) * (1.0 - nightMix) : 0;
-    this._sun.scale.setScalar(1.15 + elevT * 0.12);
-    this._sunGlow.scale.setScalar(1.35 + (1 - elevT) * 0.45);
+    this._sunGlowMat.opacity = this._sun.visible ? (0.48 + elevT * 0.42) * (1.0 - nightMix) : 0;
+    this._sun.scale.setScalar(1.35 + elevT * 0.18);
+    this._sunGlow.scale.setScalar(1.55 + (1 - elevT) * 0.55);
 
     this._moon.position.set(
       cameraPos.x + mx * DIST,
