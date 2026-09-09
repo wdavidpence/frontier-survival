@@ -48,6 +48,7 @@ const EXPOSED_ORE = Object.freeze({ COAL: 13, IRON: 18, COPPER: 56, DIAMOND: 57 
 const BVI_MAJOR_LANDFORMS = Object.freeze([
   { name: 'puerto-rico', cx: -130, cz: 52, rx: 120, rz: 84, peak: 24 },
   { name: 'fajardo-cabezas', cx: -30, cz: -6, rx: 32, rz: 28, peak: 14 },
+  { name: 'fajardo-municipio', cx: -70, cz: 52, rx: 68, rz: 78, peak: 18 },
   { name: 'el-yunque', cx: -88, cz: 18, rx: 34, rz: 26, peak: 28 },
   { name: 'culebra', cx: 128, cz: 8, rx: 46, rz: 26, peak: 16 },
   { name: 'vieques', cx: 86, cz: 78, rx: 64, rz: 24, peak: 13 },
@@ -1099,7 +1100,7 @@ function _placeTree(data, idx, lx, y, lz) {
 }
 
 function populateMangroveColumn(data, idx, lx, h, lz, x, z, biome, seed) {
-  if (biome !== 'mangrove' || h > SEA_LEVEL + 2) return;
+  if (biome !== 'mangrove' || h >= SEA_LEVEL) return;
   if (mangroveApproachPlantClearance(x, z, biome)) return;
   const channel = hash2(x * 19 + seed * 3, z * 23 + seed * 5);
   if (channel < 0.72) return;
@@ -1115,8 +1116,8 @@ function populateOceanColumn(data, idx, lx, h, lz, x, z, biome, seed) {
   const waterY = h + 1;
   if (waterY >= SEA_LEVEL || data[idx(lx, waterY, lz)] !== BLOCK.WATER) return;
   const lilyRoll = hash2(x * 43 + seed * 5, z * 47 + seed * 9);
-  if (h >= SEA_LEVEL - 5 && lilyRoll > 0.965 && data[idx(lx, SEA_LEVEL, lz)] === BLOCK.WATER) {
-    data[idx(lx, SEA_LEVEL, lz)] = BLOCK.LILY_PAD;
+  if (h >= SEA_LEVEL - 5 && lilyRoll > 0.965 && data[idx(lx, SEA_LEVEL + 1, lz)] === BLOCK.AIR) {
+    data[idx(lx, SEA_LEVEL + 1, lz)] = BLOCK.LILY_PAD;
   }
 
   const plantRoll = hash2(x * 11 + seed * 7, z * 13 + 31);

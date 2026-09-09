@@ -5,7 +5,7 @@
  */
 import { BLOCK } from './blocks.js?v=297';
 import { biomeAt, BIOME } from './biomes.js?v=273';
-import { hash2, bviBeachLandingAt, caneGardenBayWalkableAt } from './gen.js?v=335';
+import { hash2, bviBeachLandingAt, caneGardenBayWalkableAt, caneGardenBayWaterAt, bviCoveAt, bviRouteCorridorAt, bviSaltPondAt, starterCoveChannelAt } from './gen.js?v=336';
 import { palmTrunkAt } from './palm-lean.js?v=1';
 
 export const TROPICAL_ECOLOGY = Object.freeze({
@@ -24,6 +24,17 @@ const WORLD_HEIGHT = 48;
 const CHUNK_SIZE = 16;
 const AIR = BLOCK.AIR;
 const SURFACE = new Set([BLOCK.GRASS, BLOCK.DIRT, BLOCK.SAND, BLOCK.MANGROVE_MUD, BLOCK.DAMP_SOIL]);
+const LAND_FILL = new Set([
+  BLOCK.GRASS, BLOCK.DIRT, BLOCK.SAND, BLOCK.STONE, BLOCK.MANGROVE_MUD, BLOCK.DAMP_SOIL,
+  BLOCK.CLAY, BLOCK.SANDSTONE, BLOCK.COBBLE,
+]);
+const BREACH_FILLER = new Set([
+  AIR, BLOCK.WATER, BLOCK.KELP, BLOCK.SEAGRASS, BLOCK.LILY_PAD, BLOCK.TALL_GRASS,
+  BLOCK.FERN, BLOCK.WILDFLOWER, BLOCK.BUSH, BLOCK.TARO, BLOCK.HELICONIA, BLOCK.BROMELIAD,
+  BLOCK.PANDANUS, BLOCK.PNEUMATOPHORE, BLOCK.ROOTS, BLOCK.STICK_PILE, BLOCK.MUSHROOM,
+  BLOCK.BAMBOO, BLOCK.VINES, BLOCK.COCONUT, BLOCK.BANYAN_ROOTS,
+]);
+const KEEP_ON_WATER = new Set([BLOCK.PLANKS, BLOCK.LOG, BLOCK.SAND, BLOCK.STONE, BLOCK.COBBLE]);
 const SOIL = new Set([BLOCK.DIRT, BLOCK.SAND, BLOCK.MANGROVE_MUD, BLOCK.DAMP_SOIL]);
 const STARTER_COVE_SHOWCASE = new Map([
   ['-18,-27', BLOCK.PANDANUS],
@@ -89,8 +100,85 @@ function findTuberY(data, lx, h, lz) {
   return -1;
 }
 
+function landTopY(data, lx, lz) {
+  for (let y = WORLD_HEIGHT - 1; y >= 1; y--) {
+    if (LAND_FILL.has(data[idx(lx, y, lz)])) return y;
+  }
+  return -1;
+}
+
+function neighborFillId(data, lx, lz, y, fallback) {
+  const counts = new Map();
+  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    if (!inside(lx + dx, y, lz + dz)) continue;
+    const id = data[idx(lx + dx, y, lz + dz)];
+    if (!LAND_FILL.has(id)) continue;
+    counts.set(id, (counts.get(id) || 0) + 1);
+  }
+  let best = fallback;
+  let bestN = 0;
+  for (const [id, n] of counts) {
+    if (n > bestN) {
+      best = id;
+      bestN = n;
+    }
+  }
+  return best;
+}
+
+function reservedOpenWater(x, z) {
+  if (caneGardenBayWaterAt(x, z) || starterCoveChannelAt(x, z) || bviSaltPondAt(x, z)) return true;
+  if (bviCoveAt(x, z).influence > 0.15) return true;
+  if (bviRouteCorridorAt(x, z).influence > 0.2) return true;
+  return false;
+}
+
 /**
- * Add bounded tropical forms and underground food patches in-place.
+ * Close 1-block land/water breaches: missing surface cells, plant-in-a-hole,
+ * and isolated water cubes. Named coves, channels, and docks stay open.
+ */
+export function repairSurfaceBreaches(data, { baseX = 0, baseZ = 0 } = {}) {
+  if (!data || typeof data.length !== 'number') return data;
+  const tops = new Int16Array(CHUNK_SIZE * CHUNK_SIZE);
+  for (let lz = 0; lz < CHUNK_SIZE; lz++) {
+    for (let lx = 0; lx < CHUNK_SIZE; lx++) {
+      tops[lz * CHUNK_SIZE + lx] = landTopY(data, lx, lz);
+    }
+  }
+  for (let lz = 0; lz < CHUNK_SIZE; lz++) {
+    for (let lx = 0; lx < CHUNK_SIZE; lx++) {
+      const x = baseX + lx;
+      const z = baseZ + lz;
+      const landY = tops[lz * CHUNK_SIZE + lx];
+      const seaId = data[idx(lx, SEA_LEVEL, lz)];
+      if (landY < SEA_LEVEL && !KEEP_ON_WATER.has(seaId) && seaId !== BLOCK.WATER) {
+        data[idx(lx, SEA_LEVEL, lz)] = BLOCK.WATER;
+      }
+      if (reservedOpenWater(x, z)) continue;
+      let neighborMax = -1;
+      let highNeighbors = 0;
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        if (!inside(lx + dx, 1, lz + dz)) continue;
+        const ny = tops[(lz + dz) * CHUNK_SIZE + (lx + dx)];
+        if (ny > neighborMax) {
+          neighborMax = ny;
+          highNeighbors = 1;
+        } else if (ny === neighborMax) {
+          highNeighbors++;
+        }
+      }
+      if (neighborMax < SEA_LEVEL || highNeighbors < 3 || landY !== neighborMax - 1) continue;
+      const holeId = data[idx(lx, neighborMax, lz)];
+      if (!BREACH_FILLER.has(holeId) && holeId !== AIR) continue;
+      const fill = neighborFillId(data, lx, lz, neighborMax, neighborMax <= SEA_LEVEL + 1 ? BLOCK.SAND : BLOCK.GRASS);
+      data[idx(lx, neighborMax, lz)] = fill;
+      tops[lz * CHUNK_SIZE + lx] = neighborMax;
+    }
+  }
+  return data;
+}
+
+/**
  * @param {Uint8Array} data
  * @param {{baseX:number,baseZ:number,seed:number}} options
  */
@@ -196,7 +284,7 @@ export function applyTropicalEcology(data, { baseX = 0, baseZ = 0, seed = 0 } = 
       put(data, lx, h + 1, lz, id);
     }
   }
-  return data;
+  return repairSurfaceBreaches(data, { baseX, baseZ });
 }
 
 export function tropicalPlantIds() {

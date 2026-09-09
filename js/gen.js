@@ -65,6 +65,7 @@ export const EXPOSED_ORE = Object.freeze({ COAL: 13, IRON: 18, COPPER: 56, DIAMO
 const BVI_MAJOR_LANDFORMS = Object.freeze([
   { name: 'puerto-rico', cx: -130, cz: 52, rx: 120, rz: 84, peak: 24 },
   { name: 'fajardo-cabezas', cx: -30, cz: -6, rx: 32, rz: 28, peak: 14 },
+  { name: 'fajardo-municipio', cx: -70, cz: 52, rx: 68, rz: 78, peak: 18 },
   { name: 'el-yunque', cx: -88, cz: 18, rx: 34, rz: 26, peak: 28 },
   { name: 'culebra', cx: 128, cz: 8, rx: 46, rz: 26, peak: 16 },
   { name: 'vieques', cx: 86, cz: 78, rx: 64, rz: 24, peak: 13 },
@@ -76,8 +77,15 @@ const BVI_SPARSE_CAYS = Object.freeze([
 
 export const BVI_TENTH_SCALE = Object.freeze({
   metersPerCell: 10,
-  horizontal: '1:10 Las Croabas beach; compressed Spanish Virgin voyage',
+  horizontal: '1:10 Las Croabas beach; Fajardo municipio hinterland compressed',
   vertical: 'compressed to the 48-block survival world',
+});
+export const FAJARDO_MUNICIPIO_SCALE = Object.freeze({
+  metersPerCell: 70,
+  landKmEastWest: 8.7,
+  landKmNorthSouth: 13.3,
+  reference: 'Census Fajardo Municipio land ~29.9 sq mi; OSM bbox 18.268–18.388N, 65.754–65.614W',
+  note: 'Las Croabas beach stays 10 m/cell. Municipal land south/west of Cabezas is ~70 m/cell so the whole municipio fits the streamed envelope.',
 });
 const BVI_TENTH_ISLANDS = Object.freeze([
   { name: 'luquillo', cx: -70, cz: -6, rx: 28, rz: 16, peak: 12 },
@@ -89,6 +97,10 @@ const BVI_TENTH_ISLANDS = Object.freeze([
 const BVI_TENTH_LOCATIONS = Object.freeze([
   { name: 'Las Croabas · Fajardo', x: -10, z: -28, radius: 36 },
   { name: 'Seven Seas · Fajardo', x: -42, z: 8, radius: 12 },
+  { name: 'Fajardo Pueblo', x: -48, z: 36, radius: 16 },
+  { name: 'Sardinera · Fajardo', x: -90, z: 18, radius: 12 },
+  { name: 'Demajagua · Fajardo', x: -40, z: 88, radius: 14 },
+  { name: 'Río Arriba · Fajardo', x: -100, z: 70, radius: 14 },
   { name: 'Fajardo', x: -36, z: 8, radius: 12 },
   { name: 'Faro Cabezas de San Juan', x: -40, z: -32, radius: 10 },
   { name: 'Cayo Icacos', x: 40, z: -50, radius: 12 },

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=299';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, caneGardenBayVillagePadAt, caneGardenBayWalkableAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=335';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, caneGardenBayVillagePadAt, caneGardenBayWalkableAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=336';
 import { biomeAt, BIOME } from './biomes.js?v=273';
 import { tileForBlock } from './atlas-core.js?v=295';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
@@ -20,7 +20,7 @@ import { raycastVoxel } from './interaction-contract.js?v=5';
 import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=7';
 import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=3';
 import { createDisposalContext, disposeGeometry, disposeTree } from './resource-disposal.js?v=3';
-import { applyTropicalEcology } from './tropical-ecology.js?v=23';
+import { applyTropicalEcology } from './tropical-ecology.js?v=24';
 import { shouldCarveCave, diamondVeinAt, starterCaveBlock } from './cave-carve.js?v=1';
 
 export const CHUNK_SIZE = 16;
@@ -658,7 +658,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=365';
+    const workerUrl = './js/chunk-worker.js?v=366';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -1684,7 +1684,7 @@ export class World {
 
   /** Flood low mangrove pockets with sparse tidal channels and aquatic accents. */
   _populateMangroveColumn(data, lx, h, lz, x, z, biome) {
-    if (biome !== BIOME.MANGROVE || h > SEA_LEVEL + 2) return;
+    if (biome !== BIOME.MANGROVE || h >= SEA_LEVEL) return;
     if (mangroveApproachPlantClearance(x, z, biome)) return;
     const channel = hash2(x * 19 + this.seed * 3, z * 23 + this.seed * 5);
     if (channel < 0.72) return;
@@ -1723,8 +1723,8 @@ export class World {
     const waterY = h + 1;
     if (waterY >= SEA_LEVEL || data[this._idx(lx, waterY, lz)] !== BLOCK.WATER) return;
     const lilyRoll = hash2(x * 43 + this.seed * 5, z * 47 + this.seed * 9);
-    if (h >= SEA_LEVEL - 5 && lilyRoll > 0.965 && data[this._idx(lx, SEA_LEVEL, lz)] === BLOCK.WATER) {
-      data[this._idx(lx, SEA_LEVEL, lz)] = BLOCK.LILY_PAD;
+    if (h >= SEA_LEVEL - 5 && lilyRoll > 0.965 && data[this._idx(lx, SEA_LEVEL + 1, lz)] === BLOCK.AIR) {
+      data[this._idx(lx, SEA_LEVEL + 1, lz)] = BLOCK.LILY_PAD;
     }
 
     const plantRoll = hash2(x * 11 + this.seed * 7, z * 13 + 31);

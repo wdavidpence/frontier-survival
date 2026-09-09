@@ -111,3 +111,35 @@ test('Cane Garden Bay ecology plants two leaning hero palms with attached crowns
     }
   }
 });
+
+test('repairSurfaceBreaches fills isolated water, plant holes, and missing sea surface', () => {
+  const WORLD_HEIGHT = 48;
+  const CHUNK_SIZE = 16;
+  const at = (data, lx, y, lz) => data[(lz * WORLD_HEIGHT + y) * CHUNK_SIZE + lx];
+  const set = (data, lx, y, lz, id) => { data[(lz * WORLD_HEIGHT + y) * CHUNK_SIZE + lx] = id; };
+  const land = new Uint8Array(CHUNK_SIZE * WORLD_HEIGHT * CHUNK_SIZE);
+  for (let z = 0; z < CHUNK_SIZE; z++) {
+    for (let x = 0; x < CHUNK_SIZE; x++) {
+      set(land, x, 18, z, BLOCK.GRASS);
+      set(land, x, 17, z, BLOCK.DIRT);
+    }
+  }
+  set(land, 8, 18, 8, BLOCK.WATER);
+  set(land, 4, 18, 4, BLOCK.TALL_GRASS);
+  const fixed = applyTropicalEcology(land, { baseX: 80, baseZ: 80, seed: 1 });
+  assert.equal(at(fixed, 8, 18, 8), BLOCK.GRASS, 'isolated water cube must fill');
+  assert.equal(at(fixed, 4, 18, 4), BLOCK.GRASS, 'plant sitting in a 1-block hole must fill');
+
+  const ocean = new Uint8Array(CHUNK_SIZE * WORLD_HEIGHT * CHUNK_SIZE);
+  for (let z = 0; z < CHUNK_SIZE; z++) {
+    for (let x = 0; x < CHUNK_SIZE; x++) {
+      set(ocean, x, 10, z, BLOCK.SAND);
+      for (let y = 11; y <= 16; y++) set(ocean, x, y, z, BLOCK.WATER);
+    }
+  }
+  set(ocean, 7, 16, 7, BLOCK.LILY_PAD);
+  set(ocean, 9, 16, 9, BLOCK.AIR);
+  const sealed = applyTropicalEcology(ocean, { baseX: 200, baseZ: 0, seed: 1 });
+  assert.equal(at(sealed, 7, 16, 7), BLOCK.WATER, 'lily pad must not punch the sea surface');
+  assert.equal(at(sealed, 9, 16, 9), BLOCK.WATER, 'missing sea-surface block must refill');
+});

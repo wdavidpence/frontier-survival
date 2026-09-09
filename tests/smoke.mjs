@@ -361,7 +361,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /\[\[-10, -28\], \[-10, -29\]/);
   assert.doesNotMatch(source, /Math\.PI \/ 4/, 'Cane Garden Bay must look along the beach, not a diagonal into buildings');
   assert.match(source, /chosen\.landmark === 'Las Croabas · Fajardo'/);
-  assert.match(gameSource, /world.js\?v=558/);
+  assert.match(gameSource, /world.js\?v=559/);
   assert.match(gameSource, /this\.player\.pitch = 0;/);
 });
 
@@ -690,8 +690,10 @@ test('Puerto Rico macro chain favors the main island, Spanish Virgins, and named
   assert.equal(channel.influence, 0, 'Vieques Sound must remain open between Fajardo and Palomino');
   assert.equal(icacos.cayName, 'icacos');
   assert.ok(heightAt(52, 8, seed) < 16, 'channel sample must remain water');
-  assert.equal(bviLandformAt(-80, 40).majorName, 'puerto-rico', 'Puerto Rico body extends inland of Las Croabas');
-  assert.ok(heightAt(-80, 40, seed) >= 16, 'expanded Puerto Rico interior remains playable land');
+  assert.equal(bviLandformAt(-70, 52).majorName, 'fajardo-municipio', 'Fajardo municipio hinterland is playable land');
+  assert.ok(heightAt(-70, 52, seed) >= 16, 'Fajardo pueblo hinterland remains playable land');
+  assert.equal(bviLandformAt(-180, 52).majorName, 'puerto-rico', 'Puerto Rico body continues west of Fajardo');
+  assert.ok(heightAt(-180, 52, seed) >= 16, 'expanded Puerto Rico interior remains playable land');
   const worker = fsText('js/chunk-worker.js');
   assert.match(worker, /BVI_MAJOR_LANDFORMS/);
   assert.match(worker, /bviLandformAt/);
@@ -4975,7 +4977,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=284/);
   assert.match(game, /animal-visuals.js\?v=260/);
-  assert.match(main, /game\.js\?v=966/);
+  assert.match(main, /game\.js\?v=967/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5760,7 +5762,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker.js\?v=365/);
+  assert.match(world, /chunk-worker.js\?v=366/);
   assert.match(world, /starterLaunchCorridor/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
@@ -6019,10 +6021,10 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.28.6'), 'HTML must expose v1.28.6');
+  assert.ok(html.includes('v1.28.7'), 'HTML must expose v1.28.7');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
-  assert.ok(html.includes('main.js?v=939'), 'HTML must expose the current entry cache bust');
+  assert.ok(html.includes('main.js?v=940'), 'HTML must expose the current entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6337,7 +6339,7 @@ test('tropical ecology sprint exposes six additions, coconuts, and root foods', 
   assert.match(world, /this\.chunks\.set\(this\.key\(cx, cz\), applyTropicalEcology/);
   assert.match(world, /BROMELIAD/);
   assert.match(world, /FOREST_UNDERSTORY_CAP = 2/);
-  assert.match(world, /tropical-ecology.js\?v=23/);
+  assert.match(world, /tropical-ecology.js\?v=24/);
   assert.match(ecology, /STARTER_COVE_SHOWCASE/);
   assert.match(ecology, /const clusterRoll = hash2/);
   assert.match(ecology, /BLOCK\.BROMELIAD\], \[2, 1, BLOCK\.HELICONIA/);
@@ -6379,7 +6381,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=939/);
+  assert.match(html, /main\.js\?v=940/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6420,7 +6422,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   const main = fsText('js/main.js');
   const vision = fsText('js/frontier-vision-pack.js');
   const html = fsText('index.html');
-  assert.match(main, /game\.js\?v=966/);
+  assert.match(main, /game\.js\?v=967/);
   assert.match(game, /frontier-vision-pack\.js\?v=34/);
   assert.match(game, /if \(this\._castawayGroup && !this\._boat\)/);
   assert.match(game, /if \(this\._castawayGroup\) this\._castawayGroup\.visible = false/);
@@ -6475,7 +6477,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   assert.match(vision, /MEMORY_KEY/);
   assert.match(vision, /bearingTo/);
   assert.match(vision, /setWidth\(root, '\[data-gcv-meter=\"tide\"\]'/);
-  assert.match(html, /main\.js\?v=939/);
+  assert.match(html, /main\.js\?v=940/);
 });
 
 test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvous', () => {
