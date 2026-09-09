@@ -15,7 +15,7 @@ import {
   terrainVisibilityPlan,
   chunkDetailTier,
   buildTerrainProxyArrays,
-} from './terrain-visibility.js?v=291';
+} from './terrain-visibility.js?v=292';
 import { raycastVoxel } from './interaction-contract.js?v=5';
 import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=7';
 import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=3';
@@ -1354,7 +1354,18 @@ export class World {
       this.meshes.set(k, mesh);
       this.group.add(mesh);
     }
+    const waterTile = tileForBlock(BLOCK.WATER, 'top');
+    let hasOcean = false;
+    if (arrays.tiles) {
+      for (let i = 0; i < arrays.tiles.length; i++) {
+        if (arrays.tiles[i] === waterTile) {
+          hasOcean = true;
+          break;
+        }
+      }
+    }
     mesh.userData.tier = tier;
+    mesh.userData.hasOcean = hasOcean;
     mesh.castShadow = tier === 'full';
     mesh.receiveShadow = tier !== 'proxy';
     this.meshTiers.set(k, tier);
@@ -1367,6 +1378,7 @@ export class World {
       size: CHUNK_SIZE,
       step,
       seed: this.seed,
+      seaLevel: SEA_LEVEL,
       heightFn: heightAt,
       sampleFn: (x, z, h) => this._proxySurfaceSample(x, z, h),
     });
@@ -1380,6 +1392,7 @@ export class World {
       size: CHUNK_SIZE,
       step,
       seed: this.seed,
+      seaLevel: SEA_LEVEL,
       heightFn: heightAt,
       sampleFn: (x, z, h) => this._proxySurfaceSample(x, z, h),
     });

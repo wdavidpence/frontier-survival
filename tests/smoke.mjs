@@ -153,6 +153,7 @@ import {
   chunkDetailTier,
   fogForSun,
   buildTerrainProxyArrays,
+  proxyColumnTop,
 } from '../js/terrain-visibility.js';
 import { clampWaterLevel, flowOutLevel, isWaterSource, waterFillFraction } from '../js/water-level.js';
 import { waterWaveStrength, WATER_WAVE } from '../js/water-material.js';
@@ -359,7 +360,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /\[\[-10, -28\], \[-10, -29\]/);
   assert.doesNotMatch(source, /Math\.PI \/ 4/, 'Cane Garden Bay must look along the beach, not a diagonal into buildings');
   assert.match(source, /chosen\.landmark === 'Cane Garden Bay · Tortola'/);
-  assert.match(gameSource, /world.js\?v=554/);
+  assert.match(gameSource, /world.js\?v=555/);
   assert.match(gameSource, /this\.player\.pitch = 0;/);
 });
 
@@ -490,12 +491,43 @@ test('terrain proxy heightfield emits deterministic quads', () => {
   assert.match(visibilitySource, /const normalAt =/);
 });
 
+test('terrain proxy lifts ocean columns to the sea surface', () => {
+  assert.equal(proxyColumnTop(8, 16), 17);
+  assert.equal(proxyColumnTop(20, 16), 21);
+  assert.equal(proxyColumnTop(12), 13);
+  const ocean = buildTerrainProxyArrays({
+    baseX: 0,
+    baseZ: 0,
+    size: 16,
+    step: 4,
+    seed: 7,
+    seaLevel: 16,
+    heightFn: () => 8,
+    sampleFn: (_x, _z, h) => ({ r: 0.15, g: 0.42, b: 0.62, a: 1, tile: h < 16 ? 5 : 1 }),
+  });
+  const oceanY = Array.from({ length: ocean.positions.length / 3 }, (_, i) => ocean.positions[i * 3 + 1]);
+  assert.ok(oceanY.length > 0 && oceanY.every((y) => y === 17), `ocean proxy Y must be 17, got ${oceanY.slice(0, 4)}`);
+  assert.ok(Array.from(ocean.tiles).every((t) => t === 5));
+  const land = buildTerrainProxyArrays({
+    baseX: 0,
+    baseZ: 0,
+    size: 16,
+    step: 4,
+    seed: 7,
+    seaLevel: 16,
+    heightFn: () => 20,
+    sampleFn: (_x, _z, h) => ({ r: 0.2, g: 0.5, b: 0.1, a: 1, tile: h < 16 ? 5 : 1 }),
+  });
+  const landY = Array.from({ length: land.positions.length / 3 }, (_, i) => land.positions[i * 3 + 1]);
+  assert.ok(landY.every((y) => y === 21), `land proxy Y must stay 21, got ${landY.slice(0, 4)}`);
+});
+
 test('game wires terrain visibility plan into fog and streaming', () => {
   const game = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
   const world = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
   assert.match(game, /terrainVisibilityPlan/);
-  assert.match(game, /terrain-visibility\.js\?v=291/);
-  assert.match(world, /terrain-visibility\.js\?v=291/);
+  assert.match(game, /terrain-visibility\.js\?v=292/);
+  assert.match(world, /terrain-visibility\.js\?v=292/);
   assert.match(world, /tile: tileForBlock\(id, 'top'\) \|\| 0/);
   assert.match(game, /fogForSun/);
   assert.match(game, /proxyRadius:\s*vis\.proxyChunks/);
@@ -702,20 +734,27 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /\[176, 148, 108\]/);
   assert.match(atlas, /\[112, 66, 34\]/);
   assert.match(atlas, /#ffd36a/);
-  assert.match(game, /atlas\.js\?v=351/);
+  assert.match(game, /atlas\.js\?v=352/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
   const atlas = fsText('js/atlas.js');
   const game = fsText('js/game.js');
+  const world = fsText('js/world.js');
   const first = waterWaveStrength(2.5, 8, -3);
   assert.strictEqual(first, waterWaveStrength(2.5, 8, -3));
   assert.notStrictEqual(first, waterWaveStrength(3.5, 8, -3));
-  assert.ok(WATER_WAVE.speed > 0 && WATER_WAVE.tint.length === 3);
+  assert.ok(WATER_WAVE.speed > 0 && WATER_WAVE.tint.length === 3 && WATER_WAVE.amplitude > 0);
   assert.match(atlas, /waterTime: \{ value: 0 \}/);
   assert.match(atlas, /float waterTime/);
   assert.match(atlas, /float waterSurface = waterFace \* topFace/);
+  assert.match(atlas, /pos\.y \+= waterTop/);
+  assert.match(atlas, /waterTime \* 1\.55/);
   assert.match(game, /mat\.uniforms\.waterTime/);
+  assert.match(game, /this\._animClock = \(this\._animClock \|\| 0\) \+ Math\.max\(0, Number\(dt\) \|\| 0\)/);
+  assert.match(game, /userData\?\.hasOcean/);
+  assert.match(world, /seaLevel: SEA_LEVEL/);
+  assert.match(world, /mesh\.userData\.hasOcean = hasOcean/);
 });
 
 test('BVI White Bay has a deterministic sand landing between shelf and island', () => {
@@ -4908,7 +4947,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=284/);
   assert.match(game, /animal-visuals.js\?v=260/);
-  assert.match(main, /game\.js\?v=962/);
+  assert.match(main, /game\.js\?v=963/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5952,10 +5991,10 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.28.3'), 'HTML must expose v1.28.3');
+  assert.ok(html.includes('v1.28.4'), 'HTML must expose v1.28.4');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
-  assert.ok(html.includes('main.js?v=935'), 'HTML must expose the current entry cache bust');
+  assert.ok(html.includes('main.js?v=936'), 'HTML must expose the current entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6312,7 +6351,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=935/);
+  assert.match(html, /main\.js\?v=936/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6353,7 +6392,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   const main = fsText('js/main.js');
   const vision = fsText('js/frontier-vision-pack.js');
   const html = fsText('index.html');
-  assert.match(main, /game\.js\?v=962/);
+  assert.match(main, /game\.js\?v=963/);
   assert.match(game, /frontier-vision-pack\.js\?v=33/);
   assert.match(game, /if \(this\._castawayGroup && !this\._boat\)/);
   assert.match(game, /if \(this\._castawayGroup\) this\._castawayGroup\.visible = false/);
@@ -6408,7 +6447,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   assert.match(vision, /MEMORY_KEY/);
   assert.match(vision, /bearingTo/);
   assert.match(vision, /setWidth\(root, '\[data-gcv-meter=\"tide\"\]'/);
-  assert.match(html, /main\.js\?v=935/);
+  assert.match(html, /main\.js\?v=936/);
 });
 
 test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvous', () => {

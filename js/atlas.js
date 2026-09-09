@@ -12,7 +12,7 @@ import {
   crackTileForProgress,
   atlasTileCount,
 } from './atlas-core.js?v=294';
-import { WATER_WAVE } from './water-material.js?v=2';
+import { WATER_WAVE } from './water-material.js?v=3';
 
 export {
   TILE,
@@ -1447,6 +1447,7 @@ export function createBlockAtlas() {
     },
     vertexShader: `
       attribute float tile;
+      uniform float waterTime;
       varying vec2 vUv;
       varying vec4 vColor;
       varying vec2 vAuvBase;
@@ -1461,8 +1462,13 @@ export function createBlockAtlas() {
         float ty = floor(tile / ${ATLAS_N}.0);
         vAuvBase = vec2(tx / ${ATLAS_N}.0, 1.0 - (ty + 1.0) / ${ATLAS_N}.0);
         vNormal = normalize(normal);
-        vWorldPos = position;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        vec3 pos = position;
+        float waterTop = (1.0 - smoothstep(0.5, 1.5, abs(tile - 5.0))) * smoothstep(0.72, 0.95, normal.y);
+        float wave = sin(waterTime * ${WATER_WAVE.speed} + position.x * ${WATER_WAVE.xFrequency} + position.z * ${WATER_WAVE.zFrequency});
+        float ripple = sin(waterTime * 1.15 + position.x * 0.27 - position.z * 0.38);
+        pos.y += waterTop * (wave * ${WATER_WAVE.amplitude} + ripple * ${Number((WATER_WAVE.amplitude * 0.35).toFixed(4))});
+        vWorldPos = pos;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
       }
     `,
     fragmentShader: `
@@ -1548,8 +1554,10 @@ export function createBlockAtlas() {
         float waterSurface = waterFace * topFace;
         float wave = 0.5 + 0.5 * sin(waterTime * ${WATER_WAVE.speed} + vWorldPos.x * ${WATER_WAVE.xFrequency} + vWorldPos.z * ${WATER_WAVE.zFrequency});
         float ripple = 0.5 + 0.5 * sin(waterTime * 1.05 + vWorldPos.x * 0.27 - vWorldPos.z * 0.38);
-        rgb += vec3(${WATER_WAVE.tint.join(', ')}) * waterSurface * (0.16 + wave * 0.16);
-        rgb += vec3(0.18, 0.28, 0.26) * waterSurface * ripple * 0.08;
+        float flow = 0.5 + 0.5 * sin(vWorldPos.x * 0.34 - vWorldPos.z * 0.21 - waterTime * 1.55);
+        rgb += vec3(${WATER_WAVE.tint.join(', ')}) * waterSurface * (0.22 + wave * 0.28);
+        rgb += vec3(0.18, 0.28, 0.26) * waterSurface * ripple * 0.14;
+        rgb += vec3(0.12, 0.24, 0.26) * waterSurface * flow * 0.26;
         // The opening cove gets a broad, low-frequency surface response so the
         // water reads as a shallow place rather than a repeated dark atlas tile.
         float broadWave = 0.5 + 0.5 * sin(waterTime * 0.65 + vWorldPos.x * 0.11 + vWorldPos.z * 0.07);

@@ -1,4 +1,4 @@
-import { Game } from './game.js?v=962';
+import { Game } from './game.js?v=963';
 import { hasSave, clearSaveStorage } from './save.js?v=235';
 import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=221';
 import {
@@ -493,4 +493,4 @@ engageControls = function() {
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.28.3');
+console.info('Frontier Survival boot OK · v1.28.4');

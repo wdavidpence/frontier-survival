@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=554';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=555';
 import { Player } from './player.js?v=242';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=227';
@@ -71,7 +71,7 @@ import {
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=284';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=260';
-import { createBlockAtlas } from './atlas.js?v=351';
+import { createBlockAtlas } from './atlas.js?v=352';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=291';
 import {
   spawnWorldDrop,
@@ -91,7 +91,7 @@ import {
 import { PollinatorHabitatFX } from './pollinator-habitat.js?v=2';
 import { apiaryHarvest } from './apiary-state.js?v=1';
 import { underwaterFogStyle } from './underwater-fog.js?v=246';
-import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=291';
+import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=292';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=11';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
 import { placementState } from './placement-preview.js?v=1';
@@ -1028,6 +1028,10 @@ export class Game {
     const limit = keepRadius * keepRadius;
     for (const [key, mesh] of this.world.meshes || []) {
       if (this.world.meshTiers?.get(key) !== 'lod') continue;
+      if (mesh.userData?.hasOcean) {
+        mesh.visible = true;
+        continue;
+      }
       const split = String(key).split(',');
       const cx = Number(split[0]);
       const cz = Number(split[1]);
@@ -4032,6 +4036,7 @@ export class Game {
 
   update(dt) {
     this.audio.resume();
+    this._animClock = (this._animClock || 0) + Math.max(0, Number(dt) || 0);
 
     if (this.input.consumeInventory()) {
       if (this._chestOpenKey) this._closeChest();
@@ -6344,7 +6349,6 @@ export class Game {
     const animalSyncStride = this.graphicsQuality === 'performance' ? 2
       : this.graphicsQuality === 'balanced' ? 2 : 1;
     if (this._animalSyncFrame % animalSyncStride === 0 && this._animalMeshes.size > 0) return;
-    this._animClock = (this._animClock || 0) + 0.016;
     const living = this.fauna.living();
     const seen = new Set();
     for (const a of living) {
@@ -6916,8 +6920,12 @@ export class Game {
     const eye = this.player.eyePosition();
     const underwater = this.world.getBlock(eye.x, eye.y, eye.z) === BLOCK.WATER;
     this._cameraInWater = underwater;
-    if (!underwater) return;
+    if (!underwater) {
+      this.renderer?.setClearColor(0x87b5ff, 0);
+      return;
+    }
     const style = underwaterFogStyle({ underwater, depth: Math.max(0, 16 - eye.y) });
+    this.renderer?.setClearColor(style.color, 1);
     if (this.scene.background) this.scene.background.setHex(style.color);
     if (this._skyBackdrop) {
       const waterColor = new THREE.Color(style.color).getHexString();

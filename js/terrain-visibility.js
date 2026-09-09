@@ -85,6 +85,19 @@ export function fogForSun(plan, sunIntensity = 1) {
 }
 
 /**
+ * Heightfield vertex Y. Ocean columns are lifted to the sea surface so LOD/proxy
+ * rings keep a continuous water plane instead of exposing seafloor sky-holes.
+ * @param {number} height
+ * @param {number} [seaLevel]
+ */
+export function proxyColumnTop(height, seaLevel) {
+  const y = Number.isFinite(Number(height)) ? Number(height) : 0;
+  const sl = Number(seaLevel);
+  const surface = Number.isFinite(sl) && y < sl ? sl : y;
+  return surface + 1;
+}
+
+/**
  * Build a stepped heightfield mesh for LOD/proxy terrain rings.
  * @param {object} opts
  * @param {number} opts.baseX world origin of chunk
@@ -92,6 +105,7 @@ export function fogForSun(plan, sunIntensity = 1) {
  * @param {number} [opts.size=16]
  * @param {number} [opts.step=2] sample stride in blocks
  * @param {number} [opts.seed=0]
+ * @param {number} [opts.seaLevel] lift columns below this height to the water plane
  * @param {(x:number,z:number,seed:number)=>number} opts.heightFn
  * @param {(x:number,z:number,h:number)=>{r:number,g:number,b:number,a?:number,tile?:number}} opts.sampleFn
  */
@@ -101,6 +115,7 @@ export function buildTerrainProxyArrays({
   size = 16,
   step = 2,
   seed = 0,
+  seaLevel,
   heightFn,
   sampleFn,
 } = {}) {
@@ -131,7 +146,7 @@ export function buildTerrainProxyArrays({
       const h = heightFn(wx, wz, seed);
       const y = Number.isFinite(h) ? h : 0;
       const idx = iz * grid + ix;
-      heights[idx] = y + 1; // surface top
+      heights[idx] = proxyColumnTop(y, seaLevel);
       const sm = sampleFn(wx, wz, y) || {};
       samples[idx] = {
         r: Number.isFinite(sm.r) ? sm.r : 0.35,
