@@ -1,7 +1,7 @@
 /**
  * Tool durability helpers — pure.
  */
-import { propsOf } from './items.js?v=255';
+import { propsOf } from './items.js?v=257';
 import { tierForItem, TIER_DURABILITY } from './tool-tiers.js?v=223';
 import { cloneSlots } from './inventory.js?v=223';
 

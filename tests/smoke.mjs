@@ -20,6 +20,7 @@ import './clear-arrival.mjs';
 import './clear-arrival-integration.mjs';
 import './campaign-integration.mjs';
 import './minecraft-feel.mjs';
+import './mc-class-pack.mjs';
 import './atmosphere-sky.mjs';
 import { sandyBeachHeight } from '../js/shore-water.js';
 import { chooseCastawayCandidate, createCastawayArrival, restoreCastawayArrival, castawayObjective } from '../js/castaway-arrival.js';
@@ -254,7 +255,7 @@ import {
   formatTemperatureF,
   fallDamageFromSpeed,
 } from '../js/survival.js';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js?v=298';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getDrop, getHardness, getColor } from '../js/blocks.js?v=299';
 import { ITEM, mineMultiplier, dropForBlock, isPlaceable, placeBlockId, propsOf } from '../js/items.js';
 import { CRAFTING_TABLE } from '../js/crafting-table.js';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from '../js/workbench.js';
@@ -360,7 +361,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /\[\[-10, -28\], \[-10, -29\]/);
   assert.doesNotMatch(source, /Math\.PI \/ 4/, 'Cane Garden Bay must look along the beach, not a diagonal into buildings');
   assert.match(source, /chosen\.landmark === 'Cane Garden Bay · Tortola'/);
-  assert.match(gameSource, /world.js\?v=555/);
+  assert.match(gameSource, /world.js\?v=556/);
   assert.match(gameSource, /this\.player\.pitch = 0;/);
 });
 
@@ -734,7 +735,7 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /\[176, 148, 108\]/);
   assert.match(atlas, /\[112, 66, 34\]/);
   assert.match(atlas, /#ffd36a/);
-  assert.match(game, /atlas\.js\?v=352/);
+  assert.match(game, /atlas\.js\?v=353/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -3604,7 +3605,7 @@ test('crafting lists shape building recipes', () => {
 test('crafting progression metadata is complete and reachable', () => {
   const categories = new Set(RECIPE_CATEGORIES.map((c) => c.id));
   const tiers = new Set(RECIPE_TIERS.map((t) => t.tier));
-  assert.equal(RECIPES.length, 63);
+  assert.equal(RECIPES.length, 73);
   for (const recipe of RECIPES) {
     assert.ok(categories.has(recipe.category), `${recipe.id} category`);
     assert.ok(tiers.has(recipe.tier), `${recipe.id} tier`);
@@ -4947,7 +4948,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=284/);
   assert.match(game, /animal-visuals.js\?v=260/);
-  assert.match(main, /game\.js\?v=963/);
+  assert.match(main, /game\.js\?v=964/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5732,7 +5733,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker.js\?v=362/);
+  assert.match(world, /chunk-worker.js\?v=363/);
   assert.match(world, /starterLaunchCorridor/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
@@ -5991,10 +5992,10 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.28.4'), 'HTML must expose v1.28.4');
+  assert.ok(html.includes('v1.28.5'), 'HTML must expose v1.28.5');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
-  assert.ok(html.includes('main.js?v=936'), 'HTML must expose the current entry cache bust');
+  assert.ok(html.includes('main.js?v=937'), 'HTML must expose the current entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6174,7 +6175,7 @@ test('durability adapter cache and mining wear remain reachable', () => {
   const game = fsText('js/game.js');
   const durability = fsText('js/durability.js');
   assert.match(game, /from ['"]\.\/durability\.js\?v=224['"]/);
-  assert.match(durability, /from ['"]\.\/items\.js\?v=255['"]/, 'durability must use the current item catalog');
+  assert.match(durability, /from ['"]\.\/items\.js\?v=257['"]/, 'durability must use the current item catalog');
   assert.match(durability, /from ['"]\.\/tool-tiers\.js\?v=223['"]/);
   assert.match(game.slice(game.indexOf('  _handleMining(dt) {'), game.indexOf('  _handlePlace() {')), /wearTool\(this\.player\.slots, this\.player\.hotbarIndex, 1\)/);
   assert.match(game.slice(game.indexOf('  _handleCoopP2World(dt) {'), game.indexOf('  _spawnCoopP2(spawn) {')), /wearTool\(p\.slots, p\.hotbarIndex, 1\)/);
@@ -6351,7 +6352,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=936/);
+  assert.match(html, /main\.js\?v=937/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6392,7 +6393,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   const main = fsText('js/main.js');
   const vision = fsText('js/frontier-vision-pack.js');
   const html = fsText('index.html');
-  assert.match(main, /game\.js\?v=963/);
+  assert.match(main, /game\.js\?v=964/);
   assert.match(game, /frontier-vision-pack\.js\?v=33/);
   assert.match(game, /if \(this\._castawayGroup && !this\._boat\)/);
   assert.match(game, /if \(this\._castawayGroup\) this\._castawayGroup\.visible = false/);
@@ -6447,7 +6448,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   assert.match(vision, /MEMORY_KEY/);
   assert.match(vision, /bearingTo/);
   assert.match(vision, /setWidth\(root, '\[data-gcv-meter=\"tide\"\]'/);
-  assert.match(html, /main\.js\?v=936/);
+  assert.match(html, /main\.js\?v=937/);
 });
 
 test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvous', () => {
@@ -6538,10 +6539,11 @@ test('world-believability pass keeps land fauna dry, caves deep, and doors faced
   assert.match(gen, /y <= GEN_SEA_LEVEL \+ 7/);
   assert.match(worker, /y <= 16 \+ 7/);
   const worldSrc = fsText('js/world.js');
-  assert.match(worldSrc, /y <= h - 8/);
-  assert.match(worldSrc, /> 0\.9985/);
-  assert.match(worker, /y <= h - 8/);
-  assert.match(worker, /> 0\.9985/);
+  assert.match(worldSrc, /shouldCarveCave\(/);
+  assert.match(worldSrc, /starterCaveBlock\(/);
+  assert.match(worldSrc, /diamondVeinAt\(/);
+  assert.match(worker, /shouldCarveCaveLocal\(/);
+  assert.match(worker, /starterCaveBlockLocal\(/);
   assert.doesNotMatch(worker, /this\.seed/);
 
   const closed = buildDoorGeometry(pairDoorLeaves([

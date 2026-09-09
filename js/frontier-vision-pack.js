@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { BLOCK } from './blocks.js?v=298';
+import { BLOCK } from './blocks.js?v=299';
 import { firstExpeditionSummary } from './first-expedition.js?v=2';
 import { locatorEntries } from './campaign-explore.js?v=1';
 import { triagePriority, predatorTelegraph, boatRouteLayers } from './campaign-survival.js?v=1';
 import { buildMilestone } from './campaign-build.js?v=1';
-import { displayName } from './items.js?v=256';
+import { displayName } from './items.js?v=257';
 import { radialQuadrants } from './campaign-friction.js?v=1';
 
 const MEMORY_KEY = 'frontier-golden-cove-memory-v1';

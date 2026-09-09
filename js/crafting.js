@@ -1,6 +1,6 @@
 /** Crafting recipes — pure data + craft helper */
-import { BLOCK } from './blocks.js?v=298';
-import { ITEM } from './items.js?v=256';
+import { BLOCK } from './blocks.js?v=299';
+import { ITEM } from './items.js?v=257';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { craftWith, countItems } from './inventory.js?v=223';
 
@@ -675,6 +675,16 @@ const ALL_RECIPES = [
   { id:'generator', name:'Generator', desc:'Power source. 4 Iron + 1 Coal', category:'power', tier:3, ingredients:[{id:ITEM.IRON_INGOT,count:4},{id:ITEM.COAL,count:1}], results:[{id:BLOCK.GENERATOR,count:1}] },
   { id:'stairs_wood', name:'Wood Stairs', desc:'3 Planks → 2 Wood Stairs (climbable)', category:'building', tier:1, ingredients:[{id:BLOCK.PLANKS,count:3}], results:[{id:BLOCK.STAIRS_WOOD,count:2}] },
   { id:'slab_wood', name:'Wood Slabs', desc:'6 Planks → 3 Wood Slabs (half-block)', category:'building', tier:1, ingredients:[{id:BLOCK.PLANKS,count:6}], results:[{id:BLOCK.SLAB_WOOD,count:3}] },
+  { id:'stairs_stone', name:'Stone Stairs', desc:'3 Cobble → 2 Stone Stairs', category:'building', tier:2, ingredients:[{id:BLOCK.COBBLE,count:3}], results:[{id:BLOCK.STAIRS_STONE,count:2}] },
+  { id:'slab_stone', name:'Stone Slabs', desc:'3 Cobble → 3 Stone Slabs', category:'building', tier:2, ingredients:[{id:BLOCK.COBBLE,count:3}], results:[{id:BLOCK.SLAB_STONE,count:3}] },
+  { id:'trapdoor', name:'Trapdoor', desc:'6 Planks → Trapdoor', category:'building', tier:1, ingredients:[{id:BLOCK.PLANKS,count:6}], results:[{id:BLOCK.TRAPDOOR_CLOSED,count:2}] },
+  { id:'sign', name:'Sign', desc:'6 Planks + 1 Stick → 3 Signs', category:'building', tier:1, ingredients:[{id:BLOCK.PLANKS,count:6},{id:ITEM.STICK,count:1}], results:[{id:BLOCK.SIGN,count:3}] },
+  { id:'hopper', name:'Hopper', desc:'5 Iron + 1 Chest → Hopper', category:'power', tier:3, ingredients:[{id:ITEM.IRON_INGOT,count:5},{id:BLOCK.CHEST,count:1}], results:[{id:BLOCK.HOPPER,count:1}] },
+  { id:'enchant_table', name:'Enchanting Table', desc:'2 Diamond + 4 Cobble + 1 Cloth', category:'utility', tier:3, ingredients:[{id:ITEM.DIAMOND,count:2},{id:BLOCK.COBBLE,count:4},{id:ITEM.CLOTH,count:1}], results:[{id:BLOCK.ENCHANT_TABLE,count:1}] },
+  { id:'diamond_pick', name:'Diamond Pick', desc:'3 Diamond + 2 Sticks', category:'tools', tier:3, ingredients:[{id:ITEM.DIAMOND,count:3},{id:ITEM.STICK,count:2}], results:[{id:ITEM.DIAMOND_PICK,count:1}] },
+  { id:'diamond_axe', name:'Diamond Axe', desc:'3 Diamond + 2 Sticks', category:'tools', tier:3, ingredients:[{id:ITEM.DIAMOND,count:3},{id:ITEM.STICK,count:2}], results:[{id:ITEM.DIAMOND_AXE,count:1}] },
+  { id:'diamond_sword', name:'Diamond Sword', desc:'2 Diamond + 1 Stick', category:'tools', tier:3, ingredients:[{id:ITEM.DIAMOND,count:2},{id:ITEM.STICK,count:1}], results:[{id:ITEM.DIAMOND_SWORD,count:1}] },
+  { id:'glider', name:'Palm Glider', desc:'Hold jump while falling. 6 Palm Frond + 3 Sticks', category:'utility', tier:1, ingredients:[{id:ITEM.PALM_FROND,count:6},{id:ITEM.STICK,count:3}], results:[{id:ITEM.GLIDER,count:1}] },
   { id:'glass_pane_thin', name:'Thin Glass Pane', desc:'1 Glass → 4 Thin Glass Panes (transparent barrier)', category:'building', tier:1, ingredients:[{id:BLOCK.GLASS,count:1}], results:[{id:BLOCK.GLASS_PANE_THIN,count:4}] },
 ];
 

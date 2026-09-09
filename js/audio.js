@@ -588,4 +588,25 @@ export class AudioBus {
     this.beep(55, 0.5, 'triangle', 0.18);
     this.beep(30, 0.7, 'sine', 0.12);
   }
+
+  tickMusic(dt, mix) {
+    this.ensure();
+    if (!this.ctx || !mix) return;
+    if (!this._music) {
+      this._music = {
+        explore: this._makeDrone({ freqs: [196, 247, 294], type: 'sine', gain: 0.0001 }),
+        ocean: this._makeDrone({ freqs: [98, 147, 220], type: 'triangle', gain: 0.0001 }),
+        cave: this._makeDrone({ freqs: [73, 110, 164], type: 'sine', gain: 0.0001 }),
+      };
+    }
+    const master = (mix.master || 0) * 0.045;
+    const setG = (node, g) => {
+      if (!node?.gain) return;
+      node.gain.gain.setTargetAtTime(Math.max(0.0001, g * master), this.ctx.currentTime, 0.25);
+    };
+    setG(this._music.explore, mix.explore || 0);
+    setG(this._music.ocean, mix.ocean || 0);
+    setG(this._music.cave, mix.cave || 0);
+    if ((mix.danger || 0) > 0.3) this.beep(90, 0.05, 'sine', 0.02 * mix.danger);
+  }
 }

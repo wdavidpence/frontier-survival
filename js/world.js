@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=298';
+import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=299';
 import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, caneGardenBayVillagePadAt, caneGardenBayWalkableAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=333';
 import { biomeAt, BIOME } from './biomes.js?v=273';
-import { tileForBlock } from './atlas-core.js?v=294';
+import { tileForBlock } from './atlas-core.js?v=295';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=248';
 import { buildMushroomGeometry } from './mushroom-geometry.js?v=3';
@@ -21,6 +21,7 @@ import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?
 import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=3';
 import { createDisposalContext, disposeGeometry, disposeTree } from './resource-disposal.js?v=3';
 import { applyTropicalEcology } from './tropical-ecology.js?v=23';
+import { shouldCarveCave, diamondVeinAt, starterCaveBlock } from './cave-carve.js?v=1';
 
 export const CHUNK_SIZE = 16;
 export const WORLD_HEIGHT = 48;
@@ -657,7 +658,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=362';
+    const workerUrl = './js/chunk-worker.js?v=363';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -779,16 +780,15 @@ export class World {
             if (y < h - 6 && hash2(x + y * 3, z + this.seed) > 0.97) id = BLOCK.COAL_ORE;
             if (y < h - 10 && y > 4 && hash2(x * 2 + y, z + this.seed * 5) > 0.985) id = BLOCK.IRON_ORE;
             if (y >= 2 && y <= 8 && hash2(x + y * 13, z * 7 + this.seed * 3) > 0.982) id = BLOCK.CLAY_DEEP_ORE;
-            if (y >= 3 && y <= h - 8) {
-              // Keep caves as rare, deeper discoveries rather than surface
-              // potholes in the walking biome.
-              if (hash2(x + y * 7, z + this.seed * 3) > 0.9985) id = BLOCK.AIR;
-            }
+            if (diamondVeinAt(x, y, z, this.seed)) id = BLOCK.DIAMOND_ORE;
+            if (shouldCarveCave(x, y, z, h, this.seed, SEA_LEVEL)) id = BLOCK.AIR;
           }
           if (!deepWater && y >= h - 1 && y <= h && id === BLOCK.STONE) {
             const exposedOre = exposedOreAt(x, y, z, this.seed);
             if (exposedOre) id = exposedOre;
           }
+          const starterCave = starterCaveBlock(x, y, z, SEA_LEVEL);
+          if (starterCave != null) id = starterCave;
           data[this._idx(lx, y, lz)] = id;
         }
         const saltPond = bviSaltPondAt(x, z);
@@ -1477,16 +1477,15 @@ export class World {
             // deep clay ore veins (y <= 8, hash2-safe density)
             if (y >= 2 && y <= 8 && hash2(x + y * 13, z * 7 + this.seed * 3) > 0.982) id = BLOCK.CLAY_DEEP_ORE;
             // caves
-            if (y >= 3 && y <= h - 8) {
-              // Keep caves as rare, deeper discoveries rather than surface
-              // potholes in the walking biome.
-              if (hash2(x + y * 7, z + this.seed * 3) > 0.9985) id = BLOCK.AIR;
-            }
+            if (diamondVeinAt(x, y, z, this.seed)) id = BLOCK.DIAMOND_ORE;
+            if (shouldCarveCave(x, y, z, h, this.seed, SEA_LEVEL)) id = BLOCK.AIR;
           }
           if (!deepWater && y >= h - 1 && y <= h && id === BLOCK.STONE) {
             const exposedOre = exposedOreAt(x, y, z, this.seed);
             if (exposedOre) id = exposedOre;
           }
+          const starterCave = starterCaveBlock(x, y, z, SEA_LEVEL);
+          if (starterCave != null) id = starterCave;
           data[this._idx(lx, y, lz)] = id;
         }
         const saltPond = bviSaltPondAt(x, z);

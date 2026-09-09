@@ -1,7 +1,7 @@
 /**
  * Pure atlas tile math — no DOM/Three (unit-testable).
  */
-import { BLOCK } from './blocks.js?v=298';
+import { BLOCK } from './blocks.js?v=299';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 
 export const TILE_PX = 32;
@@ -255,6 +255,19 @@ export function tileForBlock(blockId, faceDir) {
       return TILE.BANYAN_ROOTS;
     case BLOCK.PALM_TRUNK:
       return faceDir === 'top' || faceDir === 'bottom' ? TILE.PALM_TRUNK_TOP : TILE.PALM_TRUNK_SIDE;
+    case BLOCK.STAIRS_WOOD:
+    case BLOCK.SLAB_WOOD:
+    case BLOCK.TRAPDOOR_CLOSED:
+    case BLOCK.TRAPDOOR_OPEN:
+    case BLOCK.SIGN:
+      return TILE.PLANKS;
+    case BLOCK.STAIRS_STONE:
+    case BLOCK.SLAB_STONE:
+      return TILE.COBBLE;
+    case BLOCK.HOPPER:
+      return TILE.FURNACE;
+    case BLOCK.ENCHANT_TABLE:
+      return faceDir === 'top' ? TILE.DIAMOND_ORE : TILE.BRICKS;
     case CRAFTING_TABLE:
       return TILE.CRAFTING_TABLE;
     case BLOCK.LILY_PAD:

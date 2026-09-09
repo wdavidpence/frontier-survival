@@ -80,6 +80,13 @@ export const BLOCK = {
   YAM_TUBER: 76,
   BATATA_TUBER: 77,
   PALM_TRUNK: 79,
+  STAIRS_STONE: 81,
+  SLAB_STONE: 82,
+  TRAPDOOR_CLOSED: 83,
+  TRAPDOOR_OPEN: 84,
+  SIGN: 85,
+  HOPPER: 86,
+  ENCHANT_TABLE: 87,
 };
 
 /** @type {Record<number, {
@@ -178,6 +185,13 @@ export const BLOCK_PROPS = {
   [BLOCK.YAM_TUBER]: { name: 'Yam Soil', solid: true, transparent: false, hardness: 0.55, color: [0.42, 0.30, 0.18], topColor: [0.50, 0.36, 0.21], drops: BLOCK.YAM_TUBER },
   [BLOCK.BATATA_TUBER]: { name: 'Batata Soil', solid: true, transparent: false, hardness: 0.55, color: [0.46, 0.29, 0.16], topColor: [0.54, 0.35, 0.19], drops: BLOCK.BATATA_TUBER },
   [BLOCK.PALM_TRUNK]: { name: 'Palm Trunk', solid: true, transparent: false, hardness: 1.0, color: [0.94, 0.82, 0.56], topColor: [0.99, 0.90, 0.68], drops: BLOCK.LOG },
+  [BLOCK.STAIRS_STONE]: { name: 'Stone Stairs', solid: true, transparent: false, hardness: 1.4, color: [0.58, 0.59, 0.63], drops: BLOCK.STAIRS_STONE },
+  [BLOCK.SLAB_STONE]: { name: 'Stone Slab', solid: true, transparent: false, hardness: 1.4, color: [0.58, 0.59, 0.63], drops: BLOCK.SLAB_STONE },
+  [BLOCK.TRAPDOOR_CLOSED]: { name: 'Trapdoor', solid: true, transparent: true, hardness: 0.7, color: [0.62, 0.45, 0.25], door: true, drops: BLOCK.TRAPDOOR_CLOSED },
+  [BLOCK.TRAPDOOR_OPEN]: { name: 'Open Trapdoor', solid: false, transparent: true, hardness: 0.7, color: [0.62, 0.45, 0.25], door: true, drops: BLOCK.TRAPDOOR_CLOSED },
+  [BLOCK.SIGN]: { name: 'Sign', solid: false, transparent: true, hardness: 0.3, color: [0.72, 0.58, 0.35], drops: BLOCK.SIGN },
+  [BLOCK.HOPPER]: { name: 'Hopper', solid: true, transparent: true, hardness: 1.6, color: [0.42, 0.42, 0.46], drops: BLOCK.HOPPER },
+  [BLOCK.ENCHANT_TABLE]: { name: 'Enchanting Table', solid: true, transparent: true, hardness: 2.2, color: [0.28, 0.12, 0.38], topColor: [0.45, 0.22, 0.62], light: 8, drops: BLOCK.ENCHANT_TABLE },
 };
 
 export function isSolid(id) {

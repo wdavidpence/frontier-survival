@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BLOCK } from './blocks.js?v=298';
+import { BLOCK } from './blocks.js?v=299';
 import { pollinatorActivity } from './apiary-state.js?v=1';
 
 function hash(x, z, seed = 0) {

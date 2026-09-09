@@ -6,7 +6,7 @@ import { powderSnowSinkVy } from './powder-snow.js?v=221';
 import { scaffoldingClimbVy } from './scaffolding.js?v=221';
 import { createStarterInventory, getHotbarStack } from './inventory.js?v=223';
 import { emptyEquipment } from './equipment.js?v=221';
-import { ITEM } from './items.js?v=255';
+import { ITEM } from './items.js?v=257';
 
 const PLAYER_RADIUS = 0.3;
 const PLAYER_HEIGHT = 1.7;
@@ -207,8 +207,18 @@ export class Player {
     } else {
       this.velocity.y -= GRAVITY * dt;
       if (this.onGround && input.wantsJump()) {
-        this.velocity.y = JUMP_V * (crouching ? 0.7 : 1) * honeyJumpMult(onHoney);
+        const jump = Number(this.jumpBoost) > 0 ? this.jumpBoost : JUMP_V;
+        this.velocity.y = jump * (crouching ? 0.7 : 1) * honeyJumpMult(onHoney);
         this.onGround = false;
+      }
+      if (!this.onGround && this.gliderHeld && input.wantsJump()) {
+        if (this.velocity.y < -2.4) this.velocity.y = -2.4;
+        else if (this.velocity.y < 0) this.velocity.y *= 0.72;
+        const spd = Math.hypot(this.velocity.x, this.velocity.z);
+        if (spd > 0.05) {
+          this.velocity.x *= 1.18;
+          this.velocity.z *= 1.18;
+        }
       }
       if (this.velocity.y < 0) this._fallVy = Math.max(this._fallVy, -this.velocity.y);
     }

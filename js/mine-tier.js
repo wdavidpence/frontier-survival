@@ -12,7 +12,7 @@ import {
   requiredToolForWork,
   workTimeMultiplier,
 } from './harvest-balance.js?v=4';
-import { propsOf } from './items.js?v=255';
+import { propsOf } from './items.js?v=257';
 import { tierForItem, HARVEST_LEVEL, speedForItem, tierMeetsRequirement } from './tool-tiers.js?v=223';
 import { oreDropEntry, primaryOreDropId } from './ore-drops.js?v=221';
 

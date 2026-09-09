@@ -2,7 +2,7 @@
  * Golden Cove first-hour route.
  * Pure state machine: production facts come from the real game loop.
  */
-import { BLOCK, isSolid, isTransparent } from './blocks.js?v=298';
+import { BLOCK, isSolid, isTransparent } from './blocks.js?v=299';
 import { hasRoofAbove } from './exposure.js?v=221';
 import { mountBoat, riderPosition } from './boat-entity.js?v=221';
 

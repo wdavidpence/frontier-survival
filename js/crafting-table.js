@@ -1,5 +1,5 @@
 /** Dedicated crafting-table block registration for the unified voxel catalog. */
-import { BLOCK, BLOCK_PROPS } from './blocks.js?v=298';
+import { BLOCK, BLOCK_PROPS } from './blocks.js?v=299';
 
 export const CRAFTING_TABLE = 78;
 

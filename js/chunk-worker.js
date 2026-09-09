@@ -513,6 +513,60 @@ function villageColumnAt(x, z, sites = []) {
   }
   return null;
 }
+
+function shouldCarveCaveLocal(x, y, z, height, seed, seaLevel) {
+  const yy = y | 0;
+  const h = height | 0;
+  if (yy < 2 || yy > h - 4) return false;
+  if (h <= seaLevel + 2) return false;
+  if (yy > seaLevel + 1 && h - yy < 6) return false;
+  if (x >= -24 && x <= 12 && z >= -30 && z <= 4 && yy >= seaLevel - 2) return false;
+  const deep = yy <= 8;
+  const band = deep ? 0 : 1;
+  const wx = Math.floor(x / 9);
+  const wz = Math.floor(z / 9);
+  const n = hash2(wx * 3 + seed * 11 + band * 17, wz * 5 + seed * 7 + band * 29);
+  const v = hash2(wx * 7 + band * 41, wz * 11 + seed * 13);
+  if (n < (deep ? 0.62 : 0.78)) return false;
+  const cx = wx * 9 + 4 + Math.floor(v * 3);
+  const cz = wz * 9 + 4 + Math.floor(n * 3);
+  const tunnelY = deep
+    ? 3 + Math.floor(hash2(wx + seed, wz * 3) * 4)
+    : Math.max(4, Math.min(h - 6, seaLevel - 4 + Math.floor(v * 6)));
+  const dx = x - cx;
+  const dz = z - cz;
+  const dy = yy - tunnelY;
+  const radius = deep ? 2.35 : 1.65;
+  if (dx * dx * 0.55 + dz * dz * 0.55 + dy * dy * 1.35 < radius * radius) return true;
+  const room = hash2(wx * 19 + seed, wz * 23 + band);
+  if (room > 0.88) {
+    const rx = cx + (room > 0.94 ? 3 : -2);
+    const rz = cz + (v > 0.5 ? 2 : -3);
+    const r2 = (x - rx) * (x - rx) + (z - rz) * (z - rz) + (yy - tunnelY) * (yy - tunnelY) * 1.1;
+    if (r2 < (deep ? 12 : 7)) return true;
+  }
+  return false;
+}
+
+function starterCaveBlockLocal(x, y, z, seaLevel) {
+  const along = (z | 0) + 27;
+  const across = (x | 0) + 21;
+  const up = (y | 0) - (seaLevel | 0);
+  if (along < -1 || along > 9) return null;
+  if (along <= 0) {
+    if (Math.abs(across) === 2 && up >= 1 && up <= 3) return 9;
+    if (Math.abs(across) <= 1 && up === 4) return 9;
+  }
+  if (along < 0 || along > 9) return null;
+  if (up < 1 || up > 3) return null;
+  const wide = along >= 7 ? 2 : 1;
+  if (Math.abs(across) > wide) return null;
+  if (along === 8 && across === 0 && up === 1) return 22;
+  if (along === 0 && across === 0 && up === 2) return 14;
+  if (along === 8 && across === 1 && up === 3) return 14;
+  return 0;
+}
+
 function villageBlockAt(x, y, z, sites = []) {
   const column = villageColumnAt(x, z, sites);
   if (!column) return null;
@@ -726,15 +780,15 @@ function generateChunkData(cx, cz, seed) {
           if (y < h - 6 && hash2(x + y * 3, z + seed) > 0.97) id = BLOCK.COAL_ORE;
           if (y < h - 10 && y > 4 && hash2(x * 2 + y, z + seed * 5) > 0.985) id = BLOCK.IRON_ORE;
           if (y >= 2 && y <= 8 && hash2(x + y * 13, z * 7 + seed * 3) > 0.982) id = BLOCK.CLAY_DEEP_ORE;
-          if (y >= 3 && y <= h - 8) {
-            // Keep caves as rare, deeper discoveries rather than surface potholes.
-            if (hash2(x + y * 7, z + seed * 3) > 0.9985) id = 0;
-          }
+          if (y >= 2 && y <= 6 && hash2(x * 17 + y * 13, z * 19 + seed * 3) > 0.991) id = BLOCK.DIAMOND_ORE;
+          if (shouldCarveCaveLocal(x, y, z, h, seed, SEA_LEVEL)) id = 0;
         }
         if (!deepWater && y >= h - 1 && y <= h && id === BLOCK.STONE) {
           const exposedOre = exposedOreAt(x, y, z, seed);
           if (exposedOre) id = exposedOre;
         }
+        const starterCave = starterCaveBlockLocal(x, y, z, SEA_LEVEL);
+        if (starterCave != null) id = starterCave;
         data[idx(lx, y, lz)] = id;
       }
       const saltPond = bviSaltPondAt(x, z);

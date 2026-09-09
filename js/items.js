@@ -2,7 +2,7 @@
  * Unified item/block IDs for inventory stacks.
  * Blocks: 0–99 (see blocks.js). Items: 100+.
  */
-import { BLOCK, BLOCK_PROPS } from './blocks.js?v=298';
+import { BLOCK, BLOCK_PROPS } from './blocks.js?v=299';
 
 export const ITEM = {
   STICK: 100,
@@ -88,6 +88,11 @@ export const ITEM = {
   WOOD_MASON: 155,
   STONE_MASON: 156,
   IRON_MASON: 157,
+  DIAMOND: 183,
+  DIAMOND_PICK: 184,
+  DIAMOND_AXE: 185,
+  DIAMOND_SWORD: 186,
+  GLIDER: 187,
 };
 
 /** @type {Record<number, {
@@ -303,7 +308,12 @@ export const ITEM_PROPS = {
   [ITEM.HONEY]: { name: 'Wild Honey', color: [1.0, 0.66, 0.12], edible: 24, heal: 5, maxStack: 16 },
   [ITEM.HONEYCOMB]: { name: 'Honeycomb', color: [1.0, 0.76, 0.18], maxStack: 32 },
   [ITEM.BEESWAX]: { name: 'Beeswax', color: [1.0, 0.84, 0.42], maxStack: 32 },
- };
+  [ITEM.DIAMOND]: { name: 'Diamond', color: [0.45, 0.88, 0.92], maxStack: 64 },
+  [ITEM.DIAMOND_PICK]: { name: 'Diamond Pick', color: [0.45, 0.88, 0.92], tool: 'pick', mineMult: 7.2, maxStack: 1, melee: 8, meleeRange: 3.5 },
+  [ITEM.DIAMOND_AXE]: { name: 'Diamond Axe', color: [0.40, 0.82, 0.88], tool: 'axe', mineMult: 7.4, maxStack: 1, melee: 10, meleeRange: 3.6 },
+  [ITEM.DIAMOND_SWORD]: { name: 'Diamond Sword', color: [0.42, 0.86, 0.90], tool: 'weapon', maxStack: 1, melee: 14, meleeRange: 3.8 },
+  [ITEM.GLIDER]: { name: 'Palm Glider', color: [0.52, 0.84, 0.34], maxStack: 1, tool: 'hand' },
+};
 
 export function propsOf(id) {
   if (id == null) return null;
@@ -354,7 +364,12 @@ export function preferredTool(blockId) {
     blockId === BLOCK.COBBLE ||
     blockId === BLOCK.COAL_ORE ||
     blockId === BLOCK.IRON_ORE ||
-    blockId === BLOCK.SANDSTONE
+    blockId === BLOCK.SANDSTONE ||
+    blockId === BLOCK.DIAMOND_ORE ||
+    blockId === BLOCK.STAIRS_STONE ||
+    blockId === BLOCK.SLAB_STONE ||
+    blockId === BLOCK.HOPPER ||
+    blockId === BLOCK.ENCHANT_TABLE
   )
     return 'pick';
   if (blockId === BLOCK.BRICKS || blockId === BLOCK.FURNACE || blockId === BLOCK.CLAY) return 'pick';
@@ -383,6 +398,7 @@ export function mineMultiplier(heldId, blockId) {
 /** Drop id when breaking a world block (may be item). */
 export function dropForBlock(blockId) {
   if (blockId === BLOCK.COAL_ORE) return ITEM.COAL;
+  if (blockId === BLOCK.DIAMOND_ORE) return ITEM.DIAMOND;
   if (blockId === BLOCK.IRON_ORE) return BLOCK.IRON_ORE;
   if (blockId === BLOCK.BUSH) return ITEM.BERRIES;
   if (blockId === BLOCK.CROP) return ITEM.WHEAT;

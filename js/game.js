@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=555';
-import { Player } from './player.js?v=242';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=556';
+import { Player } from './player.js?v=243';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=227';
-import { AudioBus } from './audio.js?v=243';
+import { AudioBus } from './audio.js?v=244';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
@@ -14,7 +14,7 @@ import {
   moveSpeedMultiplier,
 } from './survival.js?v=245';
 
-import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=298';
+import { BLOCK, getHardness, isSolid, isTransparent, getColor, BLOCK_PROPS } from './blocks.js?v=299';
 import {
   ITEM,
   propsOf,
@@ -23,7 +23,7 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=256';
+} from './items.js?v=257';
 import { iconDataUriForItem } from './item-icons.js?v=24';
 import { resolveBlockDrop, harvestDurationForBlock, workDurationForBlock } from './mine-tier.js?v=224';
 import {
@@ -67,11 +67,11 @@ import {
   ingredientSummary,
   recipeProgress,
   nextProgressionRecipe,
-} from './crafting.js?v=423';
+} from './crafting.js?v=424';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=284';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=260';
-import { createBlockAtlas } from './atlas.js?v=352';
+import { createBlockAtlas } from './atlas.js?v=353';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=291';
 import {
   spawnWorldDrop,
@@ -95,7 +95,7 @@ import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=292'
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=11';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
 import { placementState } from './placement-preview.js?v=1';
-import { heightAt, bviRouteCorridorAt, bviLocationAt, caneGardenBayWalkableAt } from './gen.js?v=333';
+import { heightAt, bviRouteCorridorAt, bviLocationAt, caneGardenBayWalkableAt, villageSitesForSeed } from './gen.js?v=333';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=33';
 import { sunDirection, moonDirection, skyGlowFromNdc, shadowFollow } from './atmosphere-sky.js?v=1';
 import {
@@ -119,7 +119,18 @@ import { getMode } from './modes.js?v=244';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=4';
 import { streamingConfidenceFromStats, streamingConfidenceHudLabel } from './streaming-confidence.js?v=1';
 import { applyClearArrivalTick, clearArrivalHudLabel, normalizeWeatherGrace } from './clear-arrival.js?v=1';
-import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=5';
+import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=6';
+import { nearestLights, caveDarkness01 } from './voxel-light.js?v=1';
+import { STARTER_CAVE_CHEST } from './cave-carve.js?v=1';
+import { floodFromSources } from './fluid-flow.js?v=1';
+import { villagersForSite, applyTrade, villagerLayout, arrivalTraders } from './village-life.js?v=1';
+import { musicMix, musicCrossfade } from './music-director.js?v=1';
+import { ruinSitesForSeed, lootTable } from './structure-loot.js?v=1';
+import { encodeWorldCode } from './world-share.js?v=1';
+import { tickHopper, ensureHopper } from './hopper-world.js?v=1';
+import { hydrateNearWater, isHydratedFarmland } from './farmland.js?v=1';
+import { fogTintForBiome } from './biome-dress.js?v=1';
+import { enchantLevelCost, canPayEnchant, payEnchantLevels } from './enchant-cost.js?v=1';
 import { createDisposalContext, disposeTree } from './resource-disposal.js?v=3';
 import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=3';
 import { createForestThreshold, updateForestThreshold, disposeForestThreshold } from './forest-threshold.js?v=3';
@@ -389,6 +400,7 @@ export class Game {
     this.player = null;
     this.fauna = null;
     this._animalMeshes = new Map();
+    this._villagerMeshes = new Map();
     this._animalDisposalContext = createDisposalContext();
     this._mountedAnimalId = null;
     this.input = new Input(canvas);
@@ -440,6 +452,12 @@ export class Game {
     this._projectiles = [];
     this._arrowMeshes = [];
     this._crops = new Map(); // "x,y,z" -> growth 0..1
+    this._xp = 0;
+    this._hoppers = new Map();
+    this._villagers = [];
+    this._signs = new Map();
+    this._musicMix = null;
+    this._nearestTorches = [];
     this._stats = { kills: 0, wolfKills: 0, arrowsFired: 0 };
     this._achievements = emptyAchievements();
     this._toastId = null;
@@ -1196,6 +1214,7 @@ export class Game {
       hostileEnabled: this.modeDef().hostilePolicy !== 'off',
       rareHostiles: true,
     });
+    this._spawnVillagers(seed);
     if (saveData?.animals?.length) {
       this.fauna.importState(saveData.animals);
     }
@@ -1205,6 +1224,13 @@ export class Game {
       const arrival = this.world.findCastawaySpawn?.() || this.world.findSpawn();
       const spawn = { x: arrival.x, y: arrival.y, z: arrival.z };
       this._spawnPos = { x: spawn.x, y: spawn.y, z: spawn.z };
+      if (this.world.getBlock(STARTER_CAVE_CHEST.x, STARTER_CAVE_CHEST.y, STARTER_CAVE_CHEST.z) === BLOCK.CHEST) {
+        setChestSlots(this._chests, `${STARTER_CAVE_CHEST.x},${STARTER_CAVE_CHEST.y},${STARTER_CAVE_CHEST.z}`, [
+          { id: ITEM.COAL, count: 4 },
+          { id: ITEM.DIAMOND, count: 1 },
+          { id: BLOCK.TORCH, count: 4 },
+        ]);
+      }
       this._spawnLandmark = spawn.landmark || '';
       this._castawayArrival = createCastawayArrival({
         x: spawn.x,
@@ -1401,6 +1427,16 @@ export class Game {
       this.fauna.clearNear(this.player.position.x, this.player.position.z, 16);
       this.fauna.ensureStarterEncounterNear?.(this.player.position.x, this.player.position.z);
       this.fauna.ensureBeachShowcaseNear?.(this.player.position.x, this.player.position.z, this.player.yaw);
+    }
+    if (this.player && freshPlayer) {
+      const extras = arrivalTraders({
+        x: this.player.position.x,
+        y: this.player.position.y,
+        z: this.player.position.z,
+        yaw: this.player.yaw,
+      });
+      this._villagers = [...(this._villagers || []).filter((v) => !v.arrival), ...extras];
+      this._syncVillagerMeshes();
     }
     this._clearCastawayArrivalVisual();
     if (this._castawayArrival) {
@@ -2369,7 +2405,20 @@ export class Game {
     if (!this._crops.size) return;
     const grow = [];
     for (const [key, g] of this._crops) {
-      const ng = advanceCropGrowth(g, dt);
+      const [x, y, z] = key.split(',').map(Number);
+      let rate = dt;
+      const under = this.world?.getBlock(x, y - 1, z);
+      if (under === BLOCK.FARMLAND) {
+        const waterCells = [];
+        for (let dx = -4; dx <= 4; dx++) {
+          for (let dz = -4; dz <= 4; dz++) {
+            if (this.world.getBlock(x + dx, y - 1, z + dz) === BLOCK.WATER) waterCells.push({ x: x + dx, z: z + dz });
+          }
+        }
+        const plot = hydrateNearWater({ x, z, moisture: 0.2 }, waterCells, 4, 0.6);
+        if (isHydratedFarmland(plot.moisture)) rate = dt * 1.85;
+      }
+      const ng = advanceCropGrowth(g, rate);
       if (ng >= 1) grow.push(key);
       else this._crops.set(key, ng);
     }
@@ -3501,6 +3550,7 @@ export class Game {
     a.click();
     URL.revokeObjectURL(a.href);
     this.player.notify('Save exported.', 2);
+    this.copyWorldCode();
     this.audio.ui();
   }
 
@@ -4113,6 +4163,8 @@ export class Game {
         this._tickBoat(dt);
         move = { moved: Math.hypot(this._boat.vx || 0, this._boat.vz || 0) > 0.05, sprinting: false, inWater: true };
       } else {
+        this.player.jumpBoost = this._mountedAnimalId != null ? 8.2 : 0;
+        this.player.gliderHeld = this.player.heldId() === ITEM.GLIDER;
         move = this.player.update(this.world, this.input, this.survival, dt);
       }
       // Keep the rendered camera in lockstep with the interaction ray before mining.
@@ -4328,7 +4380,24 @@ export class Game {
       boatMounted: !!this._boat?.mounted,
       boatSpeed: this._boat?.mounted ? Math.hypot(this._boat.vx || 0, this._boat.vz || 0) : 0,
       biome: this._lastBiome,
+      cave: caveDarkness01(this.player.position.y, heightAt(this.player.position.x, this.player.position.z, this.seed), SEA_LEVEL) > 0.55,
+      ocean: this._lastBiome === 'ocean' || !!this._boat?.mounted,
+      night: this.time.isNight(),
+      storm: this.time.weather === 'rain',
+      danger: 0,
+      boat: !!this._boat?.mounted,
+      dead: this.survival.dead,
     });
+    this._musicMix = musicCrossfade(this._musicMix, musicMix({
+      biome: this._lastBiome,
+      cave: caveDarkness01(this.player.position.y, heightAt(this.player.position.x, this.player.position.z, this.seed), SEA_LEVEL) > 0.55,
+      ocean: this._lastBiome === 'ocean' || !!this._boat?.mounted,
+      night: this.time.isNight(),
+      storm: this.time.weather === 'rain',
+      boat: !!this._boat?.mounted,
+      dead: this.survival.dead,
+    }), dt);
+    this.audio.tickMusic?.(dt, this._musicMix);
 
     const expMult = exposureColdMult({
       weather: this.time.weather,
@@ -4729,6 +4798,7 @@ export class Game {
       }
       this._tickProjectiles(dt);
       this._tickCrops(dt);
+      this._tickHoppers(dt);
       this._tickLogicPower(dt);
       this._tickWeatherFX(dt);
       this._tickMangroveFX(dt);
@@ -4996,6 +5066,12 @@ export class Game {
     if (!text && p?.cookable) text = 'F — Cook (need campfire heat)';
     if (!text && p?.tool === 'bow') text = 'LMB — Shoot arrow';
     if (!text && p?.plantable) text = 'RMB on soil — Plant seeds';
+    if (!text) {
+      const px = this.player.position.x;
+      const pz = this.player.position.z;
+      const near = (this._villagers || []).find((v) => Math.hypot((v.x || 0) - px, (v.z || 0) - pz) < 2.6);
+      if (near) text = `F — Trade with ${near.name} · ${near.trades?.[0]?.label || 'barter'}`;
+    }
     if (!text && p?.tool === 'rod') text = 'F near water — Fish';
     if (!text && p?.tool === 'shield') text = 'Hold to block wolf bites';
     if (!text && held?.id === ITEM.FERTILIZER) text = 'F on crop — Fertilize';
@@ -5209,6 +5285,7 @@ export class Game {
       return da - db;
     });
     const keep = found.slice(0, 8);
+    this._nearestTorches = keep;
     while (this._lightPool.length < keep.length) {
       const L = new THREE.PointLight(0xffaa55, 1, 14, 2);
       this.scene.add(L);
@@ -5443,6 +5520,8 @@ export class Game {
         this.player.breaking = null;
         const held = heldP;
         let dmg = held?.melee || 4;
+        const ench = this.player.heldStack()?.enchants;
+        if (ench?.sharpness) dmg += ench.sharpness;
         // Mace smash bonus from recent fall speed (name/tool match until ITEM.MACE exists)
         const heldName = (displayName(this.player.heldId()) || '').toLowerCase();
         const toolName = String(held?.tool || '').toLowerCase();
@@ -5564,6 +5643,7 @@ export class Game {
         this.fx.burst(hit.x, hit.y, hit.z, col, 12);
         this.fx.hideCrack();
         this.world.excavateBlock(hit.x, hit.y, hit.z);
+        this._xp = (this._xp || 0) + (hit.id === BLOCK.DIAMOND_ORE ? 8 : hit.id === BLOCK.IRON_ORE ? 3 : 1);
         this._builtEdits.delete(`${hit.x|0},${hit.y|0},${hit.z|0}`);
         this._doorFace.delete(`${hit.x|0},${hit.y|0},${hit.z|0}`);
         if (isLogId(hit.id)) this._queueLeafDecay(hit.x, hit.y, hit.z);
@@ -6006,6 +6086,9 @@ export class Game {
         const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
         if (cons.ok) {
           this.world.setBlock(tx, ty, tz, BLOCK.WATER);
+          floodFromSources([{ x: tx, y: ty, z: tz }], (x, y, z) => this.world.getBlock(x, y, z), (x, y, z) => {
+            if (this.world.getBlock(x, y, z) === BLOCK.AIR) this.world.setBlock(x, y, z, BLOCK.WATER);
+          }, 24);
           const add = addItems(cons.slots, ITEM.BUCKET, 1);
           this.player.slots = add.slots;
           this.audio.splash?.() || this.audio.placeBlock();
@@ -6013,6 +6096,28 @@ export class Game {
           return;
         }
       }
+    }
+
+    if (this._tryVillageTrade(hit)) return;
+    if (hit && (hit.id === BLOCK.TRAPDOOR_CLOSED || hit.id === BLOCK.TRAPDOOR_OPEN)) {
+      const next = hit.id === BLOCK.TRAPDOOR_CLOSED ? BLOCK.TRAPDOOR_OPEN : BLOCK.TRAPDOOR_CLOSED;
+      this.world.setBlock(hit.x, hit.y, hit.z, next);
+      this.audio.placeBlock();
+      this.player.notify(next === BLOCK.TRAPDOOR_CLOSED ? 'Trapdoor closed.' : 'Trapdoor opened.');
+      return;
+    }
+    if (hit && hit.id === BLOCK.SIGN) {
+      const key = `${hit.x},${hit.y},${hit.z}`;
+      const existing = this._signs.get(key) || 'Cove camp';
+      const text = typeof window !== 'undefined' && window.prompt ? window.prompt('Sign text', existing) : existing;
+      if (text != null) this._signs.set(key, String(text).slice(0, 48));
+      this.player.notify(this._signs.get(key) || 'Sign', 3);
+      this.audio.ui();
+      return;
+    }
+    if (hit && hit.id === BLOCK.ENCHANT_TABLE) {
+      this._enchantHeld();
+      return;
     }
 
     // Toggle door (both stacked cells so a 2-block doorway stays in sync)
@@ -6274,6 +6379,173 @@ export class Game {
     return true;
   }
 
+
+  _spawnVillagers(seed) {
+    const sites = villageSitesForSeed(seed || this.seed || 0);
+    this._villagers = [];
+    for (const site of sites.slice(0, 3)) {
+      this._villagers.push(...villagersForSite({ ...site, seed: seed || this.seed || 0 }));
+    }
+    for (const ruin of ruinSitesForSeed(seed || 0)) {
+      const ground = typeof heightAt === 'function' ? heightAt(ruin.x, ruin.z, seed || 0) : 18;
+      const loot = lootTable(ruin.kind, seed || 0, 0);
+      this._villagers.push({
+        id: `ruin-${ruin.name}`,
+        role: 'cache',
+        name: ruin.name.replace(/-/g, ' '),
+        x: ruin.x + 0.5,
+        z: ruin.z + 0.5,
+        y: ground + 1,
+        trades: [{ want: 'stick', wantCount: 1, give: loot.idName, giveCount: loot.count, label: `Leave a stick · take ${loot.idName}` }],
+      });
+    }
+  }
+
+  _tradeIdOf(name) {
+    const map = {
+      raw_fish: ITEM.RAW_FISH,
+      cooked_fish: ITEM.COOKED_FISH,
+      bread: ITEM.BREAD,
+      fish_bait: ITEM.FISH_BAIT,
+      cobble: BLOCK.COBBLE,
+      bricks: BLOCK.BRICKS,
+      clay_ball: ITEM.CLAY_BALL,
+      glass: BLOCK.GLASS,
+      wool: ITEM.WOOL,
+      cloth: ITEM.CLOTH,
+      hide: ITEM.HIDE,
+      wool_coat: ITEM.WOOL_COAT,
+      honeycomb: ITEM.HONEYCOMB,
+      beeswax: ITEM.BEESWAX,
+      coal: ITEM.COAL,
+      torch: BLOCK.TORCH,
+      stick: ITEM.STICK,
+      iron_ingot: ITEM.IRON_INGOT,
+      diamond: ITEM.DIAMOND,
+      seeds: ITEM.SEEDS,
+    };
+    return map[name] ?? name;
+  }
+
+  _tryVillageTrade(hit) {
+    const px = this.player.position.x;
+    const pz = this.player.position.z;
+    const near = (this._villagers || []).find((v) => Math.hypot(v.x - px, v.z - pz) < 2.4);
+    if (!near || !near.trades?.length) return false;
+    const trade = near.trades[0];
+    const result = applyTrade(this.player.slots, trade, (n) => this._tradeIdOf(n));
+    if (!result.ok) {
+      this.player.notify(`${near.name}: ${trade.label}`, 3);
+      return true;
+    }
+    this.player.slots = result.slots;
+    this.audio.ui();
+    this.player.notify(`${near.name} traded · ${trade.label}`, 3);
+    return true;
+  }
+
+  _enchantHeld() {
+    const stack = this.player.heldStack();
+    if (!stack || !stack.id) {
+      this.player.notify('Hold a tool to enchant.', 2);
+      return;
+    }
+    const cost = enchantLevelCost(8, 0);
+    if (!canPayEnchant(this._xp || 0, cost)) {
+      this.player.notify(`Need ${cost} mine XP (have ${this._xp | 0}).`, 3);
+      return;
+    }
+    this._xp = payEnchantLevels(this._xp, cost);
+    const slots = this.player.slots.slice();
+    const i = this.player.hotbarIndex;
+    slots[i] = { ...slots[i], enchants: { sharpness: 2 } };
+    this.player.slots = slots;
+    this.audio.toast?.() || this.audio.ui();
+    this.player.notify('Enchanted · Sharpness II', 3);
+  }
+
+  _tickHoppers(dt) {
+    if (!this.world || !this._chests) return;
+    this._hopperAcc = (this._hopperAcc || 0) + dt;
+    if (this._hopperAcc < 0.45) return;
+    this._hopperAcc = 0;
+    const p = this.player.position;
+    const px = Math.floor(p.x);
+    const py = Math.floor(p.y);
+    const pz = Math.floor(p.z);
+    for (let y = py - 3; y <= py + 3; y++) {
+      for (let z = pz - 6; z <= pz + 6; z++) {
+        for (let x = px - 6; x <= px + 6; x++) {
+          if (this.world.getBlock(x, y, z) !== BLOCK.HOPPER) continue;
+          const key = `${x},${y},${z}`;
+          const h = ensureHopper(this._hoppers.get(key) || { x, y, z });
+          const aboveKey = `${x},${y + 1},${z}`;
+          const belowKey = `${x},${y - 1},${z}`;
+          const aboveSlots = getChestSlots(this._chests, aboveKey);
+          const belowSlots = getChestSlots(this._chests, belowKey);
+          this._hoppers.set(key, tickHopper(h, aboveSlots, belowSlots));
+          setChestSlots(this._chests, aboveKey, aboveSlots);
+          setChestSlots(this._chests, belowKey, belowSlots);
+        }
+      }
+    }
+  }
+
+  copyWorldCode() {
+    const code = encodeWorldCode({ seed: this.seed, mode: this.settings?.playMode, day: this.time?.day || 0 });
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(code).catch(() => {});
+    }
+    this.player?.notify(`World code copied · ${code.slice(0, 18)}…`, 4);
+    return code;
+  }
+
+  _makeVillagerMesh(role) {
+    const layout = villagerLayout(role);
+    const g = new THREE.Group();
+    for (const part of layout.parts) {
+      const baseColor = new THREE.Color(part.color[0], part.color[1], part.color[2]);
+      const roleName = part.role || part.name || '';
+      const mat = new THREE.MeshLambertMaterial({
+        color: baseColor,
+        emissive: roleName === 'eye' ? baseColor.clone().multiplyScalar(0.2) : 0x000000,
+        emissiveIntensity: roleName === 'eye' ? 0.4 : 0,
+      });
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(part.sx, part.sy, part.sz), mat);
+      mesh.position.set(part.x, part.y, part.z);
+      mesh.name = part.name;
+      g.add(mesh);
+    }
+    g.userData.role = role;
+    return g;
+  }
+
+  _syncVillagerMeshes() {
+    if (!this._villagerMeshes) this._villagerMeshes = new Map();
+    const people = this._villagers || [];
+    const seen = new Set();
+    for (const v of people) {
+      if (!v?.id) continue;
+      seen.add(v.id);
+      let mesh = this._villagerMeshes.get(v.id);
+      if (!mesh) {
+        mesh = this._makeVillagerMesh(v.role);
+        this._villagerMeshes.set(v.id, mesh);
+        this.scene.add(mesh);
+      }
+      const y = Number.isFinite(v.y) ? v.y : 17;
+      mesh.position.set(v.x, y, v.z);
+      mesh.rotation.y = Number.isFinite(v.yaw) ? v.yaw : 0;
+      mesh.visible = true;
+    }
+    for (const [id, mesh] of this._villagerMeshes) {
+      if (seen.has(id)) continue;
+      this.scene.remove(mesh);
+      disposeTree(mesh, { context: this._animalDisposalContext, clearChildren: true, disposeMaterials: true });
+      this._villagerMeshes.delete(id);
+    }
+  }
+
   _clearAnimalMeshes() {
     for (const mesh of this._animalMeshes.values()) {
       this.scene.remove(mesh);
@@ -6284,6 +6556,17 @@ export class Game {
       });
     }
     this._animalMeshes.clear();
+    if (this._villagerMeshes) {
+      for (const mesh of this._villagerMeshes.values()) {
+        this.scene.remove(mesh);
+        disposeTree(mesh, {
+          context: this._animalDisposalContext,
+          clearChildren: true,
+          disposeMaterials: true,
+        });
+      }
+      this._villagerMeshes.clear();
+    }
   }
 
   _makeAnimalMesh(type) {
@@ -6344,6 +6627,7 @@ export class Game {
   }
 
   _syncAnimalMeshes() {
+    this._syncVillagerMeshes();
     if (!this.fauna) return;
     this._animalSyncFrame = (this._animalSyncFrame || 0) + 1;
     const animalSyncStride = this.graphicsQuality === 'performance' ? 2
@@ -6911,6 +7195,23 @@ export class Game {
       mat.uniforms.lanternPos.value.set(50, 17.96, 60);
       mat.uniforms.lanternStrength.value = lanternNear
         * (0.08 + nightMix * 0.28 + lanternPulse * 0.5);
+      const q = this.graphics || qualitySettings(this.graphicsQuality);
+      if (mat.uniforms.pbrAmount) mat.uniforms.pbrAmount.value = q.pbr ?? 0.45;
+      if (mat.uniforms.fogDensity) mat.uniforms.fogDensity.value = q.volumetricFog ?? 0.4;
+      if (mat.uniforms.shaftStrength) mat.uniforms.shaftStrength.value = q.sunShafts ?? 0.35;
+      if (mat.uniforms.reflectAmount) mat.uniforms.reflectAmount.value = q.waterReflect ?? 0.55;
+      if (mat.uniforms.sssAmount) mat.uniforms.sssAmount.value = q.sss ?? 0.4;
+      if (mat.uniforms.caveDark) mat.uniforms.caveDark.value = q.voxelLight ?? 0.7;
+      const torches = this._nearestTorches || [];
+      const t0 = torches[0];
+      const t1 = torches[1];
+      if (mat.uniforms.torchA) mat.uniforms.torchA.value.set(t0 ? t0.x + 0.5 : 0, t0 ? t0.y + 0.8 : -999, t0 ? t0.z + 0.5 : 0);
+      if (mat.uniforms.torchB) mat.uniforms.torchB.value.set(t1 ? t1.x + 0.5 : 0, t1 ? t1.y + 0.8 : -999, t1 ? t1.z + 0.5 : 0);
+      if (mat.uniforms.torchGain) mat.uniforms.torchGain.value = (q.voxelLight ?? 0.7) * (nightMix * 0.9 + 0.25);
+      if (mat.uniforms.heightFogColor) {
+        const tint = fogTintForBiome(this._lastBiome, [palette.fog.r, palette.fog.g, palette.fog.b]);
+        mat.uniforms.heightFogColor.value.set(tint[0], tint[1], tint[2]);
+      }
     }
   }
 

@@ -11,7 +11,7 @@ import {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=294';
+} from './atlas-core.js?v=295';
 import { WATER_WAVE } from './water-material.js?v=3';
 
 export {
@@ -23,7 +23,7 @@ export {
   tileForBlock,
   crackTileForProgress,
   atlasTileCount,
-} from './atlas-core.js?v=294';
+} from './atlas-core.js?v=295';
 
 function rnd(seed) {
   let s = seed | 0;
@@ -1444,6 +1444,16 @@ export function createBlockAtlas() {
       lanternStrength: { value: 0.0 },
       lanternRadius: { value: 7.5 },
       waterTime: { value: 0 },
+      pbrAmount: { value: 0.45 },
+      fogDensity: { value: 0.4 },
+      heightFogColor: { value: new THREE.Color(0.42, 0.58, 0.68) },
+      shaftStrength: { value: 0.35 },
+      reflectAmount: { value: 0.55 },
+      sssAmount: { value: 0.4 },
+      caveDark: { value: 0.7 },
+      torchA: { value: new THREE.Vector3(0, -999, 0) },
+      torchB: { value: new THREE.Vector3(0, -999, 0) },
+      torchGain: { value: 0.0 },
     },
     vertexShader: `
       attribute float tile;
@@ -1482,6 +1492,16 @@ export function createBlockAtlas() {
       uniform float lanternStrength;
       uniform float lanternRadius;
       uniform float waterTime;
+      uniform float pbrAmount;
+      uniform float fogDensity;
+      uniform vec3 heightFogColor;
+      uniform float shaftStrength;
+      uniform float reflectAmount;
+      uniform float sssAmount;
+      uniform float caveDark;
+      uniform vec3 torchA;
+      uniform vec3 torchB;
+      uniform float torchGain;
       varying vec2 vUv;
       varying vec4 vColor;
       varying vec2 vAuvBase;
@@ -1507,8 +1527,20 @@ export function createBlockAtlas() {
           * step(tex.r * 1.12, tex.g)
           * step(tex.b * 1.05, tex.g);
         light += vec3(0.045, 0.058, 0.030) * foliage;
+        float backLit = max(0.0, dot(N, -L));
+        light += sunColor * backLit * foliage * sssAmount * 0.42;
+        float metalHint = (1.0 - smoothstep(0.5, 1.5, abs(vTile - 18.0)))
+          + (1.0 - smoothstep(0.5, 1.5, abs(vTile - 34.0)))
+          + (1.0 - smoothstep(0.5, 1.5, abs(vTile - 57.0)));
+        metalHint = clamp(metalHint, 0.0, 1.0);
+        float buried = 1.0 - smoothstep(7.0, 16.6, vWorldPos.y);
+        float occluded = buried * (1.0 - clamp(wrap * 0.65 + N.y * 0.25, 0.0, 1.0));
+        light *= mix(1.0, 0.14, caveDark * occluded);
+        float tA = max(0.0, 1.0 - distance(vWorldPos, torchA) / 8.5);
+        float tB = max(0.0, 1.0 - distance(vWorldPos, torchB) / 8.5);
+        light += vec3(1.0, 0.72, 0.38) * (tA * tA + tB * tB) * torchGain;
         // Keep shaded tropical terrain readable without flattening the warm key.
-        light = max(light, vec3(0.30, 0.33, 0.38));
+        light = max(light, vec3(0.30, 0.33, 0.38) * mix(1.0, 0.45, caveDark * occluded));
         vec3 material = tex.rgb * max(vColor.rgb, vec3(0.28));
         float clayFace = 1.0 - smoothstep(0.5, 1.5, abs(vTile - 31.0));
         material *= mix(vec3(1.0), vec3(1.12, 1.08, 1.02), clayFace);
@@ -1575,6 +1607,18 @@ export function createBlockAtlas() {
         vec3 halfDir = normalize(L + viewDir);
         float glitter = pow(max(0.0, dot(N, halfDir)), 36.0) * max(0.18, ndl);
         rgb += sunColor * glitter * waterSurface * sunIntensity * 1.05;
+        float rough = mix(0.82, 0.28, clamp(metalHint + waterSurface * 0.65, 0.0, 1.0));
+        float spec = pow(max(0.0, dot(N, halfDir)), mix(10.0, 48.0, 1.0 - rough));
+        rgb += sunColor * spec * pbrAmount * (0.06 + metalHint * 0.42 + waterSurface * 0.12);
+        float fres = pow(1.0 - max(0.0, dot(N, viewDir)), 3.2);
+        vec3 skyRef = mix(vec3(0.16, 0.32, 0.48), sunColor, max(0.0, L.y) * 0.55);
+        rgb = mix(rgb, skyRef, waterSurface * fres * reflectAmount * 0.48);
+        float dist = length(cameraPosition - vWorldPos);
+        float hFog = exp(-fogDensity * dist * 0.011);
+        float heightFactor = smoothstep(10.0, 30.0, vWorldPos.y);
+        rgb = mix(heightFogColor, rgb, mix(hFog, 1.0, heightFactor * 0.55 + 0.25));
+        float sunAlign = pow(max(0.0, dot(viewDir, L)), 12.0);
+        rgb += sunColor * sunAlign * shaftStrength * (1.0 - buried) * 0.16;
         gl_FragColor = vec4(rgb, 1.0);
       }
     `,

@@ -3,7 +3,7 @@
  * Additive — no world/anvil block required for pure tests.
  */
 import { maxDurability } from './durability.js?v=221';
-import { propsOf } from './items.js?v=255';
+import { propsOf } from './items.js?v=257';
 
 /**
  * @typedef {{ id: number, count: number, dur?: number }} ToolStack
