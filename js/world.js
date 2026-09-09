@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=299';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, caneGardenBayVillagePadAt, caneGardenBayWalkableAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=336';
-import { biomeAt, BIOME } from './biomes.js?v=273';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, caneGardenBayVillagePadAt, caneGardenBayWalkableAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=337';
+import { biomeAt, BIOME } from './biomes.js?v=274';
 import { tileForBlock } from './atlas-core.js?v=295';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=248';
@@ -20,7 +20,7 @@ import { raycastVoxel } from './interaction-contract.js?v=5';
 import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=7';
 import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=3';
 import { createDisposalContext, disposeGeometry, disposeTree } from './resource-disposal.js?v=3';
-import { applyTropicalEcology } from './tropical-ecology.js?v=24';
+import { applyTropicalEcology } from './tropical-ecology.js?v=25';
 import { shouldCarveCave, diamondVeinAt, starterCaveBlock } from './cave-carve.js?v=1';
 
 export const CHUNK_SIZE = 16;
@@ -658,7 +658,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=366';
+    const workerUrl = './js/chunk-worker.js?v=367';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {

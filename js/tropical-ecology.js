@@ -4,8 +4,8 @@
  * same plant and edible-root distribution without duplicating worker logic.
  */
 import { BLOCK } from './blocks.js?v=297';
-import { biomeAt, BIOME } from './biomes.js?v=273';
-import { hash2, bviBeachLandingAt, caneGardenBayWalkableAt, caneGardenBayWaterAt, bviCoveAt, bviRouteCorridorAt, bviSaltPondAt, starterCoveChannelAt } from './gen.js?v=336';
+import { biomeAt, BIOME } from './biomes.js?v=274';
+import { hash2, bviBeachLandingAt, caneGardenBayWalkableAt, caneGardenBayWaterAt, bviCoveAt, bviRouteCorridorAt, bviSaltPondAt, starterCoveChannelAt, fajardoLagoonAt } from './gen.js?v=337';
 import { palmTrunkAt } from './palm-lean.js?v=1';
 
 export const TROPICAL_ECOLOGY = Object.freeze({
@@ -127,7 +127,7 @@ function neighborFillId(data, lx, lz, y, fallback) {
 }
 
 function reservedOpenWater(x, z) {
-  if (caneGardenBayWaterAt(x, z) || starterCoveChannelAt(x, z) || bviSaltPondAt(x, z)) return true;
+  if (caneGardenBayWaterAt(x, z) || starterCoveChannelAt(x, z) || bviSaltPondAt(x, z) || fajardoLagoonAt(x, z)) return true;
   if (bviCoveAt(x, z).influence > 0.15) return true;
   if (bviRouteCorridorAt(x, z).influence > 0.2) return true;
   return false;

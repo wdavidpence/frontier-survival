@@ -49,7 +49,12 @@ const BVI_MAJOR_LANDFORMS = Object.freeze([
   { name: 'puerto-rico', cx: -130, cz: 52, rx: 120, rz: 84, peak: 24 },
   { name: 'fajardo-cabezas', cx: -30, cz: -6, rx: 32, rz: 28, peak: 14 },
   { name: 'fajardo-municipio', cx: -70, cz: 52, rx: 68, rz: 78, peak: 18 },
+  { name: 'fajardo-interior', cx: -240, cz: 380, rx: 200, rz: 260, peak: 20 },
+  { name: 'fajardo-west', cx: -640, cz: 400, rx: 260, rz: 320, peak: 22 },
+  { name: 'fajardo-south', cx: -260, cz: 860, rx: 230, rz: 340, peak: 18 },
+  { name: 'fajardo-ridge', cx: -120, cz: 160, rx: 90, rz: 100, peak: 19 },
   { name: 'el-yunque', cx: -88, cz: 18, rx: 34, rz: 26, peak: 28 },
+  { name: 'el-yunque-foothills', cx: -820, cz: 280, rx: 90, rz: 80, peak: 30 },
   { name: 'culebra', cx: 128, cz: 8, rx: 46, rz: 26, peak: 16 },
   { name: 'vieques', cx: 86, cz: 78, rx: 64, rz: 24, peak: 13 },
 ]);
@@ -77,6 +82,12 @@ const BVI_ROUTE_CORRIDORS = Object.freeze([
   { name: 'white-bay-channel', x1: 18, z1: 8, x2: -42, z2: 8, width: 3 },
   { name: 'north-sound-channel', x1: 32, z1: 10, x2: 52, z2: 10, width: 3 },
   { name: 'north-sound-approach', x1: 52, z1: 10, x2: 52, z2: -5, width: 3 },
+  { name: 'rio-fajardo-head', x1: -780, z1: 500, x2: -600, z2: 480, width: 2 },
+  { name: 'rio-fajardo-upper', x1: -600, z1: 480, x2: -420, z2: 450, width: 2 },
+  { name: 'rio-fajardo-mid', x1: -420, z1: 450, x2: -280, z2: 420, width: 2 },
+  { name: 'rio-fajardo-town', x1: -280, z1: 420, x2: -140, z2: 400, width: 2 },
+  { name: 'rio-fajardo-mouth', x1: -140, z1: 400, x2: -8, z2: 390, width: 2 },
+  { name: 'rio-demajagua', x1: -500, z1: 700, x2: -280, z2: 420, width: 2 },
 ]);
 function ellipseInfluence(x, z, landform) {
   const distance = Math.hypot((x - landform.cx) / landform.rx, (z - landform.cz) / landform.rz);
@@ -147,6 +158,11 @@ function caneGardenBayShelfAt(x, z) {
 }
 function caneGardenBayWalkableAt(x, z) {
   return caneGardenBayBeachAt(x, z) || caneGardenBayVillagePadAt(x, z) || caneGardenBayShelfAt(x, z);
+}
+function fajardoLagoonAt(x, z) {
+  const nx = (x + 96) / 12;
+  const nz = (z - 16) / 7;
+  return nx * nx + nz * nz < 1;
 }
 const BVI_CHANNEL_BUOYS = Object.freeze([
   { x: 12, z: 6, id: 'green' },
@@ -270,7 +286,7 @@ function bviReefShelfAt(x, z) {
 }
 function bviDeepWaterAt(x, z) {
   if (bviLandformAt(x, z).influence > 0) return 0;
-  if (x < -280 || x > 220 || z < -90 || z > 140) return 0;
+  if (x < -980 || x > 220 || z < -90 || z > 1280) return 0;
   const route = bviRouteCorridorAt(x, z);
   const broad = fbm(x * 0.008 + 17, z * 0.008 - 11, 3);
   const trench = fbm(x * 0.021 - 23, z * 0.021 + 31, 3);
@@ -321,7 +337,7 @@ function heightAt(x, z, seed = 0) {
   const beachLanding = bviBeachLandingAt(x, z);
   const route = bviRouteCorridorAt(x, z);
   const deepWater = bviDeepWaterAt(x, z);
-  const bviRegion = x >= -280 && x <= 220 && z >= -90 && z <= 140;
+  const bviRegion = x >= -980 && x <= 220 && z >= -90 && z <= 1280;
   const authoredWetland = x >= 46 && x <= 68 && z >= 52 && z <= 72;
   if (bvi.influence > 0) {
     const relief = fbm(x * 0.04 * WORLD_SCALE + seed * 2.1, z * 0.04 * WORLD_SCALE - seed * 1.7, 3);
@@ -339,6 +355,7 @@ function heightAt(x, z, seed = 0) {
   if (starterCoveAt(x, z)) y = 16 + 1;
   if (starterCoveChannelAt(x, z)) y = Math.min(y, 16 - 1);
   if (caneGardenBayWaterAt(x, z)) y = 16 - 1;
+  else if (fajardoLagoonAt(x, z)) y = 16 - 1;
   else if (caneGardenBayWalkableAt(x, z)) y = 16;
   const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
   if (starterEdgeHeight != null) y = Math.min(y, starterEdgeHeight);
@@ -356,6 +373,7 @@ function heightAt(x, z, seed = 0) {
     && cove.influence <= 0
     && route.influence <= 0
     && !caneGardenBayWaterAt(x, z)
+    && !fajardoLagoonAt(x, z)
     && !starterCoveChannelAt(x, z)
     && !bviSaltPondAt(x, z)
   ) {

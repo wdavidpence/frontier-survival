@@ -29,7 +29,8 @@ import { palmLeafDrop } from '../js/palm-drops.js';
 import { createFishingState, startCast, tickFishing, rollFishingCatch, FISHING_CAST_TRAVEL_SECONDS } from '../js/fishing-cast.js';
 import { createBoat, canPlaceBoat, mountBoat, dismountBoat, hasRider, stepBoat, degradeBoat, boatRepairPlan, repairBoat, pushBoat, buoyancyY, riderPosition, boatWaterFootprintClear } from '../js/boat-entity.js';
 import { schoolFishPose, schoolVisibility } from '../js/fish-school.js';
-import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviLocationAt, BVI_TENTH_SCALE, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt, bviDeepWaterAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, villageSitesForSeed, villageColumnAt, villageBlockAt, TORTOLA_VILLAGE_SITES, caneGardenBayWalkableAt } from '../js/gen.js';
+import { heightAt, fbm, hash2, forestFloorDetail, exposedOreAt, mountainFaceAt, EXPOSED_ORE, bviLandformAt, bviLocationAt, BVI_TENTH_SCALE, FAJARDO_MUNICIPIO_SCALE, bviCoveAt, bviBeachLandingAt, bviRouteCorridorAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, bviReefShelfAt, bviDeepWaterAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, villageSitesForSeed, villageColumnAt, villageBlockAt, TORTOLA_VILLAGE_SITES, caneGardenBayWalkableAt, fajardoLagoonAt } from '../js/gen.js';
+import { shouldCarveCave } from '../js/cave-carve.js';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown, livingPartnerCount, coopPixelRatioCap, clamp01, lerp, invLerp } from '../js/coop-proximity.js';
 import { coolTint, oceanTint, applyCoolTint } from '../js/fauna-parts/accent-color.js';
 import { seaTurtleLayout } from '../js/fauna-parts/turtle-layout.js';
@@ -283,7 +284,7 @@ import {
   firstCraftableRecipe,
   nextProgressionRecipe,
 } from '../js/crafting.js';
-import { FaunaSystem, findStarterEncounterSpawn, findBeachShowcaseSpawn, meatDropCount, SPECIES, canFeed, tryFeed, hostileSpawnLimit, hasWaterSurface } from '../js/animals.js?v=284';
+import { FaunaSystem, findStarterEncounterSpawn, findBeachShowcaseSpawn, meatDropCount, SPECIES, canFeed, tryFeed, hostileSpawnLimit, hasWaterSurface } from '../js/animals.js?v=285';
 import { animalPartLayout, animalLimbPose, accentColor } from '../js/animal-visuals.js';
 import { tickLogic, isPowered, COMPONENT } from '../js/logic.js';
 import { tileForBlock, tileUVs, atlasTileCount, TILE, crackTileForProgress } from '../js/atlas-core.js';
@@ -361,7 +362,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /\[\[-10, -28\], \[-10, -29\]/);
   assert.doesNotMatch(source, /Math\.PI \/ 4/, 'Cane Garden Bay must look along the beach, not a diagonal into buildings');
   assert.match(source, /chosen\.landmark === 'Las Croabas · Fajardo'/);
-  assert.match(gameSource, /world.js\?v=559/);
+  assert.match(gameSource, /world.js\?v=560/);
   assert.match(gameSource, /this\.player\.pitch = 0;/);
 });
 
@@ -417,7 +418,7 @@ test('Puerto Rico landmass fills inland potholes while keeping Las Croabas water
       const form = bviLandformAt(x, z);
       if (form.majorName !== 'puerto-rico' || form.influence <= 0.12) continue;
       land++;
-      if (heightAt(x, z, seed) < 16 && bviCoveAt(x, z).influence <= 0 && bviRouteCorridorAt(x, z).influence <= 0) holes++;
+      if (heightAt(x, z, seed) < 16 && bviCoveAt(x, z).influence <= 0 && bviRouteCorridorAt(x, z).influence <= 0 && !fajardoLagoonAt(x, z)) holes++;
     }
   }
   assert.ok(land > 200, `expected a large Puerto Rico interior, got ${land} cells`);
@@ -700,6 +701,43 @@ test('Puerto Rico macro chain favors the main island, Spanish Virgins, and named
   assert.match(worker, /authoredWetland/);
 });
 
+test('Fajardo municipio is 10 m/cell with rivers, lagoon, and inland caves', () => {
+  const seed = 1884808540;
+  assert.equal(FAJARDO_MUNICIPIO_SCALE.metersPerCell, 10);
+  assert.equal(BVI_TENTH_SCALE.metersPerCell, 10);
+  assert.match(BVI_TENTH_SCALE.horizontal, /Fajardo municipio land/);
+  assert.ok(heightAt(-10, -40, seed) < 16, 'Las Croabas bay stays open');
+  assert.ok(heightAt(52, 8, seed) < 16, 'Vieques Sound stays open');
+  assert.equal(bviLandformAt(40, -50).cayName, 'icacos');
+  assert.equal(bviLandformAt(-240, 380).majorName, 'fajardo-interior');
+  assert.ok(heightAt(-240, 380, seed) >= 18, 'Fajardo interior is walkable highland');
+  assert.ok(heightAt(-640, 400, seed) >= 18, 'western Fajardo land is walkable');
+  assert.ok(heightAt(-260, 860, seed) >= 17, 'southern Fajardo land is walkable');
+  assert.ok(heightAt(-280, 420, seed) < 16, 'Río Fajardo is a water corridor');
+  assert.equal(bviRouteCorridorAt(-280, 420).name, 'rio-fajardo-mid');
+  assert.ok(bviRouteCorridorAt(-500, 700).name.startsWith('rio-'), 'Demajagua fork is a river');
+  assert.ok(fajardoLagoonAt(-96, 16), 'Laguna Grande occupies inland Cabezas');
+  assert.ok(heightAt(-96, 16, seed) < 16, 'Laguna Grande is open water');
+  assert.equal(bviLocationAt(-270, 400).name, 'Fajardo Pueblo');
+  const interiorH = heightAt(-300, 360, seed);
+  assert.ok(interiorH > 18, `inland hill ${interiorH} must be thick enough to cave`);
+  let caveCells = 0;
+  for (let z = 300; z <= 420 && caveCells === 0; z += 4) {
+    for (let x = -360; x <= -200 && caveCells === 0; x += 4) {
+      const h = heightAt(x, z, seed);
+      if (h <= 18) continue;
+      for (let y = 3; y <= Math.min(8, h - 4); y++) {
+        if (shouldCarveCave(x, y, z, h, seed, 16)) caveCells++;
+      }
+    }
+  }
+  assert.ok(caveCells > 0, 'Fajardo interior hills contain underground cave cells');
+  const worker = fsText('js/chunk-worker.js');
+  assert.match(worker, /fajardo-interior/);
+  assert.match(worker, /rio-fajardo-mouth/);
+  assert.match(worker, /fajardoLagoonAt/);
+});
+
 test('Puerto Rico regional chain adds Spanish Virgins and place cues', () => {
   const seed = 1884808540;
   assert.equal(BVI_TENTH_SCALE.metersPerCell, 10);
@@ -725,7 +763,7 @@ test('Puerto Rico regional chain adds Spanish Virgins and place cues', () => {
   const worker = fsText('js/chunk-worker.js');
   const game = fsText('js/game.js');
   assert.match(worker, /BVI_TENTH_ISLANDS/);
-  assert.match(worker, /bviRegion = x >= -280 && x <= 220/);
+  assert.match(worker, /bviRegion = x >= -980 && x <= 220/);
   assert.match(game, /bviLocationAt/);
 });
 
@@ -4975,9 +5013,9 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const main = fsText('js/main.js');
   const visuals = fsText('js/animal-visuals.js');
   const animals = fsText('js/animals.js');
-  assert.match(game, /animals.js\?v=284/);
+  assert.match(game, /animals.js\?v=285/);
   assert.match(game, /animal-visuals.js\?v=260/);
-  assert.match(main, /game\.js\?v=967/);
+  assert.match(main, /game\.js\?v=968/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5762,7 +5800,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker.js\?v=366/);
+  assert.match(world, /chunk-worker.js\?v=367/);
   assert.match(world, /starterLaunchCorridor/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
@@ -6021,10 +6059,10 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.28.7'), 'HTML must expose v1.28.7');
+  assert.ok(html.includes('v1.28.8'), 'HTML must expose v1.28.8');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
-  assert.ok(html.includes('main.js?v=940'), 'HTML must expose the current entry cache bust');
+  assert.ok(html.includes('main.js?v=941'), 'HTML must expose the current entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6339,7 +6377,7 @@ test('tropical ecology sprint exposes six additions, coconuts, and root foods', 
   assert.match(world, /this\.chunks\.set\(this\.key\(cx, cz\), applyTropicalEcology/);
   assert.match(world, /BROMELIAD/);
   assert.match(world, /FOREST_UNDERSTORY_CAP = 2/);
-  assert.match(world, /tropical-ecology.js\?v=24/);
+  assert.match(world, /tropical-ecology.js\?v=25/);
   assert.match(ecology, /STARTER_COVE_SHOWCASE/);
   assert.match(ecology, /const clusterRoll = hash2/);
   assert.match(ecology, /BLOCK\.BROMELIAD\], \[2, 1, BLOCK\.HELICONIA/);
@@ -6381,7 +6419,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=940/);
+  assert.match(html, /main\.js\?v=941/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6422,7 +6460,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   const main = fsText('js/main.js');
   const vision = fsText('js/frontier-vision-pack.js');
   const html = fsText('index.html');
-  assert.match(main, /game\.js\?v=967/);
+  assert.match(main, /game\.js\?v=968/);
   assert.match(game, /frontier-vision-pack\.js\?v=34/);
   assert.match(game, /if \(this\._castawayGroup && !this\._boat\)/);
   assert.match(game, /if \(this\._castawayGroup\) this\._castawayGroup\.visible = false/);
@@ -6477,7 +6515,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   assert.match(vision, /MEMORY_KEY/);
   assert.match(vision, /bearingTo/);
   assert.match(vision, /setWidth\(root, '\[data-gcv-meter=\"tide\"\]'/);
-  assert.match(html, /main\.js\?v=940/);
+  assert.match(html, /main\.js\?v=941/);
 });
 
 test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvous', () => {

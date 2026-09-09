@@ -59,14 +59,19 @@ export const EXPOSED_ORE = Object.freeze({ COAL: 13, IRON: 18, COPPER: 56, DIAMO
 /**
  * Puerto Rico / Spanish Virgin authored approximation.
  * Origin is Las Croabas, Fajardo (OSM 18.3650N, 65.6260W). Horizontal cells
- * are ~10 m on the Fajardo beach; Culebra, Vieques, and the main island body
- * are compressed into the playable envelope rather than survey-true.
+ * are ~10 m on the Fajardo beach and Fajardo municipio land west/south of
+ * Cabezas. Culebra, Vieques, and the rest of Puerto Rico stay compressed.
  */
 const BVI_MAJOR_LANDFORMS = Object.freeze([
   { name: 'puerto-rico', cx: -130, cz: 52, rx: 120, rz: 84, peak: 24 },
   { name: 'fajardo-cabezas', cx: -30, cz: -6, rx: 32, rz: 28, peak: 14 },
   { name: 'fajardo-municipio', cx: -70, cz: 52, rx: 68, rz: 78, peak: 18 },
+  { name: 'fajardo-interior', cx: -240, cz: 380, rx: 200, rz: 260, peak: 20 },
+  { name: 'fajardo-west', cx: -640, cz: 400, rx: 260, rz: 320, peak: 22 },
+  { name: 'fajardo-south', cx: -260, cz: 860, rx: 230, rz: 340, peak: 18 },
+  { name: 'fajardo-ridge', cx: -120, cz: 160, rx: 90, rz: 100, peak: 19 },
   { name: 'el-yunque', cx: -88, cz: 18, rx: 34, rz: 26, peak: 28 },
+  { name: 'el-yunque-foothills', cx: -820, cz: 280, rx: 90, rz: 80, peak: 30 },
   { name: 'culebra', cx: 128, cz: 8, rx: 46, rz: 26, peak: 16 },
   { name: 'vieques', cx: 86, cz: 78, rx: 64, rz: 24, peak: 13 },
 ]);
@@ -77,15 +82,17 @@ const BVI_SPARSE_CAYS = Object.freeze([
 
 export const BVI_TENTH_SCALE = Object.freeze({
   metersPerCell: 10,
-  horizontal: '1:10 Las Croabas beach; Fajardo municipio hinterland compressed',
+  horizontal: '1:10 Las Croabas beach and Fajardo municipio land',
   vertical: 'compressed to the 48-block survival world',
 });
 export const FAJARDO_MUNICIPIO_SCALE = Object.freeze({
-  metersPerCell: 70,
+  metersPerCell: 10,
   landKmEastWest: 8.7,
   landKmNorthSouth: 13.3,
+  landCellsEastWest: 870,
+  landCellsNorthSouth: 1330,
   reference: 'Census Fajardo Municipio land ~29.9 sq mi; OSM bbox 18.268–18.388N, 65.754–65.614W',
-  note: 'Las Croabas beach stays 10 m/cell. Municipal land south/west of Cabezas is ~70 m/cell so the whole municipio fits the streamed envelope.',
+  note: 'Municipal land west/south of Cabezas is 10 m/cell. East water stays open so Icacos and Palomino remain voyage cays. Culebra/Vieques/rest of Puerto Rico stay compressed. Vertical is still the 48-block world.',
 });
 const BVI_TENTH_ISLANDS = Object.freeze([
   { name: 'luquillo', cx: -70, cz: -6, rx: 28, rz: 16, peak: 12 },
@@ -97,10 +104,12 @@ const BVI_TENTH_ISLANDS = Object.freeze([
 const BVI_TENTH_LOCATIONS = Object.freeze([
   { name: 'Las Croabas · Fajardo', x: -10, z: -28, radius: 36 },
   { name: 'Seven Seas · Fajardo', x: -42, z: 8, radius: 12 },
-  { name: 'Fajardo Pueblo', x: -48, z: 36, radius: 16 },
-  { name: 'Sardinera · Fajardo', x: -90, z: 18, radius: 12 },
-  { name: 'Demajagua · Fajardo', x: -40, z: 88, radius: 14 },
-  { name: 'Río Arriba · Fajardo', x: -100, z: 70, radius: 14 },
+  { name: 'Fajardo Pueblo', x: -270, z: 400, radius: 24 },
+  { name: 'Sardinera · Fajardo', x: -400, z: 200, radius: 18 },
+  { name: 'Demajagua · Fajardo', x: -200, z: 700, radius: 18 },
+  { name: 'Río Arriba · Fajardo', x: -500, z: 500, radius: 18 },
+  { name: 'Río Fajardo', x: -140, z: 400, radius: 16 },
+  { name: 'Laguna Grande · Fajardo', x: -96, z: 16, radius: 12 },
   { name: 'Fajardo', x: -36, z: 8, radius: 12 },
   { name: 'Faro Cabezas de San Juan', x: -40, z: -32, radius: 10 },
   { name: 'Cayo Icacos', x: 40, z: -50, radius: 12 },
@@ -125,6 +134,12 @@ const BVI_ROUTE_CORRIDORS = Object.freeze([
   { name: 'white-bay-channel', x1: 18, z1: 8, x2: -42, z2: 8, width: 3 },
   { name: 'north-sound-channel', x1: 32, z1: 10, x2: 52, z2: 10, width: 3 },
   { name: 'north-sound-approach', x1: 52, z1: 10, x2: 52, z2: -5, width: 3 },
+  { name: 'rio-fajardo-head', x1: -780, z1: 500, x2: -600, z2: 480, width: 2 },
+  { name: 'rio-fajardo-upper', x1: -600, z1: 480, x2: -420, z2: 450, width: 2 },
+  { name: 'rio-fajardo-mid', x1: -420, z1: 450, x2: -280, z2: 420, width: 2 },
+  { name: 'rio-fajardo-town', x1: -280, z1: 420, x2: -140, z2: 400, width: 2 },
+  { name: 'rio-fajardo-mouth', x1: -140, z1: 400, x2: -8, z2: 390, width: 2 },
+  { name: 'rio-demajagua', x1: -500, z1: 700, x2: -280, z2: 420, width: 2 },
 ]);
 
 function ellipseInfluence(x, z, landform) {
@@ -243,6 +258,13 @@ export function caneGardenBayShelfAt(x, z) {
 
 export function caneGardenBayWalkableAt(x, z) {
   return caneGardenBayBeachAt(x, z) || caneGardenBayVillagePadAt(x, z) || caneGardenBayShelfAt(x, z);
+}
+
+/** Inland Fajardo lagoon west of Cabezas. Named water, not a 1-block pothole. */
+export function fajardoLagoonAt(x, z) {
+  const nx = (x + 96) / 12;
+  const nz = (z - 16) / 7;
+  return nx * nx + nz * nz < 1;
 }
 
 const BVI_CHANNEL_BUOYS = Object.freeze([
@@ -380,7 +402,7 @@ export function bviReefShelfAt(x, z) {
 
 export function bviDeepWaterAt(x, z) {
   if (bviLandformAt(x, z).influence > 0) return 0;
-  if (x < -280 || x > 220 || z < -90 || z > 140) return 0;
+  if (x < -980 || x > 220 || z < -90 || z > 1280) return 0;
   const route = bviRouteCorridorAt(x, z);
   const broad = fbm(x * 0.008 + 17, z * 0.008 - 11, 3);
   const trench = fbm(x * 0.021 - 23, z * 0.021 + 31, 3);
@@ -460,7 +482,7 @@ export function heightAt(x, z, seed = 0) {
   const beachLanding = bviBeachLandingAt(x, z);
   const route = bviRouteCorridorAt(x, z);
   const deepWater = bviDeepWaterAt(x, z);
-  const bviRegion = x >= -280 && x <= 220 && z >= -90 && z <= 140;
+  const bviRegion = x >= -980 && x <= 220 && z >= -90 && z <= 1280;
   const authoredWetland = x >= 46 && x <= 68 && z >= 52 && z <= 72;
   if (bvi.influence > 0) {
     const relief = fbm(x * 0.04 * WORLD_SCALE + seed * 2.1, z * 0.04 * WORLD_SCALE - seed * 1.7, 3);
@@ -480,6 +502,7 @@ export function heightAt(x, z, seed = 0) {
   if (starterCoveAt(x, z)) y = GEN_SEA_LEVEL + 1;
   if (starterCoveChannelAt(x, z)) y = Math.min(y, GEN_SEA_LEVEL - 1);
   if (caneGardenBayWaterAt(x, z)) y = GEN_SEA_LEVEL - 1;
+  else if (fajardoLagoonAt(x, z)) y = GEN_SEA_LEVEL - 1;
   else if (caneGardenBayWalkableAt(x, z)) y = GEN_SEA_LEVEL;
   const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
   if (starterEdgeHeight != null) y = Math.min(y, starterEdgeHeight);
@@ -507,6 +530,7 @@ export function heightAt(x, z, seed = 0) {
     && cove.influence <= 0
     && route.influence <= 0
     && !caneGardenBayWaterAt(x, z)
+    && !fajardoLagoonAt(x, z)
     && !starterCoveChannelAt(x, z)
     && !bviSaltPondAt(x, z)
   ) {
