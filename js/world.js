@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BLOCK, BLOCK_PROPS, isSolid, isTransparent, getColor } from './blocks.js?v=299';
-import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, caneGardenBayVillagePadAt, caneGardenBayWalkableAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=333';
+import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, hash2, fbm, forestFloorDetail, tropicalCliffAt, exposedOreAt, bviReefShelfAt, bviBeachLandingAt, bviChannelBuoyAt, bviDockAt, bviWetSandAt, bviReefHeadAt, bviCayOutcropAt, bviSaltPondAt, bviSaltPondScrubAt, bviLandingSignAt, bviStarterRampAt, bviDriftwoodAt, starterCoveAt, starterCoveChannelAt, starterCoveEdgeHeightAt, starterCoveSightlinePocket, bviDeepWaterAt, caneGardenBayWaterAt, caneGardenBayBeachAt, caneGardenBayVillagePadAt, caneGardenBayWalkableAt, villageSitesForSeed, villageColumnAt, villageBlockAt } from './gen.js?v=335';
 import { biomeAt, BIOME } from './biomes.js?v=273';
 import { tileForBlock } from './atlas-core.js?v=295';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
@@ -658,7 +658,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=363';
+    const workerUrl = './js/chunk-worker.js?v=365';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -2433,20 +2433,20 @@ export class World {
         clearance: clear + 4,
         horizon,
         authored: !!authored,
-        landmark: cgbAuthored ? 'Cane Garden Bay · Tortola' : '',
+        landmark: cgbAuthored ? 'Las Croabas · Fajardo' : '',
         inland,
       });
     }
 
-    // The authored Cane Garden Bay start is the product contract for fresh
+    // The authored Las Croabas start is the product contract for fresh
     // worlds now. Keep the scored fallback for seeds where the authored cells
-    // are unavailable, but do not let a legacy Road Town tie steal this start.
-    const chosen = candidates.find((candidate) => candidate.landmark === 'Cane Garden Bay · Tortola')
+    // are unavailable, but do not let a legacy Fajardo inland tie steal this start.
+    const chosen = candidates.find((candidate) => candidate.landmark === 'Las Croabas · Fajardo')
       || chooseCastawayCandidate(candidates);
     if (!chosen) return null;
     const dirX = Number(chosen.waterDirX) || 0;
     const dirZ = Number(chosen.waterDirZ) || 1;
-    const yaw = chosen.landmark === 'Cane Garden Bay · Tortola'
+    const yaw = chosen.landmark === 'Las Croabas · Fajardo'
       ? Math.PI / 2
       : Math.atan2(-dirX, -dirZ);
     const beachOffset = Math.min(9.0, Math.max(chosen.authored ? 6.5 : 2.8, Number(chosen.waterDistance) + 0.6));
@@ -2478,9 +2478,9 @@ export class World {
     // the authored launch ramp, driftwood, and channel without a lucky random
     // spawn on a distant cay. The normal clearance checks below still apply.
     const launchCandidates = [
-      [-10, -28, 'Cane Garden Bay · Tortola', Math.PI / 2],
-      [26, 15, 'Road Town · Tortola', Math.PI],
-      [-10, -27, 'Cane Garden Bay · Tortola', Math.PI], [25, 15], [27, 15], [24, 15], [28, 15],
+      [-10, -28, 'Las Croabas · Fajardo', Math.PI / 2],
+      [26, 15, 'Fajardo', Math.PI],
+      [-10, -27, 'Las Croabas · Fajardo', Math.PI], [25, 15], [27, 15], [24, 15], [28, 15],
       [26, 14], [25, 14], [27, 14],
     ];
     // Tropical/coastal seeds can have sparse clearings; sample deeply enough
@@ -2495,7 +2495,7 @@ export class World {
         ? preferred[1]
         : Math.floor((hash2(this.seed, i + 9) - 0.5) * this.radiusChunks * CHUNK_SIZE * 1.6);
       const h = heightAt(x, z, this.seed);
-      const cgbPreferred = !!preferred && preferred[2] === 'Cane Garden Bay · Tortola';
+      const cgbPreferred = !!preferred && preferred[2] === 'Las Croabas · Fajardo';
       if (h < SEA_LEVEL + (preferred ? (cgbPreferred ? 0 : 1) : 2) || (preferred && h > SEA_LEVEL + 3) || h >= WORLD_HEIGHT - 6) continue;
       const spawnChunk = this.worldToChunk(x, z);
       this.ensureChunk(spawnChunk.cx, spawnChunk.cz);

@@ -126,7 +126,7 @@ function snapshot(game) {
   const expedition = firstExpeditionSummary(game._firstExpedition);
   const craftLabel = hasCampfireItem ? 'Place the campfire at the tide edge' : campfireBuilt ? 'Feed the campfire before sunset' : (game._builtEdits?.size || 0) < 3 ? 'Raise the first shelter' : game._boat ? 'Prepare the next voyage' : 'Shape a skiff from the shoreline';
   const rhythm = night ? 'Night field · wildlife quiets' : phase < .2 ? 'Dawn field · gather while it is cool' : phase > .42 ? 'Late light · secure the camp edge' : 'Day field · coast is readable';
-  const location = game._spawnLandmark || (game._destinationState?.phase === 'arrived' ? (destination?.name || 'Cane Garden Bay · Tortola') : 'Cane Garden Bay · Tortola');
+  const location = game._spawnLandmark || (game._destinationState?.phase === 'arrived' ? (destination?.name || 'Las Croabas · Fajardo') : 'Las Croabas · Fajardo');
   const bearing = bearingTo(pos, destination || game._spawnPos);
   // Campaign wiring: live locator bar, triage, predator telegraph, route layers (items 40/63/58/80).
   const locatorTargets = [];
@@ -187,7 +187,7 @@ export function createGoldenCoveVision({ scene, hudRoot } = {}) {
     <section class="gcv-ribbon" aria-live="polite">
       <button class="gcv-toggle" type="button">Field dossier · V</button>
       <div class="gcv-kicker">Field notes · Golden Cove</div>
-      <div class="gcv-location" data-gcv="location">Cane Garden Bay · Tortola</div>
+      <div class="gcv-location" data-gcv="location">Las Croabas · Fajardo</div>
       <div class="gcv-context"><span data-gcv="weather">Clear arrival</span><i class="gcv-sep"></i><span data-gcv="sea">Calm water</span><i class="gcv-sep"></i><span data-gcv="depth">Shoreline shallows</span></div>
       <div class="gcv-priority"><span>Next move</span><b data-gcv="priority">Raise the first shelter</b></div>
       <div class="gcv-expedition"><strong data-gcv="expedition">Landfall</strong><span data-gcv="expeditionIndex">01 / 08</span><i aria-hidden="true"></i></div>

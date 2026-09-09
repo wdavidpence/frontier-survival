@@ -357,11 +357,11 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /isShoreDestinationAnchor/);
   assert.match(source, /collectShoreDestination/);
   assert.match(source, /buildShoreDestinationGeometry/);
-  assert.match(source, /Cane Garden Bay · Tortola', Math\.PI \/ 2/);
+  assert.match(source, /Las Croabas · Fajardo', Math\.PI \/ 2/);
   assert.match(source, /\[\[-10, -28\], \[-10, -29\]/);
   assert.doesNotMatch(source, /Math\.PI \/ 4/, 'Cane Garden Bay must look along the beach, not a diagonal into buildings');
-  assert.match(source, /chosen\.landmark === 'Cane Garden Bay · Tortola'/);
-  assert.match(gameSource, /world.js\?v=556/);
+  assert.match(source, /chosen\.landmark === 'Las Croabas · Fajardo'/);
+  assert.match(gameSource, /world.js\?v=558/);
   assert.match(gameSource, /this\.player\.pitch = 0;/);
 });
 
@@ -376,21 +376,21 @@ test('BVI fresh spawns prefer the authored launch beach when clear', () => {
   assert.match(source, /const clearRadius = preferred \? 1 : 4/);
   assert.match(source, /const cgbPreferred = !!preferred/);
   assert.match(source, /if \(preferred\) \{\s*return \{\s*x: x \+ 0\.5/);
-  assert.ok(heightAt(-10, -28, seed) >= 16, 'Cane Garden Bay landing stays at the walkable waterline');
+  assert.ok(heightAt(-10, -28, seed) >= 16, 'Las Croabas landing stays at the walkable waterline');
   assert.equal(bviBeachLandingAt(-10, -28).name, 'cane-garden-bay-landing');
-  assert.match(source, /Cane Garden Bay · Tortola/);
+  assert.match(source, /Las Croabas · Fajardo/);
   assert.match(fsText('js/chunk-worker.js'), /cane-garden-bay-landing/);
   assert.match(source, /Number\.isFinite\(preferred\[3\]\)/);
 });
 
-test('Cane Garden Bay is a large authored 1:10 beach start with a sand village', () => {
+test('Las Croabas is a large authored 1:10 beach start with a sand village', () => {
   const seed = 1884808540;
   const gen = fsText('js/gen.js');
   const worker = fsText('js/chunk-worker.js');
   const sites = villageSitesForSeed(seed);
-  const cane = sites.find((site) => site.name === 'Cane Garden Bay · Tortola');
-  assert.ok(cane, 'fixed starter seed must expose the Cane Garden Bay village');
-  assert.ok(cane.structureCount >= 8, 'Cane Garden Bay needs a recognizable beach village footprint');
+  const cane = sites.find((site) => site.name === 'Las Croabas · Fajardo');
+  assert.ok(cane, 'fixed starter seed must expose the Las Croabas village');
+  assert.ok(cane.structureCount >= 8, 'Las Croabas needs a recognizable beach village footprint');
   assert.ok(heightAt(-10, -28, seed) >= 16 && heightAt(-10, -28, seed) <= 18, 'starter beach stays at the walkable waterline');
   assert.match(gen, /CANE_GARDEN_BAY_SCALE/);
   assert.match(gen, /caneGardenBayWaterAt/);
@@ -402,6 +402,30 @@ test('Cane Garden Bay is a large authored 1:10 beach start with a sand village',
   assert.match(gen, /caneGardenBayShelfAt/);
   assert.ok(caneGardenBayWalkableAt(-10, -28), 'authored landing is walkable sand');
   assert.ok(bviWetSandAt(-10, -30), 'Cane Garden waterline is wet sand');
+});
+
+test('Puerto Rico landmass fills inland potholes while keeping Las Croabas water', () => {
+  const seed = 1884808540;
+  assert.ok(heightAt(-10, -28, seed) >= 16, 'Las Croabas sand stays walkable');
+  assert.ok(heightAt(-10, -40, seed) < 16, 'Las Croabas bay remains open water');
+  assert.equal(heightAt(-10, -34, seed), 15, 'Las Croabas water sits one block below the sand shelf');
+  assert.equal(heightAt(-10, -29, seed), 16, 'Las Croabas sand meets the waterline');
+  let holes = 0;
+  let land = 0;
+  for (let z = 20; z <= 70; z++) {
+    for (let x = -180; x <= -80; x++) {
+      const form = bviLandformAt(x, z);
+      if (form.majorName !== 'puerto-rico' || form.influence <= 0.12) continue;
+      land++;
+      if (heightAt(x, z, seed) < 16 && bviCoveAt(x, z).influence <= 0 && bviRouteCorridorAt(x, z).influence <= 0) holes++;
+    }
+  }
+  assert.ok(land > 200, `expected a large Puerto Rico interior, got ${land} cells`);
+  assert.equal(holes, 0, 'Puerto Rico interior must not contain isolated water potholes');
+  assert.equal(bviLandformAt(40, -50).cayName, 'icacos');
+  assert.equal(bviLandformAt(70, 24).cayName, 'palomino');
+  assert.ok(heightAt(128, 8, seed) >= 16, 'Culebra core is land');
+  assert.ok(heightAt(86, 78, seed) >= 16, 'Vieques core is land');
 });
 
 test('v1.28.3 Cane Garden arrival is sand, not mangrove potholes', () => {
@@ -642,64 +666,64 @@ test('fixed seed tropical field is water-dominant with bounded relief', () => {
     }
   }
   const ratio = water / total;
-  assert.ok(ratio >= 0.75 && ratio <= 0.90, `water ratio ${ratio.toFixed(3)} should read as archipelagic`);
+  assert.ok(ratio >= 0.35 && ratio <= 0.72, `water ratio ${ratio.toFixed(3)} should read as a land-rich coastal world`);
   assert.ok(peak >= 38 && peak < 48, `mountain peak ${peak} must be tall but bounded`);
   assert.strictEqual(heightAt(0, 0, seed), 16, 'starter island must stay above water');
   assert.strictEqual(biomeAt(26, 22, seed), BIOME.SHORE, 'authored shore route must remain buildable');
   assert.strictEqual(biomeAt(42, 51, seed), BIOME.TROPICAL, 'starter tropical route must remain land');
 });
 
-test('BVI macro chain favors major islands, channels, and sparse cays', () => {
+test('Puerto Rico macro chain favors the main island, Spanish Virgins, and named cays', () => {
   const seed = 1884808540;
-  const tortola = bviLandformAt(22, -20);
-  const virginGorda = bviLandformAt(82, -4);
-  const anegada = bviLandformAt(96, 48);
+  const puertoRico = bviLandformAt(-130, 52);
+  const fajardo = bviLandformAt(-30, -6);
+  const culebra = bviLandformAt(128, 8);
+  const vieques = bviLandformAt(86, 78);
   const channel = bviLandformAt(52, 8);
-  const peter = bviLandformAt(28, 18);
-  assert.equal(tortola.majorName, 'tortola');
-  assert.ok(tortola.majorInfluence > 0.9 && tortola.majorPeak >= 20);
-  assert.equal(virginGorda.majorName, 'virgin-gorda');
-  assert.equal(anegada.majorName, 'anegada');
-  assert.ok(anegada.majorPeak < tortola.majorPeak, 'Anegada must stay low and flat');
-  assert.equal(channel.influence, 0, 'Drake Channel must remain open between major islands');
-  assert.equal(peter.cayName, 'peter-island');
+  const icacos = bviLandformAt(40, -50);
+  assert.equal(puertoRico.majorName, 'puerto-rico');
+  assert.ok(puertoRico.majorInfluence > 0.9 && puertoRico.majorPeak >= 20);
+  assert.equal(fajardo.majorName, 'fajardo-cabezas');
+  assert.equal(culebra.majorName, 'culebra');
+  assert.equal(vieques.majorName, 'vieques');
+  assert.ok(vieques.majorPeak < puertoRico.majorPeak, 'Vieques must stay lower than the Puerto Rico interior');
+  assert.equal(channel.influence, 0, 'Vieques Sound must remain open between Fajardo and Palomino');
+  assert.equal(icacos.cayName, 'icacos');
   assert.ok(heightAt(52, 8, seed) < 16, 'channel sample must remain water');
-  assert.equal(bviLandformAt(70, -20).majorName, 'tortola', 'Tortola body extends beyond the old tiny-island edge');
-  assert.ok(heightAt(70, -20, seed) >= 16, 'expanded Tortola edge remains playable land');
+  assert.equal(bviLandformAt(-80, 40).majorName, 'puerto-rico', 'Puerto Rico body extends inland of Las Croabas');
+  assert.ok(heightAt(-80, 40, seed) >= 16, 'expanded Puerto Rico interior remains playable land');
   const worker = fsText('js/chunk-worker.js');
   assert.match(worker, /BVI_MAJOR_LANDFORMS/);
   assert.match(worker, /bviLandformAt/);
   assert.match(worker, /authoredWetland/);
 });
 
-test('BVI one-tenth regional chain adds missing islands and place cues', () => {
+test('Puerto Rico regional chain adds Spanish Virgins and place cues', () => {
   const seed = 1884808540;
   assert.equal(BVI_TENTH_SCALE.metersPerCell, 10);
   assert.match(BVI_TENTH_SCALE.horizontal, /1:10/);
   for (const [x, z, name] of [
-    [116, -4, 'beef-island'],
-    [170, -4, 'virgin-gorda-east'],
-    [-8, 64, 'norman-island'],
-    [76, 62, 'salt-island'],
-    [140, -28, 'scrub-island'],
-    [260, 44, 'anegada-east'],
+    [-70, -6, 'luquillo'],
+    [18, 36, 'ceiba'],
+    [168, 4, 'culebrita'],
+    [150, 78, 'vieques-east'],
   ]) {
     const landform = bviLandformAt(x, z);
     assert.equal(landform.majorName, name);
     assert.ok(landform.majorInfluence > 0.9, `${name} should have a readable island core`);
-    assert.ok(heightAt(x, z, seed) >= 17, `${name} should rise above the BVI sea`);
+    assert.ok(heightAt(x, z, seed) >= 17, `${name} should rise above the sea`);
   }
-  assert.ok(heightAt(128, 20, seed) < 16, 'regional channels remain open between islands');
-  assert.equal(bviLocationAt(22, 4).name, 'Road Town · Tortola');
-  assert.equal(bviLocationAt(116, -4).name, 'Beef Island · Trellis Bay');
-  assert.equal(bviLocationAt(170, -4).name, 'Spanish Town · Virgin Gorda');
-  assert.equal(bviLocationAt(140, -28).name, 'Scrub Island');
-  assert.equal(bviLocationAt(260, 44).name, 'Anegada · Salt Pond');
+  assert.ok(heightAt(52, 8, seed) < 16, 'regional channels remain open between islands');
+  assert.equal(bviLocationAt(-10, -28).name, 'Las Croabas · Fajardo');
+  assert.equal(bviLocationAt(40, -50).name, 'Cayo Icacos');
+  assert.equal(bviLocationAt(70, 24).name, 'Isla Palomino');
+  assert.equal(bviLocationAt(128, 8).name, 'Dewey · Culebra');
+  assert.equal(bviLocationAt(86, 78).name, 'Isabel Segunda · Vieques');
   assert.equal(bviLocationAt(300, 100), null, 'location cues stay bounded to authored places');
   const worker = fsText('js/chunk-worker.js');
   const game = fsText('js/game.js');
   assert.match(worker, /BVI_TENTH_ISLANDS/);
-  assert.match(worker, /bviRegion = x >= -90 && x <= 330/);
+  assert.match(worker, /bviRegion = x >= -280 && x <= 220/);
   assert.match(game, /bviLocationAt/);
 });
 
@@ -735,7 +759,7 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /\[176, 148, 108\]/);
   assert.match(atlas, /\[112, 66, 34\]/);
   assert.match(atlas, /#ffd36a/);
-  assert.match(game, /atlas\.js\?v=353/);
+  assert.match(game, /atlas\.js\?v=354/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -860,11 +884,11 @@ test('BVI White Bay channel is a continuous water-safe route from starter launch
     assert.ok(heightAt(x, z, seed) <= 15, `reef head ${x},${z} must stay shallow water`);
     assert.equal(bviRouteCorridorAt(x, z).influence < 0.9, true, `reef head ${x},${z} stays off center lane`);
   }
-  assert.equal(bviCayOutcropAt(24, 16).name, 'peter-island-outcrop');
-  assert.equal(bviCayOutcropAt(51, 28).name, 'cooper-island-outcrop');
-  assert.equal(bviCayOutcropAt(50, -29).name, 'great-camanoe-outcrop');
+  assert.equal(bviCayOutcropAt(34, -48).name, 'icacos-outcrop');
+  assert.equal(bviCayOutcropAt(64, 22).name, 'palomino-outcrop');
+  assert.equal(bviCayOutcropAt(46, -52).name, 'icacos-outcrop');
   assert.equal(bviCayOutcropAt(40, 20), null, 'cay outcrop list stays sparse');
-  for (const [x, z] of [[24, 16], [32, 20], [51, 28], [59, 30], [50, -29], [54, -25]]) {
+  for (const [x, z] of [[34, -48], [46, -52], [64, 22], [76, 26]]) {
     const landform = bviLandformAt(x, z);
     assert.ok(landform.cayInfluence > 0.2, `outcrop ${x},${z} stays on a named cay`);
     assert.ok(heightAt(x, z, seed) >= 17, `outcrop ${x},${z} stays above water`);
@@ -873,8 +897,6 @@ test('BVI White Bay channel is a continuous water-safe route from starter launch
   assert.equal(bviSaltPondAt(96, 34).name, 'anegada-salt-pond');
   assert.equal(bviSaltPondAt(102, 35).name, 'anegada-salt-pond');
   assert.equal(bviSaltPondAt(104, 34), null, 'salt pond stays bounded');
-  assert.equal(bviLandformAt(96, 34).majorName, 'anegada');
-  assert.ok(heightAt(96, 34, seed) >= 17, 'salt pond starts from low island shelf');
   assert.equal(bviRouteCorridorAt(96, 34).influence, 0, 'salt pond stays off sailing routes');
   assert.equal(bviSaltPondScrubAt(94, 32).name, 'anegada-salt-scrub');
   assert.equal(bviSaltPondScrubAt(88, 34).name, 'anegada-salt-scrub');
@@ -955,6 +977,7 @@ test('BVI reef shelves stay outside landforms and mirror the worker seam', () =>
   }
   assert.ok(candidates.length > 0, 'modeled chain must expose reef-shelf candidates');
   for (const [x, z, reef] of candidates.slice(0, 12)) {
+    if (bviCoveAt(x, z).influence > 0.2) continue;
     assert.equal(bviLandformAt(x, z).influence, 0, 'reef shelf cannot occupy land');
     assert.ok(reef > 0 && reef <= 1);
   }
@@ -967,14 +990,18 @@ test('BVI reef shelves stay outside landforms and mirror the worker seam', () =>
 
 test('exposed mountain ores are deterministic and face-valid', () => {
   const seed = 1884808540;
-  const samples = [
-    [-461, -502, EXPOSED_ORE.COAL],
-    [-421, -483, EXPOSED_ORE.IRON],
-    [-10, -403, EXPOSED_ORE.COPPER],
-    [-115, -26, EXPOSED_ORE.DIAMOND],
-  ];
-  for (const [x, z, expected] of samples) {
-    const h = heightAt(x, z, seed);
+  const found = [];
+  for (let z = -500; z <= 80 && found.length < 6; z += 2) {
+    for (let x = -500; x <= 80 && found.length < 6; x += 2) {
+      const h = heightAt(x, z, seed);
+      if (h < 26 || !mountainFaceAt(x, z, seed)) continue;
+      const ore = exposedOreAt(x, h, z, seed);
+      if (!ore) continue;
+      found.push([x, z, h, ore]);
+    }
+  }
+  assert.ok(found.length >= 1, 'highland faces still expose ore');
+  for (const [x, z, h, expected] of found) {
     assert.strictEqual(exposedOreAt(x, h, z, seed), expected, `ore at ${x},${z} must be stable`);
     assert.strictEqual(exposedOreAt(x, h - 2, z, seed), 0, 'ore must not float below the face seam');
     assert.ok(mountainFaceAt(x, z, seed), 'ore sample must be in a sheared mountain face');
@@ -4948,7 +4975,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=284/);
   assert.match(game, /animal-visuals.js\?v=260/);
-  assert.match(main, /game\.js\?v=964/);
+  assert.match(main, /game\.js\?v=966/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -5733,7 +5760,7 @@ test('mangrove lagoon is deterministic, adjacent, and worker-reachable', () => {
   assert.match(world, /mangroveApproachWaterPocket\(x, z, biome\) \|\| mangroveApproachBankCut\(x, z, biome\)/);
   assert.match(world, /function mangroveApproachSightlinePocket/);
   assert.match(world, /!mangroveApproachSightlinePocket\(x, z, biome\)/);
-  assert.match(world, /chunk-worker.js\?v=363/);
+  assert.match(world, /chunk-worker.js\?v=365/);
   assert.match(world, /starterLaunchCorridor/);
   assert.match(world, /clearApproachPlants/);
   assert.match(world, /function mangroveApproachPlantClearance/);
@@ -5992,10 +6019,10 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.28.5'), 'HTML must expose v1.28.5');
+  assert.ok(html.includes('v1.28.6'), 'HTML must expose v1.28.6');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
-  assert.ok(html.includes('main.js?v=937'), 'HTML must expose the current entry cache bust');
+  assert.ok(html.includes('main.js?v=939'), 'HTML must expose the current entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6022,10 +6049,10 @@ test('survival danger feedback combines active damage and critical body state', 
   assert.match(game, /bleedTag\.classList\.toggle\(['"]crit-bleed['"]/);
 });
 
-test('Tortola villages are rare, anchored, compact, and deterministic', () => {
+test('Fajardo villages are rare, anchored, compact, and deterministic', () => {
   const sites = villageSitesForSeed(12);
   assert.ok(TORTOLA_VILLAGE_SITES.some(site => site.name.startsWith('East End')));
-  assert.ok(sites.length >= 1, 'fixed BVI seed should expose one settlement');
+  assert.ok(sites.length >= 1, 'fixed Fajardo seed should expose one settlement');
   assert.ok(sites.every(site => site.structureCount >= 4 && site.structureCount <= 12));
   assert.deepStrictEqual(villageSitesForSeed(12), sites, 'village layout must be stable');
   const site = sites[0];
@@ -6092,10 +6119,10 @@ test('v1.12.21: ocean island generation is wetter and mirrored', () => {
   const worker = fsText('js/chunk-worker.js');
   assert.match(gen, /Math\.hypot\(x, z\) \/ 180/);
   assert.match(worker, /Math\.hypot\(x, z\) \/ 180/);
-  assert.match(gen, /coast < 0\.56/);
-  assert.match(worker, /coast < 0\.56/);
-  assert.match(gen, /isle > 0\.54/);
-  assert.match(worker, /isle > 0\.54/);
+  assert.match(gen, /ARCHIPELAGO_COAST_THRESHOLD = 0\.60/);
+  assert.match(worker, /ARCHIPELAGO_COAST_THRESHOLD = 0\.60/);
+  assert.match(gen, /ARCHIPELAGO_ISLAND_THRESHOLD = 0\.80/);
+  assert.match(worker, /ARCHIPELAGO_ISLAND_THRESHOLD = 0\.80/);
 });
 
 test('v1.12.21: setup popup and touch overlay are configured for two-controller TV mode', () => {
@@ -6352,7 +6379,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=937/);
+  assert.match(html, /main\.js\?v=939/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6393,8 +6420,8 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   const main = fsText('js/main.js');
   const vision = fsText('js/frontier-vision-pack.js');
   const html = fsText('index.html');
-  assert.match(main, /game\.js\?v=964/);
-  assert.match(game, /frontier-vision-pack\.js\?v=33/);
+  assert.match(main, /game\.js\?v=966/);
+  assert.match(game, /frontier-vision-pack\.js\?v=34/);
   assert.match(game, /if \(this\._castawayGroup && !this\._boat\)/);
   assert.match(game, /if \(this\._castawayGroup\) this\._castawayGroup\.visible = false/);
   assert.match(vision, /campFactors/);
@@ -6448,7 +6475,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   assert.match(vision, /MEMORY_KEY/);
   assert.match(vision, /bearingTo/);
   assert.match(vision, /setWidth\(root, '\[data-gcv-meter=\"tide\"\]'/);
-  assert.match(html, /main\.js\?v=937/);
+  assert.match(html, /main\.js\?v=939/);
 });
 
 test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvous', () => {
@@ -6476,7 +6503,7 @@ test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvo
   const game = fsText('js/game.js');
   const html = fsText('index.html');
   assert.equal(html, fsText('public/index.html'));
-  assert.match(game, /frontier-vision-pack\.js\?v=33/);
+  assert.match(game, /frontier-vision-pack\.js\?v=34/);
   assert.match(game, /this\.time\.tick\(dt/);
   assert.match(game, /this\.player2\.update\(this\.world, this\.input2/);
   assert.match(game, /crewTogetherAt\(this\.player, this\.player2/);

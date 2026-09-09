@@ -43,29 +43,24 @@ function fbm(x, z, octaves = 4) {
 
 const WORLD_SCALE = 0.5;
 const ARCHIPELAGO_COAST_THRESHOLD = 0.60;
-const ARCHIPELAGO_ISLAND_THRESHOLD = 0.68;
-// Legacy coast < 0.56 / isle > 0.54 was tightened into the constants above.
+const ARCHIPELAGO_ISLAND_THRESHOLD = 0.80;
 const EXPOSED_ORE = Object.freeze({ COAL: 13, IRON: 18, COPPER: 56, DIAMOND: 57 });
 const BVI_MAJOR_LANDFORMS = Object.freeze([
-  { name: 'tortola', cx: 22, cz: -22, rx: 60, rz: 22, peak: 20 },
-  { name: 'virgin-gorda', cx: 82, cz: -4, rx: 28, rz: 16, peak: 16 },
-  { name: 'jost-van-dyke', cx: -42, cz: 20, rx: 22, rz: 12, peak: 13 },
-  { name: 'anegada', cx: 96, cz: 48, rx: 40, rz: 18, peak: 5 },
+  { name: 'puerto-rico', cx: -130, cz: 52, rx: 120, rz: 84, peak: 24 },
+  { name: 'fajardo-cabezas', cx: -30, cz: -6, rx: 32, rz: 28, peak: 14 },
+  { name: 'el-yunque', cx: -88, cz: 18, rx: 34, rz: 26, peak: 28 },
+  { name: 'culebra', cx: 128, cz: 8, rx: 46, rz: 26, peak: 16 },
+  { name: 'vieques', cx: 86, cz: 78, rx: 64, rz: 24, peak: 13 },
 ]);
 const BVI_SPARSE_CAYS = Object.freeze([
-  { name: 'peter-island', cx: 28, cz: 18, rx: 8, rz: 5, peak: 6 },
-  { name: 'cooper-island', cx: 55, cz: 30, rx: 7, rz: 5, peak: 5 },
-  { name: 'great-camanoe', cx: 52, cz: -27, rx: 7, rz: 4, peak: 5 },
+  { name: 'icacos', cx: 40, cz: -50, rx: 14, rz: 8, peak: 4 },
+  { name: 'palomino', cx: 70, cz: 24, rx: 12, rz: 8, peak: 8 },
 ]);
 const BVI_TENTH_ISLANDS = Object.freeze([
-  { name: 'beef-island', cx: 116, cz: -4, rx: 24, rz: 8, peak: 10 },
-  { name: 'virgin-gorda-east', cx: 170, cz: -4, rx: 42, rz: 12, peak: 20 },
-  { name: 'norman-island', cx: -8, cz: 64, rx: 27, rz: 10, peak: 14 },
-  { name: 'salt-island', cx: 76, cz: 62, rx: 13, rz: 7, peak: 8 },
-  { name: 'scrub-island', cx: 140, cz: -28, rx: 16, rz: 7, peak: 9 },
-  { name: 'anegada-east', cx: 260, cz: 44, rx: 60, rz: 22, peak: 5 },
-  { name: 'ginger-island', cx: 82, cz: 34, rx: 9, rz: 4, peak: 6 },
-  { name: 'marina-cay', cx: 101, cz: -20, rx: 6, rz: 3, peak: 4 },
+  { name: 'luquillo', cx: -70, cz: -6, rx: 28, rz: 16, peak: 12 },
+  { name: 'ceiba', cx: 18, cz: 36, rx: 26, rz: 14, peak: 11 },
+  { name: 'culebrita', cx: 168, cz: 4, rx: 18, rz: 9, peak: 8 },
+  { name: 'vieques-east', cx: 150, cz: 78, rx: 28, rz: 14, peak: 10 },
 ]);
 const BVI_SHELTERED_COVES = Object.freeze([
   { name: 'white-bay', cx: -42, cz: 8, rx: 14, rz: 6 },
@@ -205,12 +200,10 @@ function bviReefHeadAt(x, z) {
   return BVI_REEF_HEADS.some(([hx, hz]) => hx === x && hz === z) ? { name: 'named-cove-reef-head' } : null;
 }
 const BVI_CAY_OUTCROPS = Object.freeze([
-  { name: 'peter-island-outcrop', x: 24, z: 16 },
-  { name: 'peter-island-outcrop', x: 32, z: 20 },
-  { name: 'cooper-island-outcrop', x: 51, z: 28 },
-  { name: 'cooper-island-outcrop', x: 59, z: 30 },
-  { name: 'great-camanoe-outcrop', x: 50, z: -29 },
-  { name: 'great-camanoe-outcrop', x: 54, z: -25 },
+  { name: 'icacos-outcrop', x: 34, z: -48 },
+  { name: 'icacos-outcrop', x: 46, z: -52 },
+  { name: 'palomino-outcrop', x: 64, z: 22 },
+  { name: 'palomino-outcrop', x: 76, z: 26 },
 ]);
 function bviCayOutcropAt(x, z) {
   return BVI_CAY_OUTCROPS.find((outcrop) => outcrop.x === x && outcrop.z === z) || null;
@@ -262,10 +255,10 @@ function bviRouteCorridorAt(x, z) {
   return route;
 }
 function bviReefShelfAt(x, z) {
-  const current = bviLandformAt(x, z).influence;
-  if (current > 0) return 0;
   const cove = bviCoveAt(x, z);
   if (cove.influence > 0.2) return Math.min(1, cove.influence * 0.9);
+  const current = bviLandformAt(x, z).influence;
+  if (current > 0) return 0;
   const route = bviRouteCorridorAt(x, z);
   if (route.influence > 0.2 && route.influence < 0.9) return Math.min(0.7, route.influence * 0.75);
   let nearby = 0;
@@ -276,7 +269,7 @@ function bviReefShelfAt(x, z) {
 }
 function bviDeepWaterAt(x, z) {
   if (bviLandformAt(x, z).influence > 0) return 0;
-  if (x < -90 || x > 330 || z < -120 || z > 130) return 0;
+  if (x < -280 || x > 220 || z < -90 || z > 140) return 0;
   const route = bviRouteCorridorAt(x, z);
   const broad = fbm(x * 0.008 + 17, z * 0.008 - 11, 3);
   const trench = fbm(x * 0.021 - 23, z * 0.021 + 31, 3);
@@ -317,29 +310,25 @@ function heightAt(x, z, seed = 0) {
     const ridgeCut = fbm(x * 0.022 * WORLD_SCALE + seed * 4.7, z * 0.022 * WORLD_SCALE - seed * 2.3, 3);
     y = Math.max(y, 16 + 1 + rise * 29 + ridgeCut * 5);
   }
+  const bvi = bviLandformAt(x, z);
   const starterBlend = starterCoastBlend(x, z);
-  if (starterBlend > 0) {
+  if (starterBlend > 0 && bvi.majorInfluence <= 0) {
     const shelf = 4 + fbm(x * 0.018 * WORLD_SCALE + 41, z * 0.018 * WORLD_SCALE - 17, 3) * 10;
     y = y * (1 - starterBlend) + shelf * starterBlend;
   }
-  const bvi = bviLandformAt(x, z);
   const cove = bviCoveAt(x, z);
   const beachLanding = bviBeachLandingAt(x, z);
   const route = bviRouteCorridorAt(x, z);
   const deepWater = bviDeepWaterAt(x, z);
-  const bviRegion = x >= -90 && x <= 330 && z >= -120 && z <= 130;
+  const bviRegion = x >= -280 && x <= 220 && z >= -90 && z <= 140;
   const authoredWetland = x >= 46 && x <= 68 && z >= 52 && z <= 72;
   if (bvi.influence > 0) {
     const relief = fbm(x * 0.04 * WORLD_SCALE + seed * 2.1, z * 0.04 * WORLD_SCALE - seed * 1.7, 3);
     const macroInfluence = bvi.majorInfluence > 0 ? bvi.majorInfluence : bvi.cayInfluence;
     const macroPeak = bvi.majorInfluence > 0 ? bvi.majorPeak : bvi.cayPeak;
     y = Math.max(y, 16 + 1 + macroPeak * macroInfluence + relief * 3 * macroInfluence);
-  } else if (bviRegion && !authoredWetland && y <= 16 + 7) {
-    // Only depress columns already near sea level. Never punch isolated
-    // water potholes into otherwise walkable inland biome.
-    y = deepWater > 0
-      ? Math.min(y, 16 - 4 - Math.floor(deepWater * 6))
-      : Math.min(y, 16 - 2);
+  } else if (bviRegion && !authoredWetland && deepWater > 0 && y <= 16 + 7) {
+    y = Math.min(y, 16 - 4 - Math.floor(deepWater * 6));
   }
   if (cove.influence > 0) y = Math.max(14, Math.min(y, 14 + Math.floor(cove.influence)));
   if (route.influence > 0) y = Math.min(y, 16 - 1);
@@ -348,7 +337,7 @@ function heightAt(x, z, seed = 0) {
   if (authoredWetland) y = Math.max(y, 16 + 2);
   if (starterCoveAt(x, z)) y = 16 + 1;
   if (starterCoveChannelAt(x, z)) y = Math.min(y, 16 - 1);
-  if (caneGardenBayWaterAt(x, z)) y = Math.min(y, 16 - 1);
+  if (caneGardenBayWaterAt(x, z)) y = 16 - 1;
   else if (caneGardenBayWalkableAt(x, z)) y = 16;
   const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
   if (starterEdgeHeight != null) y = Math.min(y, starterEdgeHeight);
@@ -359,7 +348,19 @@ function heightAt(x, z, seed = 0) {
     const rise = Math.pow((isle - ARCHIPELAGO_ISLAND_THRESHOLD) / (1 - ARCHIPELAGO_ISLAND_THRESHOLD), 0.62);
     y = Math.max(y, 16 + 1 + rise * 32);
   }
-  return Math.max(1, Math.min(46, Math.floor(y)));
+  y = Math.max(1, Math.min(46, Math.floor(y)));
+  if (
+    y < 16
+    && bvi.influence > 0.08
+    && cove.influence <= 0
+    && route.influence <= 0
+    && !caneGardenBayWaterAt(x, z)
+    && !starterCoveChannelAt(x, z)
+    && !bviSaltPondAt(x, z)
+  ) {
+    y = 16;
+  }
+  return y;
 }
 function coastalGradeHeight(x, z, seed = 0) {
   const raw = heightAt(x, z, seed);
@@ -452,10 +453,10 @@ function tropicalCliffAt(x, z, seed = 0) {
 // Rare, compact Tortola population centers. Keep this pure and mirrored with
 // gen.js so worker and synchronous fallback produce identical islands.
 const TORTOLA_VILLAGE_SITES = [
-  { name: 'Road Town · Tortola', x: 22, z: 1, activation: 0.70 },
-  { name: 'Cane Garden Bay · Tortola', x: 0, z: -4, activation: 0.0, authored: true },
-  { name: 'East End · Tortola', x: 82, z: -10, activation: 0.74 },
-  { name: 'West End · Tortola', x: -55, z: -10, activation: 0.82 },
+  { name: 'Fajardo', x: 22, z: 1, activation: 0.70 },
+  { name: 'Las Croabas · Fajardo', x: 0, z: -4, activation: 0.0, authored: true },
+  { name: 'East End · Ceiba', x: 82, z: -10, activation: 0.74 },
+  { name: 'Luquillo', x: -55, z: -10, activation: 0.82 },
 ];
 const VILLAGE_SPOTS = [
   [-18, -3], [-12, -3], [-6, -3], [0, -3],

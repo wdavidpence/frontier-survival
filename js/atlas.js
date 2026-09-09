@@ -12,7 +12,7 @@ import {
   crackTileForProgress,
   atlasTileCount,
 } from './atlas-core.js?v=295';
-import { WATER_WAVE } from './water-material.js?v=3';
+import { WATER_WAVE } from './water-material.js?v=4';
 
 export {
   TILE,
@@ -1437,8 +1437,8 @@ export function createBlockAtlas() {
       atlas: { value: texture },
       sunIntensity: { value: 1.0 },
       ambientColor: { value: new THREE.Color(0.58, 0.58, 0.65) },
-      sunColor: { value: new THREE.Color(1.0, 0.96, 0.88) },
-      sunDir: { value: new THREE.Vector3(0.4, 1.0, 0.2).normalize() },
+      sunColor: { value: new THREE.Color(1.0, 0.93, 0.78) },
+      sunDir: { value: new THREE.Vector3(0.35, 0.92, 0.18).normalize() },
       lanternPos: { value: new THREE.Vector3(50, 17.96, 60) },
       lanternColor: { value: new THREE.Color(1.0, 0.48, 0.18) },
       lanternStrength: { value: 0.0 },
@@ -1476,7 +1476,7 @@ export function createBlockAtlas() {
         float waterTop = (1.0 - smoothstep(0.5, 1.5, abs(tile - 5.0))) * smoothstep(0.72, 0.95, normal.y);
         float wave = sin(waterTime * ${WATER_WAVE.speed} + position.x * ${WATER_WAVE.xFrequency} + position.z * ${WATER_WAVE.zFrequency});
         float ripple = sin(waterTime * 1.15 + position.x * 0.27 - position.z * 0.38);
-        pos.y += waterTop * (wave * ${WATER_WAVE.amplitude} + ripple * ${Number((WATER_WAVE.amplitude * 0.35).toFixed(4))});
+        pos.y += waterTop * (0.12 + wave * ${Number((WATER_WAVE.amplitude * 0.55).toFixed(4))} + ripple * ${Number((WATER_WAVE.amplitude * 0.18).toFixed(4))});
         vWorldPos = pos;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
       }
@@ -1570,9 +1570,9 @@ export function createBlockAtlas() {
         float topFace = smoothstep(0.78, 0.98, vNormal.y);
         float cgbMask = exp(-pow((vWorldPos.x + 10.0) / 28.0, 2.0));
         float inland = vWorldPos.z + 30.0;
-        float wetGrad = (sandFace * 0.55 + dampFace) * topFace * cgbMask
-          * (1.0 - smoothstep(0.2, 4.2, inland));
-        rgb = mix(rgb, rgb * vec3(0.66, 0.74, 0.78) + vec3(0.02, 0.045, 0.055), clamp(wetGrad * 0.58, 0.0, 0.58));
+        float wetGrad = (sandFace * 0.70 + dampFace) * topFace * cgbMask
+          * (1.0 - smoothstep(0.05, 3.4, inland));
+        rgb = mix(rgb, rgb * vec3(0.62, 0.72, 0.76) + vec3(0.03, 0.055, 0.065), clamp(wetGrad * 0.70, 0.0, 0.70));
         float tidalBand = (sandFace + dampFace * 0.82) * topFace
           * (1.0 - smoothstep(16.2, 17.6, vWorldPos.y)) * (1.0 - cgbMask * 0.88);
         rgb = mix(rgb, rgb * vec3(0.80, 0.84, 0.86), clamp(tidalBand * 0.14, 0.0, 0.14));
@@ -1582,7 +1582,7 @@ export function createBlockAtlas() {
         rgb = mix(rgb, rgb * vec3(0.78, 1.16, 1.10), clamp(cove * 0.42, 0.0, 0.42));
         float foamBand = smoothstep(0.48, 0.78, cove) * (1.0 - smoothstep(0.78, 0.96, cove));
         float foamBreak = 0.55 + 0.45 * sin(vWorldPos.x * 1.7 + vWorldPos.z * 1.1);
-        rgb += vec3(0.22, 0.34, 0.32) * foamBand * topFace * foamBreak * 0.38;
+        rgb += vec3(0.30, 0.42, 0.40) * foamBand * topFace * foamBreak * 0.52;
         float waterSurface = waterFace * topFace;
         float wave = 0.5 + 0.5 * sin(waterTime * ${WATER_WAVE.speed} + vWorldPos.x * ${WATER_WAVE.xFrequency} + vWorldPos.z * ${WATER_WAVE.zFrequency});
         float ripple = 0.5 + 0.5 * sin(waterTime * 1.05 + vWorldPos.x * 0.27 - vWorldPos.z * 0.38);
@@ -1606,7 +1606,7 @@ export function createBlockAtlas() {
         vec3 viewDir = normalize(cameraPosition - vWorldPos);
         vec3 halfDir = normalize(L + viewDir);
         float glitter = pow(max(0.0, dot(N, halfDir)), 36.0) * max(0.18, ndl);
-        rgb += sunColor * glitter * waterSurface * sunIntensity * 1.05;
+        rgb += sunColor * glitter * waterSurface * sunIntensity * 1.35;
         float rough = mix(0.82, 0.28, clamp(metalHint + waterSurface * 0.65, 0.0, 1.0));
         float spec = pow(max(0.0, dot(N, halfDir)), mix(10.0, 48.0, 1.0 - rough));
         rgb += sunColor * spec * pbrAmount * (0.06 + metalHint * 0.42 + waterSurface * 0.12);

@@ -49,56 +49,54 @@ export const GEN_SEA_LEVEL = 16;
 /** <1 stretches landforms so islands remain readable while travel stays wet. */
 export const WORLD_SCALE = 0.5;
 export const ARCHIPELAGO_COAST_THRESHOLD = 0.60;
-export const ARCHIPELAGO_ISLAND_THRESHOLD = 0.68;
-// Legacy coast < 0.56 / isle > 0.54 was tightened into the constants above.
+export const ARCHIPELAGO_ISLAND_THRESHOLD = 0.80;
+// Sparse noise islets need a high punch-through bar so the Puerto Rico body
+// and Spanish Virgins read as landmass, not a field of specks.
 
 /** Numeric IDs are kept here so the pure seam can be mirrored by the worker. */
 export const EXPOSED_ORE = Object.freeze({ COAL: 13, IRON: 18, COPPER: 56, DIAMOND: 57 });
 
-/** BVI-inspired macro landforms: broad steep islands, a low flat island, and sparse cays. */
+/**
+ * Puerto Rico / Spanish Virgin authored approximation.
+ * Origin is Las Croabas, Fajardo (OSM 18.3650N, 65.6260W). Horizontal cells
+ * are ~10 m on the Fajardo beach; Culebra, Vieques, and the main island body
+ * are compressed into the playable envelope rather than survey-true.
+ */
 const BVI_MAJOR_LANDFORMS = Object.freeze([
-  { name: 'tortola', cx: 22, cz: -22, rx: 60, rz: 22, peak: 20 },
-  { name: 'virgin-gorda', cx: 82, cz: -4, rx: 28, rz: 16, peak: 16 },
-  { name: 'jost-van-dyke', cx: -42, cz: 20, rx: 22, rz: 12, peak: 13 },
-  { name: 'anegada', cx: 96, cz: 48, rx: 40, rz: 18, peak: 5 },
+  { name: 'puerto-rico', cx: -130, cz: 52, rx: 120, rz: 84, peak: 24 },
+  { name: 'fajardo-cabezas', cx: -30, cz: -6, rx: 32, rz: 28, peak: 14 },
+  { name: 'el-yunque', cx: -88, cz: 18, rx: 34, rz: 26, peak: 28 },
+  { name: 'culebra', cx: 128, cz: 8, rx: 46, rz: 26, peak: 16 },
+  { name: 'vieques', cx: 86, cz: 78, rx: 64, rz: 24, peak: 13 },
 ]);
 const BVI_SPARSE_CAYS = Object.freeze([
-  { name: 'peter-island', cx: 28, cz: 18, rx: 8, rz: 5, peak: 6 },
-  { name: 'cooper-island', cx: 55, cz: 30, rx: 7, rz: 5, peak: 5 },
-  { name: 'great-camanoe', cx: 52, cz: -27, rx: 7, rz: 4, peak: 5 },
+  { name: 'icacos', cx: 40, cz: -50, rx: 14, rz: 8, peak: 4 },
+  { name: 'palomino', cx: 70, cz: 24, rx: 12, rz: 8, peak: 8 },
 ]);
 
-// One-tenth-scale regional additions. Horizontal cells represent ~10 m; the
-// existing starter landmarks stay fixed for route/save compatibility. These
-// missing islands complete the real BVI ordering: Norman/Peter/Salt south,
-// Beef/Scrub/Great Camanoe east, and the low Anegada shelf farther northeast.
 export const BVI_TENTH_SCALE = Object.freeze({
   metersPerCell: 10,
-  horizontal: '1:10 coastline approximation',
+  horizontal: '1:10 Las Croabas beach; compressed Spanish Virgin voyage',
   vertical: 'compressed to the 48-block survival world',
 });
 const BVI_TENTH_ISLANDS = Object.freeze([
-  { name: 'beef-island', cx: 116, cz: -4, rx: 24, rz: 8, peak: 10 },
-  { name: 'virgin-gorda-east', cx: 170, cz: -4, rx: 42, rz: 12, peak: 20 },
-  { name: 'norman-island', cx: -8, cz: 64, rx: 27, rz: 10, peak: 14 },
-  { name: 'salt-island', cx: 76, cz: 62, rx: 13, rz: 7, peak: 8 },
-  { name: 'scrub-island', cx: 140, cz: -28, rx: 16, rz: 7, peak: 9 },
-  { name: 'anegada-east', cx: 260, cz: 44, rx: 60, rz: 22, peak: 5 },
-  { name: 'ginger-island', cx: 82, cz: 34, rx: 9, rz: 4, peak: 6 },
-  { name: 'marina-cay', cx: 101, cz: -20, rx: 6, rz: 3, peak: 4 },
+  { name: 'luquillo', cx: -70, cz: -6, rx: 28, rz: 16, peak: 12 },
+  { name: 'ceiba', cx: 18, cz: 36, rx: 26, rz: 14, peak: 11 },
+  { name: 'culebrita', cx: 168, cz: 4, rx: 18, rz: 9, peak: 8 },
+  { name: 'vieques-east', cx: 150, cz: 78, rx: 28, rz: 14, peak: 10 },
 ]);
 
 const BVI_TENTH_LOCATIONS = Object.freeze([
-  { name: 'Road Town · Tortola', x: 22, z: 4, radius: 10 },
-  { name: 'West End · Tortola', x: -55, z: -10, radius: 9 },
-  { name: 'Cane Garden Bay · Tortola', x: -10, z: -28, radius: 36 },
-  { name: 'East End · Tortola', x: 82, z: -8, radius: 10 },
-  { name: 'Spanish Town · Virgin Gorda', x: 170, z: -4, radius: 12 },
-  { name: 'Beef Island · Trellis Bay', x: 116, z: -4, radius: 12 },
-  { name: 'Norman Island', x: -8, z: 64, radius: 12 },
-  { name: 'Salt Island', x: 76, z: 62, radius: 8 },
-  { name: 'Scrub Island', x: 140, z: -28, radius: 9 },
-  { name: 'Anegada · Salt Pond', x: 260, z: 44, radius: 16 },
+  { name: 'Las Croabas · Fajardo', x: -10, z: -28, radius: 36 },
+  { name: 'Seven Seas · Fajardo', x: -42, z: 8, radius: 12 },
+  { name: 'Fajardo', x: -36, z: 8, radius: 12 },
+  { name: 'Faro Cabezas de San Juan', x: -40, z: -32, radius: 10 },
+  { name: 'Cayo Icacos', x: 40, z: -50, radius: 12 },
+  { name: 'Isla Palomino', x: 70, z: 24, radius: 10 },
+  { name: 'Dewey · Culebra', x: 128, z: 8, radius: 14 },
+  { name: 'Isabel Segunda · Vieques', x: 86, z: 78, radius: 16 },
+  { name: 'El Yunque', x: -88, z: 18, radius: 16 },
+  { name: 'Luquillo', x: -70, z: -6, radius: 12 },
 ]);
 
 const BVI_SHELTERED_COVES = Object.freeze([
@@ -186,17 +184,19 @@ export function bviBeachLandingAt(x, z) {
   return landing;
 }
 
-// Cane Garden Bay reference: OSM places the developed bay/road cluster around
-// 18.4288N, 64.6513W. At the existing 1:10 horizontal convention, model the
-// roughly 720 m beach as a 72-cell arc with an 18-cell sheltered-water reach.
+// Las Croabas Bay, Fajardo: OSM 18.3650N, 65.6260W. Keep the existing 1:10
+// beach arc so the authored spawn, village pad, and sea cave stay walkable.
 export const CANE_GARDEN_BAY_SCALE = Object.freeze({
   metersPerCell: 10,
   beachLengthMeters: 720,
   beachLengthCells: 72,
   bayDepthMeters: 180,
   bayDepthCells: 18,
-  reference: 'OpenStreetMap Cane Garden Bay, Tortola',
+  reference: 'OpenStreetMap Las Croabas, Cabezas, Fajardo, Puerto Rico',
+  originLat: 18.3650178,
+  originLon: -65.6260437,
 });
+export const LAS_CROABAS_BAY_SCALE = CANE_GARDEN_BAY_SCALE;
 
 /** Water bowl south of the Cane Garden Bay beach arc, including its mouth. */
 export function caneGardenBayWaterAt(x, z) {
@@ -293,12 +293,10 @@ export function bviReefHeadAt(x, z) {
 }
 
 const BVI_CAY_OUTCROPS = Object.freeze([
-  { name: 'peter-island-outcrop', x: 24, z: 16 },
-  { name: 'peter-island-outcrop', x: 32, z: 20 },
-  { name: 'cooper-island-outcrop', x: 51, z: 28 },
-  { name: 'cooper-island-outcrop', x: 59, z: 30 },
-  { name: 'great-camanoe-outcrop', x: 50, z: -29 },
-  { name: 'great-camanoe-outcrop', x: 54, z: -25 },
+  { name: 'icacos-outcrop', x: 34, z: -48 },
+  { name: 'icacos-outcrop', x: 46, z: -52 },
+  { name: 'palomino-outcrop', x: 64, z: 22 },
+  { name: 'palomino-outcrop', x: 76, z: 26 },
 ]);
 export function bviCayOutcropAt(x, z) {
   return BVI_CAY_OUTCROPS.find((outcrop) => outcrop.x === x && outcrop.z === z) || null;
@@ -355,10 +353,10 @@ export function bviRouteCorridorAt(x, z) {
 
 /** Return reef-belt strength outside a modeled island or cay, never on land. */
 export function bviReefShelfAt(x, z) {
-  const current = bviLandformAt(x, z).influence;
-  if (current > 0) return 0;
   const cove = bviCoveAt(x, z);
   if (cove.influence > 0.2) return Math.min(1, cove.influence * 0.9);
+  const current = bviLandformAt(x, z).influence;
+  if (current > 0) return 0;
   const route = bviRouteCorridorAt(x, z);
   if (route.influence > 0.2 && route.influence < 0.9) return Math.min(0.7, route.influence * 0.75);
   let nearby = 0;
@@ -370,7 +368,7 @@ export function bviReefShelfAt(x, z) {
 
 export function bviDeepWaterAt(x, z) {
   if (bviLandformAt(x, z).influence > 0) return 0;
-  if (x < -90 || x > 330 || z < -120 || z > 130) return 0;
+  if (x < -280 || x > 220 || z < -90 || z > 140) return 0;
   const route = bviRouteCorridorAt(x, z);
   const broad = fbm(x * 0.008 + 17, z * 0.008 - 11, 3);
   const trench = fbm(x * 0.021 - 23, z * 0.021 + 31, 3);
@@ -440,29 +438,27 @@ export function heightAt(x, z, seed = 0) {
     y = Math.max(y, GEN_SEA_LEVEL + 1 + rise * 29 + ridgeCut * 5);
   }
 
+  const bvi = bviLandformAt(x, z);
   const starterBlend = starterCoastBlend(x, z);
-  if (starterBlend > 0) {
+  if (starterBlend > 0 && bvi.majorInfluence <= 0) {
     const shelf = 4 + fbm(x * 0.018 * WORLD_SCALE + 41, z * 0.018 * WORLD_SCALE - 17, 3) * 10;
     y = y * (1 - starterBlend) + shelf * starterBlend;
   }
-  const bvi = bviLandformAt(x, z);
   const cove = bviCoveAt(x, z);
   const beachLanding = bviBeachLandingAt(x, z);
   const route = bviRouteCorridorAt(x, z);
   const deepWater = bviDeepWaterAt(x, z);
-  const bviRegion = x >= -90 && x <= 330 && z >= -120 && z <= 130;
+  const bviRegion = x >= -280 && x <= 220 && z >= -90 && z <= 140;
   const authoredWetland = x >= 46 && x <= 68 && z >= 52 && z <= 72;
   if (bvi.influence > 0) {
     const relief = fbm(x * 0.04 * WORLD_SCALE + seed * 2.1, z * 0.04 * WORLD_SCALE - seed * 1.7, 3);
     const macroInfluence = bvi.majorInfluence > 0 ? bvi.majorInfluence : bvi.cayInfluence;
     const macroPeak = bvi.majorInfluence > 0 ? bvi.majorPeak : bvi.cayPeak;
     y = Math.max(y, GEN_SEA_LEVEL + 1 + macroPeak * macroInfluence + relief * 3 * macroInfluence);
-  } else if (bviRegion && !authoredWetland && y <= GEN_SEA_LEVEL + 7) {
-    // Only depress columns already near sea level. Never punch isolated
-    // water potholes into otherwise walkable inland biome.
-    y = deepWater > 0
-      ? Math.min(y, GEN_SEA_LEVEL - 4 - Math.floor(deepWater * 6))
-      : Math.min(y, GEN_SEA_LEVEL - 2);
+  } else if (bviRegion && !authoredWetland && deepWater > 0 && y <= GEN_SEA_LEVEL + 7) {
+    // Depress true deep-water columns only. Never punch isolated water
+    // potholes into otherwise walkable inland biome.
+    y = Math.min(y, GEN_SEA_LEVEL - 4 - Math.floor(deepWater * 6));
   }
   if (cove.influence > 0) y = Math.max(16 - 2, Math.min(y, 16 - 2 + Math.floor(cove.influence)));
   if (route.influence > 0) y = Math.min(y, GEN_SEA_LEVEL - 1);
@@ -471,7 +467,7 @@ export function heightAt(x, z, seed = 0) {
   if (authoredWetland) y = Math.max(y, GEN_SEA_LEVEL + 2);
   if (starterCoveAt(x, z)) y = GEN_SEA_LEVEL + 1;
   if (starterCoveChannelAt(x, z)) y = Math.min(y, GEN_SEA_LEVEL - 1);
-  if (caneGardenBayWaterAt(x, z)) y = Math.min(y, GEN_SEA_LEVEL - 1);
+  if (caneGardenBayWaterAt(x, z)) y = GEN_SEA_LEVEL - 1;
   else if (caneGardenBayWalkableAt(x, z)) y = GEN_SEA_LEVEL;
   const starterEdgeHeight = starterCoveEdgeHeightAt(x, z);
   if (starterEdgeHeight != null) y = Math.min(y, starterEdgeHeight);
@@ -490,7 +486,21 @@ export function heightAt(x, z, seed = 0) {
     const rise = Math.pow((isle - ARCHIPELAGO_ISLAND_THRESHOLD) / (1 - ARCHIPELAGO_ISLAND_THRESHOLD), 0.62);
     y = Math.max(y, GEN_SEA_LEVEL + 1 + rise * 32);
   }
-  return Math.max(1, Math.min(46, Math.floor(y)));
+  y = Math.max(1, Math.min(46, Math.floor(y)));
+  // Fill isolated sand/land potholes. Named coves, channels, lagoons, and
+  // the Las Croabas water bowl stay open water.
+  if (
+    y < GEN_SEA_LEVEL
+    && bvi.influence > 0.08
+    && cove.influence <= 0
+    && route.influence <= 0
+    && !caneGardenBayWaterAt(x, z)
+    && !starterCoveChannelAt(x, z)
+    && !bviSaltPondAt(x, z)
+  ) {
+    y = GEN_SEA_LEVEL;
+  }
+  return y;
 }
 
 /** Grade the first few land blocks above sea level into a readable tropical beach. */
@@ -557,18 +567,16 @@ export function tropicalCliffAt(x, z, seed = 0) {
 }
 
 /**
- * Small, rare settlements for the Tortola-inspired island chain.
+ * Small, rare settlements for the Fajardo / Spanish Virgin chain.
  *
- * These are intentionally anchored to the existing population cues rather than
- * scattered as noise: Road Town, Cane Garden Bay, East End, and West End are
- * the largest settlement references in the authored BVI region. The generator
- * may leave any site empty for a seed, so most islands remain natural.
+ * Anchored to Las Croabas, Fajardo, Ceiba, and Luquillo rather than scattered
+ * as noise. The generator may leave any site empty for a seed.
  */
 export const TORTOLA_VILLAGE_SITES = Object.freeze([
-  { name: 'Road Town · Tortola', x: 22, z: 1, activation: 0.70 },
-  { name: 'Cane Garden Bay · Tortola', x: 0, z: -4, activation: 0.0, authored: true },
-  { name: 'East End · Tortola', x: 82, z: -10, activation: 0.74 },
-  { name: 'West End · Tortola', x: -55, z: -10, activation: 0.82 },
+  { name: 'Fajardo', x: 22, z: 1, activation: 0.70 },
+  { name: 'Las Croabas · Fajardo', x: 0, z: -4, activation: 0.0, authored: true },
+  { name: 'East End · Ceiba', x: 82, z: -10, activation: 0.74 },
+  { name: 'Luquillo', x: -55, z: -10, activation: 0.82 },
 ]);
 
 const VILLAGE_SPOTS = Object.freeze([

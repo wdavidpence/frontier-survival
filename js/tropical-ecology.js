@@ -5,7 +5,7 @@
  */
 import { BLOCK } from './blocks.js?v=297';
 import { biomeAt, BIOME } from './biomes.js?v=273';
-import { hash2, bviBeachLandingAt, caneGardenBayWalkableAt } from './gen.js?v=333';
+import { hash2, bviBeachLandingAt, caneGardenBayWalkableAt } from './gen.js?v=335';
 import { palmTrunkAt } from './palm-lean.js?v=1';
 
 export const TROPICAL_ECOLOGY = Object.freeze({

@@ -4,7 +4,7 @@ export const WATER_WAVE = Object.freeze({
   speed: 1.8,
   xFrequency: 0.5,
   zFrequency: 0.37,
-  amplitude: 0.09,
+  amplitude: 0.07,
   tint: Object.freeze([0.08, 0.14, 0.20]),
 });
 

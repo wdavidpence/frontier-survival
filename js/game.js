@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=556';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=558';
 import { Player } from './player.js?v=243';
 import { Input } from './input.js?v=413';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=227';
@@ -71,7 +71,7 @@ import {
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=284';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=260';
-import { createBlockAtlas } from './atlas.js?v=353';
+import { createBlockAtlas } from './atlas.js?v=354';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=291';
 import {
   spawnWorldDrop,
@@ -95,7 +95,7 @@ import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=292'
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=11';
 import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
 import { placementState } from './placement-preview.js?v=1';
-import { heightAt, bviRouteCorridorAt, bviLocationAt, caneGardenBayWalkableAt, villageSitesForSeed } from './gen.js?v=333';
+import { heightAt, bviRouteCorridorAt, bviLocationAt, caneGardenBayWalkableAt, villageSitesForSeed } from './gen.js?v=335';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=33';
 import { sunDirection, moonDirection, skyGlowFromNdc, shadowFollow } from './atmosphere-sky.js?v=1';
 import {
@@ -134,7 +134,7 @@ import { enchantLevelCost, canPayEnchant, payEnchantLevels } from './enchant-cos
 import { createDisposalContext, disposeTree } from './resource-disposal.js?v=3';
 import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=3';
 import { createForestThreshold, updateForestThreshold, disposeForestThreshold } from './forest-threshold.js?v=3';
-import { createGoldenCoveVision } from './frontier-vision-pack.js?v=33';
+import { createGoldenCoveVision } from './frontier-vision-pack.js?v=34';
 import { createFirstExpeditionState, advanceFirstExpedition, firstExpeditionSummary } from './first-expedition.js?v=2';
 
 const HARVEST_BASE_SECONDS = 4.2;
@@ -1264,7 +1264,7 @@ export class Game {
       // Fresh arrivals open seaward so the first frame shows water and flanking palms, not the village wall.
       this.player.yaw = freshPlayer ? (Number.isFinite(arrival.yaw) ? arrival.yaw : 0.92) : (Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI));
       this.player.pitch = 0;
-      if (freshPlayer && (spawn.landmark === 'Cane Garden Bay · Tortola' || caneGardenBayWalkableAt(spawn.x, spawn.z))) {
+      if (freshPlayer && (spawn.landmark === 'Las Croabas · Fajardo' || caneGardenBayWalkableAt(spawn.x, spawn.z))) {
         this.player.pitch = 0.22;
       }
       this.input.lookX = this.player.yaw;
