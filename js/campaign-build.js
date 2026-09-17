@@ -161,3 +161,55 @@ export function settlementUnlocks(state) {
   if ((state?.observedSpecies ?? 0) >= 6) unlocks.push({ id: 'aviary', label: 'Shorebird aviary plan' });
   return unlocks;
 }
+
+/** Item 35 follow-through: concrete next settlement project and requirements. */
+export function settlementNextProject(state = {}) {
+  const unlocked = new Set(settlementUnlocks(state).map((project) => project.id));
+  const edits = Math.max(0, Number(state.edits) || 0);
+  if (!unlocked.has('water_cistern')) {
+    const remaining = Math.max(0, 32 - edits);
+    return {
+      id: 'water_cistern',
+      label: 'Rain cistern blueprint',
+      progress: Math.min(1, edits / 32),
+      progressLabel: `${Math.min(32, edits)} / 32 blocks`,
+      note: remaining ? `Build ${remaining} more block${remaining === 1 ? '' : 's'} to unlock` : 'Ready to unlock',
+    };
+  }
+  if (!unlocked.has('smokehouse')) {
+    const missing = [];
+    if (!state.roofed) missing.push('roofed shelter');
+    if (!state.campfire) missing.push('campfire');
+    const complete = 2 - missing.length;
+    return {
+      id: 'smokehouse',
+      label: 'Smokehouse station',
+      progress: complete / 2,
+      progressLabel: `${complete} / 2 foundations`,
+      note: missing.length ? `Still needed: ${missing.join(' · ')}` : 'Ready to unlock',
+    };
+  }
+  if (!unlocked.has('beacon')) {
+    const voyages = Math.max(0, Number(state.voyages) || 0);
+    const remaining = Math.max(0, 2 - voyages);
+    return {
+      id: 'beacon',
+      label: 'Harbor beacon kit',
+      progress: Math.min(1, voyages / 2),
+      progressLabel: `${Math.min(2, voyages)} / 2 voyages`,
+      note: remaining ? `Complete ${remaining} more voyage${remaining === 1 ? '' : 's'} to unlock` : 'Ready to craft',
+    };
+  }
+  if (!unlocked.has('aviary')) {
+    const observedSpecies = Math.max(0, Number(state.observedSpecies) || 0);
+    const remaining = Math.max(0, 6 - observedSpecies);
+    return {
+      id: 'aviary',
+      label: 'Shorebird aviary plan',
+      progress: Math.min(1, observedSpecies / 6),
+      progressLabel: `${Math.min(6, observedSpecies)} / 6 species`,
+      note: remaining ? `Observe ${remaining} more species` : 'Ready to plan',
+    };
+  }
+  return null;
+}

@@ -22,10 +22,12 @@ import './campaign-integration.mjs';
 import './minecraft-feel.mjs';
 import './mc-class-pack.mjs';
 import './atmosphere-sky.mjs';
+import './resource-disposal.mjs';
 import { sandyBeachHeight } from '../js/shore-water.js';
-import { chooseCastawayCandidate, createCastawayArrival, restoreCastawayArrival, castawayObjective } from '../js/castaway-arrival.js';
+import { chooseCastawayCandidate, CASTAWAY_CONFIG, arrivalFacingYaw, canSalvageLocker, createCastawayArrival, restoreCastawayArrival, castawayObjective } from '../js/castaway-arrival.js';
 
 import { palmLeafDrop } from '../js/palm-drops.js';
+import { settlementUnlocks, settlementNextProject } from '../js/campaign-build.js';
 import { createFishingState, startCast, tickFishing, rollFishingCatch, FISHING_CAST_TRAVEL_SECONDS } from '../js/fishing-cast.js';
 import { createBoat, canPlaceBoat, mountBoat, dismountBoat, hasRider, stepBoat, degradeBoat, boatRepairPlan, repairBoat, pushBoat, buoyancyY, riderPosition, boatWaterFootprintClear } from '../js/boat-entity.js';
 import { schoolFishPose, schoolVisibility } from '../js/fish-school.js';
@@ -349,6 +351,27 @@ test('streaming queued voxels go through generateChunkAsync with a sync worker f
   assert.match(source, /_restoreChunkEdits\(item\.cx, item\.cz\)/);
 });
 
+test('streaming queue prunes stale requests before budget drain', () => {
+  const source = fsText('js/world.js');
+  assert.match(source, /this\._streamQueue = this\._streamQueue\.filter\(\(item\) => \{/);
+  assert.match(source, /const keep = desired\.has\(key\)/);
+  assert.match(source, /if \(!keep\) this\._streamQueued\.delete\(key\)/);
+});
+
+test('streaming worker completion drops no-longer-desired chunks early', () => {
+  const source = fsText('js/world.js');
+  assert.match(source, /this\._streamPending\.delete\(k\);\n\s+if \(!this\._streamDesired\.has\(k\)\) return;/);
+  assert.match(source, /this\._streamReady\.push\(\{ cx, cz, data: data \|\| null \}\)/);
+});
+
+test('streaming drain discards stale ready chunks without spending budget', () => {
+  const source = fsText('js/world.js');
+  assert.match(source, /const item = this\._streamReady\.shift\(\)/);
+  assert.match(source, /const key = this\.key\(item\.cx, item\.cz\)/);
+  assert.match(source, /if \(!desired\.has\(key\) && !this\._streamDesired\.has\(key\)\) continue/);
+  assert.match(source, /this\._commitStreamedChunk\(item, desired, plan\)/);
+});
+
 test('shore destination silhouette is deterministic and reachable on the exact starter seed', () => {
   const source = readFileSync(new URL('../js/world.js', import.meta.url), 'utf8');
   const gameSource = readFileSync(new URL('../js/game.js', import.meta.url), 'utf8');
@@ -362,7 +385,7 @@ test('shore destination silhouette is deterministic and reachable on the exact s
   assert.match(source, /\[\[-10, -28\], \[-10, -29\]/);
   assert.doesNotMatch(source, /Math\.PI \/ 4/, 'Cane Garden Bay must look along the beach, not a diagonal into buildings');
   assert.match(source, /chosen\.landmark === 'Las Croabas · Fajardo'/);
-  assert.match(gameSource, /world.js\?v=560/);
+  assert.match(gameSource, /world\.js\?v=567/);
   assert.match(gameSource, /this\.player\.pitch = 0;/);
 });
 
@@ -799,7 +822,7 @@ test('BVI cove water shader adds shallow tint and foam without changing deep wat
   assert.match(atlas, /\[176, 148, 108\]/);
   assert.match(atlas, /\[112, 66, 34\]/);
   assert.match(atlas, /#ffd36a/);
-  assert.match(game, /atlas\.js\?v=356/);
+  assert.match(game, /atlas\.js\?v=361/);
 });
 
 test('water wave salvage is deterministic and reaches the live material path', () => {
@@ -1257,6 +1280,111 @@ test('visible recipes non-empty', () => {
   assert.ok(visibleRecipes().length >= 5);
 });
 
+test('rain cistern is a settlement-gated placeable storage project', () => {
+  assert.equal(propsOf(ITEM.RAIN_CISTERN).name, 'Rain Cistern');
+  assert.equal(propsOf(ITEM.RAIN_CISTERN).placeable, true);
+  assert.equal(placeBlockId(ITEM.RAIN_CISTERN), BLOCK.CHEST);
+  let slots = addItems(createStarterInventory(), BLOCK.PLANKS, 8).slots;
+  slots = addItems(slots, ITEM.BUCKET, 1).slots;
+  const locked = craftRecipe(slots, 'rain_cistern', { settlementBlocks: 31 });
+  assert.equal(locked.ok, false);
+  assert.equal(locked.error, 'settlement locked');
+  assert.equal(locked.settlementMissing, 1);
+  const crafted = craftRecipe(slots, 'rain_cistern', { settlementBlocks: 32 });
+  assert.equal(crafted.ok, true);
+  assert.equal(countItems(crafted.slots, ITEM.RAIN_CISTERN), 1);
+  const game = fsText('js/game.js');
+  assert.match(game, /rain-cistern-barrel/);
+  assert.match(game, /rain-cistern-water/);
+  assert.match(game, /this\._syncCisternVisuals\(\)/);
+  assert.match(game, /cisterns: \[\.\.\.this\._cisterns\]/);
+  assert.match(game, /this\._cisterns = new Set\(Array\.isArray\(saveData\.buildMeta\?\.cisterns\)/);
+  assert.match(game, /this\._tickCisterns\(dt\)/);
+  assert.match(game, /this\._fillCisternCanteen\(chestKey\(hit\.x, hit\.y, hit\.z\)\)/);
+  assert.match(game, /Rain Cistern is dry/);
+  assert.match(game, /cisternWater: \[\.\.\.this\._cisternWater\.entries\(\)\]/);
+});
+
+test('smokehouse is a settlement-gated placeable station with shelter and fire prerequisites', () => {
+  assert.equal(propsOf(ITEM.SMOKEHOUSE).name, 'Smokehouse');
+  assert.equal(propsOf(ITEM.SMOKEHOUSE).placeable, true);
+  assert.equal(placeBlockId(ITEM.SMOKEHOUSE), BLOCK.CHEST);
+  let slots = addItems(createStarterInventory(), BLOCK.PLANKS, 10).slots;
+  slots = addItems(slots, ITEM.COAL, 2).slots;
+  slots = addItems(slots, ITEM.IRON_INGOT, 1).slots;
+  const settlementLocked = craftRecipe(slots, 'smokehouse', { settlementBlocks: 31, roofed: true, campfire: true });
+  assert.equal(settlementLocked.error, 'settlement locked');
+  const roofLocked = craftRecipe(slots, 'smokehouse', { settlementBlocks: 32, roofed: false, campfire: true });
+  assert.equal(roofLocked.error, 'need roofed shelter');
+  const fireLocked = craftRecipe(slots, 'smokehouse', { settlementBlocks: 32, roofed: true, campfire: false });
+  assert.equal(fireLocked.error, 'need campfire foundation');
+  const crafted = craftRecipe(slots, 'smokehouse', { settlementBlocks: 32, roofed: true, campfire: true });
+  assert.equal(crafted.ok, true);
+  assert.equal(countItems(crafted.slots, ITEM.SMOKEHOUSE), 1);
+  const progress = recipeProgress('smokehouse', slots, { settlementBlocks: 32, roofed: false, campfire: true });
+  assert.equal(progress.roofOk, false);
+  assert.equal(progress.campfireOk, true);
+  const game = fsText('js/game.js');
+  assert.match(game, /_settlementCraftContext/);
+  assert.match(game, /SMOKEHOUSE_COOK_SECONDS/);
+  assert.match(game, /this\._tickSmokehouses\(dt\)/);
+  assert.match(game, /this\._useSmokehouse\(chestKey\(hit\.x, hit\.y, hit\.z\), heldUse\.id\)/);
+  assert.match(game, /smokehouse-body/);
+  assert.match(game, /this\._smokehouses = new Set/);
+  assert.match(game, /smokehouseJobs: \[\.\.\.this\._smokeJobs\.entries\(\)\]/);
+  const save = fsText('js/save.js');
+  assert.match(save, /smokehouseJobs/);
+  assert.match(save, /smokehouseOutputs/);
+});
+
+test('harbor beacon is a voyage-gated placeable settlement station', () => {
+  assert.equal(propsOf(ITEM.HARBOR_BEACON).name, 'Harbor Beacon Kit');
+  assert.equal(propsOf(ITEM.HARBOR_BEACON).placeable, true);
+  assert.equal(placeBlockId(ITEM.HARBOR_BEACON), BLOCK.CHEST);
+  let slots = addItems(createStarterInventory(), BLOCK.PLANKS, 6).slots;
+  slots = addItems(slots, ITEM.IRON_INGOT, 2).slots;
+  slots = addItems(slots, BLOCK.LAMP, 1).slots;
+  const locked = craftRecipe(slots, 'harbor_beacon', { voyages: 1 });
+  assert.equal(locked.error, 'voyage locked');
+  const crafted = craftRecipe(slots, 'harbor_beacon', { voyages: 2 });
+  assert.equal(crafted.ok, true);
+  assert.equal(countItems(crafted.slots, ITEM.HARBOR_BEACON), 1);
+  const progress = recipeProgress('harbor_beacon', slots, { voyages: 1 });
+  assert.equal(progress.voyagesOk, false);
+  assert.equal(progress.voyagesMissing, 1);
+  const game = fsText('js/game.js');
+  assert.match(game, /harbor-beacon-base/);
+  assert.match(game, /this\._beacons/);
+  assert.match(game, /this\._useBeacon\(chestKey\(hit\.x, hit\.y, hit\.z\)\)/);
+  const save = fsText('js/save.js');
+  assert.match(save, /beaconLit/);
+});
+
+test('shorebird aviary is a species-gated placeable ecology station', () => {
+  assert.equal(propsOf(ITEM.SHOREBIRD_AVIARY).name, 'Shorebird Aviary');
+  assert.equal(propsOf(ITEM.SHOREBIRD_AVIARY).placeable, true);
+  assert.equal(placeBlockId(ITEM.SHOREBIRD_AVIARY), BLOCK.CHEST);
+  let slots = addItems(createStarterInventory(), BLOCK.PLANKS, 4).slots;
+  slots = addItems(slots, BLOCK.GLASS, 2).slots;
+  slots = addItems(slots, ITEM.WOOL, 1).slots;
+  const locked = craftRecipe(slots, 'shorebird_aviary', { observedSpecies: 5 });
+  assert.equal(locked.error, 'species locked');
+  assert.equal(locked.speciesMissing, 1);
+  const crafted = craftRecipe(slots, 'shorebird_aviary', { observedSpecies: 6 });
+  assert.equal(crafted.ok, true);
+  assert.equal(countItems(crafted.slots, ITEM.SHOREBIRD_AVIARY), 1);
+  const progress = recipeProgress('shorebird_aviary', slots, { observedSpecies: 0 });
+  assert.equal(progress.speciesOk, false);
+  assert.equal(progress.speciesMissing, 6);
+  const game = fsText('js/game.js');
+  assert.match(game, /shorebird-aviary-base/);
+  assert.match(game, /this\._aviaries/);
+  assert.match(game, /this\._useAviary\(chestKey\(hit\.x, hit\.y, hit\.z\)\)/);
+  const save = fsText('js/save.js');
+  assert.match(save, /aviaryInspected/);
+});
+
+
 test('tools speed matching blocks', () => {
   assert.ok(mineMultiplier(null, BLOCK.LOG) <= 0.2, 'bare-hand wood harvest should be slow');
   assert.ok(mineMultiplier(ITEM.WOOD_AXE, BLOCK.LOG) > 2, 'matching axe should stay fast');
@@ -1308,7 +1436,7 @@ test('placement preview distinguishes valid, blocked, and self-overlap targets',
 test('game wires workbench preview, placement ghost, and build metadata persistence', () => {
   const src = fsText('js/game.js');
   const save = fsText('js/save.js');
-  assert.match(src, /workbench\.js\?v=1/);
+  assert.match(src, /workbench\.js\?v=2/);
   assert.match(src, /placement-preview\.js\?v=1/);
   assert.match(src, /setInventoryOpen\(true, 'p1', 'workbench'\)/);
   assert.match(src, /this\._placementGhost\.material\.color\.setHex/);
@@ -1738,6 +1866,17 @@ test('save roundtrip preserves seed inventory edits', () => {
       slabs: [['10,18,7', 1]],
       stairs: [['10,18,8', 2]],
       beds: [['10,18,9', 3]],
+      doors: [],
+      campFuel: [['10,18,5', 23.5]],
+      cisterns: ['10,18,10'],
+      cisternWater: [['10,18,10', 75]],
+      smokehouses: [],
+      smokehouseJobs: [],
+      smokehouseOutputs: [],
+      beacons: [],
+      beaconLit: [],
+      aviaries: [],
+      aviaryInspected: [],
     },
   };
   const json = serializeSave(state);
@@ -1756,11 +1895,40 @@ test('save roundtrip preserves seed inventory edits', () => {
     hasChest: false, beached: false, hull: 0.86, mast: 0.58, sail: 0.46, pushes: 0,
   });
 
-  const legacy = { ...parsed.data, v: 1 };
+  const legacy = { ...parsed.data, v: 1, buildMeta: { ...parsed.data.buildMeta } };
   delete legacy.boat;
+  delete legacy.buildMeta.campFuel;
+  delete legacy.buildMeta.cisterns;
+  delete legacy.buildMeta.cisternWater;
+  delete legacy.buildMeta.smokehouses;
+  delete legacy.buildMeta.smokehouseJobs;
+  delete legacy.buildMeta.smokehouseOutputs;
+  delete legacy.buildMeta.beacons;
+  delete legacy.buildMeta.beaconLit;
+  delete legacy.buildMeta.aviaries;
+  delete legacy.buildMeta.aviaryInspected;
   const legacyParsed = parseSavePayload(JSON.stringify(legacy));
   assert.ok(legacyParsed.ok, legacyParsed.error);
   assert.strictEqual(legacyParsed.data.boat, null);
+  assert.deepStrictEqual(legacyParsed.data.buildMeta.campFuel, [], 'legacy saves without camp fuel default safely');
+  assert.deepStrictEqual(legacyParsed.data.buildMeta.cisterns, [], 'legacy saves without cistern identity default safely');
+  assert.deepStrictEqual(legacyParsed.data.buildMeta.cisternWater, [], 'legacy saves without cistern water default safely');
+  assert.deepStrictEqual(legacyParsed.data.buildMeta.smokehouses, [], 'legacy saves without smokehouse identity default safely');
+  assert.deepStrictEqual(legacyParsed.data.buildMeta.smokehouseJobs, [], 'legacy saves without smokehouse jobs default safely');
+  assert.deepStrictEqual(legacyParsed.data.buildMeta.smokehouseOutputs, [], 'legacy saves without smokehouse outputs default safely');
+  assert.deepStrictEqual(legacyParsed.data.buildMeta.beacons, [], 'legacy saves without beacon identity default safely');
+  assert.deepStrictEqual(legacyParsed.data.buildMeta.beaconLit, [], 'legacy saves without beacon lit state default safely');
+  assert.deepStrictEqual(legacyParsed.data.buildMeta.aviaries, [], 'legacy saves without aviary identity default safely');
+  assert.deepStrictEqual(legacyParsed.data.buildMeta.aviaryInspected, [], 'legacy saves without aviary inspection state default safely');
+  const malformedCisterns = parseSavePayload(JSON.stringify({ ...parsed.data, buildMeta: { ...parsed.data.buildMeta, cisterns: ['ok', 7, null, 'x'.repeat(65)], cisternWater: [['ok', 150], ['bad', -5], ['x'.repeat(65), 50], ['nope', 'bad']] } }));
+  assert.ok(malformedCisterns.ok, malformedCisterns.error);
+  assert.deepStrictEqual(malformedCisterns.data.buildMeta.cisterns, ['ok'], 'malformed cistern identities are filtered');
+  assert.deepStrictEqual(malformedCisterns.data.buildMeta.cisternWater, [['ok', 100], ['bad', 0]], 'cistern water is bounded and malformed values are filtered');
+  const malformedSmokehouses = parseSavePayload(JSON.stringify({ ...parsed.data, buildMeta: { ...parsed.data.buildMeta, smokehouses: ['ok', 7, 'x'.repeat(65)], smokehouseJobs: [['ok', { input: ITEM.RAW_MEAT, remaining: 999 }], ['bad', { input: 'x', remaining: 4 }], 4], smokehouseOutputs: [['ok', { id: ITEM.COOKED_MEAT, count: 99 }], ['bad', { id: 'x', count: 1 }], null] } }));
+  assert.ok(malformedSmokehouses.ok, malformedSmokehouses.error);
+  assert.deepStrictEqual(malformedSmokehouses.data.buildMeta.smokehouses, ['ok'], 'malformed smokehouse identities are filtered');
+  assert.deepStrictEqual(malformedSmokehouses.data.buildMeta.smokehouseJobs, [['ok', { input: ITEM.RAW_MEAT, remaining: 60 }]], 'smokehouse timers are bounded and malformed jobs are filtered');
+  assert.deepStrictEqual(malformedSmokehouses.data.buildMeta.smokehouseOutputs, [['ok', { id: ITEM.COOKED_MEAT, count: 16 }]], 'smokehouse outputs are bounded and malformed outputs are filtered');
   assert.strictEqual(buildSavePayload({ ...state, boat: { ...state.boat, vx: Infinity } }).boat, null);
 
   const mem = {
@@ -1872,6 +2040,33 @@ test('settings roundtrip + sensitivity map', () => {
   const loaded = readSettings(mem, SETTINGS_KEY);
   assert.ok(loaded.ok);
   assert.strictEqual(loaded.data.mode, 'cruel');
+});
+
+test('accessibility settings round-trip and legacy defaults', () => {
+  const next = parseSettings(serializeSettings({
+    ...DEFAULT_SETTINGS,
+    reducedMotion: true,
+    highContrast: true,
+    colorVisionSafe: true,
+    captions: false,
+    uiScale: 1.3,
+    tvMode: true,
+  }));
+  assert.ok(next.ok);
+  assert.strictEqual(next.data.reducedMotion, true);
+  assert.strictEqual(next.data.highContrast, true);
+  assert.strictEqual(next.data.colorVisionSafe, true);
+  assert.strictEqual(next.data.captions, false);
+  assert.strictEqual(next.data.uiScale, 1.3);
+  assert.strictEqual(next.data.tvMode, true);
+  const legacy = parseSettings({ mode: 'survival', playMode: 'solo' });
+  assert.ok(legacy.ok);
+  assert.strictEqual(legacy.data.reducedMotion, false);
+  assert.strictEqual(legacy.data.highContrast, false);
+  assert.strictEqual(legacy.data.colorVisionSafe, false);
+  assert.strictEqual(legacy.data.captions, true);
+  assert.strictEqual(legacy.data.uiScale, 1);
+  assert.strictEqual(legacy.data.tvMode, false);
 });
 
 test('playMode solo|coop parse serialize', () => {
@@ -3088,7 +3283,7 @@ test('viewport-split: non-numeric input throws', async () => {
 });
 
 // Input slot mapping tests (pure — no browser APIs)
-import { GamepadSlotManager, GAMEPAD_BUTTON_MAP, GAMEPAD_AXIS_MAP, TRIGGER_BUTTON_MAP } from '../js/input.js';
+import { GamepadSlotManager, Input, GAMEPAD_BUTTON_MAP, GAMEPAD_AXIS_MAP, TRIGGER_BUTTON_MAP } from '../js/input.js';
 
 // GamepadSlotManager pure tests
 test('gamepad-slot: initial state — both slots free', async () => {
@@ -3330,6 +3525,46 @@ test('trigger-button-map: L2 and R2 entries exist', () => {
   assert.strictEqual(TRIGGER_BUTTON_MAP[6].axis, 2, 'L2 button should reference axis 2');
   assert.strictEqual(TRIGGER_BUTTON_MAP[7].axis, 5, 'R2 button should reference axis 5');
 });
+
+test('gamepad input: one-shot buttons edge-trigger and R2 stays held', () => {
+  const buttons = Array.from({ length: 16 }, () => ({ pressed: false, value: 0 }));
+  const pad = { index: 0, axes: [0, 0, 0, 0], buttons };
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  Object.defineProperty(globalThis, 'navigator', { value: { getGamepads: () => [pad] }, configurable: true });
+  try {
+    const input = new Input({});
+    input._gpConnected = true;
+    input._gpIndex = 0;
+    const frame = () => {
+      input.pollGamepad();
+      const result = { jump: input._vJump, use: input.usePressed, break: input.breakHeld };
+      input.usePressed = false;
+      return result;
+    };
+    buttons[0].pressed = true;
+    assert.strictEqual(frame().jump, true, 'Cross should jump on the press edge');
+    assert.strictEqual(frame().jump, false, 'held Cross must not auto-repeat jump');
+    buttons[0].pressed = false;
+    frame();
+    buttons[0].pressed = true;
+    assert.strictEqual(frame().jump, true, 'released and re-pressed Cross should jump again');
+    buttons[0].pressed = false;
+    frame();
+    buttons[1].pressed = true;
+    assert.strictEqual(frame().use, true, 'Circle should use on the press edge');
+    assert.strictEqual(frame().use, false, 'held Circle must not auto-repeat use');
+    buttons[7].pressed = true;
+    buttons[7].value = 1;
+    assert.strictEqual(frame().break, true, 'R2 should keep mining held');
+    buttons[7].pressed = false;
+    buttons[7].value = 0;
+    assert.strictEqual(frame().break, false, 'released R2 must clear mining');
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'navigator', previous);
+    else delete globalThis.navigator;
+  }
+});
+
 
 
 import { PadInputAdapter } from '../js/pad-input.js';
@@ -3673,7 +3908,7 @@ test('crafting lists shape building recipes', () => {
 test('crafting progression metadata is complete and reachable', () => {
   const categories = new Set(RECIPE_CATEGORIES.map((c) => c.id));
   const tiers = new Set(RECIPE_TIERS.map((t) => t.tier));
-  assert.equal(RECIPES.length, 73);
+  assert.equal(RECIPES.length, 77);
   for (const recipe of RECIPES) {
     assert.ok(categories.has(recipe.category), `${recipe.id} category`);
     assert.ok(tiers.has(recipe.tier), `${recipe.id} tier`);
@@ -3975,6 +4210,28 @@ test('offshore fishing has boardable skiff and lure-attracted school contracts',
   assert.match(game, /this\.audio\.craftComplete\?\.\(\) \|\| this\.audio\.placeBlock\(\)/);
   assert.match(game, /bag\.notify\(`Crafted: \$\{recipeId\.replace\(\/\_\/g, ' '\)\}`, 2\.4\)/);
   assert.match(audio, /craftComplete\(\)/);
+  assert.match(audio, /settlementUnlock\(label = 'new project'\)/);
+  assert.match(audio, /Settlement project unlocked/);
+  assert.match(audio, /smokehouseStart\(food = 'raw food'\)/);
+  assert.match(audio, /smokehouseReady\(food = 'smoked food'\)/);
+  assert.match(audio, /beaconLight\(lit = true\)/);
+  assert.match(audio, /aviaryInspect\(\)/);
+  assert.match(audio, /Smokehouse started/);
+  assert.match(audio, /Smokehouse ready/);
+  assert.match(audio, /Harbor Beacon lit/);
+  assert.match(audio, /Shorebird Aviary inspected/);
+  assert.match(game, /this\.audio\.smokehouseStart\(displayName\(heldId\)\)/);
+  assert.match(game, /this\.audio\.smokehouseReady\(displayName\(outputId\)\)/);
+  assert.match(game, /this\.audio\.beaconLight\?\.\(lit\)/);
+  assert.match(game, /this\.audio\.aviaryInspect\?\.\(\)/);
+  assert.match(game, /if \(this\._boat\?\.mounted\) \{[\s\S]*const selectedSlot = this\.input\.consumeSlot\(\);[\s\S]*this\._tickBoat\(dt\);/);
+  assert.match(game, /this\._stationFxClock = 0/);
+  assert.match(game, /this\._updateSettlementVisuals\(\)/);
+  assert.match(game, /const reducedMotion = this\.settings\?\.reducedMotion === true/);
+  assert.match(game, /const pulse = reducedMotion \? 0\.5 : 0\.5 \+ 0\.5 \* Math\.sin/);
+  assert.match(game, /bird\.position\.y = reducedMotion \? 1\.18/);
+  assert.match(game, /bird\.rotation\.y = reducedMotion \? 0/);
+  assert.match(game, /bird\.position\.y = reducedMotion \? 1\.18 : 1\.18 \+ Math\.sin/);
   assert.match(game, /this\.audio\.chestOpen\?\.\(\) \|\| this\.audio\.ui\(\)/);
   assert.match(game, /this\.audio\.chestClose\?\.\(\) \|\| this\.audio\.ui\(\)/);
   assert.match(audio, /chestOpen\(\)/);
@@ -3992,7 +4249,7 @@ test('offshore fishing has boardable skiff and lure-attracted school contracts',
   assert.match(game, /boat\.chest = boatAttachChest\(createBoatChest\(false\)\)/);
   assert.match(game, /_openBoatChest\(\)/);
   assert.match(game, /hasChest: !!this\._boat\.chest\?\.hasChest/);
-  assert.match(game, /title\.textContent = boatStorage \? 'Skiff Storage' : 'Chest'/);
+  assert.match(game, /smokehouseStorage/);
   assert.match(game, /return String\(this\._chestOpenKey \|\| ''\)\.startsWith\('boat:'\) \? 27 : CHEST_SIZE/);
   assert.match(game, /getChestSlots\(this\._chests, this\._chestOpenKey, this\._activeChestCapacity\(\)\)/);
   assert.match(chests, /export function getChestSlots\(chests, key, size = CHEST_SIZE\)/);
@@ -4995,6 +5252,15 @@ test('game mace smash wire', () => {
   assert.ok(src.includes('mace'));
 });
 
+test('fresh arrival camera reveals cove and keeps wildlife toast out of the opening rail', () => {
+  const game = fsText('js/game.js');
+  const main = fsText('js/main.js');
+  assert.match(main, /game\.js\?v=1030/);
+  assert.match(game, /this\.player\.yaw = freshPlayer \? arrivalFacingYaw\(arrival\) \+ 0\.72/);
+  assert.match(game, /this\.player\.pitch = freshPlayer \? -0\.12 : 0/);
+  assert.match(game, /this\._firstExpedition\?\.stage !== 'arrival' && nearBand/);
+});
+
 
 // ── animal-visuals v1.12.11 ──────────────────────────────
 test('animal milestone adds Minecraft land fauna with authored layouts', () => {
@@ -5016,7 +5282,7 @@ test('animal milestone adds Minecraft land fauna with authored layouts', () => {
   const animals = fsText('js/animals.js');
   assert.match(game, /animals.js\?v=285/);
   assert.match(game, /animal-visuals.js\?v=260/);
-  assert.match(main, /game\.js\?v=970/);
+  assert.match(main, /game\.js\?v=1030/);
   assert.match(game, /detailScale = part\.role === 'marking' \? 1\.18 : 1/);
   assert.match(game, /emissiveIntensity: detailRole \? 0\.35 : 0/);
   assert.match(game, /name = 'groundShadow'/);
@@ -6039,21 +6305,32 @@ test('castaway arrival candidate selection is deterministic and legacy-safe', ()
   assert.equal(restored.boatX, 7.5);
   assert.equal(restored.salvaged, true);
   assert.equal(restoreCastawayArrival({ x: 'bad' }), null);
+  assert.ok(Number.isFinite(CASTAWAY_CONFIG.salvageRadius) && CASTAWAY_CONFIG.salvageRadius > 6, 'arrival locker must be reachable from the authored spawn envelope');
+  assert.equal(arrivalFacingYaw({ waterDirX: 0, waterDirZ: -1 }), 0, 'fresh arrival should face the authored water vector');
+  assert.ok(Math.abs(arrivalFacingYaw({ waterDirX: 1, waterDirZ: 0 }) + Math.PI / 2) < 1e-9, 'east water vector should map to west-facing yaw');
+  assert.equal(arrivalFacingYaw({ yaw: 1.2 }), 1.2, 'legacy arrival without water vector keeps authored yaw');
   assert.match(castawayObjective(false), /Open the dinghy locker/);
   assert.match(castawayObjective(true), /Find fresh water/);
   const game = fsText('js/game.js');
   const world = fsText('js/world.js');
   assert.match(game, /findCastawaySpawn\?\./);
-  assert.match(game, /_tryCastawaySalvage\(\)/);
+  assert.match(game, /state\.salvaged = true;[\s\S]*this\._tickFirstExpedition\(\);/);
+  assert.match(game, /\[ITEM\.CANTEEN, 1\]/);
   assert.match(world, /findCastawaySpawn\(\)/);
+});
+
+test('castaway locker accepts close arrival context but preserves refusal boundary', () => {
+  assert.equal(canSalvageLocker(5.5, 1), true, 'normally aimed locker interaction should pass');
+  assert.equal(canSalvageLocker(6.5, 0), true, 'nearby authored arrival should not require a perfect camera yaw');
+  assert.equal(canSalvageLocker(6.5, -1), false, 'directly behind locker interaction must refuse');
+  assert.equal(canSalvageLocker(7.01, 1), false, 'out-of-range locker interaction must refuse');
 });
 
 test('fresh arrival camera uses the authored water-facing yaw', () => {
   const game = fsText('js/game.js');
-  assert.match(
-    game,
-    /this\.player\.yaw = freshPlayer \? \(Number\.isFinite\(arrival\.yaw\) \? arrival\.yaw : 0\.92\)/,
-  );
+  assert.match(game, /this\.player\.yaw = freshPlayer \? arrivalFacingYaw\(arrival\)/);
+  assert.match(game, /arrivalFacingYaw/);
+  assert.match(game, /const arrivalRoute = .*_firstExpedition\?\.stage === 'arrival'/);
 });
 
 test('bug sprint: all visible version surfaces agree', () => {
@@ -6063,7 +6340,11 @@ test('bug sprint: all visible version surfaces agree', () => {
   assert.ok(html.includes('v1.28.9'), 'HTML must expose v1.28.9');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
-  assert.ok(html.includes('main.js?v=943'), 'HTML must expose the current entry cache bust');
+  assert.match(html, /id="message" role="status" aria-live="polite" aria-atomic="true"/);
+  assert.match(html, /body\.game-active\.composure-mode #arrival-card/);
+  assert.match(html, /body\.game-active\.composure-mode #message/);
+  assert.match(html, /body\.game-active\.arrival-route #message/);
+  assert.ok(html.includes('main.js?v=1006'), 'HTML must expose the current entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6136,6 +6417,15 @@ test('bug sprint: controller uses standard right-stick axis', () => {
   assert.doesNotMatch(fsText('js/input-coop.js'), /gp\.axes\[4\]/);
   assert.match(fsText('js/input.js'), /axes\[2\]/);
   assert.match(fsText('js/input-coop.js'), /axes\[2\]/);
+});
+
+test('co-op controller lifecycle binds connect/disconnect reassignment', () => {
+  const game = fsText('js/game.js');
+  const coop = fsText('js/input-coop.js');
+  assert.match(game, /this\._coopRouter\.bindGamepadEvents\(\)/);
+  assert.match(coop, /window\.addEventListener\('gamepadconnected'/);
+  assert.match(coop, /window\.addEventListener\('gamepaddisconnected'/);
+  assert.match(coop, /removePlayerGamepad/);
 });
 
 test('bug sprint: negative chunks map to valid workers', () => {
@@ -6242,9 +6532,9 @@ test('procedural item icons reach hotbars, inventory, and chest without dropping
 test('durability adapter cache and mining wear remain reachable', () => {
   const game = fsText('js/game.js');
   const durability = fsText('js/durability.js');
-  assert.match(game, /from ['"]\.\/durability\.js\?v=224['"]/);
-  assert.match(durability, /from ['"]\.\/items\.js\?v=257['"]/, 'durability must use the current item catalog');
-  assert.match(durability, /from ['"]\.\/tool-tiers\.js\?v=223['"]/);
+  assert.match(game, /from ['"]\.\/durability\.js\?v=227['"]/);
+  assert.match(durability, /from ['"]\.\/items\.js\?v=261['"]/, 'durability must use the current item catalog');
+  assert.match(durability, /from ['"]\.\/tool-tiers\.js\?v=224['"]/);
   assert.match(game.slice(game.indexOf('  _handleMining(dt) {'), game.indexOf('  _handlePlace() {')), /wearTool\(this\.player\.slots, this\.player\.hotbarIndex, 1\)/);
   assert.match(game.slice(game.indexOf('  _handleCoopP2World(dt) {'), game.indexOf('  _spawnCoopP2(spawn) {')), /wearTool\(p\.slots, p\.hotbarIndex, 1\)/);
 });
@@ -6306,7 +6596,10 @@ test('Tidewatch arrival landmark is visual-only and lifecycle-wired', () => {
   assert.match(game, /_buildArrivalLandmarkVisual\(\)/);
   assert.match(game, /updateArrivalLandmark\(this\._arrivalLandmarkGroup, dt\)/);
   assert.match(game, /_clearArrivalLandmarkVisual\(\)/);
+  assert.match(game, /const distance = 18/);
+  assert.match(game, /const signal = this\._findArrivalSignalPosition\(\);[\s\S]*if \(!signal\) return;/);
   assert.match(landmark, /tidewatch-beacon/);
+  assert.match(landmark, /group\.scale\.setScalar\(1\.28\)/);
   assert.match(landmark, /tidewatch-flag/);
   assert.match(landmark, /export function updateArrivalLandmark/);
 });
@@ -6420,7 +6713,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=943/);
+  assert.match(html, /main\.js\?v=1006/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6456,16 +6749,46 @@ test('balanced cadence bounds apiary, power, and light scans without removing li
   assert.match(pollinator, /rebuildInterval = 3\.5/);
 });
 
+test('settlement progression exposes the next concrete player project', () => {
+  const fresh = settlementNextProject({ edits: 0, roofed: false, campfire: false });
+  assert.deepEqual(fresh, {
+    id: 'water_cistern',
+    label: 'Rain cistern blueprint',
+    progress: 0,
+    progressLabel: '0 / 32 blocks',
+    note: 'Build 32 more blocks to unlock',
+  });
+  const homestead = { edits: 32, roofed: true, campfire: true };
+  assert.deepEqual(settlementUnlocks(homestead), [
+    { id: 'water_cistern', label: 'Rain cistern blueprint' },
+    { id: 'smokehouse', label: 'Smokehouse station' },
+  ]);
+  assert.equal(settlementNextProject(homestead).id, 'beacon');
+  assert.equal(settlementNextProject(homestead).progressLabel, '0 / 2 voyages');
+  assert.equal(settlementNextProject({ ...homestead, voyages: 2, observedSpecies: 6 }), null);
+  const roofOnly = settlementNextProject({ edits: 32, roofed: true, campfire: false });
+  assert.equal(roofOnly.id, 'smokehouse');
+  assert.equal(roofOnly.progressLabel, '1 / 2 foundations');
+  assert.equal(roofOnly.note, 'Still needed: campfire');
+});
+
 test('golden cove vision pack wires the first six future-vision pillars', () => {
   const game = fsText('js/game.js');
   const main = fsText('js/main.js');
   const vision = fsText('js/frontier-vision-pack.js');
   const html = fsText('index.html');
-  assert.match(main, /game\.js\?v=970/);
-  assert.match(game, /frontier-vision-pack\.js\?v=34/);
+  assert.match(main, /game\.js\?v=1030/);
+  assert.match(game, /frontier-vision-pack\.js\?v=47/);
   assert.match(game, /if \(this\._castawayGroup && !this\._boat\)/);
   assert.match(game, /if \(this\._castawayGroup\) this\._castawayGroup\.visible = false/);
   assert.match(vision, /campFactors/);
+  assert.match(vision, /nextProject\.progressLabel/);
+  assert.match(vision, /let lastSettlementUnlocks = null/);
+  assert.match(vision, /lastSettlementUnlocks !== null/);
+  assert.match(vision, /game\.player\?\.notify\?\.\(`Settlement project unlocked:/);
+  assert.match(vision, /data-gcv-meter="settlement" role="progressbar" aria-label="Settlement project progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"/);
+  assert.match(vision, /getAttribute\('role'\) === 'progressbar'/);
+  assert.match(vision, /data-gcv="unlock"/);
   assert.match(vision, /fire secured/);
   assert.match(vision, /roof missing/);
   assert.match(vision, /bed missing/);
@@ -6516,7 +6839,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   assert.match(vision, /MEMORY_KEY/);
   assert.match(vision, /bearingTo/);
   assert.match(vision, /setWidth\(root, '\[data-gcv-meter=\"tide\"\]'/);
-  assert.match(html, /main\.js\?v=943/);
+  assert.match(html, /main\.js\?v=1006/);
 });
 
 test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvous', () => {
@@ -6544,7 +6867,7 @@ test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvo
   const game = fsText('js/game.js');
   const html = fsText('index.html');
   assert.equal(html, fsText('public/index.html'));
-  assert.match(game, /frontier-vision-pack\.js\?v=34/);
+  assert.match(game, /frontier-vision-pack\.js\?v=47/);
   assert.match(game, /this\.time\.tick\(dt/);
   assert.match(game, /this\.player2\.update\(this\.world, this\.input2/);
   assert.match(game, /crewTogetherAt\(this\.player, this\.player2/);

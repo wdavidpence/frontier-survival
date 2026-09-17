@@ -216,6 +216,7 @@ export class Input {
     this._vJump = false;
     this._gpJumpHeld = false;
     this._gpUseHeld = false;
+    this._gpButtonHeld = new Map();
     this._vCrouch = false;
     /** Gamepad state — dual gamepad support via shared GamepadSlotManager */
     this._slots = null; // Shared GamepadSlotManager (set by caller or auto-created)
@@ -241,6 +242,7 @@ export class Input {
     this.breakHeld = false;
     this._heldLmb = false;
     this._breakFromGamepad = false;
+    this._gpButtonHeld.clear();
     this.placePressed = false;
     this.usePressed = false;
     this.eatPressed = false;
@@ -366,6 +368,7 @@ export class Input {
     }
     this._gpIndex = -1;
     this._gpConnected = false;
+    this._gpButtonHeld.clear();
     this._heldLmb = false;
     this._breakFromGamepad = false;
     this.breakHeld = false;
@@ -472,6 +475,7 @@ export class Input {
       this._vMoveZ = 0;
       this._gpJumpHeld = false;
       this._gpUseHeld = false;
+      this._gpButtonHeld.clear();
       // Mouse and gamepad are independent owners of the public held state.
       this._breakFromGamepad = false;
       this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
@@ -487,6 +491,7 @@ export class Input {
       this.placePressed = false;
       this._gpJumpHeld = false;
       this._gpUseHeld = false;
+      this._gpButtonHeld.clear();
       // Mouse and gamepad are independent owners of the public held state.
       this._breakFromGamepad = false;
       this.breakHeld = combineBreakHeld(this._heldLmb, this._breakFromGamepad);
@@ -536,6 +541,12 @@ export class Input {
     // Dispatch buttons via GAMEPAD_BUTTON_MAP (single source of truth).
     const btn = (i) => gp.buttons[i] && gp.buttons[i].pressed;
     const absBtn = (i) => gp.buttons[i] && gp.buttons[i].value;
+    const rising = (i) => {
+      const pressed = !!btn(i);
+      const wasPressed = this._gpButtonHeld.get(i) === true;
+      this._gpButtonHeld.set(i, pressed);
+      return pressed && !wasPressed;
+    };
 
     // Action dispatch table — maps action names to setters.
     const actionMap = {
@@ -557,12 +568,15 @@ export class Input {
     const dpadKeys = { dpad_up: 'KeyW', dpad_down: 'KeyS', dpad_left: 'KeyA', dpad_right: 'KeyD' };
 
     for (const [idx, mapping] of Object.entries(GAMEPAD_BUTTON_MAP)) {
-      if (!btn(Number(idx))) continue;
+      const buttonIndex = Number(idx);
+      const pressed = !!btn(buttonIndex);
+      const pressedEdge = rising(buttonIndex);
+      if (!pressed) continue;
       const action = mapping.action;
       // D-pad maps to keyboard codes for movement.
       if (dpadKeys[action]) {
         this.keys.add(dpadKeys[action]);
-      } else if (actionMap[action]) {
+      } else if (actionMap[action] && (action === 'sprint' || action === 'crouch' ? pressed : pressedEdge)) {
         actionMap[action]();
       }
     }

@@ -1,8 +1,8 @@
 /** Crafting recipes — pure data + craft helper */
 import { BLOCK } from './blocks.js?v=299';
-import { ITEM } from './items.js?v=257';
+import { ITEM } from './items.js?v=261';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
-import { craftWith, countItems } from './inventory.js?v=223';
+import { craftWith, countItems } from './inventory.js?v=224';
 
 /**
  * Recipe tiers gate progression by the material they need: 1 = wood tier
@@ -686,6 +686,10 @@ const ALL_RECIPES = [
   { id:'diamond_sword', name:'Diamond Sword', desc:'2 Diamond + 1 Stick', category:'tools', tier:3, ingredients:[{id:ITEM.DIAMOND,count:2},{id:ITEM.STICK,count:1}], results:[{id:ITEM.DIAMOND_SWORD,count:1}] },
   { id:'glider', name:'Palm Glider', desc:'Hold jump while falling. 6 Palm Frond + 3 Sticks', category:'utility', tier:1, ingredients:[{id:ITEM.PALM_FROND,count:6},{id:ITEM.STICK,count:3}], results:[{id:ITEM.GLIDER,count:1}] },
   { id:'glass_pane_thin', name:'Thin Glass Pane', desc:'1 Glass → 4 Thin Glass Panes (transparent barrier)', category:'building', tier:1, ingredients:[{id:BLOCK.GLASS,count:1}], results:[{id:BLOCK.GLASS_PANE_THIN,count:4}] },
+  { id:'rain_cistern', name:'Rain Cistern', desc:'Settlement project · 8 Planks + 1 Bucket → placeable water storage', category:'building', tier:2, ingredients:[{id:BLOCK.PLANKS,count:8},{id:ITEM.BUCKET,count:1}], results:[{id:ITEM.RAIN_CISTERN,count:1}], requiresSettlementBlocks:32 },
+  { id:'harbor_beacon', name:'Harbor Beacon Kit', desc:'Settlement project · 6 Planks + 2 Iron + 1 Lamp · after 2 voyages', category:'building', tier:3, ingredients:[{id:BLOCK.PLANKS,count:6},{id:ITEM.IRON_INGOT,count:2},{id:BLOCK.LAMP,count:1}], results:[{id:ITEM.HARBOR_BEACON,count:1}], requiresVoyages:2 },
+  { id:'shorebird_aviary', name:'Shorebird Aviary', desc:'Settlement project · 4 Planks + 2 Glass + 1 Wool · after 6 species', category:'building', tier:3, ingredients:[{id:BLOCK.PLANKS,count:4},{id:BLOCK.GLASS,count:2},{id:ITEM.WOOL,count:1}], results:[{id:ITEM.SHOREBIRD_AVIARY,count:1}], requiresObservedSpecies:6 },
+  { id:'smokehouse', name:'Smokehouse', desc:'Settlement project · 10 Planks + 2 Coal + 1 Iron → placeable food station', category:'building', tier:2, ingredients:[{id:BLOCK.PLANKS,count:10},{id:ITEM.COAL,count:2},{id:ITEM.IRON_INGOT,count:1}], results:[{id:ITEM.SMOKEHOUSE,count:1}], requiresSettlementBlocks:32, requiresRoof: true, requiresCampfire: true },
 ];
 
 const TOOL_PRIORITY_RECIPE_IDS = new Set([
@@ -739,6 +743,21 @@ function findRecipe(recipeId) {
 export function craftRecipe(slots, recipeId, ctx = {}) {
   const recipe = findRecipe(recipeId);
   if (!recipe) return { ok: false, slots, error: 'unknown recipe' };
+  if (recipe.requiresSettlementBlocks && (Number(ctx.settlementBlocks) || 0) < recipe.requiresSettlementBlocks) {
+    return { ok: false, slots, error: 'settlement locked', settlementMissing: recipe.requiresSettlementBlocks - (Number(ctx.settlementBlocks) || 0) };
+  }
+  if (recipe.requiresVoyages && (Number(ctx.voyages) || 0) < recipe.requiresVoyages) {
+    return { ok: false, slots, error: 'voyage locked', voyagesMissing: recipe.requiresVoyages - (Number(ctx.voyages) || 0) };
+  }
+  if (recipe.requiresObservedSpecies && (Number(ctx.observedSpecies) || 0) < recipe.requiresObservedSpecies) {
+    return { ok: false, slots, error: 'species locked', speciesMissing: recipe.requiresObservedSpecies - (Number(ctx.observedSpecies) || 0) };
+  }
+  if (recipe.requiresRoof && !ctx.roofed) {
+    return { ok: false, slots, error: 'need roofed shelter' };
+  }
+  if (recipe.requiresCampfire && !ctx.campfire) {
+    return { ok: false, slots, error: 'need campfire foundation' };
+  }
   if (recipe.requiresHeat && (ctx.heat || 0) < recipe.requiresHeat) {
     return { ok: false, slots, error: 'need campfire heat' };
   }
@@ -771,7 +790,18 @@ export function recipeProgress(recipeId, slots, ctx = {}) {
   if (!recipe) return null;
   const ingredients = ingredientSummary(recipe, slots);
   const heatOk = !recipe.requiresHeat || (ctx.heat || 0) >= recipe.requiresHeat;
-  return { id: recipe.id, can: heatOk && ingredients.every((i) => i.ok), heatOk, ingredients };
+  const settlementBlocks = Math.max(0, Number(ctx.settlementBlocks) || 0);
+  const settlementOk = !recipe.requiresSettlementBlocks || settlementBlocks >= recipe.requiresSettlementBlocks;
+  const settlementMissing = settlementOk ? 0 : recipe.requiresSettlementBlocks - settlementBlocks;
+  const voyages = Math.max(0, Number(ctx.voyages) || 0);
+  const voyagesOk = !recipe.requiresVoyages || voyages >= recipe.requiresVoyages;
+  const voyagesMissing = voyagesOk ? 0 : recipe.requiresVoyages - voyages;
+  const observedSpecies = Math.max(0, Number(ctx.observedSpecies) || 0);
+  const speciesOk = !recipe.requiresObservedSpecies || observedSpecies >= recipe.requiresObservedSpecies;
+  const speciesMissing = speciesOk ? 0 : recipe.requiresObservedSpecies - observedSpecies;
+  const roofOk = !recipe.requiresRoof || !!ctx.roofed;
+  const campfireOk = !recipe.requiresCampfire || !!ctx.campfire;
+  return { id: recipe.id, can: settlementOk && voyagesOk && speciesOk && roofOk && campfireOk && heatOk && ingredients.every((i) => i.ok), heatOk, settlementOk, settlementMissing, voyagesOk, voyagesMissing, speciesOk, speciesMissing, roofOk, campfireOk, ingredients };
 }
 
 /** Whether a recipe can be crafted right now with the given slots/heat context. */

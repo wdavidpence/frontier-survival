@@ -178,11 +178,34 @@ export function parseSavePayload(raw) {
   if (!data.landingBerth || typeof data.landingBerth !== 'object') data.landingBerth = null;
   if (!data.whiteBayRoute || typeof data.whiteBayRoute !== 'object') data.whiteBayRoute = null;
   if (data.workshop == null) data.workshop = null;
-  if (!data.buildMeta || typeof data.buildMeta !== 'object') data.buildMeta = { blocks: [], slabs: [], stairs: [], beds: [] };
-  for (const key of ['blocks', 'slabs', 'stairs', 'beds']) {
+  if (!data.buildMeta || typeof data.buildMeta !== 'object') data.buildMeta = { blocks: [], slabs: [], stairs: [], beds: [], doors: [], campFuel: [], cisterns: [], cisternWater: [], smokehouses: [], smokehouseJobs: [], smokehouseOutputs: [], beacons: [], beaconLit: [], aviaries: [], aviaryInspected: [] };
+  for (const key of ['blocks', 'slabs', 'stairs', 'beds', 'doors', 'campFuel', 'cisternWater']) {
     if (!Array.isArray(data.buildMeta[key])) data.buildMeta[key] = [];
     data.buildMeta[key] = data.buildMeta[key].filter(entry => Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' && Number.isFinite(entry[1]));
   }
+  if (!Array.isArray(data.buildMeta.cisterns)) data.buildMeta.cisterns = [];
+  data.buildMeta.cisterns = data.buildMeta.cisterns.filter(entry => typeof entry === 'string' && entry.length <= 64);
+  if (!Array.isArray(data.buildMeta.smokehouses)) data.buildMeta.smokehouses = [];
+  data.buildMeta.smokehouses = data.buildMeta.smokehouses.filter(entry => typeof entry === 'string' && entry.length <= 64);
+  if (!Array.isArray(data.buildMeta.beacons)) data.buildMeta.beacons = [];
+  data.buildMeta.beacons = data.buildMeta.beacons.filter(entry => typeof entry === 'string' && entry.length <= 64);
+  if (!Array.isArray(data.buildMeta.beaconLit)) data.buildMeta.beaconLit = [];
+  data.buildMeta.beaconLit = data.buildMeta.beaconLit.filter(entry => typeof entry === 'string' && entry.length <= 64);
+  if (!Array.isArray(data.buildMeta.aviaries)) data.buildMeta.aviaries = [];
+  data.buildMeta.aviaries = data.buildMeta.aviaries.filter(entry => typeof entry === 'string' && entry.length <= 64);
+  if (!Array.isArray(data.buildMeta.aviaryInspected)) data.buildMeta.aviaryInspected = [];
+  data.buildMeta.aviaryInspected = data.buildMeta.aviaryInspected.filter(entry => typeof entry === 'string' && entry.length <= 64);
+  if (!Array.isArray(data.buildMeta.smokehouseJobs)) data.buildMeta.smokehouseJobs = [];
+  data.buildMeta.smokehouseJobs = data.buildMeta.smokehouseJobs
+    .filter((entry) => Array.isArray(entry) && typeof entry[0] === 'string' && entry[0].length <= 64 && entry[1] && Number.isInteger(entry[1].input) && Number.isFinite(entry[1].remaining))
+    .map(([key, job]) => [key, { input: job.input, remaining: Math.max(0, Math.min(60, job.remaining)) }]);
+  if (!Array.isArray(data.buildMeta.smokehouseOutputs)) data.buildMeta.smokehouseOutputs = [];
+  data.buildMeta.smokehouseOutputs = data.buildMeta.smokehouseOutputs
+    .filter((entry) => Array.isArray(entry) && typeof entry[0] === 'string' && entry[0].length <= 64 && entry[1] && Number.isInteger(entry[1].id) && Number.isInteger(entry[1].count) && entry[1].count > 0)
+    .map(([key, output]) => [key, { id: output.id, count: Math.min(16, output.count) }]);
+  data.buildMeta.cisternWater = data.buildMeta.cisternWater
+    .filter(([key]) => key.length <= 64)
+    .map(([key, value]) => [key, Math.max(0, Math.min(100, value))]);
   if (!Array.isArray(data.player.slots)) return { ok: false, error: 'missing slots' };
   if (!data.player.equipment || typeof data.player.equipment !== 'object') {
     data.player.equipment = { head: null, chest: null, feet: null };

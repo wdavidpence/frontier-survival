@@ -24,8 +24,8 @@ function test(name, fn) {
 }
 
 test('sandy shoreline is level with the water surface when adjacent to water', () => {
-  assert.equal(sandyBeachHeight({ height: seaLevel + 1, biome: 'shore', seaLevel, adjacentWater: true }), seaLevel - 1);
-  assert.equal(sandyBeachHeight({ height: seaLevel + 3, biome: 'ocean', seaLevel, adjacentWater: true }), seaLevel - 1);
+  assert.equal(sandyBeachHeight({ height: seaLevel + 1, biome: 'shore', seaLevel, adjacentWater: true }), seaLevel);
+  assert.equal(sandyBeachHeight({ height: seaLevel + 3, biome: 'ocean', seaLevel, adjacentWater: true }), seaLevel);
 });
 
 test('rocky shore relief is preserved above the waterline', () => {
@@ -48,7 +48,7 @@ test('actual generated sandy coast cells flatten to the waterline', () => {
     }
   }
   assert.ok(candidates.length > 0, 'seed must expose at least one graded sandy coast cell');
-  assert.ok(candidates.every(height => height === seaLevel - 1));
+  assert.ok(candidates.every(height => height === seaLevel));
 });
 
 test('excavating coastal sand fills the new cell from adjacent water', () => {

@@ -1,5 +1,5 @@
 /** Deterministic workbench presentation model. Pure data; no DOM or Three.js. */
-import { RECIPES } from './crafting.js?v=422';
+import { RECIPES } from './crafting.js?v=429';
 
 const PATTERNS = {
   crafting_table: [0, 1, 3, 4],

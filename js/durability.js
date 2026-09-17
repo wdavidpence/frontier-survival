@@ -1,9 +1,9 @@
 /**
  * Tool durability helpers — pure.
  */
-import { propsOf } from './items.js?v=257';
-import { tierForItem, TIER_DURABILITY } from './tool-tiers.js?v=223';
-import { cloneSlots } from './inventory.js?v=223';
+import { propsOf } from './items.js?v=261';
+import { tierForItem, TIER_DURABILITY } from './tool-tiers.js?v=224';
+import { cloneSlots } from './inventory.js?v=224';
 
 export function maxDurability(id) {
   const tier = tierForItem(id);

@@ -2,7 +2,7 @@
  * No game/world/player/main imports — pure data + logic only. */
 
 import { BLOCK } from './blocks.js?v=297';
-import { ITEM } from './items.js?v=257';
+import { ITEM } from './items.js?v=261';
 
 // ── Shape metadata (pure data, no rendering) ────────────────────────
 

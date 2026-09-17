@@ -9,14 +9,19 @@ export function createArrivalLandmark(position) {
   const group = new THREE.Group();
   group.name = 'tidewatch-arrival-landmark';
   group.position.set(position.x, position.y, position.z);
+  group.scale.setScalar(1.28);
 
   const stone = new THREE.MeshStandardMaterial({
-    color: 0x53646a,
+    color: 0x78939a,
+    emissive: 0x1a2f38,
+    emissiveIntensity: 0.42,
     roughness: 0.96,
     metalness: 0.02,
   });
   const stoneCap = new THREE.MeshStandardMaterial({
-    color: 0x80919a,
+    color: 0xa0b8b9,
+    emissive: 0x263b40,
+    emissiveIntensity: 0.28,
     roughness: 0.88,
     metalness: 0.04,
   });

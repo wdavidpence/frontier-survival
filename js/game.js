@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=560';
-import { Player } from './player.js?v=243';
-import { Input } from './input.js?v=413';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=567';
+import { Player } from './player.js?v=244';
+import { Input } from './input.js?v=414';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=227';
-import { AudioBus } from './audio.js?v=244';
+import { AudioBus } from './audio.js?v=248';
 import {
   DEFAULT_SURVIVAL,
   tickSurvival,
@@ -23,9 +23,9 @@ import {
   placeBlockId,
   mineMultiplier,
   dropForBlock,
-} from './items.js?v=257';
+} from './items.js?v=261';
 import { iconDataUriForItem } from './item-icons.js?v=24';
-import { resolveBlockDrop, harvestDurationForBlock, workDurationForBlock } from './mine-tier.js?v=224';
+import { resolveBlockDrop, harvestDurationForBlock, workDurationForBlock } from './mine-tier.js?v=225';
 import {
   FURNACE,
   createWorkshopState,
@@ -38,7 +38,7 @@ import {
   insertStationFuel,
   tickFurnaceStation,
   takeStationOutput,
-} from './workshop-stations.js?v=2';
+} from './workshop-stations.js?v=3';
 import { renderFurnaceUi, bindFurnaceUi } from './furnace-ui.js?v=3';
 import { slabHalfFromPitch, slabHalfMeta } from './slab-place.js?v=221';
 import { stairFacingFromYaw, stairFacingMeta } from './stair-place.js?v=221';
@@ -58,7 +58,7 @@ import {
   emptySlots,
   splitStack,
   swapSlots,
-} from './inventory.js?v=223';
+} from './inventory.js?v=224';
 import {
   visibleRecipes,
   craftRecipe,
@@ -67,11 +67,11 @@ import {
   ingredientSummary,
   recipeProgress,
   nextProgressionRecipe,
-} from './crafting.js?v=424';
+} from './crafting.js?v=429';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
 import { FaunaSystem, SPECIES, canFeed, tryFeed } from './animals.js?v=285';
 import { animalPartLayout, animalLimbPose } from './animal-visuals.js?v=260';
-import { createBlockAtlas } from './atlas.js?v=356';
+import { createBlockAtlas } from './atlas.js?v=361';
 import { BreakFX, WeatherFX, MangroveFireflyFX, MangroveMothFX, MangroveWaterFX, MangroveFrogFX, MangroveCrabFX, MangroveMudskipperFX, MangroveDragonflyFX, MangroveEgretFX } from './fx.js?v=291';
 import {
   spawnWorldDrop,
@@ -93,7 +93,7 @@ import { apiaryHarvest } from './apiary-state.js?v=1';
 import { underwaterFogStyle } from './underwater-fog.js?v=246';
 import { terrainVisibilityPlan, fogForSun } from './terrain-visibility.js?v=292';
 import { buildHeldItemGeometry, heldFamilyForProps } from './held-item-geometry.js?v=11';
-import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=1';
+import { workbenchGridForRecipe, workbenchOutputForRecipe } from './workbench.js?v=2';
 import { placementState } from './placement-preview.js?v=1';
 import { heightAt, bviRouteCorridorAt, bviLocationAt, caneGardenBayWalkableAt, villageSitesForSeed } from './gen.js?v=337';
 import { VoxelCloudLayer, SunDisc, StarField } from './sky-clouds.js?v=34';
@@ -107,19 +107,19 @@ import {
   canSleep,
   applySleepRest,
   EQUIP_SLOTS,
-} from './equipment.js?v=221';
+} from './equipment.js?v=222';
 import { hasRoofAbove, wetnessGainRate, exposureColdMult } from './exposure.js?v=221';
 import {
   serializeSave,
   writeSaveToStorage,
   readSaveFromStorage,
   clearSaveStorage,
-} from './save.js?v=235';
+} from './save.js?v=240';
 import { getMode } from './modes.js?v=244';
 import { createFrameBudget, recordFrameSample, frameStats } from './perf-budget.js?v=4';
 import { streamingConfidenceFromStats, streamingConfidenceHudLabel } from './streaming-confidence.js?v=1';
 import { applyClearArrivalTick, clearArrivalHudLabel, normalizeWeatherGrace } from './clear-arrival.js?v=1';
-import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=6';
+import { normalizeGraphicsQuality, qualitySettings } from './quality-policy.js?v=7';
 import { nearestLights, caveDarkness01 } from './voxel-light.js?v=1';
 import { STARTER_CAVE_CHEST } from './cave-carve.js?v=1';
 import { floodFromSources } from './fluid-flow.js?v=1';
@@ -132,9 +132,9 @@ import { hydrateNearWater, isHydratedFarmland } from './farmland.js?v=1';
 import { fogTintForBiome } from './biome-dress.js?v=1';
 import { enchantLevelCost, canPayEnchant, payEnchantLevels } from './enchant-cost.js?v=1';
 import { createDisposalContext, disposeTree } from './resource-disposal.js?v=3';
-import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=3';
+import { createArrivalLandmark, updateArrivalLandmark } from './arrival-landmark.js?v=5';
 import { createForestThreshold, updateForestThreshold, disposeForestThreshold } from './forest-threshold.js?v=3';
-import { createGoldenCoveVision } from './frontier-vision-pack.js?v=34';
+import { createGoldenCoveVision } from './frontier-vision-pack.js?v=47';
 import { createFirstExpeditionState, advanceFirstExpedition, firstExpeditionSummary } from './first-expedition.js?v=2';
 
 const HARVEST_BASE_SECONDS = 4.2;
@@ -145,7 +145,7 @@ import {
   sensitivityFromSlider,
   sliderFromSensitivity,
   DEFAULT_SETTINGS,
-} from './settings.js?v=225';
+} from './settings.js?v=227';
 import {
   emptyAchievements,
   unlockAchievement,
@@ -153,9 +153,9 @@ import {
   achievementTitle,
   achievementDesc,
 } from './achievements.js?v=223';
-import { tickSpoilage } from './spoilage.js?v=223';
+import { tickSpoilage } from './spoilage.js?v=224';
 import { spawnArrow, stepProjectile, hitAnimal } from './projectiles.js?v=221';
-import { wearTool, durabilityRatio } from './durability.js?v=224';
+import { wearTool, durabilityRatio } from './durability.js?v=227';
 import { applyBleed, tickBleed, stopBleed, isBleeding } from './bleed.js?v=221';
 import { tickLogic, COMPONENT } from './logic.js?v=221';
 import { biomeAt, BIOME, ambientTempOffset } from './biomes.js?v=274';
@@ -169,14 +169,14 @@ import {
   withdrawOne,
   emptyChestSlots,
   CHEST_SIZE,
-} from './chests.js?v=223';
+} from './chests.js?v=224';
 import { checkTooltip, show as showTooltip } from './tooltips.js?v=221';
 import { splitViewport } from './viewport-split.js?v=221';
 import { readGamepad } from './input-coop.js?v=262';
-import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=221';
+import { PadInputAdapter, getConnectedPad } from './pad-input.js?v=222';
 import { wouldPartnerNearForSleep, effectiveCoopRenderDistance, isBothPlayersDown } from './coop-proximity.js?v=221';
 import { crewTogetherAt, coopCrewRouteSummary } from './coop-crew-route.js?v=1';
-import { palmLeafDrop } from './palm-drops.js?v=3';
+import { palmLeafDrop } from './palm-drops.js?v=4';
 import { createBoat, normalizeBoatState, mountBoat, dismountBoat, hasRider, stepBoat, degradeBoat, boatRepairPlan, repairBoat, pushBoat, buoyancyY, riderPosition, boatWaterFootprintClear, BOAT_CONFIG } from './boat-entity.js?v=6';
 import { boatAttachChest, createBoatChest } from './boat-chest.js?v=2';
 import { FISH_SCHOOL_COUNT, schoolFishPose, schoolVisibility } from './fish-school.js?v=3';
@@ -189,7 +189,7 @@ import {
   startCast,
   tickFishing,
   rollFishingCatch,
-} from './fishing-cast.js?v=5';
+} from './fishing-cast.js?v=6';
 import {
   ITEM as DEST_ITEM,
   IRON_RAVINE,
@@ -259,10 +259,20 @@ function clearItemIcon(element) {
 }
 import {
   CASTAWAY_CONFIG,
+  arrivalFacingYaw,
   castawayObjective,
+  canSalvageLocker,
   createCastawayArrival,
   restoreCastawayArrival,
-} from './castaway-arrival.js?v=7';
+} from './castaway-arrival.js?v=10';
+
+const CISTERN_SERVING = 25;
+const SMOKEHOUSE_COOK_SECONDS = 10;
+const SMOKEHOUSE_RECIPES = Object.freeze({
+  [ITEM.RAW_MEAT]: ITEM.COOKED_MEAT,
+  [ITEM.RAW_FISH]: ITEM.COOKED_FISH,
+  [ITEM.RAW_CRAB]: ITEM.COOKED_CRAB,
+});
 
 export class Game {
   /**
@@ -492,6 +502,19 @@ export class Game {
     this.weatherFx = null;
     this._bowCd = 0;
     this._chests = new Map();
+    this._cisterns = new Set();
+    this._cisternWater = new Map();
+    this._cisternVisuals = new Map();
+    this._smokehouses = new Set();
+    this._smokeJobs = new Map();
+    this._smokeOutputs = new Map();
+    this._smokehouseVisuals = new Map();
+    this._beacons = new Set();
+    this._beaconLit = new Set();
+    this._beaconVisuals = new Map();
+    this._aviaries = new Set();
+    this._aviaryInspected = new Set();
+    this._aviaryVisuals = new Map();
     this._chestOpenKey = null;
     this._recipeFilter = '';
     this._fishCd = 0;
@@ -516,6 +539,7 @@ export class Game {
     this._boat = null;
     this._boatMesh = null;
     this._boatClock = 0;
+    this._stationFxClock = 0;
     this._boatWake = [];
     this._campFuel = new Map(); // "x,y,z" -> fuel 0..100
     this._destinationState = createDestinationState();
@@ -1004,6 +1028,8 @@ export class Game {
     const streamCap = Math.max(2, Math.min(plan.proxyChunks, this.graphics.streamRadius || plan.proxyChunks));
     if (streamCap < plan.proxyChunks) {
       plan.proxyChunks = streamCap;
+      plan.lodChunks = Math.min(plan.lodChunks, streamCap);
+      plan.fullChunks = Math.min(plan.fullChunks, plan.lodChunks);
       plan.streamRadius = streamCap;
       plan.fogFar = Math.max(plan.fogNear + 48, Math.round(streamCap * plan.chunkSize * 0.84));
       plan.cameraFar = Math.max(plan.fogFar + 48, streamCap * plan.chunkSize + 64);
@@ -1185,11 +1211,26 @@ export class Game {
     this._bedFace = new Map();
     this._doorFace = new Map();
     this._builtEdits = new Map();
+    this._cisterns = new Set();
+    this._cisternWater = new Map();
+    this._smokehouses = new Set();
+    this._smokeJobs = new Map();
+    this._smokeOutputs = new Map();
+    this._beacons = new Set();
+    this._beaconLit = new Set();
+    this._beaconVisuals = new Map();
+    this._aviaries = new Set();
+    this._aviaryInspected = new Set();
+    this._aviaryVisuals = new Map();
     this._clearWorldDrops();
     this._chew = null;
     this._leafDecay = [];
     this._clearArrivalLandmarkVisual();
     this._clearForestThresholdVisual();
+    this._clearCisternVisuals();
+    this._clearSmokehouseVisuals();
+    this._clearBeaconVisuals();
+    this._clearAviaryVisuals();
     if (this.world) {
       this.scene.remove(this.world.group);
       this.world.dispose?.();
@@ -1198,6 +1239,7 @@ export class Game {
       seed,
       // Bootstrap/full-detail radius — outer proxy ring streams in over frames.
       radiusChunks: this._terrainVisibilityPlan().fullChunks || this.worldRadius || 5,
+      streamRadius: Math.max(2, Math.min(this._terrainVisibilityPlan().proxyChunks || this.worldRadius || 5, this.graphics.streamRadius || this.worldRadius || 5)),
       material: this.atlas.greedyMaterial || this.atlas.material,
       doorFacing: () => this._doorFace,
     });
@@ -1261,12 +1303,10 @@ export class Game {
       // Planks/roofing, plus the supplied sticks for the first safe night.
       this.player.slots = addItems(this.player.slots, BLOCK.LOG, 4).slots;
       this.player.slots = addItems(this.player.slots, ITEM.PALM_FROND, 2).slots;
-      // Fresh arrivals open seaward so the first frame shows water and flanking palms, not the village wall.
-      this.player.yaw = freshPlayer ? (Number.isFinite(arrival.yaw) ? arrival.yaw : 0.92) : (Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI));
-      this.player.pitch = 0;
-      if (freshPlayer && (spawn.landmark === 'Las Croabas · Fajardo' || caneGardenBayWalkableAt(spawn.x, spawn.z))) {
-        this.player.pitch = 0.22;
-      }
+      // A slight cove reveal keeps the water route, sunset, and beacon together without aiming into the flat horizon.
+      this.player.yaw = freshPlayer ? arrivalFacingYaw(arrival) + 0.72 : (Number.isFinite(arrival.yaw) ? arrival.yaw : (Number.isFinite(spawn.yaw) ? spawn.yaw : Math.PI));
+      // Keep the first frame just above level so the player reads sky, shoreline, and water together.
+      this.player.pitch = freshPlayer ? -0.12 : 0;
       this.input.lookX = this.player.yaw;
       this.input.lookY = this.player.pitch;
       this._sunAzimuth = this.player.yaw;
@@ -1356,6 +1396,18 @@ export class Game {
       }
       this._crops = new Map(Array.isArray(saveData.crops) ? saveData.crops : []);
       this._chests = importChests(saveData.chests || []);
+      this._cisterns = new Set(Array.isArray(saveData.buildMeta?.cisterns) ? saveData.buildMeta.cisterns : []);
+      this._cisternWater = new Map(Array.isArray(saveData.buildMeta?.cisternWater) ? saveData.buildMeta.cisternWater : []);
+      this._smokehouses = new Set(Array.isArray(saveData.buildMeta?.smokehouses) ? saveData.buildMeta.smokehouses : []);
+      this._smokeJobs = new Map(Array.isArray(saveData.buildMeta?.smokehouseJobs) ? saveData.buildMeta.smokehouseJobs : []);
+      this._smokeOutputs = new Map(Array.isArray(saveData.buildMeta?.smokehouseOutputs) ? saveData.buildMeta.smokehouseOutputs : []);
+      this._smokehouseVisuals = new Map();
+      this._beacons = new Set(Array.isArray(saveData.buildMeta?.beacons) ? saveData.buildMeta.beacons : []);
+      this._beaconLit = new Set(Array.isArray(saveData.buildMeta?.beaconLit) ? saveData.buildMeta.beaconLit : []);
+      this._beaconVisuals = new Map();
+      this._aviaries = new Set(Array.isArray(saveData.buildMeta?.aviaries) ? saveData.buildMeta.aviaries : []);
+      this._aviaryInspected = new Set(Array.isArray(saveData.buildMeta?.aviaryInspected) ? saveData.buildMeta.aviaryInspected : []);
+      this._aviaryVisuals = new Map();
       this._workshopState = deserializeWorkshopState(saveData.workshop);
       const buildMeta = saveData.buildMeta || {};
       this._builtEdits = new Map(Array.isArray(buildMeta.blocks) ? buildMeta.blocks : []);
@@ -1363,6 +1415,7 @@ export class Game {
       this._stairFace = new Map(Array.isArray(buildMeta.stairs) ? buildMeta.stairs : []);
       this._bedFace = new Map(Array.isArray(buildMeta.beds) ? buildMeta.beds : []);
       this._doorFace = new Map(Array.isArray(buildMeta.doors) ? buildMeta.doors : []);
+      this._campFuel = new Map(Array.isArray(buildMeta.campFuel) ? buildMeta.campFuel : []);
       this._furnaceOpen = null;
       // restore starter spawn pin (fallback to world spawn for older saves)
       if (saveData.spawnPos && Number.isFinite(saveData.spawnPos.x)) {
@@ -1378,6 +1431,10 @@ export class Game {
       this._castawayArrival = restoreCastawayArrival(saveData.castawayArrival);
     }
 
+    this._syncCisternVisuals();
+    this._syncSmokehouseVisuals();
+    this._syncBeaconVisuals();
+    this._syncAviaryVisuals();
     this._lastBviLocation = bviLocationAt(
       Math.floor(this.player.position.x),
       Math.floor(this.player.position.z),
@@ -1849,26 +1906,24 @@ export class Game {
   _findArrivalSignalPosition() {
     if (!this._spawnPos || !this.player) return null;
     const yaw = Number.isFinite(this.player.yaw) ? this.player.yaw : 0;
-    // Search the forward cove sightline for a safe elevated land patch. The
-    // visual signal is deliberately separate from the Iron Ravine interaction
-    // marker, which remains at the serialized destination coordinates.
-    for (let distance = 20; distance <= 34; distance += 2) {
-      for (let lateral = -8; lateral <= 8; lateral += 4) {
-        const x = Math.round(this._spawnPos.x - Math.sin(yaw) * distance + Math.cos(yaw) * lateral);
-        const z = Math.round(this._spawnPos.z - Math.cos(yaw) * distance - Math.sin(yaw) * lateral);
-        const h = Math.floor(heightAt(x, z, this.seed));
-        if (!Number.isFinite(h) || h < SEA_LEVEL + 1 || h > WORLD_HEIGHT - 7) continue;
-        return { x, y: h + 1, z };
-      }
-    }
-    return null;
+    const distance = 18;
+    // The arrival cue is a lightweight coastal navigation beacon, not the
+    // serialized Iron Ravine marker. Keep it on the authored water-facing
+    // sightline so fresh-world presentation never performs terrain scans or
+    // blocks the first frame while chunks stream in.
+    return {
+      x: Math.round(this._spawnPos.x - Math.sin(yaw) * distance),
+      y: SEA_LEVEL + 1,
+      z: Math.round(this._spawnPos.z - Math.cos(yaw) * distance),
+    };
   }
 
   _buildArrivalLandmarkVisual() {
     const destination = this._destinationState?.destination;
     if (!destination || !this.scene) return;
     this._clearArrivalLandmarkVisual();
-    const signal = this._findArrivalSignalPosition() || destination;
+    const signal = this._findArrivalSignalPosition();
+    if (!signal) return;
     this._arrivalLandmarkGroup = createArrivalLandmark(signal);
     this._arrivalLandmarkGroup.userData.destination = { ...destination };
     this.scene.add(this._arrivalLandmarkGroup);
@@ -2035,6 +2090,372 @@ export class Game {
       }
     });
     this._castawayGroup = null;
+  }
+
+  _clearCisternVisuals() {
+    for (const group of this._cisternVisuals?.values?.() || []) {
+      group.traverse((node) => {
+        if (node.geometry?.dispose) node.geometry.dispose();
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        for (const material of materials) material?.dispose?.();
+      });
+      group.removeFromParent?.();
+    }
+    this._cisternVisuals?.clear?.();
+  }
+
+  _createCisternVisual(key) {
+    const parts = String(key).split(',').map(Number);
+    if (parts.length !== 3 || parts.some((value) => !Number.isFinite(value))) return null;
+    const [x, y, z] = parts;
+    if (this.world?.getBlock(x, y, z) !== BLOCK.CHEST) return null;
+    const group = new THREE.Group();
+    group.name = `rain-cistern:${key}`;
+    // Keep the authored barrel proud of the chest host cell so its silhouette
+    // remains readable instead of being depth-occluded by the generic cube.
+    group.position.set(x + 0.5, y + 0.38, z + 0.5);
+    const barrel = new THREE.MeshStandardMaterial({ color: 0x2d7180, roughness: 0.72, metalness: 0.08 });
+    const rim = new THREE.MeshStandardMaterial({ color: 0xb28a4c, roughness: 0.84, metalness: 0.12 });
+    const water = new THREE.MeshStandardMaterial({ color: 0x67d8df, roughness: 0.22, metalness: 0.08, emissive: 0x0b4f5a, emissiveIntensity: 0.28 });
+    const pipe = new THREE.MeshStandardMaterial({ color: 0x657a7b, roughness: 0.42, metalness: 0.64 });
+    const add = (name, geometry, material, px, py, pz, rotation = null) => {
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.name = name;
+      mesh.position.set(px, py, pz);
+      if (rotation) mesh.rotation.set(...rotation);
+      group.add(mesh);
+      return mesh;
+    };
+    add('rain-cistern-barrel', new THREE.CylinderGeometry(0.34, 0.38, 0.72, 12), barrel, 0, 0.48, 0);
+    add('rain-cistern-water', new THREE.CylinderGeometry(0.27, 0.27, 0.035, 12), water, 0, 0.86, 0);
+    add('rain-cistern-rim', new THREE.TorusGeometry(0.30, 0.035, 6, 12), rim, 0, 0.88, 0, [0, 0, 0]);
+    add('rain-cistern-spout', new THREE.CylinderGeometry(0.045, 0.045, 0.48, 8), pipe, 0.34, 0.74, 0, [0, 0, Math.PI / 2]);
+    add('rain-cistern-spout-end', new THREE.CylinderGeometry(0.09, 0.09, 0.06, 8), rim, 0.58, 0.74, 0, [0, 0, Math.PI / 2]);
+    this.scene.add(group);
+    return group;
+  }
+
+  _syncCisternVisuals() {
+    if (!this.scene || !this.world || !this._cisterns) return;
+    for (const [key, group] of this._cisternVisuals || []) {
+      if (!this._cisterns.has(key) || this.world.getBlock(...String(key).split(',').map(Number)) !== BLOCK.CHEST) {
+        group.traverse((node) => {
+          if (node.geometry?.dispose) node.geometry.dispose();
+          const materials = Array.isArray(node.material) ? node.material : [node.material];
+          for (const material of materials) material?.dispose?.();
+        });
+        group.removeFromParent?.();
+        this._cisternVisuals.delete(key);
+      }
+    }
+    for (const key of this._cisterns) {
+      if (!this._cisternVisuals.has(key)) {
+        const group = this._createCisternVisual(key);
+        if (group) this._cisternVisuals.set(key, group);
+      }
+    }
+    for (const [key, group] of this._cisternVisuals) {
+      const water = group.getObjectByName('rain-cistern-water');
+      if (!water) continue;
+      const fill = Math.max(0, Math.min(100, Number(this._cisternWater.get(key)) || 0)) / 100;
+      water.scale.y = 0.35 + fill * 0.65;
+      water.position.y = 0.78 + fill * 0.08;
+    }
+  }
+
+  _clearSmokehouseVisuals() {
+    for (const group of this._smokehouseVisuals?.values?.() || []) {
+      group.traverse((node) => {
+        if (node.geometry?.dispose) node.geometry.dispose();
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        for (const material of materials) material?.dispose?.();
+      });
+      group.removeFromParent?.();
+    }
+    this._smokehouseVisuals?.clear?.();
+  }
+
+  _createSmokehouseVisual(key) {
+    const parts = String(key).split(',').map(Number);
+    if (parts.length !== 3 || parts.some((value) => !Number.isFinite(value))) return null;
+    const [x, y, z] = parts;
+    if (this.world?.getBlock(x, y, z) !== BLOCK.CHEST) return null;
+    const group = new THREE.Group();
+    group.name = `smokehouse:${key}`;
+    group.position.set(x + 0.5, y + 0.38, z + 0.5);
+    const wood = new THREE.MeshStandardMaterial({ color: 0x70452b, roughness: 0.88, metalness: 0.02 });
+    const trim = new THREE.MeshStandardMaterial({ color: 0xb47b43, roughness: 0.76, metalness: 0.04 });
+    const iron = new THREE.MeshStandardMaterial({ color: 0x39434a, roughness: 0.42, metalness: 0.72 });
+    const ember = new THREE.MeshStandardMaterial({ color: 0xff9b38, emissive: 0x8d2b08, emissiveIntensity: 0.8, roughness: 0.42 });
+    const smoke = new THREE.MeshStandardMaterial({ color: 0x5d6766, transparent: true, opacity: 0.55, roughness: 1 });
+    const box = (name, size, px, py, pz, material) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
+      mesh.name = name;
+      mesh.position.set(px, py, pz);
+      group.add(mesh);
+      return mesh;
+    };
+    box('smokehouse-body', [0.78, 0.78, 0.78], 0, 0.47, 0, wood);
+    box('smokehouse-door', [0.42, 0.42, 0.035], 0, 0.42, -0.405, trim);
+    box('smokehouse-door-iron', [0.08, 0.08, 0.04], 0.13, 0.42, -0.43, iron);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.62, 0.34, 4), trim);
+    roof.name = 'smokehouse-roof';
+    roof.rotation.y = Math.PI / 4;
+    roof.position.y = 0.99;
+    group.add(roof);
+    const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.42, 8), iron);
+    chimney.name = 'smokehouse-chimney';
+    chimney.position.set(0.2, 1.22, 0.08);
+    group.add(chimney);
+    const emberMesh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.025), ember);
+    emberMesh.name = 'smokehouse-ember';
+    emberMesh.position.set(0, 0.43, -0.43);
+    group.add(emberMesh);
+    const smokeMesh = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 6), smoke);
+    smokeMesh.name = 'smokehouse-smoke';
+    smokeMesh.position.set(0.2, 1.5, 0.08);
+    group.add(smokeMesh);
+    this.scene.add(group);
+    return group;
+  }
+
+  _syncSmokehouseVisuals() {
+    if (!this.scene || !this.world || !this._smokehouses) return;
+    for (const [key, group] of this._smokehouseVisuals || []) {
+      const [x, y, z] = String(key).split(',').map(Number);
+      if (!this._smokehouses.has(key) || this.world.getBlock(x, y, z) !== BLOCK.CHEST) {
+        group.traverse((node) => {
+          if (node.geometry?.dispose) node.geometry.dispose();
+          const materials = Array.isArray(node.material) ? node.material : [node.material];
+          for (const material of materials) material?.dispose?.();
+        });
+        group.removeFromParent?.();
+        this._smokehouseVisuals.delete(key);
+      }
+    }
+    for (const key of this._smokehouses) {
+      if (!this._smokehouseVisuals.has(key)) {
+        const group = this._createSmokehouseVisual(key);
+        if (group) this._smokehouseVisuals.set(key, group);
+      }
+      const group = this._smokehouseVisuals.get(key);
+      if (!group) continue;
+      const active = this._smokeJobs.has(key);
+      const output = this._smokeOutputs.has(key);
+      const smoke = group.getObjectByName('smokehouse-smoke');
+      const ember = group.getObjectByName('smokehouse-ember');
+      if (smoke) smoke.visible = active;
+      if (ember) ember.visible = active || output;
+    }
+  }
+
+  _clearBeaconVisuals() {
+    for (const group of this._beaconVisuals?.values?.() || []) {
+      group.traverse((node) => {
+        if (node.geometry?.dispose) node.geometry.dispose();
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        for (const material of materials) material?.dispose?.();
+      });
+      group.removeFromParent?.();
+    }
+    this._beaconVisuals?.clear?.();
+  }
+
+  _createBeaconVisual(key) {
+    const parts = String(key).split(',').map(Number);
+    if (parts.length !== 3 || parts.some((value) => !Number.isFinite(value))) return null;
+    const [x, y, z] = parts;
+    if (this.world?.getBlock(x, y, z) !== BLOCK.CHEST) return null;
+    const group = new THREE.Group();
+    group.name = `harbor-beacon:${key}`;
+    group.position.set(x + 0.5, y + 0.38, z + 0.5);
+    const stone = new THREE.MeshStandardMaterial({ color: 0x586b72, roughness: 0.86, metalness: 0.18 });
+    const metal = new THREE.MeshStandardMaterial({ color: 0x9aa6a2, roughness: 0.42, metalness: 0.72 });
+    const lens = new THREE.MeshStandardMaterial({ color: 0xffc45c, emissive: 0xff6a18, emissiveIntensity: 0.18, roughness: 0.22, metalness: 0.12 });
+    const beam = new THREE.MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: 0.16, depthWrite: false });
+    const box = (name, size, px, py, pz, material) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
+      mesh.name = name;
+      mesh.position.set(px, py, pz);
+      group.add(mesh);
+      return mesh;
+    };
+    box('harbor-beacon-base', [0.78, 0.18, 0.78], 0, 0.10, 0, stone);
+    box('harbor-beacon-foot', [0.54, 0.24, 0.54], 0, 0.30, 0, metal);
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.11, 1.85, 10), metal);
+    mast.name = 'harbor-beacon-mast';
+    mast.position.y = 1.22;
+    group.add(mast);
+    const lensMesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 8), lens);
+    lensMesh.name = 'harbor-beacon-lens';
+    lensMesh.position.y = 2.10;
+    group.add(lensMesh);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(0.30, 0.20, 8), metal);
+    cap.name = 'harbor-beacon-cap';
+    cap.position.y = 2.34;
+    group.add(cap);
+    const beamMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.25, 1.25, 8, 1, true), beam);
+    beamMesh.name = 'harbor-beacon-beam';
+    beamMesh.position.y = 2.85;
+    group.add(beamMesh);
+    const light = new THREE.PointLight(0xffa43a, 0.5, 12, 2);
+    light.name = 'harbor-beacon-light';
+    light.position.y = 2.10;
+    group.add(light);
+    this.scene.add(group);
+    return group;
+  }
+
+  _syncBeaconVisuals() {
+    if (!this.scene || !this.world || !this._beacons) return;
+    for (const [key, group] of this._beaconVisuals || []) {
+      const [x, y, z] = String(key).split(',').map(Number);
+      if (!this._beacons.has(key) || this.world.getBlock(x, y, z) !== BLOCK.CHEST) {
+        group.traverse((node) => {
+          if (node.geometry?.dispose) node.geometry.dispose();
+          const materials = Array.isArray(node.material) ? node.material : [node.material];
+          for (const material of materials) material?.dispose?.();
+        });
+        group.removeFromParent?.();
+        this._beaconVisuals.delete(key);
+      }
+    }
+    for (const key of this._beacons) {
+      if (!this._beaconVisuals.has(key)) {
+        const group = this._createBeaconVisual(key);
+        if (group) this._beaconVisuals.set(key, group);
+      }
+      const group = this._beaconVisuals.get(key);
+      if (!group) continue;
+      const lit = this._beaconLit.has(key);
+      const lens = group.getObjectByName('harbor-beacon-lens');
+      const beam = group.getObjectByName('harbor-beacon-beam');
+      const light = group.getObjectByName('harbor-beacon-light');
+      if (lens?.material) lens.material.emissiveIntensity = lit ? 1.05 : 0.18;
+      if (beam) beam.visible = lit;
+      if (light) light.visible = lit;
+    }
+  }
+
+  _useBeacon(key) {
+    if (!this._beacons.has(key)) return false;
+    const lit = !this._beaconLit.has(key);
+    if (lit) this._beaconLit.add(key);
+    else this._beaconLit.delete(key);
+    this._syncBeaconVisuals();
+    this.audio.beaconLight?.(lit);
+    this.player.notify(lit ? 'Harbor Beacon lit. The cove has a night marker.' : 'Harbor Beacon dimmed.', 2.6);
+    return true;
+  }
+
+  _clearAviaryVisuals() {
+    for (const group of this._aviaryVisuals?.values?.() || []) {
+      group.traverse((node) => {
+        if (node.geometry?.dispose) node.geometry.dispose();
+        const materials = Array.isArray(node.material) ? node.material : [node.material];
+        for (const material of materials) material?.dispose?.();
+      });
+      group.removeFromParent?.();
+    }
+    this._aviaryVisuals?.clear?.();
+  }
+
+  _createAviaryVisual(key) {
+    const parts = String(key).split(',').map(Number);
+    if (parts.length !== 3 || parts.some((value) => !Number.isFinite(value))) return null;
+    const [x, y, z] = parts;
+    if (this.world?.getBlock(x, y, z) !== BLOCK.CHEST) return null;
+    const group = new THREE.Group();
+    group.name = `shorebird-aviary:${key}`;
+    group.position.set(x + 0.5, y + 0.38, z + 0.5);
+    const wood = new THREE.MeshStandardMaterial({ color: 0x6d5134, roughness: 0.9, metalness: 0.02 });
+    const rope = new THREE.MeshStandardMaterial({ color: 0xc4a66b, roughness: 0.96, metalness: 0 });
+    const meshMat = new THREE.MeshStandardMaterial({ color: 0x6fa78b, transparent: true, opacity: 0.48, roughness: 0.8, metalness: 0.05 });
+    const bird = new THREE.MeshStandardMaterial({ color: 0xd8e5df, roughness: 0.74, metalness: 0.02 });
+    const box = (name, size, px, py, pz, material) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
+      mesh.name = name;
+      mesh.position.set(px, py, pz);
+      group.add(mesh);
+      return mesh;
+    };
+    box('shorebird-aviary-base', [0.82, 0.14, 0.82], 0, 0.08, 0, wood);
+    for (const [name, px, pz] of [['north', -0.32, -0.32], ['east', 0.32, -0.32], ['south', 0.32, 0.32], ['west', -0.32, 0.32]]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 1.35, 6), wood);
+      post.name = `shorebird-aviary-post-${name}`;
+      post.position.set(px, 0.76, pz);
+      group.add(post);
+    }
+    box('shorebird-aviary-perch', [0.72, 0.07, 0.07], 0, 1.04, 0, rope);
+    box('shorebird-aviary-mesh', [0.76, 0.78, 0.76], 0, 0.72, 0, meshMat);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(0.58, 0.22, 4), wood);
+    roof.name = 'shorebird-aviary-roof';
+    roof.rotation.y = Math.PI / 4;
+    roof.position.y = 1.48;
+    group.add(roof);
+    const birdMesh = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), bird);
+    birdMesh.name = 'shorebird-aviary-bird';
+    birdMesh.position.set(0.05, 1.18, 0);
+    group.add(birdMesh);
+    this.scene.add(group);
+    return group;
+  }
+
+  _syncAviaryVisuals() {
+    if (!this.scene || !this.world || !this._aviaries) return;
+    for (const [key, group] of this._aviaryVisuals || []) {
+      const [x, y, z] = String(key).split(',').map(Number);
+      if (!this._aviaries.has(key) || this.world.getBlock(x, y, z) !== BLOCK.CHEST) {
+        group.traverse((node) => {
+          if (node.geometry?.dispose) node.geometry.dispose();
+          const materials = Array.isArray(node.material) ? node.material : [node.material];
+          for (const material of materials) material?.dispose?.();
+        });
+        group.removeFromParent?.();
+        this._aviaryVisuals.delete(key);
+      }
+    }
+    for (const key of this._aviaries) {
+      if (!this._aviaryVisuals.has(key)) {
+        const group = this._createAviaryVisual(key);
+        if (group) this._aviaryVisuals.set(key, group);
+      }
+      const group = this._aviaryVisuals.get(key);
+      if (!group) continue;
+      const bird = group.getObjectByName('shorebird-aviary-bird');
+      if (bird) bird.visible = this._aviaryInspected.has(key);
+    }
+  }
+
+  _updateSettlementVisuals() {
+    const t = this._stationFxClock || 0;
+    const reducedMotion = this.settings?.reducedMotion === true;
+    for (const [key, group] of this._beaconVisuals || []) {
+      if (!this._beaconLit.has(key)) continue;
+      const pulse = reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(t * 4.8);
+      const lens = group.getObjectByName('harbor-beacon-lens');
+      const beam = group.getObjectByName('harbor-beacon-beam');
+      const light = group.getObjectByName('harbor-beacon-light');
+      if (lens?.material) lens.material.emissiveIntensity = 0.88 + pulse * 0.22;
+      if (beam?.material) beam.material.opacity = 0.12 + pulse * 0.07;
+      if (light) light.intensity = 0.42 + pulse * 0.16;
+    }
+    for (const [key, group] of this._aviaryVisuals || []) {
+      if (!this._aviaryInspected.has(key)) continue;
+      const bird = group.getObjectByName('shorebird-aviary-bird');
+      if (!bird) continue;
+      bird.position.y = reducedMotion ? 1.18 : 1.18 + Math.sin(t * 2.8 + 0.7) * 0.035;
+      bird.rotation.y = reducedMotion ? 0 : Math.sin(t * 1.4) * 0.18;
+    }
+  }
+
+  _useAviary(key) {
+    if (!this._aviaries.has(key)) return false;
+    this._aviaryInspected.add(key);
+    this._syncAviaryVisuals();
+    this.audio.aviaryInspect?.();
+    this.player.notify('Shorebird roster logged. Watch the shallows for new visitors.', 3);
+    return true;
   }
 
   _buildCastawayArrivalVisual() {
@@ -2221,17 +2642,19 @@ export class Game {
     if (distance > CASTAWAY_CONFIG.salvageRadius) return false;
     const look = this.player.lookDir(new THREE.Vector3());
     const toward = new THREE.Vector3(dx, 0, dz).normalize();
-    if (look.dot(toward) < 0.15) return false;
+    if (!canSalvageLocker(distance, look.dot(toward))) return false;
 
     let slots = cloneSlots(this.player.slots);
     const recovered = [
       [ITEM.STICK, 4],
       [ITEM.LOG, 1],
       [ITEM.RATION, 1],
+      [ITEM.CANTEEN, 1],
     ];
     for (const [id, count] of recovered) slots = addItems(slots, id, count).slots;
     this.player.slots = slots;
     state.salvaged = true;
+    this._tickFirstExpedition();
     if (this._castawayCrate) this._castawayCrate.visible = false;
     this._castawayGroup?.getObjectByName('salvage-bottle') && (this._castawayGroup.getObjectByName('salvage-bottle').visible = false);
     this._castawayGroup?.getObjectByName('crate-band-a') && (this._castawayGroup.getObjectByName('crate-band-a').visible = false);
@@ -2432,6 +2855,101 @@ export class Game {
 
   _cropKey(x, y, z) {
     return `${x|0},${y|0},${z|0}`;
+  }
+
+  _tickCisterns(dt) {
+    if (!this.world || !this._cisterns?.size || this.time?.weather !== 'rain') return;
+    let changed = false;
+    for (const key of this._cisterns) {
+      const [x, y, z] = String(key).split(',').map(Number);
+      if (this.world.getBlock(x, y, z) !== BLOCK.CHEST) continue;
+      const before = Math.max(0, Math.min(100, Number(this._cisternWater.get(key)) || 0));
+      const after = Math.min(100, before + Math.max(0, Number(dt) || 0) * 3);
+      if (after !== before) {
+        this._cisternWater.set(key, after);
+        changed = true;
+      }
+    }
+    if (changed) this._syncCisternVisuals();
+  }
+
+  _fillCisternCanteen(key) {
+    const before = Math.max(0, Math.min(100, Number(this._cisternWater.get(key)) || 0));
+    if (before < CISTERN_SERVING) {
+      this.player.notify(`Rain Cistern is dry (${Math.floor(before)}%). Let it fill in the rain.`, 2.6);
+      return true;
+    }
+    const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+    if (!cons.ok) return true;
+    const add = addItems(cons.slots, ITEM.CANTEEN, 1);
+    if (add.leftover > 0) {
+      this.player.notify('No room for a filled canteen.', 2);
+      return true;
+    }
+    this.player.slots = add.slots;
+    this._cisternWater.set(key, before - CISTERN_SERVING);
+    this._syncCisternVisuals();
+    this._drinkCd = 0.5;
+    this.audio.splash?.() || this.audio.ui();
+    this.player.notify(`Canteen filled from Rain Cistern · ${Math.floor(before - CISTERN_SERVING)}% remains.`, 2.8);
+    return true;
+  }
+
+  _tickSmokehouses(dt) {
+    if (!this.world || !this._smokehouses?.size) return;
+    const step = Math.max(0, Number(dt) || 0);
+    for (const key of this._smokehouses) {
+      const [x, y, z] = String(key).split(',').map(Number);
+      if (this.world.getBlock(x, y, z) !== BLOCK.CHEST) continue;
+      const job = this._smokeJobs.get(key);
+      if (!job) continue;
+      const remaining = Math.max(0, Number(job.remaining) - step);
+      if (remaining > 0) {
+        this._smokeJobs.set(key, { ...job, remaining });
+        continue;
+      }
+      const outputId = SMOKEHOUSE_RECIPES[job.input];
+      if (outputId != null && !this._smokeOutputs.has(key)) {
+        this._smokeOutputs.set(key, { id: outputId, count: 1 });
+        this.audio.smokehouseReady(displayName(outputId));
+      }
+      this._smokeJobs.delete(key);
+      this._syncSmokehouseVisuals();
+    }
+  }
+
+  _useSmokehouse(key, heldId) {
+    if (this._smokeOutputs.has(key)) {
+      const output = this._smokeOutputs.get(key);
+      const add = addItems(this.player.slots, output.id, output.count);
+      if (add.leftover > 0) {
+        this.player.notify('No room for the smoked food.', 2.4);
+        return true;
+      }
+      this.player.slots = add.slots;
+      this._smokeOutputs.delete(key);
+      this.audio.craft?.() || this.audio.ui();
+      this.player.notify(`Collected ${displayName(output.id)} from Smokehouse.`, 2.6);
+      return true;
+    }
+    const job = this._smokeJobs.get(key);
+    if (job) {
+      this.player.notify(`Smoking ${displayName(job.input)} · ${Math.ceil(job.remaining)}s remaining.`, 2.4);
+      return true;
+    }
+    const outputId = SMOKEHOUSE_RECIPES[heldId];
+    if (outputId == null) {
+      this.player.notify('Smokehouse accepts Raw Meat, Raw Fish, or Raw Crab.', 2.6);
+      return true;
+    }
+    const cons = consumeFromHotbar(this.player.slots, this.player.hotbarIndex, 1);
+    if (!cons.ok) return true;
+    this.player.slots = cons.slots;
+    this._smokeJobs.set(key, { input: heldId, remaining: SMOKEHOUSE_COOK_SECONDS });
+    this._syncSmokehouseVisuals();
+    this.audio.smokehouseStart(displayName(heldId));
+    this.player.notify(`Smoking ${displayName(heldId)} · ready in ${SMOKEHOUSE_COOK_SECONDS}s.`, 2.8);
+    return true;
   }
 
   _tickCampfires(dt, baseHeat) {
@@ -3476,12 +3994,18 @@ export class Game {
     const panel = document.getElementById('chest-screen');
     panel?.classList.remove('hidden');
     const boatStorage = String(key).startsWith('boat:');
+    const cisternStorage = !boatStorage && this._cisterns.has(key);
+    const smokehouseStorage = !boatStorage && this._smokehouses.has(key);
     const title = panel?.querySelector('h2');
     const subtitle = panel?.querySelector('.inv-sub');
-    if (title) title.textContent = boatStorage ? 'Skiff Storage' : 'Chest';
+    if (title) title.textContent = boatStorage ? 'Skiff Storage' : (cisternStorage ? 'Rain Cistern' : (smokehouseStorage ? 'Smokehouse' : 'Chest'));
     if (subtitle) subtitle.textContent = boatStorage
       ? 'Onboard storage · click a slot to take items. Open inventory (E) to deposit. Close when done.'
-      : 'Click a chest slot to take items. Open inventory (E) and click your items to deposit. Close when done.';
+      : (cisternStorage
+        ? 'Rain catchment storage · click a slot to take items. Open inventory (E) and click your items to deposit.'
+        : (smokehouseStorage
+          ? 'Food station · press F while holding Raw Meat, Raw Fish, or Raw Crab to start smoking.'
+          : 'Click a chest slot to take items. Open inventory (E) and click your items to deposit. Close when done.'));
     this.input.uiMode = true;
     if (document.pointerLockElement) document.exitPointerLock();
     this._paintChest();
@@ -3557,7 +4081,7 @@ export class Game {
   importSaveFile(file) {
     const reader = new FileReader();
     reader.onload = () => {
-      import('./save.js?v=235').then(({ parseSavePayload, writeSaveToStorage }) => {
+      import('./save.js?v=240').then(({ parseSavePayload, writeSaveToStorage }) => {
         const parsed = parseSavePayload(String(reader.result || ''));
         if (!parsed.ok) {
           alert('Invalid save: ' + parsed.error);
@@ -3644,6 +4168,16 @@ export class Game {
         stairs: [...this._stairFace.entries()],
         beds: [...this._bedFace.entries()],
         doors: [...this._doorFace.entries()],
+        campFuel: [...this._campFuel.entries()],
+        cisterns: [...this._cisterns],
+        cisternWater: [...this._cisternWater.entries()],
+        smokehouses: [...this._smokehouses],
+        smokehouseJobs: [...this._smokeJobs.entries()],
+        smokehouseOutputs: [...this._smokeOutputs.entries()],
+        beacons: [...this._beacons],
+        beaconLit: [...this._beaconLit],
+        aviaries: [...this._aviaries],
+        aviaryInspected: [...this._aviaryInspected],
       },
     };
   }
@@ -3892,13 +4426,15 @@ export class Game {
   _applyHudComposure(dt = 0) {
     if (this._hudComposureT > 0) this._hudComposureT = Math.max(0, this._hudComposureT - Math.max(0, dt));
     const composure = !!(this.started && !this.paused && !this.survival?.dead && this._hudComposureT > 0);
+    const arrivalRoute = !!(this.started && !this.paused && !this.survival?.dead && this._firstExpedition?.stage === 'arrival');
     document.body.classList.toggle('composure-mode', composure);
-    if (!composure) return composure;
+    document.body.classList.toggle('arrival-route', arrivalRoute);
+    if (!composure && !arrivalRoute) return composure;
     document.getElementById('discovery-log')?.classList.add('hidden');
     document.getElementById('shelter-hud')?.classList.add('hidden');
     document.getElementById('destination-hud')?.classList.add('hidden');
     document.getElementById('workshop-hud')?.classList.add('hidden');
-    document.getElementById('arrival-card')?.classList.add('hidden');
+    if (composure) document.getElementById('arrival-card')?.classList.add('hidden');
     return composure;
   }
 
@@ -4053,13 +4589,38 @@ export class Game {
     this._applyHudPresentation();
   }
 
+  _settlementCraftContext() {
+    const edits = this._builtEdits || new Map();
+    const completed = this._firstExpedition?.completed || [];
+    const campfire = this._campFuel?.size > 0 || [...edits.values()].some((id) => id === BLOCK.CAMPFIRE);
+    const voyageStates = [this._destinationState, this._lookoutRouteState, this._whiteBayRouteState];
+    const voyages = voyageStates.filter((state) => state?.phase === 'completed' || state?.phase === 'claimed').length;
+    const observedSpecies = this._journalState?.discovered?.length || 0;
+    return {
+      heat: this._lastHeat || 0,
+      settlementBlocks: edits.size,
+      voyages,
+      observedSpecies,
+      roofed: this._roofed === true || completed.includes('shelter'),
+      campfire,
+    };
+  }
+
   _tryCraft(recipeId) {
     const bag = this._bagPlayer?.() || this.player;
     if (!bag) return;
-    const res = craftRecipe(bag.slots, recipeId, { heat: this._lastHeat || 0 });
+    const res = craftRecipe(bag.slots, recipeId, this._settlementCraftContext());
     if (!res.ok) {
       if (res.error === 'need campfire heat') {
         bag.notify('Stand near a campfire to cook.');
+      } else if (res.error === 'settlement locked') {
+        bag.notify(`Build ${res.settlementMissing} more blocks to unlock the Rain Cistern.`);
+      } else if (res.error === 'need roofed shelter') {
+        bag.notify('Build a roofed shelter before raising the Smokehouse.');
+      } else if (res.error === 'need campfire foundation') {
+        bag.notify('Light a campfire before raising the Smokehouse.');
+      } else if (res.error === 'species locked') {
+        bag.notify(`Observe ${res.speciesMissing} more species to unlock the Shorebird Aviary.`);
       } else {
         bag.notify(res.error === 'inventory full' ? 'Inventory full.' : 'Missing ingredients.');
       }
@@ -4120,6 +4681,7 @@ export class Game {
     this._bowCd2 = Math.max(0, (this._bowCd2 || 0) - dt);
     this._fishCd = Math.max(0, this._fishCd - dt);
     this._landfallNoticeT = Math.max(0, this._landfallNoticeT - dt);
+    this._stationFxClock += Math.max(0, Number(dt) || 0);
     this._tickFishing(dt);
     this._fpsFrames++;
     this._fpsAcc += dt;
@@ -4160,6 +4722,8 @@ export class Game {
         }
       }
       if (this._boat?.mounted) {
+        const selectedSlot = this.input.consumeSlot();
+        if (selectedSlot >= 0) this.player.hotbarIndex = selectedSlot;
         this._tickBoat(dt);
         move = { moved: Math.hypot(this._boat.vx || 0, this._boat.vz || 0) > 0.05, sprinting: false, inWater: true };
       } else {
@@ -4305,6 +4869,9 @@ export class Game {
     );
     // campfire fuel decay nearby
     heat = this._tickCampfires(dt, heat);
+    this._tickCisterns(dt);
+    this._tickSmokehouses(dt);
+    this._updateSettlementVisuals();
     this._tickFurnaces(dt);
     this._lastHeat = heat;
     this.survival.warmthFromClothes = equipmentWarmth(this.player.equipment);
@@ -4660,7 +5227,7 @@ export class Game {
       const nearBand = !!nearestAnimal && nearestDist <= 20;
       const enteringBand = nearBand && !this._wildlifeWasNear;
       const longQuiet = nearBand && this._wildlifeQuietT >= 25;
-      if (nearBand && this._wildlifeCueCd <= 0 && (enteringBand || longQuiet)) {
+      if (this._firstExpedition?.stage !== 'arrival' && nearBand && this._wildlifeCueCd <= 0 && (enteringBand || longQuiet)) {
         const spec = SPECIES[nearestAnimal.type];
         const distText = nearestDist >= 8 ? ` (${Math.round(nearestDist)}m)` : '';
         this.player.notify(`Wildlife nearby · ${spec?.name || 'Animal'}${distText}`, 2.5);
@@ -5037,6 +5604,8 @@ export class Game {
       if (hit.id === BLOCK.DOOR_CLOSED || hit.id === BLOCK.DOOR_OPEN) text = `F — ${hit.id === BLOCK.DOOR_OPEN ? 'Close' : 'Open'} door`;
       else if (hit.id === BLOCK.BED) text = `F — Sleep (if warm & fed) [${bname}]`;
       else if (hit.id === BLOCK.CAMPFIRE) text = `Hold meat · F cook near heat [${bname}]`;
+      else if (hit.id === BLOCK.CHEST && this._beacons.has(chestKey(hit.x, hit.y, hit.z))) text = `F — ${this._beaconLit.has(chestKey(hit.x, hit.y, hit.z)) ? 'Dim' : 'Light'} Harbor Beacon`;
+      else if (hit.id === BLOCK.CHEST && this._aviaries.has(chestKey(hit.x, hit.y, hit.z))) text = `F — ${this._aviaryInspected.has(chestKey(hit.x, hit.y, hit.z)) ? 'Inspect' : 'Open'} Shorebird Aviary`;
     } else {
       this._outline.visible = false;
     }
@@ -5066,7 +5635,7 @@ export class Game {
     if (!text && p?.cookable) text = 'F — Cook (need campfire heat)';
     if (!text && p?.tool === 'bow') text = 'LMB — Shoot arrow';
     if (!text && p?.plantable) text = 'RMB on soil — Plant seeds';
-    if (!text) {
+    if (!text && this._firstExpedition?.stage !== 'arrival') {
       const px = this.player.position.x;
       const pz = this.player.position.z;
       const near = (this._villagers || []).find((v) => Math.hypot((v.x || 0) - px, (v.z || 0) - pz) < 2.6);
@@ -5099,8 +5668,18 @@ export class Game {
       text = 'F — Use crafting table';
     }
     if (hit && hit.id === BLOCK.CHEST) {
-      const cn = BLOCK_PROPS[hit.id]?.name || '';
-      text = `F — Open chest [${cn}]`;
+      const key = chestKey(hit.x, hit.y, hit.z);
+      const cistern = this._cisterns.has(key);
+      const smokehouse = this._smokehouses.has(key);
+      const cn = cistern ? 'Rain Cistern' : (smokehouse ? 'Smokehouse' : (BLOCK_PROPS[hit.id]?.name || ''));
+      const fill = cistern ? Math.floor(Math.max(0, Math.min(100, Number(this._cisternWater.get(key)) || 0))) : null;
+      const smokeJob = smokehouse ? this._smokeJobs.get(key) : null;
+      const smokeOutput = smokehouse ? this._smokeOutputs.get(key) : null;
+      text = cistern && held?.id === ITEM.EMPTY_CANTEEN
+        ? `F — Fill canteen · ${fill}%`
+        : smokehouse
+          ? (smokeOutput ? `F — Collect ${displayName(smokeOutput.id)}` : (smokeJob ? `F — Smoking · ${Math.ceil(smokeJob.remaining)}s` : `F — Smoke raw food [${cn}]`))
+          : `F — Open ${cn} [${cistern ? `water storage · ${fill}%` : 'Chest'}]`;
     }
 
     // animal under crosshair
@@ -5601,6 +6180,28 @@ export class Game {
       if (this.player.breaking.progress >= 1) {
         let drop = resolveBlockDrop(hit.id, dropForBlock);
         let dropCount = 1;
+        const hitKey = `${hit.x|0},${hit.y|0},${hit.z|0}`;
+        if (hit.id === BLOCK.CHEST && this._cisterns.has(hitKey)) {
+          drop = ITEM.RAIN_CISTERN;
+          this._cisterns.delete(hitKey);
+          this._syncCisternVisuals();
+        } else if (hit.id === BLOCK.CHEST && this._beacons.has(hitKey)) {
+          drop = ITEM.HARBOR_BEACON;
+          this._beacons.delete(hitKey);
+          this._beaconLit.delete(hitKey);
+          this._syncBeaconVisuals();
+        } else if (hit.id === BLOCK.CHEST && this._aviaries.has(hitKey)) {
+          drop = ITEM.SHOREBIRD_AVIARY;
+          this._aviaries.delete(hitKey);
+          this._aviaryInspected.delete(hitKey);
+          this._syncAviaryVisuals();
+        } else if (hit.id === BLOCK.CHEST && this._smokehouses.has(hitKey)) {
+          drop = ITEM.SMOKEHOUSE;
+          this._smokehouses.delete(hitKey);
+          this._smokeJobs.delete(hitKey);
+          this._smokeOutputs.delete(hitKey);
+          this._syncSmokehouseVisuals();
+        }
         if (hit.id === BLOCK.LEAVES) {
           const r = Math.random();
           if (r < 0.06) drop = ITEM.APPLE;
@@ -5803,10 +6404,30 @@ export class Game {
         );
       }
       if (blockId === BLOCK.CHEST) {
-        this.player.notify('Chest placed. Look and press F to open.');
-        this._unlock('first_chest');
         const k = chestKey(px, py, pz);
         if (!this._chests.has(k)) this._chests.set(k, emptyChestSlots());
+        if (held === ITEM.RAIN_CISTERN) {
+          this._cisterns.add(k);
+          this._syncCisternVisuals();
+          this.player.notify('Rain Cistern placed. Look and press F to collect stored water.', 2.8);
+        } else if (held === ITEM.SMOKEHOUSE) {
+          this._smokehouses.add(k);
+          this._syncSmokehouseVisuals();
+          this.player.notify('Smokehouse placed. Add raw food and press F to smoke it.', 3);
+        } else if (held === ITEM.HARBOR_BEACON) {
+          this._beacons.add(k);
+          this._beaconLit.delete(k);
+          this._syncBeaconVisuals();
+          this.player.notify('Harbor Beacon placed. Press F to light the night marker.', 3);
+        } else if (held === ITEM.SHOREBIRD_AVIARY) {
+          this._aviaries.add(k);
+          this._aviaryInspected.delete(k);
+          this._syncAviaryVisuals();
+          this.player.notify('Shorebird Aviary placed. Press F to log the first visitor.', 3);
+        } else {
+          this.player.notify('Chest placed. Look and press F to open.');
+        }
+        this._unlock('first_chest');
       }
       if (blockId === BLOCK.LADDER) this.player.notify('Ladder placed. Walk into it to climb.');
       if (blockId === BLOCK.SNARE) {
@@ -6040,6 +6661,28 @@ export class Game {
     if (hit && hit.id === CRAFTING_TABLE) {
       this.setInventoryOpen(true, 'p1', 'workbench');
       this.player.notify('Crafting table opened.', 1.8);
+      return;
+    }
+
+    if (hit && hit.id === BLOCK.CHEST && this._beacons.has(chestKey(hit.x, hit.y, hit.z))) {
+      this._useBeacon(chestKey(hit.x, hit.y, hit.z));
+      return;
+    }
+
+    if (hit && hit.id === BLOCK.CHEST && this._aviaries.has(chestKey(hit.x, hit.y, hit.z))) {
+      this._useAviary(chestKey(hit.x, hit.y, hit.z));
+      return;
+    }
+
+    // Smokehouse: one-slot raw food job with cooked output pickup.
+    if (hit && hit.id === BLOCK.CHEST && this._smokehouses.has(chestKey(hit.x, hit.y, hit.z))) {
+      this._useSmokehouse(chestKey(hit.x, hit.y, hit.z), heldUse.id);
+      return;
+    }
+
+    // Rain Cistern: draw one serving into an empty canteen before falling back to storage.
+    if (hit && hit.id === BLOCK.CHEST && this._cisterns.has(chestKey(hit.x, hit.y, hit.z)) && heldUse.id === ITEM.EMPTY_CANTEEN) {
+      this._fillCisternCanteen(chestKey(hit.x, hit.y, hit.z));
       return;
     }
 
@@ -6750,7 +7393,7 @@ export class Game {
     outputEl.setAttribute('aria-label', `Output: ${displayName(output.id)} ×${output.count}`);
     nameEl.textContent = `${displayName(output.id)} ×${output.count}`;
     const recipe = visibleRecipes().find(candidate => candidate.id === recipeId);
-    const progress = recipe ? recipeProgress(recipe, pl.slots, { heat: this._lastHeat || 0 }) : null;
+    const progress = recipe ? recipeProgress(recipe, pl.slots, this._settlementCraftContext()) : null;
     const ingredientText = recipe ? ingredientSummary(recipe, pl.slots).map(item => `${item.have}/${item.need} ${displayName(item.id)}`).join(' · ') : '';
     statusEl.textContent = progress?.can ? `READY · ${ingredientText}` : `GATHER MATERIALS · ${ingredientText}`;
   }
@@ -6806,7 +7449,7 @@ export class Game {
       const rows = [];
       for (const r of visibleRecipes()) {
         if (filter && !(`${r.name} ${r.desc || ''} ${r.id}`.toLowerCase().includes(filter))) continue;
-        const progress = recipeProgress(r, pl.slots, { heat: this._lastHeat || 0 });
+        const progress = recipeProgress(r, pl.slots, this._settlementCraftContext());
         rows.push({ r, progress, can: progress.can });
       }
       rows.forEach((row, i) => { row._i = i; });
@@ -6816,7 +7459,15 @@ export class Game {
       for (const { r, progress, can } of rows) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        const status = can ? 'READY · CLICK TO CRAFT' : (progress.heatOk ? 'GATHER MATERIALS' : 'NEEDS HEAT');
+        const status = can
+          ? 'READY · CLICK TO CRAFT'
+          : (!progress.settlementOk
+            ? `LOCKED · BUILD ${progress.settlementMissing} MORE BLOCKS`
+            : (!progress.speciesOk
+              ? `LOCKED · OBSERVE ${progress.speciesMissing} MORE SPECIES`
+              : (!progress.roofOk
+              ? 'LOCKED · ROOFED SHELTER REQUIRED'
+              : (!progress.campfireOk ? 'LOCKED · CAMPFIRE REQUIRED' : (progress.heatOk ? 'GATHER MATERIALS' : 'NEEDS HEAT')))));
         btn.className = 'recipe-btn ' + (can ? 'can' : 'locked');
         btn.dataset.ready = can ? 'true' : 'false';
         btn.setAttribute('aria-label', `${r.name}: ${status}`);
@@ -6826,6 +7477,10 @@ export class Game {
         btn.disabled = this._inventoryStation !== 'workbench' && !can;
         let desc = r.desc || '';
         if (r.requiresHeat && !progress.heatOk) desc += ' — stand by fire';
+        if (r.requiresSettlementBlocks && !progress.settlementOk) desc += ` — build ${progress.settlementMissing} more blocks`;
+        if (r.requiresRoof && !progress.roofOk) desc += ' — finish a roofed shelter';
+        if (r.requiresCampfire && !progress.campfireOk) desc += ' — establish a campfire';
+        if (r.requiresObservedSpecies && !progress.speciesOk) desc += ` — observe ${progress.speciesMissing} more species`;
         const ingr = ingredientSummary(r, pl.slots)
           .map((item) => `${item.ok ? '✓' : `need ${item.missing}`} ${displayName(item.id)} ${item.have}/${item.need}`)
           .join(' · ');
@@ -6837,7 +7492,7 @@ export class Game {
 
     const goalEl = document.getElementById('crafting-goal');
     if (goalEl) {
-      const goal = nextProgressionRecipe(pl.slots, { heat: this._lastHeat || 0 });
+      const goal = nextProgressionRecipe(pl.slots, this._settlementCraftContext());
       goalEl.textContent = goal
         ? `Next goal: ${goal.name} · ${goal.desc || 'gather the listed ingredients'}`
         : 'All visible recipes are ready — choose a craft to continue.';
@@ -7370,6 +8025,7 @@ export class Game {
           if (!this.coopMode || this._coopRouter) return;
           this._coopRouter = new mod.CoopInputRouter(this.canvas, { kbmPlayer: mod.P1 });
           this._coopRouter.setKbmInput(this.input);
+          this._coopRouter.bindGamepadEvents();
         }).catch(() => {});
       } catch (_) {}
     }

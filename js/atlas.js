@@ -12,7 +12,7 @@ import {
   crackTileForProgress,
   atlasTileCount,
 } from './atlas-core.js?v=295';
-import { WATER_WAVE } from './water-material.js?v=5';
+import { WATER_WAVE } from './water-material.js?v=6';
 
 export {
   TILE,
@@ -1476,7 +1476,10 @@ export function createBlockAtlas() {
         float waterTop = (1.0 - smoothstep(0.5, 1.5, abs(tile - 5.0))) * smoothstep(0.72, 0.95, normal.y);
         float wave = sin(waterTime * ${WATER_WAVE.speed} + position.x * ${WATER_WAVE.xFrequency} + position.z * ${WATER_WAVE.zFrequency});
         float ripple = sin(waterTime * 1.15 + position.x * 0.27 - position.z * 0.38);
-        pos.y += waterTop * (0.12 + wave * ${Number((WATER_WAVE.amplitude * 0.55).toFixed(4))} + ripple * ${Number((WATER_WAVE.amplitude * 0.18).toFixed(4))});
+        // Keep the voxel waterline level and let the animated fragment flow
+        // provide motion; displaced top rows read as horizon banding at a
+        // first-person grazing angle.
+        pos.y += waterTop * 0.035;
         vWorldPos = pos;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
       }
@@ -1545,7 +1548,16 @@ export function createBlockAtlas() {
         float clayFace = 1.0 - smoothstep(0.5, 1.5, abs(vTile - 31.0));
         material *= mix(vec3(1.0), vec3(1.12, 1.08, 1.02), clayFace);
         vec3 rgb = material * light;
-        rgb = max(rgb, material * 0.50);
+        // Keep exposed shoreline cliffs readable when a side face turns away
+        // from the low tropical sun. This is deliberately limited to stone,
+        // cobble, and cobble-wall tiles above the surface; caves and the rest
+        // of the lighting model retain the existing minimum.
+        float exposedRock = (
+          (1.0 - smoothstep(0.5, 1.5, abs(vTile - 3.0)))
+          + (1.0 - smoothstep(0.5, 1.5, abs(vTile - 10.0)))
+          + (1.0 - smoothstep(0.5, 1.5, abs(vTile - 38.0)))
+        ) * smoothstep(15.8, 18.2, vWorldPos.y);
+        rgb = max(rgb, material * mix(0.50, 0.70, clamp(exposedRock, 0.0, 1.0)));
         float contact = (1.0 - abs(N.y)) * (1.0 - smoothstep(16.0, 18.2, vWorldPos.y));
         contact += smoothstep(0.78, 0.98, N.y) * (1.0 - ndl) * (1.0 - smoothstep(16.1, 17.8, vWorldPos.y)) * 0.55;
         rgb *= 1.0 - clamp(contact * 0.26, 0.0, 0.28);
@@ -1592,9 +1604,18 @@ export function createBlockAtlas() {
         rgb += vec3(0.12, 0.24, 0.26) * waterSurface * flow * 0.26;
         // Hide the repeating water atlas tile so the opening sea reads as one
         // tropical body: turquoise near the camera, cooler toward the horizon.
-        vec3 tropWater = vec3(0.07, 0.30, 0.34) + vec3(0.03, 0.08, 0.06) * wave + vec3(0.02, 0.04, 0.03) * ripple;
-        vec3 waterLit = tropWater * (0.78 + wrap * 0.32);
-        rgb = mix(rgb, waterLit, waterSurface * 0.94);
+        float waterDepthGrade = smoothstep(14.0, 92.0, distance(cameraPosition, vWorldPos));
+        float surfaceBreak = 0.5 + 0.5 * sin(vWorldPos.x * 0.19 + vWorldPos.z * 0.13 + waterTime * 0.35);
+        vec3 nearWater = vec3(0.095, 0.39, 0.41);
+        vec3 farWater = vec3(0.035, 0.205, 0.29);
+        vec3 tropWater = mix(nearWater, farWater, waterDepthGrade)
+          + vec3(0.025, 0.065, 0.055) * wave
+          + vec3(0.012, 0.026, 0.022) * ripple
+          + vec3(0.008, 0.018, 0.014) * surfaceBreak;
+        vec3 waterLit = tropWater * (0.84 + wrap * 0.26);
+        // Near-total replacement of the repeating atlas texel keeps the sea a
+        // continuous body; the world-space grade supplies depth instead of tile bands.
+        rgb = mix(rgb, waterLit, waterSurface * 0.995);
         float broadWave = 0.5 + 0.5 * sin(waterTime * 0.65 + vWorldPos.x * 0.11 + vWorldPos.z * 0.07);
         vec3 coveTint = vec3(0.055, 0.30, 0.32) + vec3(0.02, 0.07, 0.055) * broadWave;
         rgb = mix(rgb, mix(rgb, coveTint, 0.40), starterCove * waterSurface * 0.96);
@@ -1622,6 +1643,22 @@ export function createBlockAtlas() {
         rgb = mix(heightFogColor, rgb, mix(hFog, 1.0, heightFactor * 0.55 + 0.25));
         float sunAlign = pow(max(0.0, dot(viewDir, L)), 12.0);
         rgb += sunColor * sunAlign * shaftStrength * (1.0 - buried) * 0.16;
+        // Preserve textured readability on exposed stone/cobble faces after
+        // fog and contact grading. The height gate keeps caves dark and the
+        // tile gate leaves sand, foliage, water, and structures untouched.
+        float rockFinal = (
+          (1.0 - smoothstep(0.5, 1.5, abs(vTile - 3.0)))
+          + (1.0 - smoothstep(0.5, 1.5, abs(vTile - 10.0)))
+          + (1.0 - smoothstep(0.5, 1.5, abs(vTile - 38.0)))
+        ) * smoothstep(15.2, 18.0, vWorldPos.y);
+        vec3 rockFloor = tex.rgb * 0.80 + vec3(0.04, 0.045, 0.06);
+        rgb = mix(rgb, max(rgb, rockFloor), clamp(rockFinal, 0.0, 1.0));
+        // Final water-top grade: keep reflections and fog, but prevent any
+        // later atlas/specular contribution from rebuilding horizontal bands.
+        float waterTopFinal = waterFace * smoothstep(0.65, 0.92, N.y);
+        vec3 finalWater = waterLit + sunColor * glitter * sunIntensity * 0.45;
+        finalWater = mix(heightFogColor, finalWater, mix(hFog, 1.0, heightFactor * 0.55 + 0.25));
+        rgb = mix(rgb, finalWater, waterTopFinal * 0.92);
         gl_FragColor = vec4(rgb, 1.0);
       }
     `,

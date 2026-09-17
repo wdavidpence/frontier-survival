@@ -17,7 +17,7 @@ import {
   buildTerrainProxyArrays,
 } from './terrain-visibility.js?v=292';
 import { raycastVoxel } from './interaction-contract.js?v=5';
-import { chooseCastawayCandidate, CASTAWAY_CONFIG } from './castaway-arrival.js?v=7';
+import { chooseCastawayCandidate, CASTAWAY_CONFIG, arrivalFacingYaw } from './castaway-arrival.js?v=10';
 import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=3';
 import { createDisposalContext, disposeGeometry, disposeTree } from './resource-disposal.js?v=3';
 import { applyTropicalEcology } from './tropical-ecology.js?v=25';
@@ -593,13 +593,13 @@ export class World {
   /**
    * @param {object} opts
    * @param {number} opts.seed
-   * @param {number} opts.radiusChunks half-extent in chunks
+   * @param {number|null} opts.streamRadius outer streaming ring in chunks
    * @param {THREE.Material} [opts.material]
    */
-  constructor({ seed = 1, radiusChunks = 4, material = null, doorFacing = null } = {}) {
+  constructor({ seed = 1, radiusChunks = 4, streamRadius = null, material = null, doorFacing = null } = {}) {
     this.seed = seed;
     this.radiusChunks = radiusChunks;
-    this.streamRadius = Math.max(2, Math.min(32, radiusChunks | 0));
+    this.streamRadius = Math.max(2, Math.min(32, (streamRadius ?? radiusChunks) | 0));
     this.streamMargin = 1;
     this._streamCenter = { cx: 0, cz: 0 };
     this._streamQueue = [];
@@ -1151,6 +1151,16 @@ export class World {
       this._streamQueue.push({ ...want, key: k });
     }
 
+    // A fast-moving player can invalidate queued work before the budget loop
+    // reaches it. Prune those entries now so the queue cannot accumulate stale
+    // requests across stream-center changes.
+    this._streamQueue = this._streamQueue.filter((item) => {
+      const key = item.key || this.key(item.cx, item.cz);
+      const keep = desired.has(key);
+      if (!keep) this._streamQueued.delete(key);
+      return keep;
+    });
+
     // Near + higher detail first. Continue draining even when the player
     // remains in the same chunk (signature early-return used to starve the queue).
     const rank = (t) => this._tierRank(t);
@@ -1226,6 +1236,7 @@ export class World {
     const k = this.key(cx, cz);
     if (!this._streamPending.has(k)) return;
     this._streamPending.delete(k);
+    if (!this._streamDesired.has(k)) return;
     this._streamReady.push({ cx, cz, data: data || null });
   }
 
@@ -1241,7 +1252,10 @@ export class World {
     });
     let n = 0;
     while (this._streamReady.length && n < budget) {
-      this._commitStreamedChunk(this._streamReady.shift(), desired, plan);
+      const item = this._streamReady.shift();
+      const key = this.key(item.cx, item.cz);
+      if (!desired.has(key) && !this._streamDesired.has(key)) continue;
+      this._commitStreamedChunk(item, desired, plan);
       n++;
     }
     return n;

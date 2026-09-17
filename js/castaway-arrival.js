@@ -6,9 +6,32 @@ export const CASTAWAY_CONFIG = Object.freeze({
   searchSamples: 2200,
   maxSpawnRadius: 112,
   boatOffset: 4.2,
-  salvageRadius: 6.0,
+  salvageRadius: 7.0,
   cardSeconds: 2.2,
 });
+
+export function arrivalFacingYaw(arrival = {}) {
+  const x = Number(arrival.waterDirX);
+  const z = Number(arrival.waterDirZ);
+  if (Number.isFinite(x) && Number.isFinite(z) && Math.hypot(x, z) > 0.01) {
+    return Math.atan2(-x, -z);
+  }
+  return Number.isFinite(Number(arrival.yaw)) ? Number(arrival.yaw) : 0.92;
+}
+
+/**
+ * Accept the authored locker interaction when it is close and either aimed
+ * normally or within the small arrival-context fallback cone. A direct
+ * behind-the-player interaction still refuses.
+ */
+export function canSalvageLocker(distance, aimDot) {
+  const d = Number(distance);
+  const dot = Number(aimDot);
+  if (!Number.isFinite(d) || !Number.isFinite(dot) || d < 0) return false;
+  const normallyAimed = dot >= 0.15;
+  const arrivalFallback = d <= Math.min(CASTAWAY_CONFIG.salvageRadius, 7.0) && dot >= -0.2;
+  return d <= CASTAWAY_CONFIG.salvageRadius && (normallyAimed || arrivalFallback);
+}
 
 /**
  * Score a worldgen candidate for the opening composition.

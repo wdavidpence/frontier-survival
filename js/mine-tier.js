@@ -12,9 +12,9 @@ import {
   requiredToolForWork,
   workTimeMultiplier,
 } from './harvest-balance.js?v=4';
-import { propsOf } from './items.js?v=257';
-import { tierForItem, HARVEST_LEVEL, speedForItem, tierMeetsRequirement } from './tool-tiers.js?v=223';
-import { oreDropEntry, primaryOreDropId } from './ore-drops.js?v=221';
+import { propsOf } from './items.js?v=261';
+import { tierForItem, HARVEST_LEVEL, speedForItem, tierMeetsRequirement } from './tool-tiers.js?v=224';
+import { oreDropEntry, primaryOreDropId } from './ore-drops.js?v=222';
 
 const HARVEST_CLASS_BY_BLOCK = new Map([
   [BLOCK.LOG, BLOCK_CLASS.LOG],

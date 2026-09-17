@@ -1,10 +1,12 @@
 /** Safe water-material contract harvested from the dirty worker tree. */
 
 export const WATER_WAVE = Object.freeze({
-  speed: 1.8,
-  xFrequency: 0.5,
-  zFrequency: 0.37,
-  amplitude: 0.07,
+  // A low-frequency swell reads as moving water without turning the
+  // horizon into evenly spaced ridges at first-person grazing angles.
+  speed: 1.15,
+  xFrequency: 0.16,
+  zFrequency: 0.12,
+  amplitude: 0.025,
   tint: Object.freeze([0.05, 0.20, 0.24]),
 });
 

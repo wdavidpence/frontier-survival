@@ -13,6 +13,14 @@ export const DEFAULT_SETTINGS = {
   sensitivity: 0.0022,
   helpVisible: true,
   renderDistance: 9, // wider tropical horizon by default while keeping full-detail local
+  /** Accessibility/presentation preferences; all are legacy-safe optional fields. */
+  reducedMotion: false,
+  highContrast: false,
+  colorVisionSafe: false,
+  captions: true,
+  uiScale: 1,
+  /** 10-foot couch/TV presentation mode; safe for keyboard, touch, and pads. */
+  tvMode: false,
   /** Coop: when false (default), players cannot hurt each other with melee/arrows */
   friendlyFire: false,
 };
@@ -55,6 +63,13 @@ export function parseSettings(raw) {
   sensitivity = Math.max(0.0006, Math.min(0.008, sensitivity));
   const helpVisible = data.helpVisible !== false;
   const graphicsQuality = typeof data.graphicsQuality === 'string' ? data.graphicsQuality : DEFAULT_SETTINGS.graphicsQuality;
+  const reducedMotion = data.reducedMotion === true;
+  const highContrast = data.highContrast === true;
+  const colorVisionSafe = data.colorVisionSafe === true;
+  const captions = data.captions !== false;
+  let uiScale = Number(data.uiScale);
+  if (!Number.isFinite(uiScale)) uiScale = DEFAULT_SETTINGS.uiScale;
+  uiScale = Math.max(0.85, Math.min(1.35, uiScale));
   let renderDistance = Number(data.renderDistance);
   if (!Number.isFinite(renderDistance)) renderDistance = DEFAULT_SETTINGS.renderDistance;
   renderDistance = Math.max(2, Math.min(16, Math.round(renderDistance)));
@@ -67,6 +82,12 @@ export function parseSettings(raw) {
       helpVisible,
       graphicsQuality,
       renderDistance,
+      reducedMotion,
+      highContrast,
+      colorVisionSafe,
+      captions,
+      uiScale,
+      tvMode: data.tvMode === true,
       friendlyFire: data.friendlyFire === true,
     },
   };
@@ -80,6 +101,12 @@ export function serializeSettings(settings) {
     helpVisible: settings.helpVisible !== false,
     graphicsQuality: settings.graphicsQuality || DEFAULT_SETTINGS.graphicsQuality,
     renderDistance: settings.renderDistance ?? DEFAULT_SETTINGS.renderDistance,
+    reducedMotion: settings.reducedMotion === true,
+    highContrast: settings.highContrast === true,
+    colorVisionSafe: settings.colorVisionSafe === true,
+    captions: settings.captions !== false,
+    uiScale: Math.max(0.85, Math.min(1.35, Number(settings.uiScale) || DEFAULT_SETTINGS.uiScale)),
+    tvMode: settings.tvMode === true,
     friendlyFire: settings.friendlyFire === true,
   });
 }

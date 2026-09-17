@@ -3,8 +3,8 @@ import { BLOCK } from './blocks.js?v=299';
 import { firstExpeditionSummary } from './first-expedition.js?v=2';
 import { locatorEntries } from './campaign-explore.js?v=1';
 import { triagePriority, predatorTelegraph, boatRouteLayers } from './campaign-survival.js?v=1';
-import { buildMilestone } from './campaign-build.js?v=1';
-import { displayName } from './items.js?v=257';
+import { buildMilestone, settlementUnlocks, settlementNextProject } from './campaign-build.js?v=3';
+import { displayName } from './items.js?v=261';
 import { radialQuadrants } from './campaign-friction.js?v=1';
 
 const MEMORY_KEY = 'frontier-golden-cove-memory-v1';
@@ -19,14 +19,14 @@ const CSS = `
   .gcv-expedition{display:flex;align-items:center;gap:7px;margin-top:6px;color:#9db8bc;font-size:8px;letter-spacing:.08em;text-transform:uppercase}.gcv-expedition strong{color:#a9e5e4;font-weight:600}.gcv-expedition i{flex:1;height:3px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}.gcv-expedition i::after{content:"";display:block;width:var(--gcv-expedition-progress,0%);height:100%;background:linear-gradient(90deg,#63c7bd,#f3c987);transition:width .35s ease}
   .gcv-voyage{position:absolute;left:50%;bottom:116px;transform:translateX(-50%) translateY(8px);width:min(320px,calc(100vw - 32px));padding:8px 11px;border:1px solid rgba(143,225,229,.25);border-radius:12px;background:linear-gradient(110deg,rgba(5,18,26,.84),rgba(9,33,39,.68));box-shadow:0 12px 30px rgba(0,0,0,.26),inset 0 1px rgba(255,255,255,.1);backdrop-filter:blur(10px);opacity:0;visibility:hidden;transition:opacity .25s ease,transform .25s ease}.gcv-voyage.on{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}.gcv-voyage-head{display:flex;justify-content:space-between;align-items:center;color:#a9e5e4;font-size:8px;letter-spacing:.16em;text-transform:uppercase}.gcv-voyage-state{color:#f3c987;font-weight:700;letter-spacing:.08em}.gcv-voyage-detail{display:flex;justify-content:space-between;gap:8px;margin-top:5px;color:#d5e6e3;font-size:10px}.gcv-voyage-detail b{color:#fff1d1}.gcv-voyage-meter{height:3px;margin-top:7px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden}.gcv-voyage-meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#63c7bd,#f3c987);transition:width .25s ease}.gcv-voyage-note{margin-top:4px;color:#8eafb2;font-size:8px}
   .gcv-kicker{font-size:8px;letter-spacing:.19em;text-transform:uppercase;color:var(--gcv-accent);opacity:.82}.gcv-location{margin-top:2px;font:600 16px/1.05 Georgia,serif;letter-spacing:.015em}.gcv-context{display:flex;align-items:center;gap:8px;margin-top:5px;color:#c9dce0;font-size:10px}.gcv-sep{width:3px;height:3px;border-radius:50%;background:var(--gcv-cool);box-shadow:0 0 8px var(--gcv-cool)}.gcv-toggle{float:right;margin-top:-3px;border:1px solid rgba(255,226,175,.25);border-radius:999px;padding:4px 7px;background:rgba(255,255,255,.06);color:#f7e5c5;font-size:8px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}.gcv-toggle:hover{background:rgba(255,255,255,.13)}
-  .gcv-arrival{position:absolute;top:12%;left:50%;transform:translateX(-50%);width:min(420px,calc(100vw - 80px));padding:12px 16px;border:1px solid rgba(255,226,176,.28);border-radius:13px;background:linear-gradient(145deg,rgba(10,19,27,.72),rgba(31,33,30,.46));box-shadow:0 14px 36px rgba(0,0,0,.24),inset 0 1px rgba(255,255,255,.10);backdrop-filter:blur(10px);text-align:center;transition:opacity .55s ease,transform .55s ease;pointer-events:none;}.gcv-arrival.hide{opacity:0;transform:translate(-50%,-10px);visibility:hidden}.gcv-arrival.hide{opacity:0;transform:translate(-50%,-10px)}.gcv-arrival-kicker{font-size:8px;letter-spacing:.25em;color:var(--gcv-accent);text-transform:uppercase}.gcv-arrival-title{margin-top:6px;font:600 27px/1 Georgia,serif}.gcv-arrival-copy{margin-top:7px;color:#cbd8d4;font-size:11px;line-height:1.45}.gcv-arrival-route{display:inline-block;margin-top:11px;padding:5px 9px;border:1px solid rgba(143,225,229,.22);border-radius:999px;color:#a9e5e4;font-size:9px;letter-spacing:.07em;text-transform:uppercase}
+  .gcv-arrival{position:absolute;top:clamp(176px,22vh,240px);left:50%;transform:translateX(-50%);width:min(420px,calc(100vw - 80px));padding:12px 16px;border:1px solid rgba(255,226,176,.28);border-radius:13px;background:linear-gradient(145deg,rgba(10,19,27,.72),rgba(31,33,30,.46));box-shadow:0 14px 36px rgba(0,0,0,.24),inset 0 1px rgba(255,255,255,.10);backdrop-filter:blur(10px);text-align:center;transition:opacity .55s ease,transform .55s ease;pointer-events:none;}.gcv-arrival.hide{opacity:0;transform:translate(-50%,-10px);visibility:hidden}.gcv-arrival.hide{opacity:0;transform:translate(-50%,-10px)}.gcv-arrival-kicker{font-size:8px;letter-spacing:.25em;color:var(--gcv-accent);text-transform:uppercase}.gcv-arrival-title{margin-top:6px;font:600 27px/1 Georgia,serif}.gcv-arrival-copy{margin-top:7px;color:#cbd8d4;font-size:11px;line-height:1.45}.gcv-arrival-route{display:inline-block;margin-top:11px;padding:5px 9px;border:1px solid rgba(143,225,229,.22);border-radius:999px;color:#a9e5e4;font-size:9px;letter-spacing:.07em;text-transform:uppercase}
   .gcv-dossier{position:absolute;top:106px;left:50%;transform:translateX(-50%);width:min(520px,calc(100vw - 32px));max-height:min(590px,calc(100vh - 130px));overflow:auto;padding:15px;border:1px solid rgba(255,227,181,.28);border-radius:15px;background:rgba(7,14,22,.91);box-shadow:0 24px 80px rgba(0,0,0,.44),inset 0 1px rgba(255,255,255,.1);backdrop-filter:blur(18px);pointer-events:auto;opacity:0;visibility:hidden;transition:opacity .2s ease,transform .2s ease}.gcv-dossier.on{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}.gcv-dossier-head{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,.1);padding-bottom:10px}.gcv-dossier-title{font:600 20px Georgia,serif}.gcv-dossier-sub{margin-top:3px;color:#9db8bc;font-size:9px}.gcv-close{border:0;background:transparent;color:#c9d6d0;font-size:18px;cursor:pointer}.gcv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}.gcv-card{min-height:62px;padding:9px;border:1px solid rgba(255,255,255,.09);border-radius:10px;background:linear-gradient(145deg,rgba(255,255,255,.065),rgba(255,255,255,.02))}.gcv-card.wide{grid-column:1/-1}.gcv-card-label{font-size:8px;color:var(--gcv-accent);letter-spacing:.15em;text-transform:uppercase}.gcv-card-value{margin-top:5px;font-size:13px;color:#f4eee1}.gcv-card-note{margin-top:4px;color:#9db5b8;font-size:9px;line-height:1.35}.gcv-meter{height:4px;margin-top:7px;border-radius:999px;background:rgba(255,255,255,.09);overflow:hidden}.gcv-meter i{display:block;height:100%;width:0;border-radius:inherit;background:linear-gradient(90deg,#63c7bd,#f3c987);transition:width .4s ease}.gcv-memory{display:flex;gap:7px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.07);font-size:10px}.gcv-memory:last-child{border-bottom:0}.gcv-memory-dot{width:6px;height:6px;border-radius:50%;background:#8fe1e5;box-shadow:0 0 9px #8fe1e5}.gcv-memory-time{margin-left:auto;color:#718c91;font-size:8px}
   .gcv-dossier::-webkit-scrollbar{width:5px}.gcv-dossier::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:5px}
   @keyframes gcv-in{from{opacity:0;transform:translateX(-50%) translateY(-7px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-  @media(max-width:720px){.gcv-voyage{bottom:226px;width:calc(100vw - 28px - env(safe-area-inset-left) - env(safe-area-inset-right));}.gcv-ribbon{top:225px;left:calc(10px + env(safe-area-inset-left));right:calc(10px + env(safe-area-inset-right));transform:none;width:auto;min-width:0;animation:none}.gcv-arrival{top:10%;left:calc(50% + (env(safe-area-inset-left) - env(safe-area-inset-right))/2);width:calc(100vw - 28px - env(safe-area-inset-left) - env(safe-area-inset-right));padding:8px 12px}.gcv-arrival-title{font-size:18px}.gcv-arrival-copy{font-size:10px;line-height:1.28;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.gcv-arrival-route{margin-top:7px;font-size:8px}.gcv-dossier{top:225px;left:calc(50% + (env(safe-area-inset-left) - env(safe-area-inset-right))/2);width:calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right));max-height:calc(100vh - 245px)}.gcv-grid{grid-template-columns:1fr}.gcv-card.wide{grid-column:auto}.gcv-toggle{font-size:7px}}
+  @media(max-width:720px){.gcv-voyage{bottom:226px;width:calc(100vw - 28px - env(safe-area-inset-left) - env(safe-area-inset-right));}.gcv-ribbon{top:225px;left:calc(10px + env(safe-area-inset-left));right:calc(10px + env(safe-area-inset-right));transform:none;width:auto;min-width:0;animation:none}.gcv-arrival{top:176px;left:calc(50% + (env(safe-area-inset-left) - env(safe-area-inset-right))/2);width:calc(100vw - 28px - env(safe-area-inset-left) - env(safe-area-inset-right));padding:8px 12px}.gcv-arrival-title{font-size:18px}.gcv-arrival-copy{font-size:10px;line-height:1.28;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.gcv-arrival-route{margin-top:7px;font-size:8px}.gcv-dossier{top:225px;left:calc(50% + (env(safe-area-inset-left) - env(safe-area-inset-right))/2);width:calc(100vw - 20px - env(safe-area-inset-left) - env(safe-area-inset-right));max-height:calc(100vh - 245px)}.gcv-grid{grid-template-columns:1fr}.gcv-card.wide{grid-column:auto}.gcv-toggle{font-size:7px}}
   body.game-active.composure-mode .gcv-ribbon{top:8px;width:min(390px,54vw);padding:6px 10px}
   body.game-active.composure-mode .gcv-arrival{display:none!important;visibility:hidden;opacity:0}
-  @media(max-width:720px){body.game-active.composure-mode .gcv-ribbon{top:8px;left:50%;right:auto;transform:translateX(-50%);width:min(92vw,420px)}}
+  @media(max-width:820px){body.game-active.composure-mode .gcv-ribbon{top:62px;left:50%;right:auto;transform:translateX(-50%);width:min(92vw,420px)}}
   @media(prefers-reduced-motion:reduce){#golden-cove-vision *,#golden-cove-vision::before,#golden-cove-vision::after{animation:none!important;transition:none!important}}
 `;
 
@@ -50,7 +50,10 @@ function setText(root, selector, value) {
 }
 function setWidth(root, selector, value) {
   const el = root.querySelector(selector);
-  if (el) el.style.width = `${Math.round(clamp01(value) * 100)}%`;
+  if (!el) return;
+  const percent = Math.round(clamp01(value) * 100);
+  el.style.width = `${percent}%`;
+  if (el.getAttribute('role') === 'progressbar') el.setAttribute('aria-valuenow', String(percent));
 }
 
 export function fieldRisk(survival = {}) {
@@ -159,6 +162,16 @@ function snapshot(game) {
   const pack = radialQuadrants(game.player, displayName);
   const hasPack = !!(pack.food || pack.tool || pack.light || pack.water);
   const milestone = buildMilestone(edits, game._lastMilestoneTier ?? 0);
+  const settlementState = {
+    edits,
+    roofed,
+    campfire: campfireBuilt,
+    voyages: [game._destinationState, game._lookoutRouteState, game._whiteBayRouteState]
+      .filter((state) => state?.phase === 'completed' || state?.phase === 'claimed').length,
+    observedSpecies: game._journalState?.discovered?.length || 0,
+  };
+  const settlement = settlementUnlocks(settlementState);
+  const settlementNext = settlementNextProject(settlementState);
   return {
     pos, destination, distance, tide, weather, nearWater, boat, survival, risk, edits, campDistance,
     shelter, campBed, campfireBuilt, nearestCampfire, campfireDistance, roofed, activity, night, location, bearing,
@@ -168,7 +181,7 @@ function snapshot(game) {
     craftLabel, rhythm, expedition,
     boatSpeed: boat ? Math.hypot(boat.vx || 0, boat.vz || 0) : 0,
     boatReadiness, boatCargo, wakeActive,
-    locators, triage, telegraph, routeLayers, pack, hasPack, milestone,
+    locators, triage, telegraph, routeLayers, pack, hasPack, milestone, settlement, settlementNext,
     warmth: clamp01((game._lastHeat || 0) / 18),
     sea: weather === 'rain' || weather === 'storm' ? 'Rising swell' : tide > .72 ? 'Flood tide' : tide < .28 ? 'Ebb tide' : 'Calm water',
     depth: boat?.mounted ? (distance > 55 ? 'Open water' : 'Channel edge') : nearWater ? 'Shoreline shallows' : 'Dry land',
@@ -226,6 +239,7 @@ export function createGoldenCoveVision({ scene, hudRoot } = {}) {
         <article class="gcv-card"><div class="gcv-card-label">17 · Water column</div><div class="gcv-card-value" data-gcv="layers">On land</div><div class="gcv-card-note" data-gcv="layersNote">Aboard, the depth reveals reef, kelp, and lanes.</div></article>
         <article class="gcv-card"><div class="gcv-card-label">21 · Pack ready</div><div class="gcv-card-value" data-gcv="pack">Pack empty</div><div class="gcv-card-note" data-gcv="packNote">Food, tool, light, and water all ride in one glance.</div></article>
         <article class="gcv-card"><div class="gcv-card-label">22 · Homestead</div><div class="gcv-card-value" data-gcv="homestead">0 blocks placed</div><div class="gcv-card-note" data-gcv="homesteadNote">Every placed block moves the settlement tier.</div></article>
+        <article class="gcv-card"><div class="gcv-card-label">23 · Next settlement unlock</div><div class="gcv-card-value" data-gcv="unlock">Keep building</div><div class="gcv-card-note" data-gcv="unlockNote">Roof, fire, and projects turn survival into a home.</div><div class="gcv-meter"><i data-gcv-meter="settlement" role="progressbar" aria-label="Settlement project progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></i></div></article>
         <article class="gcv-card wide"><div class="gcv-card-label">18 · Persistent expedition timeline</div><div data-gcv="memories"></div></article>
       </div>
     </section>`;
@@ -288,6 +302,7 @@ export function createGoldenCoveVision({ scene, hudRoot } = {}) {
   let elapsed = 0;
   let sampleT = 0;
   let lastSnapshot = null;
+  let lastSettlementUnlocks = null;
   const toggle = root.querySelector('.gcv-toggle');
   const dossier = root.querySelector('[data-dossier]');
   const setDossier = (on) => dossier?.classList.toggle('on', !!on);
@@ -319,6 +334,18 @@ export function createGoldenCoveVision({ scene, hudRoot } = {}) {
       lastSnapshot = snapshot(game);
     }
     const s = lastSnapshot;
+    const settlementKey = (s.settlement || []).map((project) => project.id).join('|');
+    if (lastSettlementUnlocks !== null && settlementKey !== lastSettlementUnlocks) {
+      const previous = new Set(lastSettlementUnlocks.split('|').filter(Boolean));
+      const gained = (s.settlement || []).find((project) => !previous.has(project.id));
+      if (gained) {
+        game.audio?.settlementUnlock?.(gained.label);
+        game.player?.notify?.(`Settlement project unlocked: ${gained.label}`, 3.2);
+        addMemory('Settlement', `${gained.label} unlocked`);
+        renderMemories();
+      }
+    }
+    lastSettlementUnlocks = settlementKey;
     const weatherLabel = s.weather === 'clear' ? (s.night ? 'Clear night' : 'Clear horizon') : s.weather === 'rain' ? 'Rain moving in' : s.weather === 'snow' ? 'Cold front' : 'Storm pressure';
     const grade = s.weather === 'rain' || s.weather === 'storm' ? .18 : s.night ? .08 : .34 + s.tide * .08;
     root.dataset.weather = s.weather;
@@ -391,6 +418,15 @@ export function createGoldenCoveVision({ scene, hudRoot } = {}) {
     setText(root, '[data-gcv="packNote"]', packBits.length ? 'Radial ready: food, tool, light, and water all read.' : 'Gather a ration, tool, torch, and water to arm the radial.');
     setText(root, '[data-gcv="homestead"]', `${s.edits} blocks placed`);
     setText(root, '[data-gcv="homesteadNote"]', s.milestone ? `${s.milestone.tier} blocks · ${s.milestone.title} secured` : 'Every placed block moves the settlement tier.');
+    const unlock = s.settlement?.[0];
+    const nextProject = s.settlementNext;
+    setText(root, '[data-gcv="unlock"]', unlock?.label || nextProject?.label || (s.edits >= 32 ? 'Settlement frontier open' : 'Keep building'));
+    setText(root, '[data-gcv="unlockNote"]', unlock
+      ? `Unlocked · ${s.settlement.length} project${s.settlement.length === 1 ? '' : 's'} ready · next: ${nextProject?.label || 'keep exploring'}${nextProject ? ` · ${nextProject.progressLabel} · ${nextProject.note}` : ''}`
+      : nextProject
+        ? `${nextProject.progressLabel} · ${nextProject.note}`
+        : 'Roof, fire, and projects turn survival into a home.');
+    setWidth(root, '[data-gcv-meter="settlement"]', nextProject ? nextProject.progress : unlock ? 1 : 0);
     setWidth(root, '[data-gcv-meter="tide"]', s.tide);
     setWidth(root, '[data-gcv-meter="camp"]', s.shelter);
     setWidth(root, '[data-gcv-meter="boat"]', boatReady);

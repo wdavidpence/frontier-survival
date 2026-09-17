@@ -55,6 +55,7 @@ export class AudioBus {
   constructor() {
     this.ctx = null;
     this.enabled = true;
+    this.captionSink = null;
     this.master = null;
     this._ambStarted = false;
     this._layers = {};
@@ -77,6 +78,14 @@ export class AudioBus {
     this.master = this.ctx.createGain();
     this.master.gain.value = 0.28;
     this.master.connect(this.ctx.destination);
+  }
+
+  setCaptionSink(sink) {
+    this.captionSink = typeof sink === 'function' ? sink : null;
+  }
+
+  _announce(text) {
+    try { this.captionSink?.(text); } catch {}
   }
 
   resume() {
@@ -435,15 +444,18 @@ export class AudioBus {
   }
 
   breakBlock() {
+    this._announce('Impact — block broken');
     this.beep(110, 0.05, 'triangle', 0.22);
     this.beep(70, 0.09, 'square', 0.1);
     this.beep(180 + Math.random() * 40, 0.03, 'sawtooth', 0.06);
   }
   placeBlock() {
+    this._announce('Construction — block placed');
     this.beep(320, 0.05, 'sine', 0.15);
     this.beep(420, 0.03, 'sine', 0.08);
   }
   hurt() {
+    this._announce('Danger — taking damage');
     this.beep(90, 0.2, 'sawtooth', 0.2);
   }
   eat() {
@@ -451,6 +463,7 @@ export class AudioBus {
     this.beep(300, 0.08, 'sine', 0.1);
   }
   pickup() {
+    this._announce('Item collected');
     this.beep(880, 0.04, 'sine', 0.07);
     this.beep(1240, 0.06, 'triangle', 0.045);
   }
@@ -480,16 +493,53 @@ export class AudioBus {
     this.beep(150, 0.09, 'sine', 0.04);
   }
   landfall() {
+    this._announce('Landfall — shoreline reached');
     this.beep(360, 0.07, 'triangle', 0.07);
     this.beep(540, 0.09, 'sine', 0.055);
     this.beep(720, 0.12, 'sine', 0.04);
   }
   craftComplete() {
+    this._announce('Crafting complete');
     this.beep(300, 0.06, 'triangle', 0.07);
     this.beep(450, 0.08, 'sine', 0.06);
     this.beep(600, 0.1, 'sine', 0.04);
   }
+  smokehouseStart(food = 'raw food') {
+    this._announce(`Smokehouse started — ${food}`);
+    this.beep(150, 0.08, 'triangle', 0.055);
+    this.beep(210, 0.1, 'sine', 0.045);
+  }
+  smokehouseReady(food = 'smoked food') {
+    this._announce(`Smokehouse ready — ${food}`);
+    this.beep(280, 0.07, 'triangle', 0.065);
+    this.beep(420, 0.09, 'sine', 0.06);
+    this.beep(630, 0.12, 'sine', 0.045);
+  }
+  beaconLight(lit = true) {
+    this._announce(lit ? 'Harbor Beacon lit' : 'Harbor Beacon dimmed');
+    if (lit) {
+      this.beep(330, 0.07, 'triangle', 0.065);
+      this.beep(495, 0.09, 'sine', 0.055);
+      this.beep(740, 0.14, 'sine', 0.04);
+    } else {
+      this.beep(240, 0.08, 'triangle', 0.055);
+      this.beep(150, 0.11, 'sine', 0.04);
+    }
+  }
+  aviaryInspect() {
+    this._announce('Shorebird Aviary inspected — visitor logged');
+    this.beep(620, 0.055, 'sine', 0.055);
+    this.beep(820, 0.07, 'triangle', 0.045);
+    this.beep(1040, 0.11, 'sine', 0.032);
+  }
+  settlementUnlock(label = 'new project') {
+    this._announce(`Settlement project unlocked — ${label}`);
+    this.beep(440, 0.07, 'sine', 0.08);
+    this.beep(660, 0.09, 'triangle', 0.07);
+    this.beep(880, 0.12, 'sine', 0.055);
+  }
   catchSuccess() {
+    this._announce('Catch landed');
     this.beep(520, 0.06, 'sine', 0.08);
     this.beep(780, 0.08, 'triangle', 0.065);
     this.beep(1040, 0.12, 'sine', 0.045);
@@ -503,6 +553,7 @@ export class AudioBus {
     this.beep(120, 0.1, 'sine', 0.05);
   }
   splash() {
+    this._announce('Water entry');
     this.beep(180, 0.06, 'sine', 0.1);
     this.beep(90, 0.1, 'triangle', 0.08);
     this.beep(240 + Math.random() * 40, 0.04, 'sine', 0.05);
@@ -558,6 +609,7 @@ export class AudioBus {
   }
   /** A restrained, original exploration stinger for a persistent discovery. */
   discovery() {
+    this._announce('Discovery — new place recorded');
     this.beep(392, 0.10, 'triangle', 0.075);
     this.beep(523.25, 0.12, 'sine', 0.065);
     this.beep(659.25, 0.16, 'sine', 0.055);

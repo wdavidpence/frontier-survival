@@ -3,7 +3,7 @@
  * Defines the material tiers used by tools (pick, axe) in this game.
  */
 
-import { ITEM } from './items.js?v=257';
+import { ITEM } from './items.js?v=261';
 
 /** Tier names in ascending order. */
 export const TIER_ORDER = ['wood', 'stone', 'iron'];

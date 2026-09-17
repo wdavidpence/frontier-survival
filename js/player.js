@@ -4,9 +4,9 @@ import { canSprint, moveSpeedMultiplier, fallDamageFromSpeed } from './survival.
 import { honeyMoveMult, honeyJumpMult } from './honey-slide.js?v=221';
 import { powderSnowSinkVy } from './powder-snow.js?v=221';
 import { scaffoldingClimbVy } from './scaffolding.js?v=221';
-import { createStarterInventory, getHotbarStack } from './inventory.js?v=223';
-import { emptyEquipment } from './equipment.js?v=221';
-import { ITEM } from './items.js?v=257';
+import { createStarterInventory, getHotbarStack } from './inventory.js?v=224';
+import { emptyEquipment } from './equipment.js?v=222';
+import { ITEM } from './items.js?v=261';
 
 const PLAYER_RADIUS = 0.3;
 const PLAYER_HEIGHT = 1.7;

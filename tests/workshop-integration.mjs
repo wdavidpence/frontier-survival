@@ -42,14 +42,15 @@ test('persistent furnace ticking delegates through the station adapter and exist
   assert.match(game, /_tickFurnaces\(dt\)/);
   assert.match(game, /tickFurnaceStation\(/);
   assert.match(game, /_workshopState\??\.stations/);
-  assert.match(stations, /from ['"]\.\/furnace-tick\.js\?v=232['"]/);
+  assert.match(stations, /from ['"]\.\/furnace-tick\.js\?v=234['"]/);
   assert.match(stations, /tickFurnace\(/);
   assert.match(game, /BLOCK\.FURNACE/);
 });
 
 test('real P1 and P2 use paths open one shared furnace station', () => {
   assert.match(game, /hit\.id === BLOCK\.FURNACE[\s\S]{0,500}_openFurnace/);
-  assert.match(game, /this\.input2\.consumeUse\?\.\(\)[\s\S]{0,500}hit\.id === BLOCK\.FURNACE[\s\S]{0,500}_openFurnace/);
+  assert.match(game, /this\.input2\.consumeUse\?\.\(\)/, 'P2 use path consumes its edge-triggered use input');
+  assert.match(game, /_getOrCreateFurnaceStation\(hit\.x, hit\.y, hit\.z\)[\s\S]{0,120}_openFurnace\(stationId, ['"]p2['"]\)/, 'P2 furnace use opens the shared station');
   assert.match(game, /owner = ['"]p1['"]/);
   assert.match(game, /getOrCreateFurnaceStation/);
   assert.match(game, /stationId/);

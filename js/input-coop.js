@@ -1,4 +1,4 @@
-import { GamepadSlotManager } from './input.js?v=221';
+import { GamepadSlotManager } from './input.js?v=222';
 import {
   applyDualHotbarEdge,
   createDualHotbarState,

@@ -93,6 +93,10 @@ export const ITEM = {
   DIAMOND_AXE: 185,
   DIAMOND_SWORD: 186,
   GLIDER: 187,
+  RAIN_CISTERN: 188,
+  SMOKEHOUSE: 189,
+  HARBOR_BEACON: 190,
+  SHOREBIRD_AVIARY: 191,
 };
 
 /** @type {Record<number, {
@@ -313,6 +317,10 @@ export const ITEM_PROPS = {
   [ITEM.DIAMOND_AXE]: { name: 'Diamond Axe', color: [0.40, 0.82, 0.88], tool: 'axe', mineMult: 7.4, maxStack: 1, melee: 10, meleeRange: 3.6 },
   [ITEM.DIAMOND_SWORD]: { name: 'Diamond Sword', color: [0.42, 0.86, 0.90], tool: 'weapon', maxStack: 1, melee: 14, meleeRange: 3.8 },
   [ITEM.GLIDER]: { name: 'Palm Glider', color: [0.52, 0.84, 0.34], maxStack: 1, tool: 'hand' },
+  [ITEM.RAIN_CISTERN]: { name: 'Rain Cistern', color: [0.22, 0.52, 0.62], maxStack: 1, placeable: true, placeAs: BLOCK.CHEST },
+  [ITEM.SMOKEHOUSE]: { name: 'Smokehouse', color: [0.34, 0.24, 0.16], maxStack: 1, placeable: true, placeAs: BLOCK.CHEST },
+  [ITEM.HARBOR_BEACON]: { name: 'Harbor Beacon Kit', color: [0.95, 0.62, 0.18], maxStack: 1, placeable: true, placeAs: BLOCK.CHEST },
+  [ITEM.SHOREBIRD_AVIARY]: { name: 'Shorebird Aviary', color: [0.34, 0.62, 0.42], maxStack: 1, placeable: true, placeAs: BLOCK.CHEST },
 };
 
 export function propsOf(id) {

@@ -1,5 +1,5 @@
-import { Game } from './game.js?v=970';
-import { hasSave, clearSaveStorage } from './save.js?v=235';
+import { Game } from './game.js?v=1030';
+import { hasSave, clearSaveStorage } from './save.js?v=240';
 import { MODES, MODE_ORDER, getMode, difficulty_presets_explain } from './modes.js?v=221';
 import {
   writeSettings,
@@ -8,7 +8,7 @@ import {
   getPlayMode,
   PLAY_MODE_ORDER,
   PLAY_MODE_META,
-} from './settings.js?v=225';
+} from './settings.js?v=227';
 
 const canvas = document.getElementById('game');
 const title = document.getElementById('title-screen');
@@ -23,6 +23,9 @@ const btnCloseInstructions = document.getElementById('btn-close-instructions');
 const controlsScreen = document.getElementById('controls-screen');
 const btnCloseControls = document.getElementById('btn-close-controls');
 const controlsButtons = [...document.querySelectorAll('[data-open-controls]')];
+const accessibilityScreen = document.getElementById('accessibility-screen');
+const btnCloseAccessibility = document.getElementById('btn-close-accessibility');
+const accessibilityButtons = [...document.querySelectorAll('[data-open-accessibility]')];
 
 function refreshContinue() {
   const exists = hasSave();
@@ -109,6 +112,34 @@ const hud = {
 };
 
 const game = new Game(canvas, hud);
+if (typeof window !== 'undefined') window.__FSGame = game;
+const audioCaption = document.getElementById('audio-caption');
+let captionTimer = 0;
+if (audioCaption) {
+  game.audio?.setCaptionSink?.((text) => {
+    if (game.settings?.captions === false) return;
+    audioCaption.textContent = text;
+    audioCaption.classList.add('show');
+    window.clearTimeout(captionTimer);
+    captionTimer = window.setTimeout(() => audioCaption.classList.remove('show'), 2400);
+  });
+}
+
+const controllerStatus = document.getElementById('controller-status');
+function updateControllerStatus() {
+  if (!controllerStatus) return;
+  const pads = typeof navigator.getGamepads === 'function'
+    ? [...navigator.getGamepads()].filter(Boolean)
+    : [];
+  controllerStatus.classList.toggle('connected', pads.length > 0);
+  controllerStatus.classList.toggle('warn', pads.length === 0);
+  controllerStatus.textContent = pads.length
+    ? `Controller ready · ${pads.length} connected${pads.length > 1 ? ' · co-op ready' : ''}`
+    : 'Controller check · keyboard/mouse ready · pair a pad for TV/co-op';
+}
+window.addEventListener('gamepadconnected', updateControllerStatus);
+window.addEventListener('gamepaddisconnected', updateControllerStatus);
+updateControllerStatus();
 
 function installHudPresentation() {
   const status = document.getElementById('status-line');
@@ -257,6 +288,61 @@ function paintPlayModeRow() {
   if (blurb) blurb.textContent = PLAY_MODE_META[current].blurb;
 }
 
+function applyPresentationSettings({ persist = false } = {}) {
+  const s = game.settings || {};
+  document.body.classList.toggle('a11y-reduced-motion', s.reducedMotion === true);
+  document.body.classList.toggle('a11y-high-contrast', s.highContrast === true);
+  document.body.classList.toggle('a11y-color-safe', s.colorVisionSafe === true);
+  document.body.classList.toggle('a11y-large-ui', Number(s.uiScale) >= 1.15);
+  document.body.classList.toggle('tv-mode', s.tvMode === true);
+  document.body.classList.toggle('captions-off', s.captions === false);
+  document.documentElement.style.setProperty('--ui-scale', String(Number(s.uiScale) || 1));
+  const values = {
+    'a11y-reduced-motion': s.reducedMotion === true,
+    'a11y-high-contrast': s.highContrast === true,
+    'a11y-color-safe': s.colorVisionSafe === true,
+    'a11y-captions': s.captions !== false,
+    'a11y-tv-mode': s.tvMode === true,
+  };
+  for (const [id, checked] of Object.entries(values)) {
+    const input = document.getElementById(id);
+    if (input) input.checked = checked;
+  }
+  const scale = document.getElementById('a11y-ui-scale');
+  if (scale) scale.value = String(Number(s.uiScale) || 1);
+  if (persist) writeSettings(game.settings);
+}
+
+function openAccessibility() {
+  paintPresentationSettings();
+  accessibilityScreen?.classList.remove('hidden');
+}
+
+function paintPresentationSettings() {
+  applyPresentationSettings();
+}
+
+function bindAccessibilitySettings() {
+  const pairs = [
+    ['a11y-reduced-motion', 'reducedMotion'],
+    ['a11y-high-contrast', 'highContrast'],
+    ['a11y-color-safe', 'colorVisionSafe'],
+    ['a11y-captions', 'captions'],
+    ['a11y-tv-mode', 'tvMode'],
+  ];
+  for (const [id, key] of pairs) {
+    document.getElementById(id)?.addEventListener('change', (event) => {
+      game.settings[key] = event.currentTarget.checked;
+      applyPresentationSettings({ persist: true });
+    });
+  }
+  document.getElementById('a11y-ui-scale')?.addEventListener('change', (event) => {
+    game.settings.uiScale = Number(event.currentTarget.value) || 1;
+    applyPresentationSettings({ persist: true });
+  });
+}
+
+
 // Restore session play mode over persisted settings when present
 {
   const sessionPm = readSessionPlayMode();
@@ -287,6 +373,7 @@ function engageControls() {
     // playable frame after Start, Continue, or Respawn. It can still be
     // reopened through the Controls buttons below.
     controlsScreen?.classList.add('hidden');
+    accessibilityScreen?.classList.add('hidden');
     document.body.classList.add('game-active');
     game.input?.clearTransient?.();
     game.input.uiMode = false;
@@ -401,6 +488,14 @@ controlsButtons.forEach((button) => button.addEventListener('click', (e) => {
   e.stopPropagation();
   controlsScreen?.classList.remove('hidden');
 }));
+accessibilityButtons.forEach((button) => button.addEventListener('click', (e) => {
+  e.stopPropagation();
+  openAccessibility();
+}));
+btnCloseAccessibility?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  accessibilityScreen?.classList.add('hidden');
+});
 btnCloseControls?.addEventListener('click', (e) => {
   e.stopPropagation();
   controlsScreen?.classList.add('hidden');
@@ -414,6 +509,8 @@ btnRespawn?.addEventListener('click', (e) => {
   }
 });
 
+bindAccessibilitySettings();
+applyPresentationSettings();
 paintModeRow();
 paintPlayModeRow();
 refreshContinue();
@@ -493,4 +590,4 @@ engageControls = function() {
 
 window.__FS = game;
 
-console.info('Frontier Survival boot OK · v1.28.5');
+console.info('Frontier Survival boot OK · v1.28.9');
