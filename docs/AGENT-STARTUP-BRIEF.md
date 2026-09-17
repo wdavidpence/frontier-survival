@@ -62,7 +62,7 @@ If you only open one file after the project path, make it this one.
 
 ### Playability is sacred
 - **Never publish** a build that cannot paint Solo/Co-op + difficulty rows and Start into a world.
-- Latest verified public release: **v1.27.11** (`18c412e`, tag `v1.27.11`). Balanced mode now bounds DPR, stream distance, LOD visibility, fauna presentation, apiary scans, power scans, and light scans while retaining the latest v1.27.10 product surface.
+- Latest verified public release: **v1.28.10** (`e78a02f`, tag `v1.28.10`). This checkpoint includes the current AAA candidate presentation, survival, expedition, co-op, accessibility, mobile, streaming, and station integration surface.
 - If start is broken: **restore last good playable commit first**, then salvage features carefully. Do not “fix forward” a dead title screen.
 
 ### Boot / ES module landmines

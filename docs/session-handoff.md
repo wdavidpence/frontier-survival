@@ -5,14 +5,14 @@
 
 ---
 
-Date: 2026-08-29
+Date: 2026-09-16
 Repo: `/mnt/c/Users/wdavi/Projects/Frontier-Survival`
 Compat junction: `/mnt/c/Users/wdavi/Projects/SurvivalCraftMobile` → same repo (legacy only)
 Board: `frontier-survival`
 Live: https://wdavidpence.github.io/frontier-survival/
 Local static: `http://127.0.0.1:8767/`
-HEAD: `1a3fee0` on `origin/main` — published v1.26.8
-Last feature ship: **v1.26.8** — expanded Tortola to a 120×44-cell authored body with the Cane Garden Bay tropical start
+HEAD: `e78a02f` on `origin/main` — published v1.28.10
+Last feature ship: **v1.28.10** — AAA candidate checkpoint with authored coastal arrival, expedition, co-op, accessibility, streaming, and station integration
 Next release candidate: use a fresh clean worktree from `origin/main`; do not use the dirty canonical checkout
 
 ---
