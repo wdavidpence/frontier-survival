@@ -11,8 +11,8 @@ Compat junction: `/mnt/c/Users/wdavi/Projects/SurvivalCraftMobile` → same repo
 Board: `frontier-survival`
 Live: https://wdavidpence.github.io/frontier-survival/
 Local static: `http://127.0.0.1:8767/`
-HEAD: `e78a02f` on `origin/main` — published v1.28.10
-Last feature ship: **v1.28.10** — AAA candidate checkpoint with authored coastal arrival, expedition, co-op, accessibility, streaming, and station integration
+HEAD: `628acab` on `origin/main` — documentation follow-up for published v1.28.10
+Last feature ship: **v1.28.10** (`e78a02f`, tag `v1.28.10`) — AAA candidate checkpoint with authored coastal arrival, expedition, co-op, accessibility, streaming, and station integration
 Next release candidate: use a fresh clean worktree from `origin/main`; do not use the dirty canonical checkout
 
 ---
