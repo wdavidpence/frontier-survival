@@ -6337,14 +6337,14 @@ test('bug sprint: all visible version surfaces agree', () => {
   const html = fsText('index.html');
   const pub = fsText('public/index.html');
   assert.equal(html, pub, 'root/public HTML must stay identical');
-  assert.ok(html.includes('v1.28.9'), 'HTML must expose v1.28.9');
+  assert.ok(html.includes('v1.28.10'), 'HTML must expose v1.28.10');
   assert.ok(pub.includes('#message:empty'), 'public/index.html must hide empty messages');
   assert.ok(html.includes('#message:empty'), 'index.html must hide empty messages');
   assert.match(html, /id="message" role="status" aria-live="polite" aria-atomic="true"/);
   assert.match(html, /body\.game-active\.composure-mode #arrival-card/);
   assert.match(html, /body\.game-active\.composure-mode #message/);
   assert.match(html, /body\.game-active\.arrival-route #message/);
-  assert.ok(html.includes('main.js?v=1006'), 'HTML must expose the current entry cache bust');
+  assert.ok(html.includes('main.js?v=1007'), 'HTML must expose the current entry cache bust');
   assert.ok(!html.includes('v1.12.14') && !html.includes('v1.12.15'), 'stale version markers remain');
 });
 
@@ -6713,7 +6713,7 @@ test('minecraft feel sprint wires drops, sneak, chew, and HUD juice', () => {
   assert.match(audio, /pickup\(\)/);
   assert.match(html, /pickup-pops/);
   assert.match(html, /hotbar-name\.show/);
-  assert.match(html, /main\.js\?v=1006/);
+  assert.match(html, /main\.js\?v=1007/);
 });
 
 test('arrival sun sits in the opening sky and shadows follow the player', () => {
@@ -6839,7 +6839,7 @@ test('golden cove vision pack wires the first six future-vision pillars', () => 
   assert.match(vision, /MEMORY_KEY/);
   assert.match(vision, /bearingTo/);
   assert.match(vision, /setWidth\(root, '\[data-gcv-meter=\"tide\"\]'/);
-  assert.match(html, /main\.js\?v=1006/);
+  assert.match(html, /main\.js\?v=1007/);
 });
 
 test('Golden Cove last-five contracts: risk, spoor, weather, night, and rendezvous', () => {
