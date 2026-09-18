@@ -4,7 +4,7 @@ import { heightAt, coastalGradeHeight, sandyCoastHeight, isSandyBeachSurface, ha
 import { biomeAt, BIOME } from './biomes.js?v=274';
 import { tileForBlock } from './atlas-core.js?v=295';
 import { CRAFTING_TABLE } from './crafting-table.js?v=2';
-import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=248';
+import { greedyMeshChunk, quadsToArrays } from './mesh-greedy.js?v=249';
 import { buildMushroomGeometry } from './mushroom-geometry.js?v=3';
 import { buildTorchGeometry } from './torch-geometry.js?v=2';
 import { buildCandleGeometry } from './candle-geometry.js?v=1';

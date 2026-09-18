@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=568';
+import { World, WORLD_HEIGHT, SEA_LEVEL } from './world.js?v=569';
 import { Player } from './player.js?v=244';
 import { Input } from './input.js?v=414';
 import { GameTime, DEFAULT_DAY_LENGTH_SEC, migrateDayLengthSec } from './time.js?v=227';

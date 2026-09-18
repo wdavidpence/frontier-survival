@@ -14,6 +14,13 @@ function packKey(tile, r, g, b, a) {
   return `${tile}|${(r * 1000) | 0}|${(g * 1000) | 0}|${(b * 1000) | 0}|${(a * 100) | 0}`;
 }
 
+// Cross-model foliage must bypass the cube-face pass. Keeping this list in the
+// mesher prevents transparent atlas tiles from becoming white/empty voxel faces.
+const CROSS_MODEL_TILES = new Set([
+  20, 22, 53, 54, 55, 56, 57, 59,
+  64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75,
+]);
+
 /**
  * @param {object} opts
  * @returns {Array<object>} quads
@@ -82,7 +89,7 @@ export function greedyMeshChunk(opts) {
           const tile = tileFor(id, name);
 
           // Skip standard orthogonal faces for cross-model plants
-          const isPlant = (tile === 20 || tile === 22 || tile === 53 || tile === 54 || tile === 56 || tile === 57 || tile === 59 || tile === 64 || tile === 65 || tile === 66 || tile === 67 || tile === 68 || tile === 69);
+          const isPlant = CROSS_MODEL_TILES.has(tile);
           if (isPlant) continue;
 
           const col = colorFor(id, name);
@@ -202,7 +209,7 @@ export function greedyMeshChunk(opts) {
         if (id === 0 || id == null) continue;
 
         const tile = tileFor(id, 'cross');
-        const isPlant = (tile === 20 || tile === 22 || tile === 53 || tile === 54 || tile === 56 || tile === 57 || tile === 59 || tile === 64 || tile === 65 || tile === 66 || tile === 67 || tile === 68 || tile === 69);
+        const isPlant = CROSS_MODEL_TILES.has(tile);
         if (!isPlant) continue;
 
         const col = colorFor(id, 'cross');
