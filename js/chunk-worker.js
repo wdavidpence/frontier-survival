@@ -739,6 +739,16 @@ function starterCoveSightlinePocket(x, z, biome) {
     && x >= 20 && x <= 28 && z >= 12 && z <= 16;
 }
 
+// Mirror the authored castaway near-field clearance from world.js so sync and
+// worker chunk generation produce the same open arrival sightline.
+function castawayArrivalSightline(x, z) {
+  return x >= -24 && x <= 2 && z >= -38 && z <= -18;
+}
+
+function castawayArrivalTerrainClearance(x, z) {
+  return x >= -30 && x <= -16 && z >= -28 && z <= -20;
+}
+
 // ── Chunk generation (mirrors World._generateChunk) ─────────────────────────
 
 function generateChunkData(cx, cz, seed) {
@@ -770,9 +780,10 @@ function generateChunkData(cx, cz, seed) {
             ? SEA_LEVEL - 1 : coastalGradeHeight(x, z, seed);
       const cliff = biome === 'tropical' && tropicalCliffAt(x, z, seed);
       const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
-      const h = caneBayWater ? SEA_LEVEL - 1
+      let h = caneBayWater ? SEA_LEVEL - 1
         : caneBayWalkable ? SEA_LEVEL
           : starterCove ? SEA_LEVEL + 1 : sandyCoastHeight(x, z, seed, biome, baseHeight, rockyCoast);
+      if (castawayArrivalTerrainClearance(x, z)) h = SEA_LEVEL + 1;
       const sandySurface = !deepWater && (caneBayWalkable || starterCove || isSandyBeachSurface(h, biome, rockyCoast));
 
       for (let y = 0; y < WORLD_HEIGHT; y++) {
@@ -808,7 +819,7 @@ function generateChunkData(cx, cz, seed) {
           if (exposedOre) id = exposedOre;
         }
         const starterCave = starterCaveBlockLocal(x, y, z, SEA_LEVEL);
-        if (starterCave != null) id = starterCave;
+        if (starterCave != null && !castawayArrivalTerrainClearance(x, z)) id = starterCave;
         data[idx(lx, y, lz)] = id;
       }
       const saltPond = bviSaltPondAt(x, z);
@@ -849,7 +860,7 @@ function generateChunkData(cx, cz, seed) {
         const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
         if (mangroveLandmark) {
           _placeMangroveBridge(data, idx, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-        } else if (!villageColumn && !forestPocket && !beachApproach && !caneBayBeach && !caneBayWater && !starterCove && !starterCoveSightline && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+        } else if (!villageColumn && !forestPocket && !beachApproach && !caneBayBeach && !caneBayWater && !starterCove && !starterCoveSightline && !castawayArrivalSightline(x, z) && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
           && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
           if (biome === 'mangrove') _placeMangrove(data, idx, lx, h + 1, lz);
           else if (biome === 'tropical' || biome === 'shore') _placePalm(data, idx, lx, h + 1, lz);
@@ -934,7 +945,7 @@ function generateChunkData(cx, cz, seed) {
 }
 
 function populateSurfaceFlora(data, idx, lx, h, lz, x, z, biome, seed) {
-  if (h <= SEA_LEVEL + 1 || mangroveApproachPlantClearance(x, z, biome)) return;
+  if (h <= SEA_LEVEL + 1 || mangroveApproachPlantClearance(x, z, biome) || castawayArrivalSightline(x, z)) return;
   if (biome !== 'forest' && biome !== 'shore' && biome !== 'tropical' && biome !== 'mangrove') return;
   const surface = data[idx(lx, h, lz)];
   if (surface !== BLOCK.GRASS && surface !== BLOCK.DIRT && surface !== BLOCK.SAND && surface !== BLOCK.MANGROVE_MUD) return;

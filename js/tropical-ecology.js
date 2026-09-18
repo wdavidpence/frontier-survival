@@ -44,6 +44,7 @@ const STARTER_COVE_SHOWCASE = new Map([
   ['6,-27', BLOCK.PANDANUS],
 ]);
 const STARTER_COVE_PALMS = new Set(['-21,-26', '-15,-26', '-12,-26', '-18,-29', '-8,-29', '-6,-26']);
+const castawayArrivalSightline = (x, z) => x >= -24 && x <= 2 && z >= -38 && z <= -18;
 const idx = (lx, y, lz) => (lz * WORLD_HEIGHT + y) * CHUNK_SIZE + lx;
 const inside = (lx, y, lz) => lx >= 0 && lx < CHUNK_SIZE && lz >= 0 && lz < CHUNK_SIZE && y >= 0 && y < WORLD_HEIGHT;
 
@@ -196,13 +197,14 @@ export function applyTropicalEcology(data, { baseX = 0, baseZ = 0, seed = 0 } = 
       const showcaseId = STARTER_COVE_SHOWCASE.get(`${x},${z}`);
       const landing = bviBeachLandingAt(x, z);
       if (
-        showcaseId && landing.name === 'cane-garden-bay-landing' && landing.influence > 0
+        showcaseId && !castawayArrivalSightline(x, z) && landing.name === 'cane-garden-bay-landing' && landing.influence > 0
         && (biome === BIOME.SHORE || biome === BIOME.TROPICAL)
         && SURFACE.has(surface) && data[idx(lx, h + 1, lz)] === AIR
       ) {
         put(data, lx, h + 1, lz, showcaseId);
         continue;
       }
+      if (castawayArrivalSightline(x, z)) continue;
       if (STARTER_COVE_PALMS.has(`${x},${z}`) && SURFACE.has(surface) && h >= 0 && data[idx(lx, h + 1, lz)] === AIR) {
         placeLeaningPalm(data, lx, h + 1, lz);
         continue;

@@ -20,7 +20,7 @@ import { raycastVoxel } from './interaction-contract.js?v=5';
 import { chooseCastawayCandidate, CASTAWAY_CONFIG, arrivalFacingYaw } from './castaway-arrival.js?v=10';
 import { waterEditsAfterExcavation, canReceiveWater } from './shore-water.js?v=3';
 import { createDisposalContext, disposeGeometry, disposeTree } from './resource-disposal.js?v=3';
-import { applyTropicalEcology } from './tropical-ecology.js?v=25';
+import { applyTropicalEcology } from './tropical-ecology.js?v=26';
 import { shouldCarveCave, diamondVeinAt, starterCaveBlock } from './cave-carve.js?v=1';
 
 export const CHUNK_SIZE = 16;
@@ -28,6 +28,8 @@ export const WORLD_HEIGHT = 48;
 export const SEA_LEVEL = 16;
 
 const forestPhase = value => ((value % 64) + 64) % 64;
+const castawayArrivalSightline = (x, z) => x >= -24 && x <= 2 && z >= -38 && z <= -18;
+const castawayArrivalTerrainClearance = (x, z) => x >= -30 && x <= -16 && z >= -28 && z <= -20;
 function forestSightlinePocket(x, z, biome) {
   const px = forestPhase(x);
   const pz = forestPhase(z);
@@ -658,7 +660,7 @@ export class World {
 
     // Build a Blob URL from the inline chunk-worker source.
     // We read it via a fetch so we don't need to duplicate the code here.
-    const workerUrl = './js/chunk-worker.js?v=367';
+    const workerUrl = './js/chunk-worker.js?v=368';
 
     for (let i = 0; i < this._maxWorkers; i++) {
       try {
@@ -743,7 +745,7 @@ export class World {
                     : coastalGradeHeight(x, z, this.seed);
         const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
         const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
-        const h = caneBayWater
+        let h = caneBayWater
           ? SEA_LEVEL - 1
           : caneBayWalkable
             ? SEA_LEVEL
@@ -752,6 +754,7 @@ export class World {
               : starterChannel || starterEdgeHeight != null
                 ? baseHeight
                 : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
+        if (castawayArrivalTerrainClearance(x, z)) h = SEA_LEVEL + 1;
         const sandySurface = !deepWater && (caneBayWalkable || starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
@@ -788,7 +791,7 @@ export class World {
             if (exposedOre) id = exposedOre;
           }
           const starterCave = starterCaveBlock(x, y, z, SEA_LEVEL);
-          if (starterCave != null) id = starterCave;
+          if (starterCave != null && !castawayArrivalTerrainClearance(x, z)) id = starterCave;
           data[this._idx(lx, y, lz)] = id;
         }
         const saltPond = bviSaltPondAt(x, z);
@@ -828,7 +831,7 @@ export class World {
           const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
           if (mangroveLandmark) {
             this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-          } else if (!villageColumn && !forestPocket && !beachApproach && !caneBayBeach && !caneBayWater && !starterCove && !starterCoveSightline && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+          } else if (!villageColumn && !forestPocket && !beachApproach && !caneBayBeach && !caneBayWater && !starterCove && !starterCoveSightline && !castawayArrivalSightline(x, z) && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
             && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -1448,7 +1451,7 @@ export class World {
                     : coastalGradeHeight(x, z, this.seed);
         const cliff = biome === BIOME.TROPICAL && tropicalCliffAt(x, z, this.seed);
         const rockyCoast = cliff || !!bviCayOutcropAt(x, z);
-        const h = caneBayWater
+        let h = caneBayWater
           ? SEA_LEVEL - 1
           : caneBayWalkable
             ? SEA_LEVEL
@@ -1457,6 +1460,7 @@ export class World {
               : starterChannel || starterEdgeHeight != null
                 ? baseHeight
                 : sandyCoastHeight(x, z, this.seed, biome, baseHeight, rockyCoast);
+        if (castawayArrivalTerrainClearance(x, z)) h = SEA_LEVEL + 1;
         const sandySurface = !deepWater && (caneBayWalkable || starterCove || isSandyBeachSurface({ height: h, biome, seaLevel: SEA_LEVEL, rocky: rockyCoast }));
 
         for (let y = 0; y < WORLD_HEIGHT; y++) {
@@ -1499,7 +1503,7 @@ export class World {
             if (exposedOre) id = exposedOre;
           }
           const starterCave = starterCaveBlock(x, y, z, SEA_LEVEL);
-          if (starterCave != null) id = starterCave;
+          if (starterCave != null && !castawayArrivalTerrainClearance(x, z)) id = starterCave;
           data[this._idx(lx, y, lz)] = id;
         }
         const saltPond = bviSaltPondAt(x, z);
@@ -1540,7 +1544,7 @@ export class World {
           const mangroveLandmark = mangroveMarkerAt(x, z, biome, h);
           if (mangroveLandmark) {
             this._placeMangroveBridge(data, lx, h + 1, lz, mangroveApproachPlantClearance(x, z, biome));
-          } else if (!villageColumn && !forestPocket && !beachApproach && !caneBayBeach && !caneBayWater && !starterCove && !starterCoveSightline && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
+          } else if (!villageColumn && !forestPocket && !beachApproach && !caneBayBeach && !caneBayWater && !starterCove && !starterCoveSightline && !castawayArrivalSightline(x, z) && !saltPond && !driftwood && !mangroveSightlinePocket(x, z, biome)
             && !mangroveApproachSightlinePocket(x, z, biome) && th > 1 - treeChance) {
             // Tree species selection by biome
             const sequoiaRoll = hash2(x + 73, z * 2 + (this.seed | 0));
@@ -1708,7 +1712,7 @@ export class World {
 
   /** Deterministic surface flora: clustered blades, flowers, and rare bamboo stands. */
   _populateSurfaceFlora(data, lx, h, lz, x, z, biome) {
-    if (h <= SEA_LEVEL + 1 || mangroveApproachPlantClearance(x, z, biome)) return;
+    if (h <= SEA_LEVEL + 1 || mangroveApproachPlantClearance(x, z, biome) || castawayArrivalSightline(x, z)) return;
     if (biome !== BIOME.FOREST && biome !== BIOME.SHORE && biome !== BIOME.TROPICAL && biome !== BIOME.MANGROVE) return;
     const surface = data[this._idx(lx, h, lz)];
     if (surface !== BLOCK.GRASS && surface !== BLOCK.DIRT && surface !== BLOCK.SAND && surface !== BLOCK.MANGROVE_MUD) return;
